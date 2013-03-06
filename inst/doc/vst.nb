@@ -1,0 +1,1000 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 7.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[     35124,        991]
+NotebookOptionsPosition[     32281,        895]
+NotebookOutlinePosition[     32848,        915]
+CellTagsIndexPosition[     32805,        912]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Variance-stabilizing transformation for DESeq", "Subtitle",
+ CellChangeTimes->{{3.540622683759346*^9, 3.5406226961574497`*^9}, {
+  3.540815669170343*^9, 3.540815673334532*^9}}],
+
+Cell[BoxData[
+ StyleBox[
+  RowBox[{
+   RowBox[{"For", " ", "parametrized", " ", "dispersion", " ", "fit"}], 
+   "\[IndentingNewLine]"}], "Subsubtitle"]], "Input",
+ CellChangeTimes->{{3.540815676143361*^9, 3.5408157093482103`*^9}}],
+
+Cell[TextData[{
+ "This file describes the variance stabilizing transformation (VST) used by \
+DESeq when parametric dispersion estimation is used.\nThis is a ",
+ StyleBox["Mathematica",
+  FontSlant->"Italic"],
+ " notebook. The file ",
+ StyleBox["vst.pdf",
+  FontSlant->"Italic"],
+ " is produced from ",
+ StyleBox["vst.nb",
+  FontSlant->"Italic"],
+ "."
+}], "Text",
+ CellChangeTimes->{{3.5407069553696613`*^9, 3.540707011225795*^9}}],
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.540706950820628*^9, 3.540706952072029*^9}}],
+
+Cell[TextData[{
+ "When using ",
+ StyleBox["estimateDispersions",
+  FontSlant->"Italic"],
+ " with ",
+ StyleBox["fitType=\"parametric\"",
+  FontSlant->"Italic"],
+ ", we parametrize the relation between mean \[Mu] and dispersion \[Alpha] \
+with two constants ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["a", "0"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["a", "1"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ "as follows:"
+}], "Text",
+ CellChangeTimes->{{3.540622754917987*^9, 3.5406228441955957`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"\[Alpha]", " ", "=", " ", 
+  RowBox[{
+   SubscriptBox["a", "0"], "+", 
+   RowBox[{
+    SubscriptBox["a", "1"], "/", "\[Mu]"}]}]}]], "Input",
+ CellChangeTimes->{{3.540622709621419*^9, 3.540622751006365*^9}, {
+  3.5406228468149643`*^9, 3.540622847455463*^9}, {3.540622881311955*^9, 
+  3.540622881653171*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  SubscriptBox["a", "0"], "+", 
+  FractionBox[
+   SubscriptBox["a", "1"], "\[Mu]"]}]], "Output",
+ CellChangeTimes->{3.5406228483207407`*^9, 3.540622882333549*^9, 
+  3.5406235190432873`*^9, 3.54070632548785*^9}]
+}, Open  ]],
+
+Cell[TextData[{
+ "In the package, ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["a", "0"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " is called the ",
+ StyleBox["asymptotic dispersion",
+  FontSlant->"Italic"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["a", "1"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " the ",
+ StyleBox["extra-Poisson factor",
+  FontSlant->"Italic"],
+ "."
+}], "Text",
+ CellChangeTimes->{{3.540625116841147*^9, 3.54062515229095*^9}}],
+
+Cell["The variance is hence", "Text",
+ CellChangeTimes->{{3.5406228589902277`*^9, 3.540622862149235*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"v", " ", "=", " ", 
+  RowBox[{
+   RowBox[{"\[Mu]", " ", "+", " ", 
+    RowBox[{"\[Alpha]", " ", 
+     SuperscriptBox["\[Mu]", "2"]}]}], "//", "Expand"}]}]], "Input",
+ CellChangeTimes->{{3.540622864971992*^9, 3.540622905693181*^9}}],
+
+Cell[BoxData[
+ RowBox[{"\[Mu]", "+", 
+  RowBox[{
+   SuperscriptBox["\[Mu]", "2"], " ", 
+   SubscriptBox["a", "0"]}], "+", 
+  RowBox[{"\[Mu]", " ", 
+   SubscriptBox["a", "1"]}]}]], "Output",
+ CellChangeTimes->{{3.5406228908884497`*^9, 3.540622906087739*^9}, 
+   3.540623520780364*^9, 3.540706328495348*^9}]
+}, Open  ]],
+
+Cell[TextData[{
+ "A variance stabilizing transformation (VST) is a transformation ",
+ StyleBox["u",
+  FontSlant->"Italic"],
+ ", such that, if ",
+ StyleBox["X", "InlineFormula",
+  FontSlant->"Italic"],
+ " is a random variable with variance-mean relation ",
+ StyleBox["v",
+  FontSlant->"Italic"],
+ ", i.e.,",
+ Cell[BoxData[
+  FormBox[
+   RowBox[{
+    RowBox[{"Var", "(", "X", ")"}], "=", 
+    RowBox[{"v", "(", 
+     RowBox[{
+      StyleBox["E",
+       FontSlant->"Plain"], "(", "X", ")"}], ")"}]}], TraditionalForm]]],
+ ", then ",
+ Cell[BoxData[
+  FormBox[
+   RowBox[{"u", "(", "X", ")"}], TraditionalForm]]],
+ " has stabilized variance, i.e., is homoskedastic.\[LineSeparator]\nA VST ",
+ StyleBox["u",
+  FontSlant->"Italic"],
+ " can be derived from a variance-mean relation ",
+ StyleBox["v",
+  FontSlant->"Italic"],
+ " by ",
+ Cell[BoxData[
+  FormBox[
+   RowBox[{
+    RowBox[{"u", "(", "x", ")"}], " ", "=", 
+    RowBox[{
+     SuperscriptBox["\[Integral]", "x"], 
+     FractionBox["d\[Mu]", 
+      SqrtBox[
+       RowBox[{"v", "(", "\[Mu]", ")"}]]]}]}], TraditionalForm]]],
+ ". \nHence, we can get a general VST with"
+}], "Text",
+ CellChangeTimes->{{3.5406229237822933`*^9, 3.540622976488544*^9}, {
+   3.5406230186338882`*^9, 3.5406234172645473`*^9}, 3.540623709187056*^9}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  SubscriptBox["u", "0"], "=", 
+  RowBox[{"Integrate", "[", " ", 
+   RowBox[{
+    FractionBox["1", 
+     SqrtBox["v"]], ",", 
+    RowBox[{"{", 
+     RowBox[{"\[Mu]", ",", "0", ",", "x"}], "}"}], ",", " ", 
+    RowBox[{"Assumptions", "\[Rule]", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{
+        SubscriptBox["a", "0"], ">", "0"}], ",", 
+       RowBox[{
+        SubscriptBox["a", "1"], ">", "0"}], ",", 
+       RowBox[{"x", ">", "0"}]}], "}"}]}]}], "]"}]}]], "Input",
+ CellChangeTimes->{{3.540623530465404*^9, 3.5406235592399807`*^9}, {
+  3.540623599688093*^9, 3.5406236174438133`*^9}, {3.54062365174788*^9, 
+  3.5406236985888433`*^9}, {3.5406237316160307`*^9, 3.540623763300437*^9}, {
+  3.5406239927503653`*^9, 3.5406240020590677`*^9}}],
+
+Cell[BoxData[
+ FractionBox[
+  RowBox[{"Log", "[", 
+   FractionBox[
+    RowBox[{"1", "+", 
+     RowBox[{"2", " ", "x", " ", 
+      SubscriptBox["a", "0"]}], "+", 
+     SubscriptBox["a", "1"], "+", 
+     RowBox[{"2", " ", 
+      SqrtBox[
+       RowBox[{"x", " ", 
+        SubscriptBox["a", "0"], " ", 
+        RowBox[{"(", 
+         RowBox[{"1", "+", 
+          RowBox[{"x", " ", 
+           SubscriptBox["a", "0"]}], "+", 
+          SubscriptBox["a", "1"]}], ")"}]}]]}]}], 
+    RowBox[{"1", "+", 
+     SubscriptBox["a", "1"]}]], "]"}], 
+  SqrtBox[
+   SubscriptBox["a", "0"]]]], "Output",
+ CellChangeTimes->{3.5406237656511507`*^9, 3.5406240086931467`*^9, 
+  3.540706337835845*^9}]
+}, Open  ]],
+
+Cell[TextData[{
+ "If ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["u", "0"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " is a VST, then so is ",
+ Cell[BoxData[
+  FormBox[
+   RowBox[{
+    RowBox[{"u", "(", "x", ")"}], "=", 
+    RowBox[{
+     RowBox[{"\[Eta]", " ", 
+      RowBox[{
+       SubscriptBox["u", "0"], "(", "x", ")"}]}], "+", "\[Xi]"}]}], 
+   TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ ". Hence, this here is a VST, too:"
+}], "Text",
+ CellChangeTimes->{{3.54062372243547*^9, 3.540623757039871*^9}, {
+  3.54062379375005*^9, 3.540623799888122*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"u", " ", "=", " ", 
+  RowBox[{
+   RowBox[{"\[Eta]", " ", 
+    SubscriptBox["u", "0"]}], " ", "+", " ", "\[Xi]"}]}]], "Input",
+ CellChangeTimes->{{3.540623420986374*^9, 3.540623478619273*^9}, {
+  3.540623773769244*^9, 3.540623774356125*^9}}],
+
+Cell[BoxData[
+ RowBox[{"\[Xi]", "+", 
+  FractionBox[
+   RowBox[{"\[Eta]", " ", 
+    RowBox[{"Log", "[", 
+     FractionBox[
+      RowBox[{"1", "+", 
+       RowBox[{"2", " ", "x", " ", 
+        SubscriptBox["a", "0"]}], "+", 
+       SubscriptBox["a", "1"], "+", 
+       RowBox[{"2", " ", 
+        SqrtBox[
+         RowBox[{"x", " ", 
+          SubscriptBox["a", "0"], " ", 
+          RowBox[{"(", 
+           RowBox[{"1", "+", 
+            RowBox[{"x", " ", 
+             SubscriptBox["a", "0"]}], "+", 
+            SubscriptBox["a", "1"]}], ")"}]}]]}]}], 
+      RowBox[{"1", "+", 
+       SubscriptBox["a", "1"]}]], "]"}]}], 
+   SqrtBox[
+    SubscriptBox["a", "0"]]]}]], "Output",
+ CellChangeTimes->{3.540623775240573*^9, 3.5406240154345617`*^9, 
+  3.540706341376553*^9}]
+}, Open  ]],
+
+Cell[TextData[{
+ "We will now choose the parameters \[Eta] and \[Xi] such that our VST \
+behaves like ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["log", "2"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " for large values. Let us first look at the asymptotic ratio of the two \
+transformations:"
+}], "Text",
+ CellChangeTimes->{{3.5406237859608927`*^9, 3.540623835015697*^9}, {
+  3.540623912031002*^9, 3.5406239291035957`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Limit", "[", 
+  RowBox[{
+   RowBox[{"u", "/", 
+    RowBox[{"Log", "[", 
+     RowBox[{"2", ",", "x"}], "]"}]}], ",", 
+   RowBox[{"x", "\[Rule]", "\[Infinity]"}], ",", 
+   RowBox[{"Assumptions", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       SubscriptBox["a", "0"], ">", "0"}], ",", 
+      RowBox[{
+       SubscriptBox["a", "1"], ">", "0"}], ",", 
+      RowBox[{"x", ">", "0"}]}], "}"}]}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.540623840409006*^9, 3.540623897293412*^9}}],
+
+Cell[BoxData[
+ FractionBox[
+  RowBox[{"\[Eta]", " ", 
+   RowBox[{"Log", "[", "2", "]"}]}], 
+  SqrtBox[
+   SubscriptBox["a", "0"]]]], "Output",
+ CellChangeTimes->{
+  3.5406238532935*^9, {3.540623884009026*^9, 3.540623898620083*^9}, 
+   3.540623932367114*^9, 3.540624018553113*^9, 3.540706350438925*^9}]
+}, Open  ]],
+
+Cell["\<\
+Hence, if we set \[Eta] as follows, both tranformations have asymptotically \
+the ratio 1.\
+\>", "Text",
+ CellChangeTimes->{{3.540623941645524*^9, 3.540623964772687*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"\[Eta]", "=", 
+  FractionBox[
+   SqrtBox[
+    SubscriptBox["a", "0"]], 
+   RowBox[{"Log", "[", "2", "]"}]]}]], "Input",
+ CellChangeTimes->{{3.5406239683083763`*^9, 3.540623985663389*^9}}],
+
+Cell[BoxData[
+ FractionBox[
+  SqrtBox[
+   SubscriptBox["a", "0"]], 
+  RowBox[{"Log", "[", "2", "]"}]]], "Output",
+ CellChangeTimes->{3.54062402054701*^9, 3.5407063538642073`*^9}]
+}, Open  ]],
+
+Cell["We also want the difference to vanish for large values:", "Text",
+ CellChangeTimes->{{3.5406240570203876`*^9, 3.540624066501199*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Limit", "[", 
+  RowBox[{
+   RowBox[{"u", "-", 
+    RowBox[{"Log", "[", 
+     RowBox[{"2", ",", "x"}], "]"}]}], ",", 
+   RowBox[{"x", "\[Rule]", "\[Infinity]"}], ",", 
+   RowBox[{"Assumptions", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       SubscriptBox["a", "0"], ">", "0"}], ",", 
+      RowBox[{
+       SubscriptBox["a", "1"], ">", "0"}], ",", 
+      RowBox[{"x", ">", "0"}]}], "}"}]}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.540624078076254*^9, 3.5406240782935953`*^9}}],
+
+Cell[BoxData[
+ RowBox[{"\[Xi]", "+", 
+  FractionBox[
+   RowBox[{"Log", "[", 
+    FractionBox[
+     RowBox[{"4", " ", 
+      SubscriptBox["a", "0"]}], 
+     RowBox[{"1", "+", 
+      SubscriptBox["a", "1"]}]], "]"}], 
+   RowBox[{"Log", "[", "2", "]"}]]}]], "Output",
+ CellChangeTimes->{3.540624079366681*^9, 3.5407063578189287`*^9}]
+}, Open  ]],
+
+Cell["So, we set", "Text",
+ CellChangeTimes->{{3.540624088556891*^9, 3.540624089891953*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"\[Xi]", "=", 
+  RowBox[{"-", 
+   FractionBox[
+    RowBox[{"Log", "[", 
+     FractionBox[
+      RowBox[{"4", " ", 
+       SubscriptBox["a", "0"]}], 
+      RowBox[{"1", "+", 
+       SubscriptBox["a", "1"]}]], "]"}], 
+    RowBox[{"Log", "[", "2", "]"}]]}]}]], "Input",
+ CellChangeTimes->{{3.540624101066662*^9, 3.54062410215302*^9}}],
+
+Cell[BoxData[
+ RowBox[{"-", 
+  FractionBox[
+   RowBox[{"Log", "[", 
+    FractionBox[
+     RowBox[{"4", " ", 
+      SubscriptBox["a", "0"]}], 
+     RowBox[{"1", "+", 
+      SubscriptBox["a", "1"]}]], "]"}], 
+   RowBox[{"Log", "[", "2", "]"}]]}]], "Output",
+ CellChangeTimes->{3.5406241034473743`*^9, 3.5407063616117477`*^9}]
+}, Open  ]],
+
+Cell["Check that both limits are now correct:", "Text",
+ CellChangeTimes->{{3.540624108213401*^9, 3.5406241294046183`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Limit", "[", 
+  RowBox[{
+   RowBox[{"u", "/", 
+    RowBox[{"Log", "[", 
+     RowBox[{"2", ",", "x"}], "]"}]}], ",", 
+   RowBox[{"x", "\[Rule]", "\[Infinity]"}], ",", 
+   RowBox[{"Assumptions", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       SubscriptBox["a", "0"], ">", "0"}], ",", 
+      RowBox[{
+       SubscriptBox["a", "1"], ">", "0"}], ",", 
+      RowBox[{"x", ">", "0"}]}], "}"}]}]}], "]"}]], "Input"],
+
+Cell[BoxData["1"], "Output",
+ CellChangeTimes->{3.540624144767686*^9, 3.540706364776153*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Limit", "[", 
+  RowBox[{
+   RowBox[{"u", "-", 
+    RowBox[{"Log", "[", 
+     RowBox[{"2", ",", "x"}], "]"}]}], ",", 
+   RowBox[{"x", "\[Rule]", "\[Infinity]"}], ",", 
+   RowBox[{"Assumptions", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       SubscriptBox["a", "0"], ">", "0"}], ",", 
+      RowBox[{
+       SubscriptBox["a", "1"], ">", "0"}], ",", 
+      RowBox[{"x", ">", "0"}]}], "}"}]}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.5406241492285852`*^9, 3.540624149396823*^9}}],
+
+Cell[BoxData["0"], "Output",
+ CellChangeTimes->{3.5406241503157988`*^9, 3.5407063658855057`*^9}]
+}, Open  ]],
+
+Cell["Hence, we arrive at this VST:", "Text",
+ CellChangeTimes->{{3.540624156886202*^9, 3.5406241624452667`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"FullSimplify", "[", 
+  RowBox[{"u", ",", 
+   RowBox[{"Assumptions", "->", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       SubscriptBox["a", "0"], ">", "0"}], ",", 
+      RowBox[{
+       SubscriptBox["a", "1"], ">", "0"}], ",", 
+      RowBox[{"x", ">", "0"}]}], "}"}]}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.54062416605935*^9, 3.540624190033182*^9}, {
+  3.54062534911759*^9, 3.5406253565459948`*^9}}],
+
+Cell[BoxData[
+ FractionBox[
+  RowBox[{"Log", "[", 
+   FractionBox[
+    RowBox[{"1", "+", 
+     RowBox[{"2", " ", "x", " ", 
+      SubscriptBox["a", "0"]}], "+", 
+     SubscriptBox["a", "1"], "+", 
+     RowBox[{"2", " ", 
+      SqrtBox[
+       RowBox[{"x", " ", 
+        SubscriptBox["a", "0"], " ", 
+        RowBox[{"(", 
+         RowBox[{"1", "+", 
+          RowBox[{"x", " ", 
+           SubscriptBox["a", "0"]}], "+", 
+          SubscriptBox["a", "1"]}], ")"}]}]]}]}], 
+    RowBox[{"4", " ", 
+     SubscriptBox["a", "0"]}]], "]"}], 
+  RowBox[{"Log", "[", "2", "]"}]]], "Output",
+ CellChangeTimes->{{3.5406241686802197`*^9, 3.54062419149958*^9}, 
+   3.54062535102468*^9, 3.540706368929482*^9}]
+}, Open  ]],
+
+Cell[TextData[{
+ "This VST (red) now behaves asymptotically as ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["log", "2"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " (blue), shown here for typical values for ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["a", "0"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["a", "1"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ "."
+}], "Text",
+ CellChangeTimes->{{3.540624324957206*^9, 3.5406243429895267`*^9}, {
+  3.540624623453052*^9, 3.5406246604775143`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Plot", "[", " ", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"u", "/.", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         SubscriptBox["a", "0"], "\[Rule]", ".01"}], ",", 
+        RowBox[{
+         SubscriptBox["a", "1"], "->", "3"}]}], "}"}]}], ",", 
+     RowBox[{"Log", "[", 
+      RowBox[{"2", ",", "x"}], "]"}]}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"x", ",", "0", ",", "10000"}], "}"}], ",", 
+   RowBox[{"PlotStyle", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{"Red", ",", "Blue"}], "}"}]}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.540624219476747*^9, 3.540624313819049*^9}, {
+  3.540624609588531*^9, 3.5406246195269203`*^9}}],
+
+Cell[BoxData[
+ GraphicsBox[{{}, {}, 
+   {RGBColor[1, 0, 0], LineBox[CompressedData["
+1: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
+     "]]}, 
+   {RGBColor[0, 0, 1], LineBox[CompressedData["
+1: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
+pGUdlr6nk2C2Jkjbi/x/GXBYgQ==
+     "]]}},
+  AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+  Axes->True,
+  AxesOrigin->{0, 8.},
+  PlotRange->{{0, 10000}, {7.603101236704731, 13.316142815535127`}},
+  PlotRangeClipping->True,
+  PlotRangePadding->{
+    Scaled[0.02], 
+    Scaled[0.02]}]], "Output",
+ CellChangeTimes->{
+  3.5406242472538157`*^9, {3.540624281049045*^9, 3.540624314895378*^9}, 
+   3.5406246200625257`*^9, 3.540706377585573*^9}]
+}, Open  ]],
+
+Cell["\<\
+For small values, however, the VST (red) compresses the dynamics much more \
+dramatically than the logarithm (blue) and the identity (green). This \
+reflects that the strong Poisson noise makes differences uninformative for \
+small values.\
+\>", "Text",
+ CellChangeTimes->{{3.540624693085382*^9, 3.5406247289244823`*^9}, {
+  3.5406248163017282`*^9, 3.540624917261745*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Plot", "[", " ", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"u", "/.", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         SubscriptBox["a", "0"], "\[Rule]", ".01"}], ",", 
+        RowBox[{
+         SubscriptBox["a", "1"], "->", "3"}]}], "}"}]}], ",", 
+     RowBox[{"Log", "[", 
+      RowBox[{"2", ",", "x"}], "]"}], ",", " ", "x"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"x", ",", "0", ",", "100"}], "}"}], ",", 
+   RowBox[{"PlotStyle", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{"Red", ",", "Blue", ",", "Green"}], "}"}]}], ",", 
+   RowBox[{"PlotRange", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{"0", ",", "20"}], "}"}]}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.5406243535636806`*^9, 3.5406244096271353`*^9}, {
+  3.540624670184353*^9, 3.540624671231537*^9}, {3.540624734125123*^9, 
+  3.540624734432403*^9}, {3.540624796200985*^9, 3.540624806534687*^9}, {
+  3.540624844102325*^9, 3.540624845507819*^9}}],
+
+Cell[BoxData[
+ GraphicsBox[{{}, {}, 
+   {RGBColor[1, 0, 0], LineBox[CompressedData["
+1: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
+     "]]}, 
+   {RGBColor[0, 0, 1], LineBox[CompressedData["
+1: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
+     "]]}, 
+   {RGBColor[0, 1, 0], 
+    LineBox[{{2.040816326530612*^-6, 2.040816326530612*^-6}, {
+     0.03067179205596268, 0.03067179205596268}, {0.06134154329559883, 
+     0.06134154329559883}, {0.12268104577487113`, 0.12268104577487113`}, {
+     0.2453600507334157, 0.2453600507334157}, {0.4907180606505049, 
+     0.4907180606505049}, {0.9814340804846833, 0.9814340804846833}, {
+     1.96286612015304, 1.96286612015304}, {4.090835708545865, 
+     4.090835708545865}, {6.07778835701521, 6.07778835701521}, {
+     8.025764881887605, 8.025764881887605}, {10.138846915816112`, 
+     10.138846915816112`}, {12.110912009821138`, 12.110912009821138`}, {
+     14.248082612882277`, 14.248082612882277`}, {16.346277092346465`, 
+     16.346277092346465`}, {18.303454631887174`, 18.303454631887174`}, {20., 
+     20.}}]}},
+  AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+  Axes->True,
+  AxesOrigin->{0, 0},
+  PlotRange->{{0, 100}, {0, 20}},
+  PlotRangeClipping->True,
+  PlotRangePadding->{
+    Scaled[0.02], Automatic}]], "Output",
+ CellChangeTimes->{{3.540624354626749*^9, 3.540624410273096*^9}, 
+   3.540624672639637*^9, 3.540624735335573*^9, {3.540624800646563*^9, 
+   3.540624806947823*^9}, 3.5406248461654253`*^9, 3.5407063812065363`*^9}]
+}, Open  ]],
+
+Cell["A template for the R code in the function:", "Text",
+ CellChangeTimes->{{3.5407065548336563`*^9, 3.540706563191538*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"CForm", "[", 
+   RowBox[{"FullSimplify", "[", 
+    RowBox[{"u", ",", 
+     RowBox[{"Assumptions", "->", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         SubscriptBox["a", "0"], ">", "0"}], ",", 
+        RowBox[{
+         SubscriptBox["a", "1"], ">", "0"}], ",", 
+        RowBox[{"x", ">", "0"}]}], "}"}]}]}], "]"}], "]"}], "/.", 
+  RowBox[{"{", 
+   RowBox[{
+    RowBox[{
+     SubscriptBox["a", "0"], "\[Rule]", "asymptDisp"}], ",", 
+    RowBox[{
+     SubscriptBox["a", "1"], "\[Rule]", "extraPois"}], ",", 
+    RowBox[{"x", "\[Rule]", "q"}]}], "}"}]}]], "Input",
+ CellChangeTimes->{{3.540706440235935*^9, 3.54070654712416*^9}}],
+
+Cell["\<\
+Log((1 + extraPois + 2*asymptDisp*q + 
+       2*Sqrt(asymptDisp*q*(1 + extraPois + asymptDisp*q)))/
+     (4.*asymptDisp))/Log(2)\
+\>", "Output",
+ CellChangeTimes->{{3.5407064886833467`*^9, 3.540706495739716*^9}, {
+  3.540706529058442*^9, 3.5407065480525093`*^9}}]
+}, Open  ]],
+
+Cell[BoxData["\[IndentingNewLine]"], "Input",
+ CellChangeTimes->{3.5408157360105877`*^9}],
+
+Cell[BoxData[
+ StyleBox[
+  RowBox[{"For", " ", "local", " ", "dispersion", " ", "fit"}], 
+  "Subsubtitle"]], "Input",
+ CellChangeTimes->{{3.540815731390847*^9, 3.540815731815278*^9}}],
+
+Cell[TextData[{
+ "In case of a local dispersion fit, the variance-stabilizing transformation ",
+ Cell[BoxData[
+  FormBox[
+   RowBox[{
+    RowBox[{"u", "(", "x", ")"}], " ", "=", 
+    RowBox[{
+     SuperscriptBox["\[Integral]", "x"], 
+     FractionBox["d\[Mu]", 
+      SqrtBox[
+       RowBox[{"v", "(", "\[Mu]", ")"}]]]}]}], TraditionalForm]]],
+ "is obtained by numerical integration of the fitted mean-dispersion relation \
+",
+ Cell[BoxData[
+  FormBox[
+   RowBox[{"v", "(", "\[Mu]", ")"}], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " (by adding up along a asinh-spaced grid and a fitting a spline). Then, the \
+scaling parameters \[Eta] and \[Xi] (see above) are chosen such that the VST \
+is equal to ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["log", "2"], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " for two large normalized count values (for which the 95- and the \
+99.9-percentile of the sample-averaged normalized count values are used.)"
+}], "Text",
+ CellChangeTimes->{{3.540815740854124*^9, 3.540815862626584*^9}, {
+  3.540815907181427*^9, 3.540816034208343*^9}, {3.540816089844325*^9, 
+  3.5408161426064177`*^9}, {3.5408161836470623`*^9, 3.540816250332963*^9}}]
+}, Open  ]]
+},
+WindowSize->{640, 750},
+WindowMargins->{{148, Automatic}, {Automatic, 24}},
+PrintingPageRange->{Automatic, Automatic},
+PrintingOptions->{"Magnification"->1.,
+"PaperOrientation"->"Portrait",
+"PaperSize"->{594.3000000000001, 840.51},
+"PostScriptOutputFile"->"/home/anders/work/SVN/DESeq/inst/doc/vst.pdf"},
+FrontEndVersion->"7.0 for Linux x86 (64-bit) (February 25, 2009)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[567, 22, 182, 2, 85, "Subtitle"],
+Cell[752, 26, 230, 5, 66, "Input"],
+Cell[985, 33, 431, 13, 71, "Text"],
+Cell[1419, 48, 92, 1, 32, "Input"],
+Cell[1514, 51, 575, 20, 51, "Text"],
+Cell[CellGroupData[{
+Cell[2114, 75, 330, 8, 32, "Input"],
+Cell[2447, 85, 234, 6, 47, "Output"]
+}, Open  ]],
+Cell[2696, 94, 487, 19, 31, "Text"],
+Cell[3186, 115, 105, 1, 31, "Text"],
+Cell[CellGroupData[{
+Cell[3316, 120, 255, 6, 32, "Input"],
+Cell[3574, 128, 305, 8, 33, "Output"]
+}, Open  ]],
+Cell[3894, 139, 1272, 42, 145, "Text"],
+Cell[CellGroupData[{
+Cell[5191, 185, 768, 20, 61, "Input"],
+Cell[5962, 207, 679, 22, 72, "Output"]
+}, Open  ]],
+Cell[6656, 232, 578, 20, 31, "Text"],
+Cell[CellGroupData[{
+Cell[7259, 256, 264, 6, 32, "Input"],
+Cell[7526, 264, 769, 24, 72, "Output"]
+}, Open  ]],
+Cell[8310, 291, 437, 11, 51, "Text"],
+Cell[CellGroupData[{
+Cell[8772, 306, 515, 15, 32, "Input"],
+Cell[9290, 323, 301, 8, 52, "Output"]
+}, Open  ]],
+Cell[9606, 334, 180, 4, 31, "Text"],
+Cell[CellGroupData[{
+Cell[9811, 342, 211, 6, 63, "Input"],
+Cell[10025, 350, 178, 5, 54, "Output"]
+}, Open  ]],
+Cell[10218, 358, 139, 1, 31, "Text"],
+Cell[CellGroupData[{
+Cell[10382, 363, 517, 15, 32, "Input"],
+Cell[10902, 380, 330, 10, 63, "Output"]
+}, Open  ]],
+Cell[11247, 393, 92, 1, 31, "Text"],
+Cell[CellGroupData[{
+Cell[11364, 398, 354, 11, 70, "Input"],
+Cell[11721, 411, 323, 10, 63, "Output"]
+}, Open  ]],
+Cell[12059, 424, 123, 1, 31, "Text"],
+Cell[CellGroupData[{
+Cell[12207, 429, 449, 14, 32, "Input"],
+Cell[12659, 445, 92, 1, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[12788, 451, 517, 15, 32, "Input"],
+Cell[13308, 468, 96, 1, 31, "Output"]
+}, Open  ]],
+Cell[13419, 472, 113, 1, 31, "Text"],
+Cell[CellGroupData[{
+Cell[13557, 477, 434, 12, 32, "Input"],
+Cell[13994, 491, 695, 21, 68, "Output"]
+}, Open  ]],
+Cell[14704, 515, 579, 19, 51, "Text"],
+Cell[CellGroupData[{
+Cell[15308, 538, 685, 20, 55, "Input"],
+Cell[15996, 560, 5767, 102, 227, "Output"]
+}, Open  ]],
+Cell[21778, 665, 382, 7, 71, "Text"],
+Cell[CellGroupData[{
+Cell[22185, 676, 958, 25, 55, "Input"],
+Cell[23146, 703, 6513, 112, 256, "Output"]
+}, Open  ]],
+Cell[29674, 818, 126, 1, 31, "Text"],
+Cell[CellGroupData[{
+Cell[29825, 823, 676, 20, 55, "Input"],
+Cell[30504, 845, 273, 6, 65, "Output"]
+}, Open  ]],
+Cell[30792, 854, 89, 1, 55, "Input"],
+Cell[30884, 857, 183, 4, 37, "Input"],
+Cell[31070, 863, 1195, 29, 159, "Text"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

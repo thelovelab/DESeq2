@@ -1,0 +1,39 @@
+\name{makeExampleDESeqSummarizedExperiment}
+\alias{makeExampleDESeqSummarizedExperiment}
+\title{Make a simulated DESeqSummarizedExperiment}
+\usage{
+  makeExampleDESeqSummarizedExperiment(n = 2000, m = 10,
+    betaSd = 0, dispMeanRel = function(x) 4/x + 0.1,
+    sizeFactors = rep(1, m))
+}
+\arguments{
+  \item{n}{number of rows}
+
+  \item{m}{number of columns}
+
+  \item{dispMeanRel}{a function specifying the relationship
+  of the dispersions on \code{2^trueIntercept}}
+
+  \item{betaSd}{the standard deviation for non-intercept
+  betas, i.e. beta ~ N(0,betaSd)}
+
+  \item{sizeFactors}{multiplicative factors for each
+  sample}
+}
+\value{
+  a \code{\link{DESeqSummarizedExperiment}} with true
+  dispersion, intercept and beta values in the metadata
+  columns.  Note that the true betas are provided on the
+  log2 scale.
+}
+\description{
+  Constructs a simulated dataset of negative binomial data
+  from two conditions. By default, there are no fold
+  changes between the two conditions, but this can be
+  adjusted with the \code{betaSd} argument.
+}
+\examples{
+dse <- makeExampleDESeqSummarizedExperiment()
+dse
+}
+

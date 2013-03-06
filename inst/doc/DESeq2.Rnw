@@ -1,0 +1,803 @@
+%\VignetteIndexEntry{Analyzing RNA-Seq data with the "DESeq2" package}
+%\VignettePackage{DESeq2}
+
+% To compile this document
+% library('cacheSweave'); rm(list=ls()); Sweave('DESeq.Rnw', driver=cacheSweaveDriver())
+
+\documentclass[12pt]{article}
+\usepackage[a4paper,left=3cm,top=2cm,bottom=3cm,right=3cm,ignoreheadfoot]{geometry}
+\pagestyle{empty}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{helvet}
+\usepackage[titletoc]{appendix}
+\usepackage{tocloft}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{.5em}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\newcommand{\Rcode}[1]{{\texttt{#1}}}
+\newcommand{\Robject}[1]{{\small\texttt{#1}}}
+\newcommand{\Rfunction}[1]{\Robject{#1}}
+\newcommand{\Rpackage}[1]{\textit{#1}}
+\newcommand{\Rclass}[1]{\textit{#1}}
+
+
+\newcommand{\thetitle}{Differential expression of RNA-Seq data at the gene level -- the DESeq2 package}
+
+\usepackage[pdftitle={\thetitle},%
+  pdfauthor={Michael Love, Simon Anders, Wolfgang Huber},%
+  bookmarks,%
+  colorlinks,%
+  linktoc=section,%
+  linkcolor=RedViolet,%
+  citecolor=RedViolet,%
+  urlcolor=RedViolet,%
+  linkbordercolor={1 1 1},%
+  citebordercolor={1 1 1},%
+  urlbordercolor={1 1 1},%
+  raiselinks,%
+  plainpages,%
+  pdftex]{hyperref}
+
+\usepackage{cite}
+\renewcommand{\floatpagefraction}{0.9}
+
+\usepackage{sectsty}
+\sectionfont{\sffamily\bfseries\color{RoyalBlue}\sectionrule{0pt}{0pt}{-1ex}{1pt}}
+\subsectionfont{\sffamily\bfseries\color{RoyalBlue}}
+\subsubsectionfont{\sffamily\bfseries\color{RoyalBlue}}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\lfoot{}\cfoot{}\rfoot{}
+\renewcommand{\headrule}{}
+
+\usepackage{graphicx}
+%\usepackage{xstring}
+
+\usepackage{Sweave}
+\SweaveOpts{keep.source=TRUE,eps=FALSE,pdf=FALSE,png=TRUE,include=FALSE,width=4,height=4.5,resolution=150}
+\setkeys{Gin}{width=0.5\textwidth}
+
+\definecolor{darkgray}{gray}{0.2}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontsize=\small,xleftmargin=1em,formatcom={\color{darkgray}}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{fontsize=\small,xleftmargin=1em,frame=leftline,framerule=.6pt,rulecolor=\color{darkgray},framesep=1em,formatcom={\color{darkgray}}}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+
+\newcommand{\fixme}[1]{{\textbf{Fixme:} \textit{\textcolor{blue}{#1}}}}
+
+\author{Michael Love$^{1*}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Max Planck Institute for Molecular Genetics, Berlin, Germany;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} \\ \small{\texttt{$^*$love (at) molgen.mpg.de}}}
+
+\title{\textsf{\textbf{\thetitle}}}
+
+% The following command makes use of SVN's 'Date' keyword substitution
+% To activate this, I used: svn propset svn:keywords Date DESeq.Rnw
+% \date{\StrMid{$Date: 2012-09-12 04:59:54 -0700 (Wed, 12 Sep 2012) $}{8}{18}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+A basic task in the analysis of count data from RNA-Seq is the detection of differentially expressed genes. The count data are presented as a table which reports, for each sample, the number of reads that have been assigned to a gene. Analogous analyses also arise for other assay types, such as comparative ChIP-Seq. The package \Rpackage{DESeq2} provides methods to test for differential expression by use of negative binonial generalized linear models; estimates of dispersion and log fold changes incorporate data-driven prior distributions \footnote{Other Bioconductor packages with similar aims are \Rpackage{edgeR} and \Rpackage{baySeq}.}. This vignette explains the use of the package. For an exposition of the statistical method, please see our paper \cite{Anders:2010:GB}.
+\end{abstract}
+
+<<options, results=hide, echo=FALSE>>=
+options(digits=3, width=80, prompt=" ", continue=" ")
+@
+
+\newpage
+
+\tableofcontents
+
+\section{Quick start}
+
+Here we show the most basic steps for a differential expression analysis. These steps imply you have a \Rclass{SummarizedExperiment} object \Robject{se} with a column \Robject{condition}.
+
+<<quick, eval=FALSE>>=
+dse <- DESeqSummarizedExperiment(se = se, 
+                                 design = ~ condition)
+dse <- DESeq(dse)
+res <- results(dse)
+@ 
+
+\section{Input data} \label{sec:prep}
+
+\subsection{Why raw counts?}
+
+As input, the \Rpackage{DESeq2} package expects count data as obtained, e.\,g., from RNA-Seq or another high-throughput sequencing experiment, in the form of a matrix of integer values. The value in the $i$-th row and the $j$-th column of the matrix tells how many reads have been mapped to gene $i$ in sample $j$.  Analogously, for other types of assays, the rows of the matrix might correspond e.\,g.\ to binding regions (with ChIP-Seq) or peptide sequences (with quantitative mass spectrometry).
+
+The count values must be raw counts of sequencing reads. This is important for \Rpackage{DESeq2}'s statistical model to hold, as only the actual counts allow assessing the measurement precision correctly. Hence, please do not supply other quantities, such as (rounded) normalized counts, or counts of covered base pairs -- this will only lead to nonsensical results.
+
+\subsection{\Rclass{SummarizedExperiment} input}
+
+In the \Rpackage{DESeq2} package, in order to simplify the preparation of a count matrix, we attempt a closer integration with the core Bioconductor package \Rpackage{GenomicRanges}. This should facilitate preparation steps and also downstream exploration of results. For counting aligned reads in genes, the \Rfunction{summarizeOverlaps} function of \Rpackage{GenomicRanges}/\Rpackage{Rsamtools} with \Rcode{mode="Union"} is encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Rpackage{easyRNASeq} is another Bioconductor package which can prepare \Rclass{SummarizedExperiment} objects as input for \Rpackage{DESeq2}). An example of the steps to produce a \Rclass{SummarizedExperiment} can be found in the data package \Rpackage{parathyroidSE}, which summarizes RNA-Seq data from experiments on 4 human cell cultures \cite{Haglund2012Evidence}.
+
+<<loadSE>>=
+library("parathyroidSE")
+data("parathyroidGenesSE")
+se <- parathyroidGenesSE
+colnames(se) <- colData(se)$run
+@ 
+
+The class used by \Rpackage{DESeq2} is \Rclass{DESeqSummarizedExperiment}, which differs from \Rclass{SummarizedExperiment} in having associated design \Rclass{formula}.  The design formula expresses the variables which will be used in modeling. The formula should be a tilde ($\sim$) followed by the variables with plus signs between them (it will be coerced into an \Rclass{formula} if it is not already).  An intercept is automatically included, representing the base mean of counts. In order to benefit from the default settings of the package, you should put the variable of interest at the end of the formula.  The constructor function below shows generation of a \Rclass{DESeqSummarizedExperiment} from a \Rclass{SummarizedExperiment} \Robject{se}.
+
+<<constructDSE>>=
+library("DESeq2")
+dseGR <- DESeqSummarizedExperiment(se = se, 
+                                   design = ~ patient + treatment)
+dseGR
+@ 
+
+\subsection{Count matrix input}
+
+Alternatively, if you already have prepared a matrix of read counts, you can use the function \Rfunction{DESeqSummarizedExperimentFromMatrix}.  For this function you should provide the counts matrix, the column information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formula.  
+
+<<matrixInput>>=
+library("pasilla")
+data("pasillaGenes")
+countData <- counts(pasillaGenes)
+colData <- pData(pasillaGenes)[,c("condition","type")]
+colData$condition <- factor(colData$condition, 
+                            levels=c("untreated","treated"))
+dse <- DESeqSummarizedExperimentFromMatrix(countData = countData,
+                                           colData = colData,
+                                           design = ~ condition)
+dse
+@
+
+\subsection{\textit{HTSeq} input}
+
+If you have used the \textit{HTSeq} python scripts, you can use the function \Rfunction{DESeqSummarizedExperimentFromHTSeqCount}.  For an example of using the python scripts, see the \Rpackage{pasilla} or \Rpackage{parathyroid} data package.
+
+<<htseqInput>>=
+directory <- system.file("extdata", package="pasilla", mustWork=TRUE)
+sampleFiles <- grep("treated",list.files(directory),value=TRUE)
+sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
+sampleTable <- data.frame(sampleName = sampleFiles,
+                          fileName = sampleFiles,
+                          condition = sampleCondition)
+dseHTSeq <- DESeqSummarizedExperimentFromHTSeqCount(sampleTable = sampleTable, 
+                                                    directory = directory, 
+                                                    design= ~ condition)
+dseHTSeq
+detach(package:pasilla)
+detach(package:DESeq)
+@ 
+
+We continue with the \Rpackage{pasilla} data constructed from the count matrix method above. This data set is from an experiment on \emph{Drosophila melanogaster} cell cultures and investigated the effect of RNAi knock-down of the splicing factor \emph{pasilla} \cite{Brooks2010}.  The detailed transcript of the production of the \Rpackage{pasilla} is provided in the vignette of the data package \Rpackage{pasilla}.
+
+\section{Differential expression analysis}
+
+The standard differential expression analysis steps are wrapped into a single function, \Rfunction{DESeq}. The individual functions are still available, described in Section \ref{sec:steps}. The results are accessed using the function \Rfunction{results}, which extracts a results table for a single variable (by default the last in the design formula).  Extracting results of other variables is discussed in section \ref{sec:multifactor}.
+
+<<deseq>>=
+dse <- DESeq(dse)
+res <- results(dse)
+res <- res[order(res$FDR),]
+head(res)
+@ 
+
+\section{Exploring results}
+
+\subsection{MA-plot}
+
+For \Rpackage{DESeq2}, the function \Rfunction{plotMA} shows the $\log_2$ fold changes attributable to a variable over the mean of normalized counts.  By default, the last variable in the design formula is chosen, and points will be colored red if the FDR is less than 0.1.  Points which fall out of the window are plotted as open triangles.
+
+<<MA, fig=TRUE>>=
+plotMA(dse)
+@ 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.5\textwidth]{DESeq2-MA}
+\caption{The MA-plot shows the $\log_2$ fold changes from the treatment over the mean of normalized counts, i.e. the average of counts normalized by size factor. The \Rpackage{DESeq2} package incorporates a prior on $log_2$ fold changes, resulting in moderated estimates from genes with very low counts, as can be seen by the narrowing of spread of points on the left side of the plot.}
+\label{MA}
+\end{figure}
+
+\subsection{More information on results columns}
+
+Information about which variables and tests were used can be found by calling the function \Rfunction{mcols} called on the results object.  
+
+<<metadata>>=
+mcols(res, use.names=TRUE)
+@
+
+The variable \Robject{condition} and the factor level \Robject{treated} have been combined into \Robject{conditiontreated}.  For a particular gene, a $\log_2$ fold change of $-1$ for \Robject{conditiontreated} here means that the treatment induces a change of $2^{-1} = 0.5$ times the counts.  If the variable of interest is not a factor, the $\log_2$ fold change can be interpreted as the amount of doubling observed on average for every unit of change.
+
+\subsection{Exporting results}
+
+The results can be exported using the base R functions \Rfunction{write.csv} or \Rfunction{write.delim}, and a descriptive file name indicating the variable which was tested.
+
+<<export, eval=FALSE>>=
+write.csv(res, file="condition_treated_results.csv")
+@ 
+
+\section{Multifactor designs} \label{sec:multifactor}
+
+Experiments with more than one factor influencing the counts can be analyzed using model formulae with additional variables.  The data in the \Rpackage{pasilla} package have a condition of interest (the column \Robject{condition}), as well as the type of sequencing which was performed (the column \Robject{type}).
+
+<<multifactor>>=
+colData(dse)
+@ 
+
+We can account for the different types of sequencing, and get a clearer picture of the differences attributable to the treatment.  As \Robject{condition} is the variable of interest, we put it at the end of the formula. Here we
+
+<<replaceDesign>>=
+design(dse) <- formula(~ type + condition)
+dse <- DESeq(dse)
+@ 
+
+Again, we access the results using the \Rfunction{results} function.
+
+<<multiResults>>=
+res <- results(dse)
+head(res)
+@ 
+
+It is also possible to retrieve the $\log_2$ fold changes, p-values and FDR of the \Robject{type} variable.  The function \Rfunction{results} takes an argument \Rcode{name}, which is a combination of the variable and the level in the numerator of the fold change.  In addition, there might be minor changes made by the \Rfunction{DataFrame} function on column names, for instance \texttt{single-read} to \texttt{single.read}. The function \Rfunction{resultsNames} will tell you the names of all available results.
+
+<<multiTypeResults>>=
+resultsNames(dse)
+resType <- results(dse, "typesingle.read")
+head(resType)
+mcols(resType)
+@ 
+
+%--------------------------------------------------
+\section{Independent filtering and multiple testing} \label{sec:indepfilt}
+\subsection{Filtering by overall count} \label{sec:filtbycount}
+%--------------------------------------------------
+
+The analyses of the previous sections involve the application of statistical tests, one by one, to each row of the data set, in order to identify those genes that have evidence for differential expression. The idea of \emph{independent filtering} is to filter out those tests from the procedure that have no, or little chance of showing significant evidence, without even looking at their test statistic. Typically, this results in increased detection power at the same experiment-wide type I error. Here, we  measure experiment-wide type I error in terms of the false discovery rate.
+
+A good choice for a filtering criterion is one that
+\begin{enumerate}
+  \item\label{it:indp} is statistically independent from the test statistic under the null hypothesis,
+  \item\label{it:corr} is correlated with the test statistic under the alternative, and
+  \item\label{it:joint} does not notably change the dependence structure --if there is any-- between the tests that pass the filter, compared to the dependence structure between the tests before filtering.
+\end{enumerate}
+
+The benefit from filtering relies on property \ref{it:corr}, and we will explore it further in Section \ref{sec:whyitworks}. Its statistical validity relies on property \ref{it:indp} -- which is simple to formally prove for many combinations of filter criteria with test statistics-- and \ref{it:joint}, which is less easy to theoretically imply from first principles, but rarely a problem in practice.  We refer to \cite{Bourgon:2010:PNAS} for further discussion of this topic.
+
+A simple filtering criterion readily available in the results object is the normalized mean count (irrespective of biological condition). Genes with very low counts are not likely to see significant differences typically due to high dispersion. For example, we can plot the $-\log_{10}$ p-values from all genes over the normalized mean counts, with a red line at the value 10.
+
+<<indFilt, fig=TRUE>>=
+plot(res$baseMean, pmin(-log10(res$pvalue),50), 
+     log="x", xlab="mean of normalized counts",
+     ylab=expression(-log[10](pvalue)))
+abline(v=10,col="red",lwd=1)
+use <- res$baseMean >= 10
+table(use)
+@ 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.5\textwidth]{DESeq2-indFilt}
+\caption{The mean of normalized counts provides an independent statistic for filtering the tests. It is independent because the information about the variables in the design formula is not used. By filtering out genes which fall to the left of the red line, the majority of the low p-values are kept.}
+\label{indFilt}
+\end{figure}
+
+We set apart those genes with normalized mean less than 10.  Applying Benjamini-Hochberg adjustment on p-values results in a gain of genes with FDR below 0.1.
+
+<<indFilt>>=
+resFilt <- res[use,]
+resFilt$FDR <- p.adjust(resFilt$pvalue, method="BH")
+sum(res$FDR < .1, na.rm=TRUE)
+sum(resFilt$FDR < .1, na.rm=TRUE)
+@ 
+
+%--------------------------------------------------
+\subsection{Why does it work?}\label{sec:whyitworks}
+%--------------------------------------------------
+
+Consider the $p$ value histogram in Figure \ref{fighistindepfilt}.
+It shows how the filtering ameliorates the multiple testing problem
+-- and thus the severity of a multiple testing adjustment -- by
+removing a background set of hypotheses whose $p$ values are distributed
+more or less uniformly in $[0,1]$.
+<<histindepfilt, width=7, height=5>>=
+h1 <- hist(res$pvalue[!use], breaks=50, plot=FALSE)
+h2 <- hist(res$pvalue[use], breaks=50, plot=FALSE)
+colori <- c(`do not pass`="khaki", `pass`="powderblue")
+<<fighistindepfilt, fig=TRUE>>=
+barplot(height = rbind(h1$counts, h2$counts), beside = FALSE, 
+        col = colori, space = 0, main = "", ylab="frequency")
+text(x = c(0, length(h1$counts)), y = 0, label = paste(c(0,1)), 
+     adj = c(0.5,1.7), xpd=NA)
+legend("topright", fill=rev(colori), legend=rev(names(colori)))
+@
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.5\textwidth]{DESeq2-fighistindepfilt}
+\caption{Histogram of $p$ values for all tests (\Robject{res\$FDR}).
+  The area shaded in blue indicates the subset of those that pass the filtering,
+  the area in khaki those that do not pass.}
+\label{fighistindepfilt}
+\end{figure}
+
+%---------------------------------------------------
+\subsection{Diagnostic plots for multiple testing}
+%---------------------------------------------------
+The Benjamini-Hochberg multiple testing adjustment
+procedure \cite{BH:1995} has a simple graphical illustration, which we
+produce in the following code chunk. Its result is shown in the left
+panel of Figure \ref{figmulttest}.
+%
+<<sortP, cache=TRUE>>=
+orderInPlot <- order(resFilt$pvalue)
+showInPlot <- (resFilt$pvalue[orderInPlot] <= 0.08)
+alpha <- 0.1
+<<sortedP, fig=TRUE, width=4.5, height=4.5>>=
+plot(seq(along=which(showInPlot)), resFilt$pvalue[orderInPlot][showInPlot],
+     pch=".", xlab = expression(rank(p[i])), ylab=expression(p[i]))
+abline(a=0, b=alpha/length(resFilt$pvalue), col="red3", lwd=2)
+@
+<<doBH, echo=FALSE, results=hide>>=
+whichBH <- which(resFilt$pvalue[orderInPlot] <= alpha*seq(along=resFilt$pvalue)/length(resFilt$pvalue))
+## Test some assertions:
+## - whichBH is a contiguous set of integers from 1 to length(whichBH)
+## - the genes selected by this graphical method coincide with those
+##   from p.adjust (i.e. padjFilt)
+stopifnot(length(whichBH)>0,
+          identical(whichBH, seq(along=whichBH)),
+          resFilt$FDR[orderInPlot][ whichBH] <= alpha,
+          resFilt$FDR[orderInPlot][-whichBH]  > alpha)
+@
+%
+Schweder and Spj\o{}tvoll \cite{SchwederSpjotvoll1982} suggested a diagnostic plot
+of the observed $p$-values which permits estimation of the fraction of true null
+hypotheses. For a series of hypothesis tests $H_1, \ldots, H_m$ with $p$-values
+$p_i$, they suggested plotting
+%
+\begin{equation}
+  \left( 1-p_i, N(p_i) \right) \mbox{ for } i \in 1, \ldots, m,
+\end{equation}
+%
+where $N(p)$ is the number of $p$-values greater than $p$. An application of
+this diagnostic plot to \Robject{resFilt\$pvalue} is shown in the right panel of
+Figure \ref{figmulttest}.
+When all null hypotheses are true, the $p$-values are each uniformly distributed
+in $[0,1]$, Consequently, the cumulative distribution function of $(p_1, \ldots,
+p_m)$ is expected to be close to the line $F(t)=t$. By symmetry, the same
+applies to $(1 - p_1, \ldots, 1 - p_m)$.
+When (without loss of generality) the first $m_0$ null hypotheses are true and
+the other $m-m_0$ are false, the cumulative distribution function of $(1-p_1,
+\ldots, 1-p_{m_0})$ is again expected to be close to the line $F_0(t)=t$. The
+cumulative distribution function of $(1-p_{m_0+1}, \ldots, 1-p_{m})$, on the
+other hand, is expected to be close to a function $F_1(t)$ which stays below
+$F_0$ but shows a steep increase towards 1 as $t$ approaches $1$.
+In practice, we do not know which of the null hypotheses are true, so we can
+only observe a mixture whose cumulative distribution function is expected to be
+close to
+%
+\begin{equation}
+  F(t) = \frac{m_0}{m} F_0(t) + \frac{m-m_0}{m} F_1(t).
+\end{equation}
+%
+Such a situation is shown in the right panel of
+Figure \ref{figmulttest}. If
+$F_1(t)/F_0(t)$ is small for small $t$, then the mixture fraction
+$\frac{m_0}{m}$ can be estimated by fitting a line to the left-hand portion of
+the plot, and then noting its height on the right. Such a fit is shown by the
+red line in the right panel of Figure \ref{figmulttest}.
+%
+<<SchwSpjot, echo=FALSE, results=hide>>=
+j  <- round(length(resFilt$pvalue)*c(1, .66))
+px <- (1-resFilt$pvalue[orderInPlot[j]])
+py <- ((length(resFilt$pvalue)-1):0)[j]
+slope <- diff(py)/diff(px)
+@
+<<SchwederSpjotvoll, fig=TRUE, width=4.5, height=4.5>>=
+plot(1-resFilt$pvalue[orderInPlot],
+     (length(resFilt$pvalue)-1):0, pch=".",
+     xlab=expression(1-p[i]), ylab=expression(N(p[i])))
+abline(a=0, slope, col="red3", lwd=2)
+@
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.49\textwidth]{DESeq2-sortedP}
+\includegraphics[width=.49\textwidth]{DESeq2-SchwederSpjotvoll}
+\caption{\emph{Left:} illustration of the Benjamini-Hochberg multiple testing
+  adjustment procedure \cite{BH:1995}.  The black line shows the
+  $p$-values ($y$-axis) versus their rank ($x$-axis), starting with
+  the smallest $p$-value from the left, then the second smallest, and
+  so on. Only the first \Sexpr{sum(showInPlot)} $p$-values are shown.
+  The red line is a straight line with slope $\alpha/n$, where
+  $n=\Sexpr{length(resFilt[["pvalue"]])}$ is the number of tests, and
+  $\alpha=\Sexpr{alpha}$ is a target false discovery rate (FDR).  FDR
+  is controlled at the value $\alpha$ if the genes are selected
+  that lie to the left of the rightmost intersection between the red and black
+  lines: here, this results in \Sexpr{length(whichBH)} genes.
+  \emph{Right:} Schweder and Spj\o{}tvoll plot, as described in the text.
+  For both of these plots, the $p$-values \Robject{resFilt\$pvalues}
+  from Section \ref{sec:filtbycount} were used as a starting
+  point. Analogously, one can produce these types of plots for any set of $p$-values,
+  for instance those from the previous sections.}
+\label{figmulttest}
+\end{figure}
+
+
+%---------------------------------------------------
+\section{Count data transformations}
+%---------------------------------------------------
+
+For some applications, it is useful to work with transformed versions
+of the count data. Maybe the most obvious choice is the logarithmic
+transformation. Since count values for a gene can be zero in some
+conditions (and non-zero in others), some advocate the use of
+\emph{pseudocounts}, i.\,e.\ transformations of the form
+
+\begin{equation}\label{eq:shiftedlog}
+  y = \log_2(n + 1)\quad\mbox{or more generally,}\quad y = \log_2(n + n_0),
+\end{equation}
+
+where $n$ represents the count values and $n_0$ is a positive constant. 
+
+In this section, we discuss two alternative
+approaches that offer more theoretical justification and a rational way
+of choosing the parameter equivalent to $n_0$ above.
+One method incorporates priors on the sample differences,
+and the other uses the concept of variance stabilizing
+transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}. 
+
+We add a design formula which includes only an intercept, then
+estimate an overall mean-dispersion relationship of the data using
+\Rfunction{estimateDispersions} and call the functions
+\Rfunction{rlogTransformation} and \Rfunction{varianceStabilizingTransformation}.  
+
+<<defvsd>>=
+dseBlind <- dse
+design(dseBlind) <- formula(~ 1)
+dseBlind <- estimateDispersions(dseBlind)
+rld <- rlogTransformation(dseBlind)
+vsd <- varianceStabilizingTransformation(dseBlind)
+@
+
+\subsection{Regularized log transformation}
+
+The function \Rfunction{rlogTransformation}, 
+stands for ``regularized log'', transforming 
+the original count data to the $\log_2$ scale by fitting a model with a 
+term for each sample and a prior distribution on the coefficients 
+which is estimated from the data. This is very similar to the regularization
+used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in 
+Figure \ref{MA}. The resulting data contains elements defined as:
+
+$$ \log_2(\mu_{ij}) = X_{j.} \beta_i $$
+
+The regularized log transformation is preferable to the variance
+stabilizing transformation if the size factors vary widely.
+
+\subsection{Variance stabilizing transformation}
+
+Above, we used a parametric fit for the dispersion. In this case,
+the closed-form expression for the variance stabilizing transformation
+is used by \Rfunction{varianceStabilizingTransformation}, which is derived in
+the file \texttt{vst.pdf}, that is distributed in the package
+alongside this vignette. If a local fit is used (option \Rcode{fitType="locfit"}
+to \Rfunction{estimateDispersions}) a numerical integration is used instead.
+
+The resulting variance stabilizing transformation is shown in
+Figure \ref{figvsd1}.  The code that produces the figure is hidden from
+this vignette for the sake of brevity, but can be seen in the
+\texttt{.Rnw} or \texttt{.R} source file.
+%
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.49\textwidth]{DESeq2-vsd1}
+\caption{Graphs of the variance stabilizing transformation for
+  sample 1, in blue, and of the transformation $f(n)=log_2(n/s_1)$, in
+  black. $n$ are the counts and $s_1$ is the size factor for the first sample.
+}
+\label{figvsd1}
+\end{figure}
+
+\subsection{Effects of transformations on the variance}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{DESeq2-vsd2}
+\caption{Per-gene standard deviation (taken across samples), against
+  the rank of the mean, for the shifted logarithm
+  $\log_2(n+1)$ (left), the regularized log transformation (center)
+  and the variance stabilizing transformation (right).}
+\label{figvsd2}
+\end{figure}
+
+<<vsd1, fig=TRUE, echo=FALSE, width=4.5, height=4.5>>=
+px     <- counts(dse)[,1] / sizeFactors(dse)[1]
+ord    <- order(px)
+ord    <- ord[px[ord] < 150]
+ord    <- ord[seq(1, length(ord), length=50)]
+last   <- ord[length(ord)]
+vstcol <- c("blue", "black")
+matplot(px[ord],
+        cbind(assay(vsd)[, 1], log2(px))[ord, ],
+        type="l", lty=1, col=vstcol, xlab="n", ylab="f(n)")
+legend("bottomright",
+       legend = c(
+        expression("variance stabilizing transformation"),
+        expression(log[2](n/s[1]))),
+       fill=vstcol)
+@
+
+Figure \ref{figvsd2} plots the standard deviation of the transformed
+data, across samples, against the mean, using the shifted
+logarithm transformation (\ref{eq:shiftedlog}), the 
+regularized log transformation and the variance stabilizing transformation. 
+The shifted logarithm has elevated standard deviation in the lower
+count range, and the regularized log to a lesser extent, while for
+the variance stabilized data the standard deviation is roughly constant
+along the whole dynamic range.
+
+<<vsd2, fig=TRUE, width=8, height=3, results=hide>>=
+library("vsn")
+par(mfrow=c(1,3))
+notAllZero <- (rowSums(counts(dse))>0)
+meanSdPlot(log2(counts(dse,normalized=TRUE)[notAllZero,] + 1), 
+           ylim = c(0,2.5))
+meanSdPlot(assay(rld[notAllZero,]), ylim = c(0,2.5))
+meanSdPlot(assay(vsd[notAllZero,]), ylim = c(0,2.5))
+@
+
+%---------------------------------------------------------------
+\section{Data quality assessment by sample clustering and visualization}\label{sec:quality}
+%---------------------------------------------------------------
+
+Data quality assessment and quality control (i.\,e.\ the removal of
+insufficiently good data) are essential steps of any data
+analysis. Even though we present these steps towards the end of this vignette,
+they should typically be performed very early in the analysis of a new data set,
+preceding or in parallel to the differential expression testing.
+
+We define the term \emph{quality} as \emph{fitness for
+  purpose}\footnote{\url{http://en.wikipedia.org/wiki/Quality_\%28business\%29}}.
+Our purpose is the detection of differentially expressed genes, and we
+are looking in particular for samples whose experimental treatment
+suffered from an anormality that renders the data points obtained from
+these particular samples detrimental to our purpose.
+
+\subsection{Heatmap of the count table}\label{sec:hmc}
+To explore a count table, it is often instructive to look at it as a
+heatmap.  Below we show how to produce such a heatmap from the
+raw and transformed data.
+
+<<heatmap>>=
+library("RColorBrewer")
+library("gplots")
+select <- order(rowMeans(counts(dse,normalized=TRUE)),decreasing=TRUE)[1:30]
+hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
+@ 
+
+<<figHeatmap2a, fig=TRUE, width=7, height=10>>=
+heatmap.2(counts(dse,normalized=TRUE)[select,], col = hmcol, 
+          Rowv = FALSE, dendrogram="column",
+          trace="none", margin=c(10,6))
+@
+
+<<figHeatmap2b, fig=TRUE, width=7, height=10>>=
+heatmap.2(assay(rld)[select,], col = hmcol, 
+          Rowv = FALSE, dendrogram="column",
+          trace="none", margin=c(10, 6))
+@ 
+
+<<figHeatmap2c, fig=TRUE, width=7, height=10>>=
+heatmap.2(assay(vsd)[select,], col = hmcol, 
+          Rowv = FALSE, dendrogram="column",
+          trace="none", margin=c(10, 6))
+@
+
+\begin{figure}
+\centering
+\includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2a}
+\includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2b}
+\includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2c}
+\caption{Heatmaps showing the expression data of the \Sexpr{length(select)} most highly expressed genes. The data is of raw counts (left), from regularized log transformation (center) and from variance stabilizing transformation (right).}
+\label{figHeatmap2}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=.6\textwidth]{DESeq2-figHeatmapSamples}
+\caption{Heatmap showing the Euclidean distances between the samples
+  as calculated from the regularized log transformation.}
+\label{figHeatmapSamples}
+\end{figure}
+
+\subsection{Heatmap of the sample-to-sample distances}\label{sec:dists}
+Another use of the transformed data is sample clustering. Here, we apply the
+\Rfunction{dist} function to the transpose of the transformed count matrix to get
+sample-to-sample distances. We could alternatively use the variance stabilized 
+transformation here.
+
+<<sampleClust>>=
+distsRL <- dist(t(assay(rld)))
+@
+
+A heatmap of this distance matrix gives us an overview over similarities
+and dissimilarities between samples (Figure \ref{figHeatmapSamples}):
+
+<<figHeatmapSamples, fig=TRUE, width=7, height=7>>=
+mat <- as.matrix(distsRL)
+rownames(mat) <- colnames(mat) <- with(colData(dse), 
+                                       paste(condition, type, sep=" : "))
+heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
+@
+
+\subsection{Principal component plot of the samples}
+
+Related to the distance matrix of Section \ref{sec:dists} is the PCA
+plot of the samples, which we obtain as follows (Figure \ref{figPCA}).
+
+<<figPCA, fig=TRUE, width=5, height=5>>=
+print(plotPCA(rld, intgroup=c("condition", "type")))
+@
+
+\begin{figure}
+\centering
+\includegraphics[width=.6\textwidth]{DESeq2-figPCA}
+\caption{PCA plot. The \Sexpr{ncol(rld)} samples shown in the 2D
+  plane spanned by their first two principal components. This type of
+  plot is useful for visualizing the overall effect of experimental
+  covariates and batch effects.  For this data set, no batch effects
+  besides the known effects of \emph{condition} and \emph{type} are
+  discernible.}
+\label{figPCA}
+\end{figure}
+
+\newpage
+
+\begin{appendices}
+
+\section{Generalized linear model} \label{sec:glm}
+
+The differential expression analysis in \Rpackage{DESeq2} uses a generalized linear model of the form:
+
+$$ K_{ij} \sim \textrm{NB}(s_j \mu_{ij}, \alpha_i) $$
+$$ \log_2(\mu_{ij}) = X_{j.} \beta_i $$
+
+where the count $K_{ij}$ of reads for gene $i$, sample $j$ are modeled using a negative binomial distribution with a sample-specific size factor $s_j$, a fitted mean $\mu_{ij}$ and a gene-specific dispersion parameter $\alpha_i$.  The coefficients $\beta_i$ give the $\log_2$ fold changes for gene $i$ for each column of the model matrix $X$. Dispersions are estimated using a Cox-Reid adjusted profile likelihood, as first implemented for RNA-Seq data in \Rpackage{edgeR} \cite{CR,edgeR_GLM}.  For further details on dispersion estimation and inference, please see the manual pages for the functions \Rfunction{DESeq} and \Rfunction{estimateDispersions}.
+
+\section{Changes since the previous version of the \Rpackage{DESeq} package}
+
+The main changes are as follows:
+
+\begin{itemize}
+\item \Rclass{SummarizedExperiment} is used as the superclass for storage of input data, intermediate calculations and results.
+\item Maximum \textit{a posteriori} estimation of GLM coefficients incorporating a normal prior centered on zero with variance estimated from data (equivalent to Tikhonov/ridge regularization).  This adjustment has little effect on genes with high counts and helps to moderate the large spread in $\log_2$ fold changes for genes with single digit row sums.  
+\item Maximum \textit{a posteriori} estimation of dispersion replaces the \Rcode{sharingMode} options \Rcode{fit-only} or \Rcode{maximum} of the previous version of the package.
+\item All estimation and inference is based on the generalized linear model, which includes the two condition case (previously the exact test was used).
+\item The Wald test for significance of GLM coefficients is provided as the default inference method, with the chi-squared test of the previous version still available.
+\item It is possible to provide a matrix of sample-/gene-specific normalization factors.
+\end{itemize}
+
+\section{Wald test individual steps} \label{sec:steps}
+
+The function \Rfunction{DESeq} runs the following functions in order:
+
+<<WaldTest, eval=FALSE>>=
+dse <- estimateSizeFactors(dse)
+dse <- estimateDispersions(dse)
+dse <- nbinomWaldTest(dse)
+@ 
+
+\section{Chi-squared test}
+
+The chi-squared test substitutes \Rfunction{nbinomWaldTest} with \Rfunction{nbinomChisqTest} in the last step above.  In this case, the user provides the full formula (the formula stored in \Rcode{design(dse)}), and a reduced formula, e.g. one which does not contain the variable of interest. The degrees of freedom for the test is obtained from the number of parameters in the two models. The Wald test and the chi-squared test share many of the same genes with FDR < .1 for this experiment.
+
+<<chisquareTest>>=
+dseChisq <- nbinomChisqTest(dse, reduced = ~ type)
+resChisq <- results(dseChisq)
+tab <- table(Wald=res$FDR < .1, chisq=resChisq$FDR < .1)
+addmargins(tab)
+@ 
+ 
+\section{Dispersion plot and fitting alternatives}
+
+Plotting the dispersion estimates is a useful diagnostic. The dispersion plot in Figure \ref{dispFit} is typical, with the final estimates shrunk from the gene-wise estimates towards the fitted estimates. Depending on the sample size, number of covariates, and variance present in the data, the amount of shrinkage can be more or less than seen here.
+
+<<dispFit, fig=TRUE>>=
+plotDispEsts(dse)
+@ 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.5\textwidth]{DESeq2-dispFit}
+\caption{The dispersion estimate plot shows the gene-wise estimates (black), the fitted values (red), and the final maximum \textit{a posteriori} estimates used in testing (blue). The genes with low counts have dispersions which are moved closer to the fitted line than the genes with high counts.}
+\label{dispFit}
+\end{figure}
+
+\subsection{Local dispersion fit}
+
+The local dispersion fit is available in case the parametric fit fails to converge. A warning will be printed that one should use \Rfunction{plotDispEsts} to check the quality of the fit, whether the curve is pulled dramatically by a few outlier points. In this case the two fit types appear to produce similar curves.
+
+<<dispFitLocal, fig=TRUE>>=
+dseLocal <- estimateDispersions(dse, fitType="local")
+plotDispEsts(dseLocal)
+@ 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.5\textwidth]{DESeq2-dispFitLocal}
+\caption{A dispersion estimate plot using a local regression fit is similar to that of Figure \ref{dispFit}.}
+\label{dispFitLocal}
+\end{figure}
+
+\subsection{Geometric mean dispersion}
+
+While RNA-Seq data tend to demonstrate a dispersion-mean dependence, this assumption is not appropriate for all assays.  An alternative is to use the geometric mean of gene-wise dispersion estimates to benefit from information sharing across genes.
+
+<<dispFitGeom, fig=TRUE>>=
+dseGeoMean <- estimateDispersions(dse, fitType="geoMean")
+plotDispEsts(dseGeoMean)
+@ 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.5\textwidth]{DESeq2-dispFitGeom}
+\caption{A dispersion estimate plot using the geometric mean.}
+\label{dispFitGeom}
+\end{figure}
+
+\subsection{Supply a custom dispersion fit}
+
+Any fitted values can be provided during dispersion estimation, using the lower-level functions described in the manual page for \Rfunction{estimateDispersionsGeneEst}. The first function, \Rfunction{estimateDispersionsGeneEst}, stores the gene-wise estimates in the metadata column \Robject{dispGeneEst}. The final function, \Rfunction{estimateDispersionsGeneEst}, uses this column and the column \Robject{dispFit} to generate maximum \textit{a posteriori} (MAP) estimates of dispersion. The modeling assumption is that the true dispersions are distributed according to a log-normal prior around the fitted values in the column \Robject{fitDisp}.  The width of this prior is calculated from the data.
+
+<<dispFitCustom, fig=TRUE>>=
+dse <- estimateDispersionsGeneEst(dse)
+useForMedian <- mcols(dse)$dispGeneEst > 1e-7
+medianDisp <- median(mcols(dse)$dispGeneEst[useForMedian],na.rm=TRUE)
+mcols(dse)$dispFit <- rep(medianDisp,nrow(dse))
+dse <- estimateDispersionsMAP(dse)
+@ 
+
+\section{Access to all calculated values}
+
+Information on all of the row-wise calculated values are stored in the original object.  These are accessible via \Rfunction{mcols}.  Descriptions are accessible by two calls to \Rfunction{mcols}.
+
+<<mcols>>=
+mcols(dse,use.names=TRUE)[1:4,1:5]
+mcols(mcols(dse), use.names=TRUE)[1:4,]
+@ 
+
+\section{Sample-/gene-specific normalization factors}
+
+In some experiments, there might be gene-specific dependencies which vary across samples. For instance, GC-content bias or length bias might vary across samples coming from different labs or processed at different times. We use the terms ``normalization factors'' for a gene $\times$ sample matrix, and ``size factors'' for a single number per sample.  Incorporating normalization factors, the model from Section \ref{sec:glm} becomes:
+
+$$ K_{ij} \sim \textrm{NB}(NF_{ij} \mu_{ij}, \alpha_i) $$
+
+with normalization factor matrix $NF$ having the same dimensions as the counts matrix $K$. This matrix can be incorporated as shown below. We recommend providing a matrix with a mean of 1, which can be accomplished by dividing out the mean of the matrix. 
+
+<<normFactors, eval=FALSE>>=
+normFactors <- normFactors / mean(normFactors)
+normalizationFactors(dse) <- normFactors
+@ 
+
+These steps then replace \Rfunction{estimateSizeFactors} in the steps described in Section \ref{sec:steps}. Normalization factors, if present, will always be used in the place of size factors. 
+
+The methods provided by the \Rpackage{cqn} or \Rpackage{EDASeq} packages can help correct for GC or length biases. They both describe in their vignettes how to create matrices which can be used by \Rpackage{DESeq2}. From the formula above, we see that normalization factors should be on the scale of the counts, like size factors, and unlike offsets which are typically on the scale of the predictors (i.e. the log scale for the negative binomial GLM). At the time of writing, the transformation from the matrices provided by these packages should be:
+
+<<offsetTransform, eval=FALSE>>=
+cqnNormFactors <- 2^(-1 * cqnOffset)
+EDASeqNormFactors <- exp(-1 * EDASeqOffset)
+@ 
+
+\section{Session Info}
+
+<<sessInfo, results=tex, echo=FALSE>>=
+toLatex(sessionInfo())
+@
+
+\end{appendices}
+
+\bibliographystyle{unsrt}
+\bibliography{library}
+
+\end{document}
