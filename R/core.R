@@ -801,7 +801,7 @@ nbinomLogLike <- function(counts, mu_hat, disp) {
 # modelMatrix the design matrix
 # modelFormula a formula specifying how to construct the design matrix
 # alpha_hat the dispersion parameter estimates
-# lambda the 'ridge' term added for the penalized GLM
+# lambda the 'ridge' term added for the penalized GLM on the log2 scale
 # large control parameter: allow some betas to go to infinity, exempt
 #   these from convergence tests
 # betaTol control parameter: stop when absolute change in beta is less
@@ -821,8 +821,8 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
   }
   modelMatrixNames <- colnames(modelMatrix)
   modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
-  if ("normalizationFactors" %in% names(assays(object))) {
-    normalizationFactors <- assays(object)[["normalizationFactors"]]
+  if (!is.null(normalizationFactors(object))) {
+    normalizationFactors <- normalizationFactors(object)
   } else { 
     normalizationFactors <- matrix(rep(sizeFactors(object),each=nrow(object)),
                                    ncol=ncol(object))
@@ -830,16 +830,28 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
   if (missing(alpha_hat)) {
     alpha_hat <- dispersions(object)
   }
-  beta_mat <- matrix(0, ncol=ncol(modelMatrix), nrow=nrow(object))
+
   if ("Intercept" %in% modelMatrixNames) {
+    beta_mat <- matrix(0, ncol=ncol(modelMatrix), nrow=nrow(object))
     beta_mat[,which(modelMatrixNames == "Intercept")] <- log(mcols(object)$baseMean)
+  } else {
+    beta_mat <- matrix(1, ncol=ncol(modelMatrix), nrow=nrow(object))
   }
+  
   # set a wide prior for all coefficients
   if (missing(lambda)) {
     lambda <- rep(1e-6, ncol(modelMatrix))
   }
+
+  # here we convert from the log2 scale of the betas
+  # to the log scale used in the C++ code
+  # lambda is the inverse of the variance
+  # so we use the squared inverse of the typical
+  # conversion factor log(2)
+  lambdaLogScale <- lambda * log2(exp(1))^2
+  
   betaRes <- fitBeta(ySEXP = counts(object), xSEXP = modelMatrix, nfSEXP = normalizationFactors,
-                     alpha_hatSEXP = alpha_hat, beta_matSEXP = beta_mat, lambdaSEXP = lambda,
+                     alpha_hatSEXP = alpha_hat, beta_matSEXP = beta_mat, lambdaSEXP = lambdaLogScale,
                      tolSEXP = betaTol, maxitSEXP = maxit, largeSEXP = large)
   mu_hat <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
   dispersionVector <- rep(dispersions(object), times=ncol(object))

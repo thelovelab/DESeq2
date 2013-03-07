@@ -203,6 +203,8 @@ arma::colvec yrow, nfrow, beta_hat, mu_hat, z, beta_hat_new;
 arma::mat w, ridge;
 double tol = Rcpp::as<double>(tolSEXP);
 double large = Rcpp::as<double>(largeSEXP);
+Rcpp::NumericVector beta_hat_nv;
+Rcpp::NumericVector beta_hat_new_nv;
 Rcpp::LogicalVector too_large;
 Rcpp::NumericVector change;
 Rcpp::NumericMatrix last_change(beta_mat.n_rows, beta_mat.n_cols);
@@ -220,8 +222,10 @@ for (int i = 0; i < y_n; i++) {
     z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
     ridge = arma::diagmat(lambda);
     beta_hat_new = (x.t() * w * x + ridge).i() * x.t() * w * z;
-    change = arma::abs(beta_hat_new - beta_hat);
-    too_large = arma::abs(beta_hat_new) > large;
+    beta_hat_nv = wrap(beta_hat);
+    beta_hat_new_nv = wrap(beta_hat_new);
+    change = abs(beta_hat_new_nv - beta_hat_nv);
+    too_large = abs(beta_hat_new_nv) > large;
     beta_hat = beta_hat_new;
     if (all(too_large).is_true()) {
       break;

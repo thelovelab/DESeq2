@@ -84,7 +84,7 @@
 \maketitle
 
 \begin{abstract}
-A basic task in the analysis of count data from RNA-Seq is the detection of differentially expressed genes. The count data are presented as a table which reports, for each sample, the number of reads that have been assigned to a gene. Analogous analyses also arise for other assay types, such as comparative ChIP-Seq. The package \Rpackage{DESeq2} provides methods to test for differential expression by use of negative binonial generalized linear models; estimates of dispersion and log fold changes incorporate data-driven prior distributions \footnote{Other Bioconductor packages with similar aims are \Rpackage{edgeR} and \Rpackage{baySeq}.}. This vignette explains the use of the package. For an exposition of the statistical method, please see our paper \cite{Anders:2010:GB}.
+A basic task in the analysis of count data from RNA-Seq is the detection of differentially expressed genes. The count data are presented as a table which reports, for each sample, the number of reads that have been assigned to a gene. Analogous analyses also arise for other assay types, such as comparative ChIP-Seq. The package \Rpackage{DESeq2} provides methods to test for differential expression by use of negative binonial generalized linear models; estimates of dispersion and log fold changes incorporate data-driven prior distributions \footnote{Other Bioconductor packages with similar aims are \Rpackage{edgeR}, \Rpackage{baySeq} and \Rpackage{DSS}.}. This vignette explains the use of the package. For an exposition of the statistical method, please see our paper \cite{Anders:2010:GB}.
 \end{abstract}
 
 <<options, results=hide, echo=FALSE>>=
@@ -578,19 +578,19 @@ hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
 
 <<figHeatmap2a, fig=TRUE, width=7, height=10>>=
 heatmap.2(counts(dse,normalized=TRUE)[select,], col = hmcol, 
-          Rowv = FALSE, dendrogram="column",
+          Rowv = FALSE, Colv = FALSE, scale="none",
           trace="none", margin=c(10,6))
 @
 
 <<figHeatmap2b, fig=TRUE, width=7, height=10>>=
 heatmap.2(assay(rld)[select,], col = hmcol, 
-          Rowv = FALSE, dendrogram="column",
+          Rowv = FALSE, Colv = FALSE, scale="none",
           trace="none", margin=c(10, 6))
 @ 
 
 <<figHeatmap2c, fig=TRUE, width=7, height=10>>=
 heatmap.2(assay(vsd)[select,], col = hmcol, 
-          Rowv = FALSE, dendrogram="column",
+          Rowv = FALSE, Colv = FALSE, scale="none",
           trace="none", margin=c(10, 6))
 @
 
@@ -672,7 +672,7 @@ The main changes are as follows:
 \begin{itemize}
 \item \Rclass{SummarizedExperiment} is used as the superclass for storage of input data, intermediate calculations and results.
 \item Maximum \textit{a posteriori} estimation of GLM coefficients incorporating a normal prior centered on zero with variance estimated from data (equivalent to Tikhonov/ridge regularization).  This adjustment has little effect on genes with high counts and helps to moderate the large spread in $\log_2$ fold changes for genes with single digit row sums.  
-\item Maximum \textit{a posteriori} estimation of dispersion replaces the \Rcode{sharingMode} options \Rcode{fit-only} or \Rcode{maximum} of the previous version of the package.
+\item Maximum \textit{a posteriori} estimation of dispersion replaces the \Rcode{sharingMode} options \Rcode{fit-only} or \Rcode{maximum} of the previous version of the package.\cite{Wu2012New}
 \item All estimation and inference is based on the generalized linear model, which includes the two condition case (previously the exact test was used).
 \item The Wald test for significance of GLM coefficients is provided as the default inference method, with the chi-squared test of the previous version still available.
 \item It is possible to provide a matrix of sample-/gene-specific normalization factors.

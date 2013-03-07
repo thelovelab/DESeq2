@@ -34,6 +34,8 @@
 #' @param priorSigmasq a single value, the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
+#' @param rowVarQuantile the quantile of the row variances of log fold changes
+#' which will be used to set the width of the prior
 #' 
 #' @return for \code{rlogTransformation},
 #' a SummarizedExperiment with assay data elements equal to
@@ -52,7 +54,7 @@
 #' plot(hclust(dists))
 #'
 #' @export
-rlogTransformation <- function(object, samplesVector, priorSigmasq) {
+rlogTransformation <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
@@ -60,7 +62,7 @@ rlogTransformation <- function(object, samplesVector, priorSigmasq) {
     object <- estimateDispersions(object)
   }
   SummarizedExperiment(
-    assays = rlogData(object, samplesVector, priorSigmasq),
+    assays = rlogData(object, samplesVector, priorSigmasq, rowVarQuantile),
     colData = colData(object),
     rowData = rowData(object),
     exptData = exptData(object))
@@ -68,7 +70,7 @@ rlogTransformation <- function(object, samplesVector, priorSigmasq) {
 
 #' @rdname rlogTransformation
 #' @export
-rlogData <- function(object, samplesVector, priorSigmasq) {
+rlogData <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
   if (is.null(dispersions(object))) {
     stop("first estimate dispersion with a design of formula(~ 1)")
   }
@@ -105,12 +107,12 @@ rlogData <- function(object, samplesVector, priorSigmasq) {
     # calculate priors on sample betas
     # take row means of squares of sample betas
     betaRowMeanSquared <- rowMeans(fit$betaMatrix[,-which(fit$modelMatrixNames == "Intercept")]^2)
-    priorSigmasq <- mean(betaRowMeanSquared[useNoZeros])
+    priorSigmasq <- quantile(betaRowMeanSquared[useNoZeros], rowVarQuantile)
   }
   
   lambda <- 1/rep(priorSigmasq,ncol(modelMatrix))
   # except for intercept which we set to wide prior
-  if ("Intercept" %in% modelMatrixNames) {
+  if ("Intercept" %in% fit$modelMatrixNames) {
     lambda[which(fit$modelMatrixNames == "Intercept")] <- 1e-6
   }
   fit <- fitNbinomGLMs(objectNZ, modelMatrix=modelMatrix, lambda=lambda)

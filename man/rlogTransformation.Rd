@@ -3,9 +3,11 @@
 \alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
-  rlogTransformation(object, samplesVector, priorSigmasq)
+  rlogTransformation(object, samplesVector, priorSigmasq,
+    rowVarQuantile = 0.9)
 
-  rlogData(object, samplesVector, priorSigmasq)
+  rlogData(object, samplesVector, priorSigmasq,
+    rowVarQuantile = 0.9)
 }
 \arguments{
   \item{object}{a DESeqSummarizedExperiment, with
@@ -19,6 +21,10 @@
   \item{priorSigmasq}{a single value, the variance of the
   prior on the sample betas, which if missing is estimated
   from the rows which do not have any zeros}
+
+  \item{rowVarQuantile}{the quantile of the row variances
+  of log fold changes which will be used to set the width
+  of the prior}
 }
 \value{
   for \code{rlogTransformation}, a SummarizedExperiment

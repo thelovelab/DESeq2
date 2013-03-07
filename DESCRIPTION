@@ -1,22 +1,44 @@
 Package: DESeq2
 Type: Package
-Title: Differential gene expression analysis based on the negative
-        binomial distribution
-Version: 0.99.14
+Title: Differential gene expression analysis based
+    on the negative binomial distribution
+Version: 0.99.15
 Date: 2013-02-18
 Author: Michael Love (MPIMG Berlin), Simon Anders (EMBL Heidelberg)
-Maintainer: Michael Love, <love@molgen.mpg.de>
+Maintainer: Michael Love <love@molgen.mpg.de>
 Description: Estimate variance-mean dependence in count data from
     high-throughput sequencing assays and test for differential expression
     based on a model using the negative binomial distribution
 License: GPL (>= 3)
 biocViews: HighThroughputSequencing, ChIPseq, RNAseq, SAGE,
-        DifferentialExpression
-Imports: GenomicRanges, IRanges, Biobase, locfit, genefilter, methods,
-        RColorBrewer, lattice
-Depends: GenomicRanges, IRanges, Biobase, lattice, Rcpp (>= 0.10.1),
-        RcppArmadillo (>= 0.3.4.4)
-Suggests: parathyroidSE, pasilla (>= 0.2.10), vsn, gplots
+    DifferentialExpression
+Imports:
+    GenomicRanges,
+    IRanges,
+    Biobase,
+    locfit,
+    genefilter,
+    methods,
+    RColorBrewer,
+    lattice
+Depends:
+    GenomicRanges,
+    IRanges,
+    Biobase,
+    lattice,
+    Rcpp (>= 0.10.1),
+    RcppArmadillo (>= 0.3.4.4)
+Suggests:
+    parathyroidSE,
+    pasilla (>= 0.2.10),
+    vsn,
+    gplots
 LinkingTo: Rcpp, RcppArmadillo
-Collate: 'AllClasses.R' 'AllGenerics.R' 'core.R' 'methods.R' 'plots.R'
-        'rlogTransformation.R' 'varianceStabilizingTransformation.R'
+Collate:
+    'AllClasses.R'
+    'AllGenerics.R'
+    'core.R'
+    'methods.R'
+    'plots.R'
+    'rlogTransformation.R'
+    'varianceStabilizingTransformation.R'

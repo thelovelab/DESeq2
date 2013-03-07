@@ -30,12 +30,12 @@ counts.DESeqSummarizedExperiment <- function(object, normalized=FALSE) {
             if(!normalized) {
               return(assays(object)[["counts"]])
             } else {
-              if ("normalizationFactors" %in% names(assays(object))) {
-                return(assays(object)[["counts"]]/assays(object)[["normalizationFactors"]])
+              if (!is.null(normalizationFactors(object))) {
+                return( assays(object)[["counts"]]/normalizationFactors(object) )
               } else if (is.null(sizeFactors(object)) | any(is.na(sizeFactors(object)))) {
                 stop("first calculate size factors, add normalizationFactors, or set normalized=FALSE")
               } else {
-                return(t(t( assays(object)[["counts"]] ) / sizeFactors(object) ))
+                return( t( t( assays(object)[["counts"]] ) / sizeFactors(object) ) )
               }
             }
           }
