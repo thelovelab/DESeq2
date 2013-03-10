@@ -2,8 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based
     on the negative binomial distribution
-Version: 0.99.15
-Date: 2013-02-18
+Version: 0.99.16
 Author: Michael Love (MPIMG Berlin), Simon Anders (EMBL Heidelberg)
 Maintainer: Michael Love <love@molgen.mpg.de>
 Description: Estimate variance-mean dependence in count data from
