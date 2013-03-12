@@ -414,12 +414,13 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
 #' and dispersion estimates.  See \code{\link{DESeq}} for the GLM formula.
 #' 
 #' The fitting proceeds as follows: standard maximum likelihood estimates
-#' for GLM coefficients are calculated; a prior distribution centered at
-#' zero is fit for all non-intercept coefficients using the maximum likelihood
-#' estimates and the expected sampling variance of the coefficients; the final
+#' for GLM coefficients are calculated; a zero-mean normal prior distribution
+#' is assumed; the variance of the prior distribution for each
+#' non-intercept coefficient is calculated as the mean squared maximum likelihood
+#' estimates over the genes which do not contain zeros; the final
 #' coefficients are then maximum a posteriori estimates (using Tikhonov/ridge
-#' regularization). 
-#' This adjustment has little effect on genes with high counts and helps to
+#' regularization) using this prior.
+#' The use of a prior has little effect on genes with high counts and helps to
 #' moderate the large spread in coefficients for genes with single digit row sums.
 #'
 #' For calculating Wald test p-values, the coefficients are scaled by their
