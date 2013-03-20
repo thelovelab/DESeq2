@@ -177,6 +177,8 @@ of the formula.  The constructor function below shows generation of a
 library("DESeq2")
 dseGR <- DESeqSummarizedExperiment(se = se,
                                    design = ~ patient + treatment)
+colData(dseGR)$treatment <- factor(colData(dseGR)$treatment,
+                                   levels=c("Control","DPN","OHT"))
 dseGR
 @
 
@@ -192,11 +194,11 @@ library("pasilla")
 data("pasillaGenes")
 countData <- counts(pasillaGenes)
 colData <- pData(pasillaGenes)[,c("condition","type")]
-colData$condition <- factor(colData$condition,
-                            levels=c("untreated","treated"))
 dse <- DESeqSummarizedExperimentFromMatrix(countData = countData,
                                            colData = colData,
                                            design = ~ condition)
+colData(dse)$condition <- factor(colData(dse)$condition,
+                                 levels=c("untreated","treated"))
 dse
 @
 
@@ -217,10 +219,26 @@ sampleTable <- data.frame(sampleName = sampleFiles,
 dseHTSeq <- DESeqSummarizedExperimentFromHTSeqCount(sampleTable = sampleTable,
                                                     directory = directory,
                                                     design= ~ condition)
+colData(dseHTSeq)$condition <- factor(colData(dseHTSeq)$condition,
+                                      levels=c("untreated","treated"))
 dseHTSeq
 detach(package:pasilla)
 detach(package:DESeq)
 @
+
+\subsection{Note on factor levels} \label{sec:factorLevels}
+
+In the three examples above, we applied the function \Rfunction{factor}
+to the column of interest in \Robject{colData}, supplying a character
+vector of levels. It is important to supply levels (otherwise the
+levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
+level as the first element, so that the $\log_2$ fold changes
+and results will be most easily interpretable.  The reason is that the
+function \Rfunction{model.matrix} is used by the \Rpackage{DESeq2} 
+package to build model matrices, and this function uses the first level 
+as the base level.
+
+\subsection{About the pasilla dataset}
 
 We continue with the \Rpackage{pasilla} data constructed from the
 count matrix method above. This data set is from an experiment on 
@@ -297,7 +315,7 @@ which was tested.
 write.csv(res, file="condition_treated_results.csv")
 @
 
-\section{Multifactor designs} \label{sec:multifactor}
+\section{Multi-factor designs} \label{sec:multifactor}
 
 Experiments with more than one factor influencing the counts can be analyzed 
 using model formulae with additional variables.  The data in the \Rpackage{pasilla} 
@@ -931,6 +949,25 @@ Descriptions are accessible by two calls to \Rfunction{mcols}.
 mcols(dse,use.names=TRUE)[1:4,1:5]
 mcols(mcols(dse), use.names=TRUE)[1:4,]
 @
+
+\section{Multi-level conditions}
+
+As mentioned in Section \ref{sec:factorLevels}, it is important to 
+refactor columns which will be used in analysis, providing the levels
+in the order desired, as the first level will be used as a base level.
+For a column with 3 levels ``Control'', ``A'', and ``B'', the refactoring
+would be:
+
+<<multilevelExample, eval=FALSE>>=
+colData(x)$condition <- factor(colData(x)$condition,
+                               levels=c("Control","A","B"))
+@ 
+
+In this case, there will be two coefficients in the analysis with
+available results: $\log_2$ fold changes of ``A'' vs ``Control'', 
+and $\log_2$ fold changes of ``B'' vs ``Control''. We are working on an
+implementation of contrasts, which would allow the user to compare
+the coefficients of ``A'' against ``B''.
 
 \section{Sample-/gene-specific normalization factors}
 
