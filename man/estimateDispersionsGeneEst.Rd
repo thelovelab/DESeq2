@@ -40,8 +40,8 @@
   results in larger steps}
 
   \item{dispTol}{control parameter to test for convergence
-  of log dispersion, stop when increase in log likelihood
-  is less than dispTol}
+  of log dispersion, stop when increase in log posterior is
+  less than dispTol}
 
   \item{maxit}{control parameter: maximum number of
   iterations to allow for convergence}

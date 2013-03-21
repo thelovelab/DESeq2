@@ -40,8 +40,8 @@
   variance of the prior distribution for each non-intercept
   coefficient is calculated as the mean squared maximum
   likelihood estimates over the genes which do not contain
-  zeros; the final coefficients are then maximum a
-  posteriori estimates (using Tikhonov/ridge
+  zeros for some condition; the final coefficients are then
+  maximum a posteriori estimates (using Tikhonov/ridge
   regularization) using this prior. The use of a prior has
   little effect on genes with high counts and helps to
   moderate the large spread in coefficients for genes with

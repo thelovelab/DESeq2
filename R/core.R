@@ -171,7 +171,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 #' @param kappa_0 control parameter used in setting the initial proposal
 #' in backtracking search, higher kappa_0 results in larger steps
 #' @param dispTol control parameter to test for convergence of log dispersion,
-#' stop when increase in log likelihood is less than dispTol
+#' stop when increase in log posterior is less than dispTol
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #'
 #' @return a DESeqSummarizedExperiment with gene-wise, fitted, or final MAP
@@ -230,10 +230,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
     warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged, use larger maxit")
   }
   
-  # dont accept moves if the log likelihood didn't
+  # dont accept moves if the log posterior did not
   # increase by more than one millionth,
   # and set the small estimates to the minimum dispersion
-  dispGeneEst <- ifelse(dispRes$last_ll > dispRes$initial_ll + abs(dispRes$initial_ll)/1e6,
+  dispGeneEst <- ifelse(dispRes$last_lp > dispRes$initial_lp + abs(dispRes$initial_lp)/1e6,
                         exp(dispRes$log_alpha), alpha_hat)
   dispGeneEst <- pmax(dispGeneEst, minDisp)
   dispGeneEstConv <- dispRes$iter < 100
@@ -388,7 +388,8 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
                       dispIter = dispResMAP$iter,
                       dispIterAccept = dispResMAP$iter_accept,
                       dispConv = ((dispResMAP$last_change < dispTol)
-                                  & (dispResMAP$iter < maxit)))
+                                  & (dispResMAP$iter < maxit)),
+                      dispD2LogPost = dispResMAP$last_d2lp)
 
   if (any(!resultsList$dispConv)) {
     message(paste(sum(!resultsList$dispConv),"rows did not converge in dispersion, labelled in mcols(object)$dispConv"))
@@ -399,7 +400,8 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
                                     description=c("final estimates of dispersion",
                                       "number of iterations",
                                       "number of accepted iterations",
-                                      "convergence of final estimates"))
+                                      "convergence of final estimates",
+                                      "second derivative of log posterior"))
   mcols(object) <- cbind(mcols(object), dispDataFrame)
   return(object)
 }
@@ -417,9 +419,9 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
 #' for GLM coefficients are calculated; a zero-mean normal prior distribution
 #' is assumed; the variance of the prior distribution for each
 #' non-intercept coefficient is calculated as the mean squared maximum likelihood
-#' estimates over the genes which do not contain zeros; the final
-#' coefficients are then maximum a posteriori estimates (using Tikhonov/ridge
-#' regularization) using this prior.
+#' estimates over the genes which do not contain zeros for some condition;
+#' the final coefficients are then maximum a posteriori estimates
+#' (using Tikhonov/ridge regularization) using this prior.
 #' The use of a prior has little effect on genes with high counts and helps to
 #' moderate the large spread in coefficients for genes with single digit row sums.
 #'
@@ -466,15 +468,27 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   objectNZ <- object[!mcols(object)$allZero,]
   fit <- fitNbinomGLMs(objectNZ)
   modelMatrixNames <- fit$modelMatrixNames
-  
   if (betaPrior) {
     if (missing(priorSigmasq)) {
-      # estimate the width of the prior on betas
-      useNoZeros <- apply(counts(objectNZ),1,function(x) all(x > 0))
+      # find out those rows which have zeros for
+      # all samples of some condition using y*X and y*(X-1)
+      # (subtracting 1 only from the model matrix columns with zeros)
+      X <- fit$modelMatrix
+      Xminus1 <- X
+      Xminus1[,colSums(X == 0) > 0] <- Xminus1[,colSums(X == 0) > 0] - 1
+      yTimesX <- counts(objectNZ) %*% X
+      yTimesXMinus1 <- counts(objectNZ) %*% Xminus1
+      useNoZeros <- apply(yTimesX,1,function(z) all(z != 0)) &
+                    apply(yTimesXMinus1,1,function(z) all(z != 0))
       if (sum(useNoZeros) == 0) {
-        stop("no rows found without zeros")
+        stop("no rows found without all zeros in one condition")
       }
+      # estimate the width of the prior on betas
       priorSigmasq <- apply(fit$betaMatrix, 2, function(x) mean(x[useNoZeros]^2))
+    } else {
+      if (length(priorSigmasq) != ncol(fit$modelMatrix)) {
+        stop(paste0("priorSigmasq should have length",ncol(fit$modelMatrix)))
+      }
     }
     lambda <- 1/priorSigmasq
     # except for intercept which we set to wide prior
@@ -894,7 +908,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
 # maxitSEXP maximum number of iterations
 # use_priorSEXP boolean variable, whether to use a prior or just calculate the MLE
 #
-# return a list with elements: log_alpha, iter, iter_accept, last_change, intial_dll, initial_ll, last_dll, last_ll
+# return a list with elements: log_alpha, iter, iter_accept, last_change, kappa_matrix, initial_lp, intial_dlp, last_lp, last_dlp, last_d2lp
 fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP, tolSEXP, maxitSEXP, use_priorSEXP) {
   # test for any NAs in arguments
   arg.names <- names(formals(fitDisp))
