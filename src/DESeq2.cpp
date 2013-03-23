@@ -34,7 +34,7 @@ double log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numeric
   double alpha_neg1 = R_pow_di(alpha, -1);
   double ll_part = sum(lgamma(y + alpha_neg1) - Rf_lgammafn(alpha_neg1) - y * log(mu + alpha_neg1) - alpha_neg1 * log(1.0 + mu * alpha));
   if (use_prior) {
-    prior_part = -0.5 * R_pow_di(log(alpha) - log_alpha_prior_mean,2)/log_alpha_prior_sigmasq;
+    prior_part = -0.5 * R_pow_di(log_alpha - log_alpha_prior_mean,2)/log_alpha_prior_sigmasq;
   } else {
     prior_part = 0.0;
   }
@@ -60,7 +60,7 @@ double dlog_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numeri
   double ll_part = alpha_neg2 * sum(Rf_digamma(alpha_neg1) + log(1 + mu*alpha) - mu*alpha*pow(1.0 + mu*alpha, -1) - digamma(y + alpha_neg1) + y * pow(mu + alpha_neg1, -1));
   // only the prior part is w.r.t log alpha
   if (use_prior) {
-    prior_part = -1.0 * (log(alpha) - log_alpha_prior_mean)/log_alpha_prior_sigmasq;
+    prior_part = -1.0 * (log_alpha - log_alpha_prior_mean)/log_alpha_prior_sigmasq;
   } else {
     prior_part = 0.0;
   }
