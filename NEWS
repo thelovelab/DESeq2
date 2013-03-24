@@ -1,7 +1,5 @@
 CHANGES IN VERSION 1.0.0
--------------------------
-
-NEW FEATURES
+------------------------
 
     o Base class: SummarizedExperiment is used as the superclass 
       for storing the data.
@@ -18,4 +16,3 @@ NEW FEATURES
 
     o Normalization: it is possible to provide a matrix of sample- 
       *and* gene-specific normalization factors
-
