@@ -239,15 +239,13 @@ arma::mat beta_mat = Rcpp::as<arma::mat>(beta_matSEXP);
 arma::mat beta_var_mat = arma::zeros(beta_mat.n_rows, beta_mat.n_cols);
 arma::colvec lambda = Rcpp::as<arma::colvec>(lambdaSEXP);
 int maxit = Rcpp::as<int>(maxitSEXP);
-arma::colvec yrow, nfrow, beta_hat, mu_hat, z, beta_hat_new;
+arma::colvec yrow, nfrow, beta_hat, mu_hat, z, beta_hat_new, change;
 arma::mat w, ridge;
+arma::mat last_change(beta_mat.n_rows, beta_mat.n_cols);
 double tol = Rcpp::as<double>(tolSEXP);
 double large = Rcpp::as<double>(largeSEXP);
-Rcpp::NumericVector beta_hat_nv;
-Rcpp::NumericVector beta_hat_new_nv;
+Rcpp::NumericVector beta_hat_nv, beta_hat_new_nv, change_nv;
 Rcpp::LogicalVector too_large;
-Rcpp::NumericVector change;
-Rcpp::NumericMatrix last_change(beta_mat.n_rows, beta_mat.n_cols);
 Rcpp::NumericVector iter(y_n);
 
 for (int i = 0; i < y_n; i++) {
@@ -264,16 +262,17 @@ for (int i = 0; i < y_n; i++) {
     beta_hat_new = (x.t() * w * x + ridge).i() * x.t() * w * z;
     beta_hat_nv = wrap(beta_hat);
     beta_hat_new_nv = wrap(beta_hat_new);
-    change = abs(beta_hat_new_nv - beta_hat_nv);
+    change = abs(beta_hat_new - beta_hat);
+    change_nv = abs(beta_hat_new_nv - beta_hat_nv);
     too_large = abs(beta_hat_new_nv) > large;
     beta_hat = beta_hat_new;
     if (all(too_large).is_true()) {
       break;
-    } else if (all(too_large | (change < tol)).is_true()) {
+    } else if (all(too_large | (change_nv < tol)).is_true()) {
       break;
     }
   }
-  last_change(i,_) = ifelse(too_large, 0.0, change);
+  last_change.row(i) = change.t();
   beta_mat.row(i) = beta_hat.t();
   beta_var_mat.row(i) = arma::diagvec((x.t() * w * x + ridge).i() * x.t() * w * x * (x.t() * w * x + ridge).i()).t();
 }
