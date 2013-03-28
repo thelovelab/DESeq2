@@ -1,8 +1,8 @@
-\name{nbinomChisqTest}
-\alias{nbinomChisqTest}
-\title{Chi-squared test for GLMs}
+\name{nbinomLRT}
+\alias{nbinomLRT}
+\title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
-  nbinomChisqTest(object, full = design(object), reduced,
+  nbinomLRT(object, full = design(object), reduced,
     pAdjustMethod = "BH")
 }
 \arguments{
@@ -43,7 +43,7 @@
 dse <- makeExampleDESeqSummarizedExperiment()
 dse <- estimateSizeFactors(dse)
 dse <- estimateDispersions(dse)
-dse <- nbinomChisqTest(dse, reduced = ~ 1)
+dse <- nbinomLRT(dse, reduced = ~ 1)
 res <- results(dse)
 }
 \seealso{
