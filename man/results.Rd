@@ -14,7 +14,7 @@
   \item{object}{a DESeqSummarizedExperiment, on which one
   of the following functions has already been called:
   \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or
-  \code{\link{nbinomChisqTest}}}
+  \code{\link{nbinomLRT}}}
 
   \item{name}{the name of the coefficient for which to
   report log2 fold changes, p-values and FDR}
@@ -49,9 +49,10 @@
 
   By default, results for the last variable will be
   returned. Information on the variable represented and the
-  test used for p-values (Wald test or chi-squared test) is
-  stored in the metadata columns, accessible by calling
-  \code{mcol} on the object returned by \code{results}.
+  test used for p-values (Wald test or likelihood ratio
+  test) is stored in the metadata columns, accessible by
+  calling \code{mcol} on the object returned by
+  \code{results}.
 
   Results can be removed from an object by calling
   \code{removeResults}

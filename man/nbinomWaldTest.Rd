@@ -55,7 +55,7 @@
   is approximately normal.
 
   The Wald test can be replaced with the
-  \code{\link{nbinomChisqTest}} for an alternative test of
+  \code{\link{nbinomLRT}} for an alternative test of
   significance.
 }
 \examples{
@@ -66,6 +66,6 @@ dse <- nbinomWaldTest(dse)
 res <- results(dse)
 }
 \seealso{
-  \code{\link{nbinomChisqTest}}
+  \code{\link{nbinomLRT}}
 }
 

@@ -806,7 +806,7 @@ version \Rpackage{DESeq}, are as follows:
 \item All estimation and inference is based on the generalized linear model, which
   includes the two condition case (previously the \textit{exact test} was used).
 \item The Wald test for significance of GLM coefficients is provided as the default
-  inference method, with the chi-squared test of the previous version still available.
+  inference method, with the likelihood ratio test of the previous version still available.
 \item It is possible to provide a matrix of sample-/gene-specific normalization factors.
 \end{itemize}
   
@@ -838,20 +838,20 @@ dse <- estimateDispersions(dse)
 dse <- nbinomWaldTest(dse)
 @
 
-\section{Chi-squared test}
+\section{Likelihood ratio test}
 
-The chi-squared test substitutes \Rfunction{nbinomWaldTest} with 
-\Rfunction{nbinomChisqTest} in the last step above.  In this case, the
+The likelihood ratio test substitutes \Rfunction{nbinomWaldTest} with 
+\Rfunction{nbinomLRT} in the last step above.  In this case, the
 user provides the full formula (the formula stored in \Rcode{design(dse)}),
 and a reduced formula, e.g. one which does not contain the variable of
 interest. The degrees of freedom for the test is obtained from the number 
-of parameters in the two models. The Wald test and the chi-squared test
+of parameters in the two models. The Wald test and the likelihood ratio test
 share many of the same genes with FDR < .1 for this experiment.
 
-<<chisquareTest>>=
-dseChisq <- nbinomChisqTest(dse, reduced = ~ type)
-resChisq <- results(dseChisq)
-tab <- table(Wald=res$FDR < .1, chisq=resChisq$FDR < .1)
+<<likelihoodRatioTest>>=
+dseLRT <- nbinomLRT(dse, reduced = ~ type)
+resLRT <- results(dseLRT)
+tab <- table(Wald=res$FDR < .1, LRT=resLRT$FDR < .1)
 addmargins(tab)
 @
 

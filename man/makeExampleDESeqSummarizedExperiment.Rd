@@ -2,7 +2,7 @@
 \alias{makeExampleDESeqSummarizedExperiment}
 \title{Make a simulated DESeqSummarizedExperiment}
 \usage{
-  makeExampleDESeqSummarizedExperiment(n = 2000, m = 10,
+  makeExampleDESeqSummarizedExperiment(n = 1000, m = 10,
     betaSd = 0, dispMeanRel = function(x) 4/x + 0.1,
     sizeFactors = rep(1, m))
 }

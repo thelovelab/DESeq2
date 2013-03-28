@@ -48,7 +48,7 @@
 #' @importFrom RColorBrewer brewer.pal
 #' @useDynLib DESeq2
 #'
-#' @seealso \code{\link{nbinomWaldTest}}, \code{\link{nbinomChisqTest}}
+#' @seealso \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
 #'
 #' @examples
 #'
@@ -90,7 +90,7 @@ DESeq <- function(object,fitType=c("parametric","local","geoMean"),betaPrior=TRU
 #' dse
 #'
 #' @export
-makeExampleDESeqSummarizedExperiment <- function(n=2000,m=10,betaSd=0,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
+makeExampleDESeqSummarizedExperiment <- function(n=1000,m=10,betaSd=0,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
   beta <- cbind(rnorm(n,4,2),rnorm(n,0,betaSd))
   dispersion <- dispMeanRel(2^(beta[,1]))
   colData <- DataFrame(sample = paste("sample",1:m,sep=""),
@@ -431,7 +431,7 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
 #' prior on dispersion estimates results in a Wald statistic
 #' distribution which is approximately normal.
 #'
-#' The Wald test can be replaced with the \code{\link{nbinomChisqTest}}
+#' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
 #'
 #' @param object a DESeqSummarizedExperiment
@@ -448,7 +448,7 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
 #' reported on a log2 scale.
 #'
-#' @seealso \code{\link{nbinomChisqTest}}
+#' @seealso \code{\link{nbinomLRT}}
 #'
 #' @examples
 #'
@@ -542,7 +542,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 }
 
 
-#' Chi-squared test for GLMs
+#' Likelihood ratio test (chi-squared test) for GLMs
 #'
 #' This function tests for significance of change in deviance between a
 #' full and reduced model which are provided as \code{formula}.
@@ -572,13 +572,13 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' dse <- makeExampleDESeqSummarizedExperiment()
 #' dse <- estimateSizeFactors(dse)
 #' dse <- estimateDispersions(dse)
-#' dse <- nbinomChisqTest(dse, reduced = ~ 1)
+#' dse <- nbinomLRT(dse, reduced = ~ 1)
 #' res <- results(dse)
 #'
 #' @export
-nbinomChisqTest <- function( object, full=design(object), reduced, pAdjustMethod="BH" ) {
+nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH" ) {
   if (missing(reduced)) {
-    stop("please provide a reduced formula for the chi-squared test, e.g. nbinomChisqTest(object, reduced = ~ 1)")
+    stop("please provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
   }
   if (any(mcols(mcols(object))$type == "results")) {
     message("you had results columns, replacing these")
@@ -604,33 +604,33 @@ nbinomChisqTest <- function( object, full=design(object), reduced, pAdjustMethod
     message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)"))
   }
   
-  chisqStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
-  chisqPvalue <- pchisq(chisqStatistic, df=df, lower.tail=FALSE)
-  chisqAdjPvalue <- p.adjust(chisqPvalue,method=pAdjustMethod)
+  LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
+  LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
+  LRTAdjPvalue <- p.adjust(LRTPvalue,method=pAdjustMethod)
   resultsList <- c(matrixToList(fullModel$betaMatrix),
                    matrixToList(fullModel$betaSE),
-                   list(chisqStatistic = chisqStatistic,
-                        chisqPvalue = chisqPvalue,
-                        chisqAdjPvalue = chisqAdjPvalue,
+                   list(LRTStatistic = LRTStatistic,
+                        LRTPvalue = LRTPvalue,
+                        LRTAdjPvalue = LRTAdjPvalue,
                         fullBetaConv = fullModel$betaConv,
                         reducedBetaConv = reducedModel$betaConv))
-  chisqResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
+  LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
 
   modelComparison <- paste0("'",paste(as.character(full),collapse=" "), "' vs '", paste(as.character(reduced),collapse=" "),"'")
 
   modelMatrixNames <- colnames(fullModel$betaMatrix)
   coefInfo <- paste("log2 fold change:",modelMatrixNames)
   seInfo <- paste("standard error:",modelMatrixNames)
-  statInfo <- paste("chi-sq. statistic:",modelComparison)
-  pvalInfo <- paste("chi-sq test:",modelComparison)
-  adjInfo <- paste("chi-sq. test,",pAdjustMethod,"adj.")
+  statInfo <- paste("LRT statistic:",modelComparison)
+  pvalInfo <- paste("LRT p-value:",modelComparison)
+  adjInfo <- paste("LRT p-value,",pAdjustMethod,"adj.")
 
-  mcols(chisqResults) <- DataFrame(type = rep("results",ncol(chisqResults)),
-                                   description = c(coefInfo, seInfo,
-                                     statInfo, pvalInfo, adjInfo,
-                                     "convergence of betas for full model",
-                                     "convergence of betas for reduced model"))
-  mcols(object) <- cbind(mcols(object),chisqResults)
+  mcols(LRTResults) <- DataFrame(type = rep("results",ncol(LRTResults)),
+                                 description = c(coefInfo, seInfo,
+                                   statInfo, pvalInfo, adjInfo,
+                                   "convergence of betas for full model",
+                                   "convergence of betas for reduced model"))
+  mcols(object) <- cbind(mcols(object),LRTResults)
   return(object)
 }
 
@@ -650,7 +650,7 @@ nbinomChisqTest <- function( object, full=design(object), reduced, pAdjustMethod
 #' (e.g. dashes into periods).
 #'
 #' By default, results for the last variable will be returned. Information on the variable
-#' represented and the test used for p-values (Wald test or chi-squared test)
+#' represented and the test used for p-values (Wald test or likelihood ratio test)
 #' is stored in the metadata columns, accessible by calling \code{mcol}
 #' on the object returned by \code{results}.
 #'
@@ -658,7 +658,7 @@ nbinomChisqTest <- function( object, full=design(object), reduced, pAdjustMethod
 #'
 #' @param object a DESeqSummarizedExperiment, on which one
 #' of the following functions has already been called:
-#' \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or \code{\link{nbinomChisqTest}}
+#' \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or \code{\link{nbinomLRT}}
 #' @param name the name of the coefficient for which to report log2 fold changes,
 #' p-values and FDR
 #'
@@ -687,12 +687,12 @@ results <- function(object, name) {
     name <- lastCoefName(object)
   }
   if (!"results" %in% mcols(mcols(object))$type) {
-    stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomChisqTest'")
+    stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
   }
   if (paste0("WaldPvalue_",name) %in% names(mcols(object))) {
     test <- "Wald"
-  } else if ("chisqPvalue" %in% names(mcols(object))) {
-    test <- "Chisq"
+  } else if ("LRTPvalue" %in% names(mcols(object))) {
+    test <- "LRT"
   } else {
     stop("cannot find appropriate results, for available names call 'resultsNames(object)'")
   }
@@ -807,7 +807,7 @@ nbinomLogLike <- function(counts, mu_hat, disp) {
 
 # Unexported, low-level function for fitting negative binomial GLMs
 #
-# Users typically call \code{\link{nbinomWaldTest}} or \code{\link{nbinomChisqTest}}
+# Users typically call \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}
 # which calls this function to perform fitting.  These functions return
 # a \code{\link{DESeqSummarizedExperiment}} object with the appropriate columns
 # added.  This function returns results as a list.
@@ -1019,8 +1019,8 @@ pvalues <- function(object,test="Wald",name) {
   }
   if (test == "Wald") {
     return(mcols(object)[paste0("WaldPvalue_",name)])
-  } else if (test == "Chisq") {
-    return(mcols(object)["chisqPvalue"])
+  } else if (test == "LRT") {
+    return(mcols(object)["LRTPvalue"])
   } else {
     stop("unknown test")
   }
@@ -1031,8 +1031,8 @@ FDR <- function(object,test="Wald",name) {
   }
   if (test == "Wald") {
     return(mcols(object)[paste0("WaldAdjPvalue_",name)])
-  } else if (test == "Chisq") {
-    return(mcols(object)["chisqAdjPvalue"])
+  } else if (test == "LRT") {
+    return(mcols(object)["LRTAdjPvalue"])
   } else {
     stop("unknown test")
   }

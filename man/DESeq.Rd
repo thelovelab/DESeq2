@@ -77,7 +77,6 @@ res <- results(dse)
   \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 }
 \seealso{
-  \code{\link{nbinomWaldTest}},
-  \code{\link{nbinomChisqTest}}
+  \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
 }
 
