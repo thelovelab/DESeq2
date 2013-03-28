@@ -2,7 +2,7 @@
 %\VignettePackage{DESeq2}
 
 % To compile this document
-% library('cacheSweave'); rm(list=ls()); Sweave('DESeq.Rnw', driver=cacheSweaveDriver())
+% library('cacheSweave'); rm(list=ls()); Sweave('DESeq2.Rnw', driver=cacheSweaveDriver())
 
 \documentclass[12pt]{article}
 \usepackage[a4paper,left=3cm,top=2cm,bottom=3cm,right=3cm,ignoreheadfoot]{geometry}
@@ -24,7 +24,7 @@
 \newcommand{\Rclass}[1]{\textit{#1}}
 
 
-\newcommand{\thetitle}{Differential expression of RNA-Seq data at the gene level -- the DESeq2 package}
+\newcommand{\thetitle}{Differential analysis of count data -- the DESeq2 package}
 
 \usepackage[pdftitle={\thetitle},%
   pdfauthor={Michael Love, Simon Anders, Wolfgang Huber},%
@@ -84,19 +84,18 @@
 \maketitle
 
 \begin{abstract}
-  A basic task in the analysis of count data from RNA-Seq is the
-  detection of differentially expressed genes. The count data are
-  presented as a table which reports, for each sample, the number of
-  sequence fragments that have been assigned to each gene. Analogous
-  data also arise for other assay types, including comparative
-  ChIP-Seq, HiC, shRNA screening, mass spectrometry. The package
-  \Rpackage{DESeq2} provides methods to test for differential
-  expression by use of negative binomial generalized linear models;
-  the estimates of dispersion and log fold changes incorporate
-  data-driven prior distributions \footnote{Other Bioconductor
-    packages with similar aims are \Rpackage{edgeR}, \Rpackage{baySeq}
-    and \Rpackage{DSS}.}. This vignette explains the use of the
-  package and demonstrates typical work flows.
+  A basic task in the analysis of count data from RNA-Seq is the detection of
+  differentially expressed genes. The count data are presented as a table which reports,
+  for each sample, the number of sequence fragments that have been assigned to each
+  gene. Analogous data also arise for other assay types, including comparative ChIP-Seq,
+  HiC, shRNA screening, mass spectrometry.  An important analysis question is the
+  quantification and statistical inference of systematic changes between conditions, as
+  compared to within-condition variability.  The package \Rpackage{DESeq2} provides
+  methods to test for differential expression by use of negative binomial generalized
+  linear models; the estimates of dispersion and logarithmic fold changes incorporate data-driven
+  prior distributions \footnote{Other Bioconductor packages with similar aims are
+    \Rpackage{edgeR}, \Rpackage{baySeq} and \Rpackage{DSS}.}. This vignette explains the
+  use of the package and demonstrates typical work flows.
 %%%-- The GB paper is really dated. Let's comment this out until the new ms exists:
 %For an exposition of the statistical method, please see our paper \cite{Anders:2010:GB}.
 \end{abstract}
@@ -111,8 +110,8 @@ options(digits=3, width=80, prompt=" ", continue=" ")
 
 \section{Quick start}
 
-Here we show the most basic steps for a differential expression analysis. 
-These steps imply you have a \Rclass{SummarizedExperiment} object 
+Here we show the most basic steps for a differential expression analysis.
+These steps imply you have a \Rclass{SummarizedExperiment} object
 \Robject{se} with a column \Robject{condition}.
 
 <<quick, eval=FALSE>>=
@@ -126,33 +125,33 @@ res <- results(dse)
 
 \subsection{Why raw counts?}
 
-As input, the \Rpackage{DESeq2} package expects count data as obtained, e.\,g., 
-from RNA-Seq or another high-throughput sequencing experiment, in the form of a 
+As input, the \Rpackage{DESeq2} package expects count data as obtained, e.\,g.,
+from RNA-Seq or another high-throughput sequencing experiment, in the form of a
 matrix of integer values. The value in the $i$-th row and the $j$-th column of
-the matrix tells how many reads have been mapped to gene $i$ in sample $j$.  
-Analogously, for other types of assays, the rows of the matrix might correspond 
-e.\,g.\ to binding regions (with ChIP-Seq) or peptide sequences (with 
+the matrix tells how many reads have been mapped to gene $i$ in sample $j$.
+Analogously, for other types of assays, the rows of the matrix might correspond
+e.\,g.\ to binding regions (with ChIP-Seq) or peptide sequences (with
 quantitative mass spectrometry).
 
-The count values must be raw counts of sequencing reads. This is important 
-for \Rpackage{DESeq2}'s statistical model to hold, as only the actual 
-counts allow assessing the measurement precision correctly. Hence, please 
-do not supply other quantities, such as (rounded) normalized counts, or 
+The count values must be raw counts of sequencing reads. This is important
+for \Rpackage{DESeq2}'s statistical model to hold, as only the actual
+counts allow assessing the measurement precision correctly. Hence, please
+do not supply other quantities, such as (rounded) normalized counts, or
 counts of covered base pairs -- this will only lead to nonsensical results.
 
 \subsection{\Rclass{SummarizedExperiment} input}
 
-In the \Rpackage{DESeq2} package, in order to simplify the preparation 
-of a count matrix, we attempt a closer integration with the core Bioconductor 
-package \Rpackage{GenomicRanges}. This should facilitate preparation steps 
+In the \Rpackage{DESeq2} package, in order to simplify the preparation
+of a count matrix, we attempt a closer integration with the core Bioconductor
+package \Rpackage{GenomicRanges}. This should facilitate preparation steps
 and also downstream exploration of results. For counting aligned reads in
-genes, the \Rfunction{summarizeOverlaps} function of 
-\Rpackage{GenomicRanges}/\Rpackage{Rsamtools} with \Rcode{mode="Union"} is 
-encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Rpackage{easyRNASeq} 
+genes, the \Rfunction{summarizeOverlaps} function of
+\Rpackage{GenomicRanges}/\Rpackage{Rsamtools} with \Rcode{mode="Union"} is
+encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Rpackage{easyRNASeq}
 is another Bioconductor package which can prepare \Rclass{SummarizedExperiment}
 objects as input for \Rpackage{DESeq2}). An example of the steps to produce
-a \Rclass{SummarizedExperiment} can be found in the data package 
-\Rpackage{parathyroidSE}, which summarizes RNA-Seq data from experiments on 
+a \Rclass{SummarizedExperiment} can be found in the data package
+\Rpackage{parathyroidSE}, which summarizes RNA-Seq data from experiments on
 4 human cell cultures \cite{Haglund2012Evidence}.
 
 <<loadSE>>=
@@ -162,15 +161,15 @@ se <- parathyroidGenesSE
 colnames(se) <- colData(se)$run
 @
 
-The class used by \Rpackage{DESeq2} is \Rclass{DESeqSummarizedExperiment}, 
-which differs from \Rclass{SummarizedExperiment} in having associated design 
-\Rclass{formula}.  The design formula expresses the variables which will be 
-used in modeling. The formula should be a tilde ($\sim$) followed by the 
+The class used by \Rpackage{DESeq2} is \Rclass{DESeqSummarizedExperiment},
+which differs from \Rclass{SummarizedExperiment} in having an associated design
+\Rclass{formula}.  The design formula expresses the variables which will be
+used in modeling. The formula should be a tilde ($\sim$) followed by the
 variables with plus signs between them (it will be coerced into an
-\Rclass{formula} if it is not already).  An intercept is automatically included, 
-representing the base mean of counts. In order to benefit from the default 
-settings of the package, you should put the variable of interest at the end 
-of the formula.  The constructor function below shows generation of a 
+\Rclass{formula} if it is not already).  An intercept is automatically included,
+representing the base mean of counts. In order to benefit from the default
+settings of the package, you should put the variable of interest at the end
+of the formula.  The constructor function below shows generation of a
 \Rclass{DESeqSummarizedExperiment} from a \Rclass{SummarizedExperiment} \Robject{se}.
 
 <<constructDSE>>=
@@ -185,8 +184,8 @@ dseGR
 \subsection{Count matrix input}
 
 Alternatively, if you already have prepared a matrix of read counts,
-you can use the function \Rfunction{DESeqSummarizedExperimentFromMatrix}.  
-For this function you should provide the counts matrix, the column 
+you can use the function \Rfunction{DESeqSummarizedExperimentFromMatrix}.
+For this function you should provide the counts matrix, the column
 information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formula.
 
 <<matrixInput>>=
@@ -204,9 +203,9 @@ dse
 
 \subsection{\textit{HTSeq} input}
 
-If you have used the \textit{HTSeq} python scripts, you can use the 
-function \Rfunction{DESeqSummarizedExperimentFromHTSeqCount}.  For an 
-example of using the python scripts, see the \Rpackage{pasilla} or 
+If you have used the \textit{HTSeq} python scripts, you can use the
+function \Rfunction{DESeqSummarizedExperimentFromHTSeqCount}.  For an
+example of using the python scripts, see the \Rpackage{pasilla} or
 \Rpackage{parathyroid} data package.
 
 <<htseqInput>>=
@@ -234,27 +233,27 @@ vector of levels. It is important to supply levels (otherwise the
 levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
 level as the first element, so that the $\log_2$ fold changes
 and results will be most easily interpretable.  The reason is that the
-function \Rfunction{model.matrix} is used by the \Rpackage{DESeq2} 
-package to build model matrices, and this function uses the first level 
+function \Rfunction{model.matrix} is used by the \Rpackage{DESeq2}
+package to build model matrices, and this function uses the first level
 as the base level.
 
 \subsection{About the pasilla dataset}
 
 We continue with the \Rpackage{pasilla} data constructed from the
-count matrix method above. This data set is from an experiment on 
-\emph{Drosophila melanogaster} cell cultures and investigated the 
-effect of RNAi knock-down of the splicing factor \emph{pasilla} 
+count matrix method above. This data set is from an experiment on
+\emph{Drosophila melanogaster} cell cultures and investigated the
+effect of RNAi knock-down of the splicing factor \emph{pasilla}
 \cite{Brooks2010}.  The detailed transcript of the production of
-the \Rpackage{pasilla} is provided in the vignette of the data package \Rpackage{pasilla}.
+the \Rpackage{pasilla} data is provided in the vignette of the data package \Rpackage{pasilla}.
 
 \section{Differential expression analysis}
 
-The standard differential expression analysis steps are wrapped 
+The standard differential expression analysis steps are wrapped
 into a single function, \Rfunction{DESeq}. The individual functions
 are still available, described in Section \ref{sec:steps}. The
-results are accessed using the function \Rfunction{results}, which 
+results are accessed using the function \Rfunction{results}, which
 extracts a results table for a single variable (by default the
-last in the design formula).  Extracting results of other variables 
+last in the design formula).  Extracting results of other variables
 is discussed in section \ref{sec:multifactor}.
 
 <<deseq>>=
@@ -268,10 +267,10 @@ head(res)
 
 \subsection{MA-plot}
 
-For \Rpackage{DESeq2}, the function \Rfunction{plotMA} shows the $\log_2$ 
-fold changes attributable to a variable over the mean of normalized counts.  
-By default, the last variable in the design formula is chosen, and points 
-will be colored red if the FDR is less than 0.1.  Points which fall out of 
+For \Rpackage{DESeq2}, the function \Rfunction{plotMA} shows the $\log_2$
+fold changes attributable to a variable over the mean of normalized counts.
+By default, the last variable in the design formula is chosen, and points
+will be colored red if the FDR is less than 0.1.  Points which fall out of
 the window are plotted as open triangles.
 
 <<MA, fig=TRUE>>=
@@ -281,34 +280,34 @@ plotMA(dse)
 \begin{figure}[ht]
 \centering
 \includegraphics[width=.5\textwidth]{DESeq2-MA}
-\caption{The MA-plot shows the $\log_2$ fold changes from the treatment over 
-  the mean of normalized counts, i.e. the average of counts normalized by 
-  size factor. The \Rpackage{DESeq2} package incorporates a prior on $\log_2$ 
-  fold changes, resulting in moderated estimates from genes with very low counts, 
+\caption{The MA-plot shows the $\log_2$ fold changes from the treatment over
+  the mean of normalized counts, i.e. the average of counts normalized by
+  size factor. The \Rpackage{DESeq2} package incorporates a prior on $\log_2$
+  fold changes, resulting in moderated estimates from genes with very low counts,
   as can be seen by the narrowing of spread of points on the left side of the plot.}
 \label{MA}
 \end{figure}
 
 \subsection{More information on results columns}
 
-Information about which variables and tests were used can be found by calling 
-the function \Rfunction{mcols} called on the results object.
+Information about which variables and tests were used can be found by calling
+the function \Rfunction{mcols} on the results object.
 
 <<metadata>>=
 mcols(res, use.names=TRUE)
 @
 
-The variable \Robject{condition} and the factor level \Robject{treated} have 
-been combined into \Robject{conditiontreated}.  For a particular gene, a 
-$\log_2$ fold change of $-1$ for \Robject{conditiontreated} here means that 
-the treatment induces a change of $2^{-1} = 0.5$ times the counts.  If the variable 
-of interest is not a factor, the $\log_2$ fold change can be interpreted as the 
+The variable \Robject{condition} and the factor level \Robject{treated} have
+been combined into \Robject{conditiontreated}.  For a particular gene, a
+$\log_2$ fold change of $-1$ for \Robject{conditiontreated} here means that
+the treatment induces a change of $2^{-1} = 0.5$ times the counts.  If the variable
+of interest is not a factor, the $\log_2$ fold change can be interpreted as the
 amount of doubling observed on average for every unit of change.
 
 \subsection{Exporting results}
 
-The results can be exported using the base R functions \Rfunction{write.csv} 
-or \Rfunction{write.delim}, and a descriptive file name indicating the variable 
+The results can be exported using the base R functions \Rfunction{write.csv}
+or \Rfunction{write.delim}, and a descriptive file name indicating the variable
 which was tested.
 
 <<export, eval=FALSE>>=
@@ -317,16 +316,16 @@ write.csv(res, file="condition_treated_results.csv")
 
 \section{Multi-factor designs} \label{sec:multifactor}
 
-Experiments with more than one factor influencing the counts can be analyzed 
-using model formulae with additional variables.  The data in the \Rpackage{pasilla} 
-package have a condition of interest (the column \Robject{condition}), as well as 
+Experiments with more than one factor influencing the counts can be analyzed
+using model formulae with additional variables.  The data in the \Rpackage{pasilla}
+package have a condition of interest (the column \Robject{condition}), as well as
 the type of sequencing which was performed (the column \Robject{type}).
 
 <<multifactor>>=
 colData(dse)
 @
 
-We can account for the different types of sequencing, and get a clearer picture 
+We can account for the different types of sequencing, and get a clearer picture
 of the differences attributable to the treatment.  As \Robject{condition} is the
 variable of interest, we put it at the end of the formula. Here we
 
@@ -342,12 +341,12 @@ res <- results(dse)
 head(res)
 @
 
-It is also possible to retrieve the $\log_2$ fold changes, p-values and FDR 
-of the \Robject{type} variable.  The function \Rfunction{results} takes an 
-argument \Rcode{name}, which is a combination of the variable and the level 
-in the numerator of the fold change.  In addition, there might be minor 
-changes made by the \Rfunction{DataFrame} function on column names, for 
-instance \texttt{single-read} to \texttt{single.read}. The function 
+It is also possible to retrieve the $\log_2$ fold changes, p-values and FDR
+of the \Robject{type} variable.  The function \Rfunction{results} takes an
+argument \Rcode{name}, which is a combination of the variable and the level
+in the numerator of the fold change.  In addition, there might be minor
+changes made by the \Rfunction{DataFrame} function on column names, for
+instance \texttt{single-read} to \texttt{single.read}. The function
 \Rfunction{resultsNames} will tell you the names of all available results.
 
 <<multiTypeResults>>=
@@ -362,11 +361,11 @@ mcols(resType)
 \subsection{Filtering by overall count} \label{sec:filtbycount}
 %--------------------------------------------------
 
-The analyses of the previous sections involve the application of statistical 
-tests, one by one, to each row of the data set, in order to identify those 
-genes that have evidence for differential expression. The idea of 
-\emph{independent filtering} is to filter out those tests from the procedure 
-that have no, or little chance of showing significant evidence, without even 
+The analyses of the previous sections involve the application of statistical
+tests, one by one, to each row of the data set, in order to identify those
+genes that have evidence for differential expression. The idea of
+\emph{independent filtering} is to filter out those tests from the procedure
+that have no, or little chance of showing significant evidence, without even
 looking at their test statistic. Typically, this results in increased detection
 power at the same experiment-wide type I error. Here, we  measure experiment-wide
 type I error in terms of the false discovery rate.
@@ -375,19 +374,19 @@ A good choice for a filtering criterion is one that
 \begin{enumerate}
   \item\label{it:indp} is statistically independent from the test statistic under the null hypothesis,
   \item\label{it:corr} is correlated with the test statistic under the alternative, and
-  \item\label{it:joint} does not notably change the dependence structure --if there is any-- 
+  \item\label{it:joint} does not notably change the dependence structure --if there is any--
     between the tests that pass the filter, compared to the dependence structure between the tests before filtering.
 \end{enumerate}
 
-The benefit from filtering relies on property \ref{it:corr}, and we will explore 
-it further in Section \ref{sec:whyitworks}. Its statistical validity relies on 
-property \ref{it:indp} -- which is simple to formally prove for many combinations 
-of filter criteria with test statistics-- and \ref{it:joint}, which is less 
-easy to theoretically imply from first principles, but rarely a problem in practice. 
+The benefit from filtering relies on property \ref{it:corr}, and we will explore
+it further in Section \ref{sec:whyitworks}. Its statistical validity relies on
+property \ref{it:indp} -- which is simple to formally prove for many combinations
+of filter criteria with test statistics-- and \ref{it:joint}, which is less
+easy to theoretically imply from first principles, but rarely a problem in practice.
 We refer to \cite{Bourgon:2010:PNAS} for further discussion of this topic.
 
-A simple filtering criterion readily available in the results object is the 
-normalized mean count (irrespective of biological condition). Genes with very 
+A simple filtering criterion readily available in the results object is the
+normalized mean count (irrespective of biological condition). Genes with very
 low counts are not likely to see significant differences typically due to high
 dispersion. For example, we can plot the $-\log_{10}$ p-values from all genes
 over the normalized mean counts, with a red line at the value 10.
@@ -405,7 +404,7 @@ table(use)
 \centering
 \includegraphics[width=.5\textwidth]{DESeq2-indFilt}
 \caption{The mean of normalized counts provides an independent statistic for
-  filtering the tests. It is independent because the information about the 
+  filtering the tests. It is independent because the information about the
   variables in the design formula is not used. By filtering out genes which fall
   to the left of the red line, the majority of the low p-values are kept.}
 \label{indFilt}
@@ -593,7 +592,7 @@ vsd <- varianceStabilizingTransformation(dseBlind)
 \subsection{Regularized log transformation}
 
 The function \Rfunction{rlogTransformation},
-stands for ``regularized log'', transforming
+stands for \emph{regularized log}, transforming
 the original count data to the $\log_2$ scale by fitting a model with a
 term for each sample and a prior distribution on the coefficients
 which is estimated from the data. This is very similar to the regularization
@@ -601,6 +600,7 @@ used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in
 Figure \ref{MA}. The resulting data contains elements defined as:
 
 $$ \log_2(\mu_{ij}) = X_{j.} \beta_i $$
+\fixme{Explain the notation: $\mu_{ij}$, $X_{j.}$ $\beta_i$.}
 
 The regularized log transformation is preferable to the variance
 stabilizing transformation if the size factors vary widely.
@@ -729,8 +729,8 @@ heatmap.2(assay(vsd)[select,], col = hmcol,
 \includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2a}
 \includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2b}
 \includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2c}
-\caption{Heatmaps showing the expression data of the \Sexpr{length(select)} 
-  most highly expressed genes. The data is of raw counts (left), 
+\caption{Heatmaps showing the expression data of the \Sexpr{length(select)}
+  most highly expressed genes. The data is of raw counts (left),
   from regularized log transformation (center) and from variance
   stabilizing transformation (right).}
 \label{figHeatmap2}
@@ -789,7 +789,7 @@ print(plotPCA(rld, intgroup=c("condition", "type")))
 
 \section{Changes compared to the  \Rpackage{DESeq} package}
 
-The main changes in the package \Rpackage{DESeq2}, compared to the (older) 
+The main changes in the package \Rpackage{DESeq2}, compared to the (older)
 version \Rpackage{DESeq}, are as follows:
 
 \begin{itemize}
@@ -807,9 +807,9 @@ version \Rpackage{DESeq}, are as follows:
   includes the two condition case (previously the \textit{exact test} was used).
 \item The Wald test for significance of GLM coefficients is provided as the default
   inference method, with the likelihood ratio test of the previous version still available.
-\item It is possible to provide a matrix of sample-/gene-specific normalization factors.
+\item It is possible to provide a matrix of sample-/gene-dependent normalization factors.
 \end{itemize}
-  
+
 \section{Generalized linear model} \label{sec:glm}
 
 The differential expression analysis in \Rpackage{DESeq2} uses a generalized
@@ -818,15 +818,18 @@ linear model of the form:
 $$ K_{ij} \sim \textrm{NB}(s_j \mu_{ij}, \alpha_i) $$
 $$ \log_2(\mu_{ij}) = X_{j.} \beta_i $$
 
-where the count $K_{ij}$ of reads for gene $i$, sample $j$ are modeled using
-a negative binomial distribution with a sample-specific size factor $s_j$, a 
-fitted mean $\mu_{ij}$ and a gene-specific dispersion parameter $\alpha_i$.  
-The coefficients $\beta_i$ give the $\log_2$ fold changes for gene $i$ for 
-each column of the model matrix $X$. Dispersions are estimated using a 
-Cox-Reid adjusted profile likelihood, as first implemented for RNA-Seq data 
-in \Rpackage{edgeR} \cite{CR,edgeR_GLM}.  For further details on dispersion 
-estimation and inference, please see the manual pages for the functions 
-\Rfunction{DESeq} and \Rfunction{estimateDispersions}.
+where the count $K_{ij}$ of reads for gene $i$, sample $j$ are modeled
+using a negative binomial distribution with a sample-dependent size
+factor $s_j$\footnote{The model can be generalised to use sample-
+  \textbf{and} gene-dependent normalisation factors, see
+  Appendix~\ref{sec:normfactors}.}, a fitted mean $\mu_{ij}$ and a
+gene-dependent dispersion parameter $\alpha_i$.  The coefficients
+$\beta_i$ give the $\log_2$ fold changes for gene $i$ for each column
+of the model matrix $X$. Dispersions are estimated using a Cox-Reid
+adjusted profile likelihood, as first implemented for RNA-Seq data in
+\Rpackage{edgeR} \cite{CR,edgeR_GLM}.  For further details on
+dispersion estimation and inference, please see the manual pages for
+the functions \Rfunction{DESeq} and \Rfunction{estimateDispersions}.
 
 \section{Wald test individual steps} \label{sec:steps}
 
@@ -840,11 +843,11 @@ dse <- nbinomWaldTest(dse)
 
 \section{Likelihood ratio test}
 
-The likelihood ratio test substitutes \Rfunction{nbinomWaldTest} with 
+The likelihood ratio test substitutes \Rfunction{nbinomWaldTest} with
 \Rfunction{nbinomLRT} in the last step above.  In this case, the
 user provides the full formula (the formula stored in \Rcode{design(dse)}),
 and a reduced formula, e.g. one which does not contain the variable of
-interest. The degrees of freedom for the test is obtained from the number 
+interest. The degrees of freedom for the test is obtained from the number
 of parameters in the two models. The Wald test and the likelihood ratio test
 share many of the same genes with FDR < .1 for this experiment.
 
@@ -857,11 +860,11 @@ addmargins(tab)
 
 \section{Dispersion plot and fitting alternatives}
 
-Plotting the dispersion estimates is a useful diagnostic. The dispersion 
-plot in Figure \ref{dispFit} is typical, with the final estimates shrunk 
-from the gene-wise estimates towards the fitted estimates. Depending on 
+Plotting the dispersion estimates is a useful diagnostic. The dispersion
+plot in Figure \ref{dispFit} is typical, with the final estimates shrunk
+from the gene-wise estimates towards the fitted estimates. Depending on
 the sample size, number of covariates, and variance present in the data,
-the amount of shrinkage can be more or less than seen here.
+the amount of shrinkage can be more or less than seen here (Figure~\ref{dispFit}).
 
 <<dispFit, fig=TRUE>>=
 plotDispEsts(dse)
@@ -871,19 +874,19 @@ plotDispEsts(dse)
 \centering
 \includegraphics[width=.5\textwidth]{DESeq2-dispFit}
 \caption{The dispersion estimate plot shows the gene-wise estimates (black),
-  the fitted values (red), and the final maximum \textit{a posteriori} 
-  estimates used in testing (blue). The genes with low counts have dispersions 
+  the fitted values (red), and the final maximum \textit{a posteriori}
+  estimates used in testing (blue). The genes with low counts have dispersions
   which are moved closer to the fitted line than the genes with high counts.}
 \label{dispFit}
 \end{figure}
 
 \subsection{Local dispersion fit}
 
-The local dispersion fit is available in case the parametric fit 
-fails to converge. A warning will be printed that one should use 
-\Rfunction{plotDispEsts} to check the quality of the fit, whether 
-the curve is pulled dramatically by a few outlier points. In this 
-case the two fit types appear to produce similar curves.
+The local dispersion fit is available in case the parametric fit
+fails to converge. A warning will be printed that one should use
+\Rfunction{plotDispEsts} to check the quality of the fit, whether
+the curve is pulled dramatically by a few outlier points. In this
+case the two fit types appear to produce similar curves (Figure~\ref{dispFitLocal}).
 
 <<dispFitLocal, fig=TRUE>>=
 dseLocal <- estimateDispersions(dse, fitType="local")
@@ -893,17 +896,17 @@ plotDispEsts(dseLocal)
 \begin{figure}[ht]
 \centering
 \includegraphics[width=.5\textwidth]{DESeq2-dispFitLocal}
-\caption{A dispersion estimate plot using a local regression fit is 
+\caption{A dispersion estimate plot using a local regression fit is
   similar to that of Figure \ref{dispFit}.}
 \label{dispFitLocal}
 \end{figure}
 
 \subsection{Geometric mean dispersion}
 
-While RNA-Seq data tend to demonstrate a dispersion-mean dependence, 
+While RNA-Seq data tend to demonstrate a dispersion-mean dependence,
 this assumption is not appropriate for all assays.  An alternative is
-to use the geometric mean of gene-wise dispersion estimates to benefit 
-from information sharing across genes.
+to use the geometric mean of all gene-wise dispersion estimates to benefit
+from information sharing across genes (Figure~\ref{dispFitGeom}).
 
 <<dispFitGeom, fig=TRUE>>=
 dseGeoMean <- estimateDispersions(dse, fitType="geoMean")
@@ -919,16 +922,16 @@ plotDispEsts(dseGeoMean)
 
 \subsection{Supply a custom dispersion fit}
 
-Any fitted values can be provided during dispersion estimation, using 
-the lower-level functions described in the manual page for 
-\Rfunction{estimateDispersionsGeneEst}. The first function, 
-\Rfunction{estimateDispersionsGeneEst}, stores the gene-wise estimates
-in the metadata column \Robject{dispGeneEst}. The final function, 
-\Rfunction{estimateDispersionsGeneEst}, uses this column and the
+Any fitted values can be provided during dispersion estimation, using
+the lower-level functions described in the manual page for
+\Rfunction{estimateDispersionsGeneEst}. In the first line of the code below, the function
+\Rfunction{estimateDispersionsGeneEst} stores the gene-wise estimates
+in the metadata column \Robject{dispGeneEst}. In the last line, the function
+\Rfunction{estimateDispersionsGeneEst}, \fixme{shouldn't this be \Rfunction{estimateDispersionsGeneMAP}} uses this column and the
 column \Robject{dispFit} to generate maximum \textit{a posteriori} (MAP)
 estimates of dispersion. The modeling assumption is that the true
-dispersions are distributed according to a log-normal prior around 
-the fitted values in the column \Robject{fitDisp}.  The width of 
+dispersions are distributed according to a log-normal prior around
+the fitted values in the column \Robject{fitDisp}.  The width of
 this prior is calculated from the data.
 
 <<dispFitCustom, fig=TRUE>>=
@@ -942,7 +945,7 @@ dse <- estimateDispersionsMAP(dse)
 \section{Access to all calculated values}
 
 Information on all of the row-wise calculated values are stored
-in the original object.  These are accessible via \Rfunction{mcols}. 
+in the original object.  These are accessible via \Rfunction{mcols}.
 Descriptions are accessible by two calls to \Rfunction{mcols}.
 
 <<mcols>>=
@@ -952,7 +955,7 @@ mcols(mcols(dse), use.names=TRUE)[1:4,]
 
 \section{Multi-level conditions}
 
-As mentioned in Section \ref{sec:factorLevels}, it is important to 
+As mentioned in Section \ref{sec:factorLevels}, it is important to
 refactor columns which will be used in analysis, providing the levels
 in the order desired, as the first level will be used as a base level.
 For a column with 3 levels ``Control'', ``A'', and ``B'', the refactoring
@@ -961,29 +964,29 @@ would be:
 <<multilevelExample, eval=FALSE>>=
 colData(x)$condition <- factor(colData(x)$condition,
                                levels=c("Control","A","B"))
-@ 
+@
 
 In this case, there will be two coefficients in the analysis with
-available results: $\log_2$ fold changes of ``A'' vs ``Control'', 
+available results: $\log_2$ fold changes of ``A'' vs ``Control'',
 and $\log_2$ fold changes of ``B'' vs ``Control''. We are working on an
 implementation of contrasts, which would allow the user to compare
 the coefficients of ``A'' against ``B''.
 
-\section{Sample-/gene-specific normalization factors}
+\section{Sample-/gene-dependent normalization factors}\label{sec:normfactors}
 
-In some experiments, there might be gene-specific dependencies
+In some experiments, there might be gene-dependent dependencies
 which vary across samples. For instance, GC-content bias or length
 bias might vary across samples coming from different labs or
 processed at different times. We use the terms ``normalization factors''
 for a gene $\times$ sample matrix, and ``size factors'' for a
-single number per sample.  Incorporating normalization factors, 
+single number per sample.  Incorporating normalization factors,
 the model from Section \ref{sec:glm} becomes:
 
 $$ K_{ij} \sim \textrm{NB}(NF_{ij} \mu_{ij}, \alpha_i) $$
 
-with normalization factor matrix $NF$ having the same dimensions 
-as the counts matrix $K$. This matrix can be incorporated as shown 
-below. We recommend providing a matrix with a mean of 1, which can 
+with normalization factor matrix $NF$ having the same dimensions
+as the counts matrix $K$. This matrix can be incorporated as shown
+below. We recommend providing a matrix with a mean of 1, which can
 be accomplished by dividing out the mean of the matrix.
 
 <<normFactors, eval=FALSE>>=
@@ -996,11 +999,11 @@ described in Section \ref{sec:steps}. Normalization factors, if present,
 will always be used in the place of size factors.
 
 The methods provided by the \Rpackage{cqn} or \Rpackage{EDASeq} packages
-can help correct for GC or length biases. They both describe in their 
+can help correct for GC or length biases. They both describe in their
 vignettes how to create matrices which can be used by \Rpackage{DESeq2}.
 From the formula above, we see that normalization factors should be on
-the scale of the counts, like size factors, and unlike offsets which 
-are typically on the scale of the predictors (i.e. the log scale for 
+the scale of the counts, like size factors, and unlike offsets which
+are typically on the scale of the predictors (i.e. the logarithmic scale for
 the negative binomial GLM). At the time of writing, the transformation
 from the matrices provided by these packages should be:
 
