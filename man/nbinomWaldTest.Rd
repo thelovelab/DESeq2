@@ -45,7 +45,7 @@
   regularization) using this prior. The use of a prior has
   little effect on genes with high counts and helps to
   moderate the large spread in coefficients for genes with
-  single digit row sums.
+  low counts.
 
   For calculating Wald test p-values, the coefficients are
   scaled by their standard errors and then compared to a

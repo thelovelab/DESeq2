@@ -20,14 +20,14 @@
   report log2 fold changes, p-values and FDR}
 }
 \value{
-  for results: a DataFrame of results columns with metadata
+  For \code{results}: a DataFrame of results columns with metadata
   columns of coefficient and test information
 
-  for resultsNames: the names of the columns available as
+  For \code{resultsNames}: the names of the columns available as
   results, usually a combination of the variable name and a
   level
 
-  for removeResults: the original object with results
+  For \code{removeResults}: the original object with results
   metadata columns removed
 }
 \description{

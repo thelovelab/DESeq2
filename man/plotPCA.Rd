@@ -16,7 +16,7 @@
   components, selected by highest row variance}
 }
 \description{
-  This plot helps to check for batch effects and the like
+  This plot helps to check for batch effects and the like.
 }
 \note{
   See the vignette for an example of variance stabilization
