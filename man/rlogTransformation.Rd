@@ -61,11 +61,6 @@
   prior. It is also possible to supply the variance of the
   prior. See the vignette for an example of the use and a
   comparison with \code{varianceStabilizingTransformation}
-
-  %This transformation is conceptually similar to the
-  %\code{predFC} function of the edgeR package, which adds
-  %prior counts to the count data in order to shrink log
-  %fold changes for rows with small counts.
 }
 \examples{
 dse <- makeExampleDESeqSummarizedExperiment(betaSd=1)
