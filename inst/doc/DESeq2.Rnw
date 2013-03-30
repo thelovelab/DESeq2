@@ -600,8 +600,15 @@ used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in
 Figure \ref{MA}. The resulting data contains elements defined as:
 
 $$ \log_2(\mu_{ij}) = X_{j.} \beta_i $$
-\fixme{Explain the notation: $\mu_{ij}$, $X_{j.}$ $\beta_i$.}
 
+where $\mu_{ij}$ is the fitted mean of the generalized linear model 
+(see Section \ref{sec:glm})
+for gene $i$ and sample $j$, $X_{j.}$ is the $j$-th row of the design 
+matrix $X$, which has a $1$ for the intercept and a $1$ for the sample-specific
+beta, and $\beta_i$ is the vector of coefficients for gene $i$.
+Without priors, this design matrix would lead to a non-unique solution,
+however the addition of a prior on non-intercept betas allows for a 
+unique solution to be found.
 The regularized log transformation is preferable to the variance
 stabilizing transformation if the size factors vary widely.
 
@@ -623,7 +630,7 @@ this vignette for the sake of brevity, but can be seen in the
 \centering
 \includegraphics[width=.49\textwidth]{DESeq2-vsd1}
 \caption{Graphs of the variance stabilizing transformation for
-  sample 1, in blue, and of the transformation $f(n)=log_2(n/s_1)$, in
+  sample 1, in blue, and of the transformation $f(n) = \log_2(n/s_1)$, in
   black. $n$ are the counts and $s_1$ is the size factor for the first sample.
 }
 \label{figvsd1}
@@ -709,19 +716,19 @@ hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
 <<figHeatmap2a, fig=TRUE, width=7, height=10>>=
 heatmap.2(counts(dse,normalized=TRUE)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
-          trace="none", margin=c(10,6))
+          dendrogram="none", trace="none", margin=c(10,6))
 @
 
 <<figHeatmap2b, fig=TRUE, width=7, height=10>>=
 heatmap.2(assay(rld)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
-          trace="none", margin=c(10, 6))
+          dendrogram="none", trace="none", margin=c(10, 6))
 @
 
 <<figHeatmap2c, fig=TRUE, width=7, height=10>>=
 heatmap.2(assay(vsd)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
-          trace="none", margin=c(10, 6))
+          dendrogram="none", trace="none", margin=c(10, 6))
 @
 
 \begin{figure}
@@ -927,7 +934,7 @@ the lower-level functions described in the manual page for
 \Rfunction{estimateDispersionsGeneEst}. In the first line of the code below, the function
 \Rfunction{estimateDispersionsGeneEst} stores the gene-wise estimates
 in the metadata column \Robject{dispGeneEst}. In the last line, the function
-\Rfunction{estimateDispersionsGeneEst}, \fixme{shouldn't this be \Rfunction{estimateDispersionsGeneMAP}} uses this column and the
+\Rfunction{estimateDispersionsMAP}, uses this column and the
 column \Robject{dispFit} to generate maximum \textit{a posteriori} (MAP)
 estimates of dispersion. The modeling assumption is that the true
 dispersions are distributed according to a log-normal prior around
