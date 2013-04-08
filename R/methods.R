@@ -434,11 +434,14 @@ estimateDispersions.DESeqSummarizedExperiment <- function(object, fitType=c("par
   }
   fitType <- match.arg(fitType)
   
-  # if trying to call differential expression on 2 samples,
+  # if trying to call differential expression for a model
+  # with as many samples as columns which are factors, e.g.
+  # 2 samples and 2 groups,
   # we supply a design formula of ~ 1 for dispersion estimation
-  twoSamples <- ncol(object) == 2
-  if (twoSamples) {
-    message("only 2 samples, estimating dispersion by treating samples as replicates")
+  modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))  
+  noReps <- nrow(modelMatrix) == sum(apply(modelMatrix, 2, function(x) all(x %in% 0:1)))
+  if (noReps) {
+    message("same number of samples and factor variables, estimating dispersion by treating samples as replicates")
     designIn <- design(object)
     design(object) <- formula(~ 1)
   }
@@ -451,7 +454,7 @@ estimateDispersions.DESeqSummarizedExperiment <- function(object, fitType=c("par
   object <- estimateDispersionsMAP(object)
 
   # replace the previous design
-  if (twoSamples) design(object) <- designIn
+  if (noReps) design(object) <- designIn
   
   return(object)
 }

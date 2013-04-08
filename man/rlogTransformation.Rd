@@ -57,10 +57,11 @@
   would typically result in an unidentifiable solution, so
   a very wide prior is used. Then the prior variance is
   estimated by taking the mean of the row-wise variance of
-  the sample coefficients. A second and final GLM fit is performed using this
-  prior. It is also possible to supply the variance of the
-  prior. See the vignette for an example of the use and a
-  comparison with \code{varianceStabilizingTransformation}
+  the sample coefficients. A second and final GLM fit is
+  performed using this prior. It is also possible to supply
+  the variance of the prior. See the vignette for an
+  example of the use and a comparison with
+  \code{varianceStabilizingTransformation}
 }
 \examples{
 dse <- makeExampleDESeqSummarizedExperiment(betaSd=1)

@@ -136,7 +136,6 @@ Rcpp::NumericVector last_d2lp(y_n);
 Rcpp::NumericVector last_change(y_n);
 Rcpp::IntegerVector iter(y_n);
 Rcpp::IntegerVector iter_accept(y_n);
-Rcpp::NumericMatrix kappa_matrix(y_n,maxit);
 double tol = Rcpp::as<double>(tolSEXP);
 bool use_prior = Rcpp::as<bool>(use_priorSEXP);
 
@@ -158,7 +157,6 @@ for (int i = 0; i < y_n; i++) {
   initial_dlp(i) = dlp;
   last_change(i) = -1.0;
   for (int t = 0; t < maxit; t++) {
-    kappa_matrix(i,t) = kappa;
     // iter counts the number of steps taken out of  maxit;
     iter(i)++;
     a_propose = a + kappa * dlp;
@@ -218,7 +216,6 @@ return Rcpp::List::create(Rcpp::Named("log_alpha",log_alpha),
 			  Rcpp::Named("iter",iter),
 			  Rcpp::Named("iter_accept",iter_accept),
 			  Rcpp::Named("last_change",last_change),
-			  Rcpp::Named("kappa_matrix",kappa_matrix),
 			  Rcpp::Named("initial_lp",initial_lp),
 			  Rcpp::Named("initial_dlp",initial_dlp),
 			  Rcpp::Named("last_lp",last_lp),

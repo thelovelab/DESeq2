@@ -5,7 +5,7 @@
 \title{Low-level functions to fit dispersion estimates}
 \usage{
   estimateDispersionsGeneEst(object, minDisp = 1e-08,
-    kappa_0 = 1, dispTol = 1e-04, maxit = 100)
+    kappa_0 = 1, dispTol = 1e-06, maxit = 100)
 
   estimateDispersionsFit(object,
     fitType = c("parametric", "local", "geoMean"),

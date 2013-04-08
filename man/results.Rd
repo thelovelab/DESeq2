@@ -20,15 +20,15 @@
   report log2 fold changes, p-values and FDR}
 }
 \value{
-  For \code{results}: a DataFrame of results columns with metadata
-  columns of coefficient and test information
+  For \code{results}: a DataFrame of results columns with
+  metadata columns of coefficient and test information
 
-  For \code{resultsNames}: the names of the columns available as
-  results, usually a combination of the variable name and a
-  level
+  For \code{resultsNames}: the names of the columns
+  available as results, usually a combination of the
+  variable name and a level
 
-  For \code{removeResults}: the original object with results
-  metadata columns removed
+  For \code{removeResults}: the original object with
+  results metadata columns removed
 }
 \description{
   Extract results from a DESeq analysis giving base means

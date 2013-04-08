@@ -75,9 +75,11 @@ DESeq <- function(object,fitType=c("parametric","local","geoMean"),betaPrior=TRU
 #'
 #' @param n number of rows
 #' @param m number of columns
+#' @param betaSd the standard deviation for non-intercept betas, i.e. beta ~ N(0,betaSd)
+#' @param interceptMean the mean of the intercept betas (log2 scale)
+#' @param interceptSd the standard deviation of the intercept betas (log2 scale)
 #' @param dispMeanRel a function specifying the relationship of the dispersions on
 #' \code{2^trueIntercept}
-#' @param betaSd the standard deviation for non-intercept betas, i.e. beta ~ N(0,betaSd)
 #' @param sizeFactors multiplicative factors for each sample
 #'
 #' @return a \code{\link{DESeqSummarizedExperiment}} with true dispersion,
@@ -90,8 +92,8 @@ DESeq <- function(object,fitType=c("parametric","local","geoMean"),betaPrior=TRU
 #' dse
 #'
 #' @export
-makeExampleDESeqSummarizedExperiment <- function(n=1000,m=10,betaSd=0,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
-  beta <- cbind(rnorm(n,4,2),rnorm(n,0,betaSd))
+makeExampleDESeqSummarizedExperiment <- function(n=1000,m=10,betaSd=0,interceptMean=4,interceptSd=2,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
+  beta <- cbind(rnorm(n,interceptMean,interceptSd),rnorm(n,0,betaSd))
   dispersion <- dispMeanRel(2^(beta[,1]))
   colData <- DataFrame(sample = paste("sample",1:m,sep=""),
                        condition=factor(rep(c("A","B"),times=c(ceiling(m/2),floor(m/2)))))
@@ -191,7 +193,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 #' @seealso \code{\link{estimateDispersions}}
 #'
 #' @export
-estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=1e-4, maxit=100) {
+estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100) {
   if ("dispGeneEst" %in% names(mcols(object))) {
     message("you had estimated gene-wise dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  == "dispGeneEst"]
@@ -226,7 +228,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
                      kappa_0SEXP = kappa_0, tolSEXP = dispTol,
                      maxitSEXP = maxit, use_priorSEXP = FALSE)
 
-  if (mean(dispRes$last_change < dispTol) < .5) {
+  if (mean(dispRes$iter < maxit) < .5) {
     warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged, use larger maxit")
   }
   
@@ -236,7 +238,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
   dispGeneEst <- ifelse(dispRes$last_lp > dispRes$initial_lp + abs(dispRes$initial_lp)/1e6,
                         exp(dispRes$log_alpha), alpha_hat)
   dispGeneEst <- pmax(dispGeneEst, minDisp)
-  dispGeneEstConv <- dispRes$iter < 100
+  dispGeneEstConv <- dispRes$iter < maxit
   
   dispDataFrame <- buildDataFrameWithNARows(list(dispGeneEst=dispGeneEst,
                                                  dispGeneEstConv=dispGeneEstConv),
@@ -423,7 +425,7 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
 #' the final coefficients are then maximum a posteriori estimates
 #' (using Tikhonov/ridge regularization) using this prior.
 #' The use of a prior has little effect on genes with high counts and helps to
-#' moderate the large spread in coefficients for genes with single digit row sums.
+#' moderate the large spread in coefficients for genes with low counts.
 #'
 #' For calculating Wald test p-values, the coefficients are scaled by their
 #' standard errors and then compared to a normal distribution.  From
@@ -662,13 +664,13 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH" 
 #' @param name the name of the coefficient for which to report log2 fold changes,
 #' p-values and FDR
 #'
-#' @return for results: a DataFrame of results columns with metadata
+#' @return For \code{results}: a DataFrame of results columns with metadata
 #' columns of coefficient and test information
 #'
-#' for resultsNames: the names of the columns available as results, usually a combination
-#' of the variable name and a level
+#' For \code{resultsNames}: the names of the columns available as results,
+#' usually a combination of the variable name and a level
 #'
-#' for removeResults: the original object with results metadata columns removed
+#' For \code{removeResults}: the original object with results metadata columns removed
 #'
 #' @seealso \code{\link{DESeq}}
 #'
@@ -908,7 +910,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
 # maxitSEXP maximum number of iterations
 # use_priorSEXP boolean variable, whether to use a prior or just calculate the MLE
 #
-# return a list with elements: log_alpha, iter, iter_accept, last_change, kappa_matrix, initial_lp, intial_dlp, last_lp, last_dlp, last_d2lp
+# return a list with elements: log_alpha, iter, iter_accept, last_change, initial_lp, intial_dlp, last_lp, last_dlp, last_d2lp
 fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP, tolSEXP, maxitSEXP, use_priorSEXP) {
   # test for any NAs in arguments
   arg.names <- names(formals(fitDisp))

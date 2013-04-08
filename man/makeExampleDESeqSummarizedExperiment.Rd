@@ -3,7 +3,8 @@
 \title{Make a simulated DESeqSummarizedExperiment}
 \usage{
   makeExampleDESeqSummarizedExperiment(n = 1000, m = 10,
-    betaSd = 0, dispMeanRel = function(x) 4/x + 0.1,
+    betaSd = 0, interceptMean = 4, interceptSd = 2,
+    dispMeanRel = function(x) 4/x + 0.1,
     sizeFactors = rep(1, m))
 }
 \arguments{
@@ -11,11 +12,17 @@
 
   \item{m}{number of columns}
 
-  \item{dispMeanRel}{a function specifying the relationship
-  of the dispersions on \code{2^trueIntercept}}
-
   \item{betaSd}{the standard deviation for non-intercept
   betas, i.e. beta ~ N(0,betaSd)}
+
+  \item{interceptMean}{the mean of the intercept betas
+  (log2 scale)}
+
+  \item{interceptSd}{the standard deviation of the
+  intercept betas (log2 scale)}
+
+  \item{dispMeanRel}{a function specifying the relationship
+  of the dispersions on \code{2^trueIntercept}}
 
   \item{sizeFactors}{multiplicative factors for each
   sample}

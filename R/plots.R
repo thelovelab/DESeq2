@@ -112,7 +112,7 @@ plotMA = function(dse, lfcColname, pvalColname, pvalCutoff=.1, ylim, col = ifels
 
 #' Sample PCA plot from variance-stabilized data
 #' 
-#' This plot helps to check for batch effects and the like
+#' This plot helps to check for batch effects and the like.
 #' 
 #' @param x a SummarizedExperiment, with transformed data in \code{assay(x)},
 #' produced by \code{\link{varianceStabilizingTransformation}}

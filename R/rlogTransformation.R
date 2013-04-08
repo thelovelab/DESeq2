@@ -17,14 +17,11 @@
 #' with a term for each sample and for the intercept. This would typically
 #' result in an unidentifiable solution, so a very wide prior is used.
 #' Then the prior variance is estimated by taking the mean of the
-#' row-wise variance of the sample coefficients. A final GLM is fit using
-#' this prior. It is also possible to supply the variance of the prior.
+#' row-wise variance of the sample coefficients. A second and final GLM fit
+#' is performed using this prior.
+#' It is also possible to supply the variance of the prior.
 #' See the vignette for an example of the use and a comparison with
 #' \code{varianceStabilizingTransformation}
-#'
-#' This transformation is conceptually similar to the \code{predFC}
-#' function of the edgeR package, which adds prior counts to the
-#' count data in order to shrink log fold changes for rows with small counts.
 #'
 #' @aliases rlogTransformation rlogData
 #'
