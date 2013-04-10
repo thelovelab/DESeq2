@@ -6,7 +6,7 @@
     pAdjustMethod = "BH")
 }
 \arguments{
-  \item{object}{a DESeqSummarizedExperiment}
+  \item{object}{a DESeqDataSet}
 
   \item{full}{the full model formula, this should be the
   formula in \code{design(object)}}
@@ -18,10 +18,9 @@
   p-values, see \code{?p.adjust}}
 }
 \value{
-  a DESeqSummarizedExperiment with new results columns
-  accessible with the \code{\link{results}} function.  The
-  coefficients and standard errors are reported on a log2
-  scale.
+  a DESeqDataSet with new results columns accessible with
+  the \code{\link{results}} function.  The coefficients and
+  standard errors are reported on a log2 scale.
 }
 \description{
   This function tests for significance of change in
@@ -40,11 +39,11 @@
   default \code{\link{nbinomWaldTest}}.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-dse <- estimateSizeFactors(dse)
-dse <- estimateDispersions(dse)
-dse <- nbinomLRT(dse, reduced = ~ 1)
-res <- results(dse)
+dds <- makeExampleDESeqDataSet()
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+dds <- nbinomLRT(dds, reduced = ~ 1)
+res <- results(dds)
 }
 \seealso{
   \code{\link{nbinomWaldTest}}

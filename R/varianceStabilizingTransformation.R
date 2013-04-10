@@ -11,11 +11,11 @@
 #'
 #' @aliases varianceStabilizingTransformation getVarianceStabilizedData
 #' 
-#' @param object a DESeqSummarizedExperiment, with \code{design(object) <- formula(~ 1)}
+#' @param object a DESeqDataSet, with \code{design(object) <- formula(~ 1)}
 #' and size factors (or normalization factors) and dispersions estimated
 #' using local or parametric \code{fitType}.
 #'
-#' @details For each sample (i.e., column of \code{counts(dse)}), the full variance function
+#' @details For each sample (i.e., column of \code{counts(dds)}), the full variance function
 #'   is calculated from the raw variance (by scaling according to the size factor and adding 
 #'   the shot noise). The function requires a blind estimate of the variance function, i.e.,
 #'   one ignoring conditions. This is achieved by setting the design formula to \code{~ 1} and
@@ -55,13 +55,13 @@
 #'
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' design(dse) <- formula(~ 1)
-#' dse <- estimateSizeFactors(dse)
-#' dse <- estimateDispersions(dse)
-#' vsd <- varianceStabilizingTransformation(dse)
+#' dds <- makeExampleDESeqDataSet()
+#' design(dds) <- formula(~ 1)
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' vsd <- varianceStabilizingTransformation(dds)
 #' par(mfrow=c(1,2))
-#' plot(rank(rowMeans(counts(dse))), genefilter::rowVars(log2(counts(dse)+1)), main="log2(x+1) transform")
+#' plot(rank(rowMeans(counts(dds))), genefilter::rowVars(log2(counts(dds)+1)), main="log2(x+1) transform")
 #' plot(rank(rowMeans(assay(vsd))), genefilter::rowVars(assay(vsd)), main="VST")
 #' 
 #' @export

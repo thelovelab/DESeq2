@@ -6,7 +6,7 @@
     pAdjustMethod = "BH", priorSigmasq)
 }
 \arguments{
-  \item{object}{a DESeqSummarizedExperiment}
+  \item{object}{a DESeqDataSet}
 
   \item{betaPrior}{whether or not to put a zero-mean normal
   prior on the non-intercept coefficients (Tikhonov/ridge
@@ -21,10 +21,9 @@
   zeros}
 }
 \value{
-  a DESeqSummarizedExperiment with results columns
-  accessible with the \code{\link{results}} function.  The
-  coefficients and standard errors are reported on a log2
-  scale.
+  a DESeqDataSet with results columns accessible with the
+  \code{\link{results}} function.  The coefficients and
+  standard errors are reported on a log2 scale.
 }
 \description{
   This function tests for significance of coefficients in a
@@ -59,11 +58,11 @@
   significance.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-dse <- estimateSizeFactors(dse)
-dse <- estimateDispersions(dse)
-dse <- nbinomWaldTest(dse)
-res <- results(dse)
+dds <- makeExampleDESeqDataSet()
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+dds <- nbinomWaldTest(dds)
+res <- results(dds)
 }
 \seealso{
   \code{\link{nbinomLRT}}

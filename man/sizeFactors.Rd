@@ -1,17 +1,17 @@
 \docType{methods}
 \name{sizeFactors}
 \alias{sizeFactors}
-\alias{sizeFactors,DESeqSummarizedExperiment-method}
-\alias{sizeFactors<-,DESeqSummarizedExperiment,numeric-method}
-\title{Accessor functions for the 'sizeFactors' information in a DESeqSummarizedExperiment
+\alias{sizeFactors,DESeqDataSet-method}
+\alias{sizeFactors<-,DESeqDataSet,numeric-method}
+\title{Accessor functions for the 'sizeFactors' information in a DESeqDataSet
 object.}
 \usage{
-  \S4method{sizeFactors}{DESeqSummarizedExperiment}(object)
+  \S4method{sizeFactors}{DESeqDataSet}(object)
 
-  \S4method{sizeFactors}{DESeqSummarizedExperiment,numeric}(object)<-value
+  \S4method{sizeFactors}{DESeqDataSet,numeric}(object)<-value
 }
 \arguments{
-  \item{object}{a \code{DESeqSummarizedExperiment} object.}
+  \item{object}{a \code{DESeqDataSet} object.}
 
   \item{value}{a numeric vector, one size factor for each
   column in the count data.}
@@ -26,9 +26,9 @@ object.}
   each sample, use \code{\link{normalizationFactors}}.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-dse <- estimateSizeFactors( dse )
-sizeFactors(dse)
+dds <- makeExampleDESeqDataSet()
+dds <- estimateSizeFactors( dds )
+sizeFactors(dds)
 }
 \author{
   Simon Anders

@@ -10,10 +10,9 @@
     rowVarQuantile = 0.9)
 }
 \arguments{
-  \item{object}{a DESeqSummarizedExperiment, with
-  \code{design(object) <- formula(~ 1)} and size factors
-  (or normalization factors) and dispersions already
-  estimated}
+  \item{object}{a DESeqDataSet, with \code{design(object)
+  <- formula(~ 1)} and size factors (or normalization
+  factors) and dispersions already estimated}
 
   \item{samplesVector}{a character vector or factor of the
   sample identifiers}
@@ -64,9 +63,9 @@
   \code{varianceStabilizingTransformation}
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment(betaSd=1)
-design(dse) <- formula(~ 1)
-rld <- rlogTransformation(dse, colData(dse)$sample)
+dds <- makeExampleDESeqDataSet(betaSd=1)
+design(dds) <- formula(~ 1)
+rld <- rlogTransformation(dds, colData(dds)$sample)
 dists <- dist(t(assay(rld)))
 plot(hclust(dists))
 }

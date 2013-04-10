@@ -10,7 +10,7 @@ col2useful <- function(col,alpha) {
 #' A simple helper function that plots the per-gene dispersion
 #' estimates together with the fitted mean-dispersion relationship.
 #'
-#' @param dse a DESeqSummarizedExperiment
+#' @param dds a DESeqDataSet
 #' @param ymin the lower bound for points on the plot, points beyond this
 #'    are drawn as triangles at ymin
 #' @param genecol the color for gene-wise dispersion estimates
@@ -27,29 +27,29 @@ col2useful <- function(col,alpha) {
 #'
 #' @examples
 #' 
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse <- estimateSizeFactors(dse)
-#' dse <- estimateDispersions(dse)
-#' plotDispEsts(dse)
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' plotDispEsts(dds)
 #' 
 #' @export
-plotDispEsts = function( dse, ymin,
-  genecol = "black", fitcol = "red", finalcol = "blue",
+plotDispEsts = function( dds, ymin,
+  genecol = "black", fitcol = "red", finalcol = "dodgerblue",
   legend=TRUE, xlab = "mean of normalized counts",
   ylab = "dispersion", log = "xy", cex = 0.45, ... )
 { 
-  px = mcols(dse)$baseMean
+  px = mcols(dds)$baseMean
   sel = (px>0)
   px = px[sel]
 
-  py = mcols(dse)$dispGeneEst[sel]
+  py = mcols(dds)$dispGeneEst[sel]
   if(missing(ymin))
       ymin = 10^floor(log10(min(py[py>0], na.rm=TRUE))-0.1)
 
   plot(px, pmax(py, ymin), xlab=xlab, ylab=ylab,
-    log=log, pch=ifelse(py<ymin, 6, 20), col=genecol, cex=cex, ... )
-  points(px, dispersions(dse)[sel], col=col2useful(finalcol,.3), cex=cex, pch=20)
-  points(px, mcols(dse)$dispFit[sel], col=col2useful(fitcol,.5), cex=cex, pch=20)
+    log=log, pch=ifelse(py<ymin, 6, 20), col=col2useful(genecol,.8), cex=cex, ... )
+  points(px, dispersions(dds)[sel], col=col2useful(finalcol,.8), cex=cex, pch=20)
+  points(px, mcols(dds)$dispFit[sel], col=col2useful(fitcol,.8), cex=cex, pch=20)
   if (legend) {
     legend("bottomright",c("gene-est","fitted","final"),pch=20,col=c(genecol,fitcol,finalcol),bg="white")
   }
@@ -62,7 +62,7 @@ plotDispEsts = function( dse, ymin,
 #' scatter plot of log2 fold changes (on the y-axis) versus the mean of
 #' normalized counts (on the x-axis).
 #'
-#' @param dse a DESeqSummarizedExperiment
+#' @param dds a DESeqDataSet
 #' @param lfcColname the name of the column for log fold changes, if
 #'    not provided this will default to the last variable in the design formula
 #' @param pvalColname the name of the column for pvalues/adjusted pvalues, if
@@ -81,22 +81,22 @@ plotDispEsts = function( dse, ymin,
 #'
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse <- DESeq(dse)
-#' plotMA(dse)
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- DESeq(dds)
+#' plotMA(dds)
 #' 
 #' @export
-plotMA = function(dse, lfcColname, pvalColname, pvalCutoff=.1, ylim, col = ifelse(mcols(dse)[,pvalColname] < pvalCutoff, "red", "black"), linecol = "#ff000080", xlab = "mean of normalized counts", ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...)
+plotMA = function(dds, lfcColname, pvalColname, pvalCutoff=.1, ylim, col = ifelse(mcols(dds)[,pvalColname] < pvalCutoff, "red", "black"), linecol = "#ff000080", xlab = "mean of normalized counts", ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...)
 {
   # if not specified, try the last variable of the design formula,
   # the last level of this variable, and the Wald test adjusted p-values
   if (missing(lfcColname)) {
-    lfcColname <- lastCoefName(dse)
+    lfcColname <- lastCoefName(dds)
   }
   if (missing(pvalColname)) {
     pvalColname <- paste0("WaldAdjPvalue_",lfcColname)
   }
-  x = mcols(dse)
+  x = mcols(dds)
   col = col[x$baseMean > 0]
   x = x[x$baseMean > 0,]
   py = x[,lfcColname]
@@ -126,11 +126,11 @@ plotMA = function(dse, lfcColname, pvalColname, pvalCutoff=.1, ylim, col = ifels
 #'
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment(betaSd=1)
-#' design(dse) <- formula(~ 1)
-#' dse <- estimateSizeFactors(dse)
-#' dse <- estimateDispersions(dse)
-#' vsd <- varianceStabilizingTransformation(dse)
+#' dds <- makeExampleDESeqDataSet(betaSd=1)
+#' design(dds) <- formula(~ 1)
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' vsd <- varianceStabilizingTransformation(dds)
 #' plotPCA(vsd)
 #'
 #' @export

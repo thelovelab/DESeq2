@@ -1,17 +1,17 @@
 \docType{methods}
 \name{dispersionFunction}
 \alias{dispersionFunction}
-\alias{dispersionFunction,DESeqSummarizedExperiment-method}
+\alias{dispersionFunction,DESeqDataSet-method}
 \alias{dispersionFunction<-}
-\alias{dispersionFunction<-,DESeqSummarizedExperiment,function-method}
-\title{Accessors for the 'dispersionFunction' slot of a DESeqSummarizedExperiment object.}
+\alias{dispersionFunction<-,DESeqDataSet,function-method}
+\title{Accessors for the 'dispersionFunction' slot of a DESeqDataSet object.}
 \usage{
-  \S4method{dispersionFunction}{DESeqSummarizedExperiment}(object)
+  \S4method{dispersionFunction}{DESeqDataSet}(object)
 
-  \S4method{dispersionFunction}{DESeqSummarizedExperiment,function}(object)<-value
+  \S4method{dispersionFunction}{DESeqDataSet,function}(object)<-value
 }
 \arguments{
-  \item{object}{a \code{DESeqSummarizedExperiment} object.}
+  \item{object}{a \code{DESeqDataSet} object.}
 
   \item{value}{a \code{function}}
 }
@@ -24,6 +24,6 @@
 }
 \examples{
 example("estimateDispersions")
-dispersionFunction(dse)
+dispersionFunction(dds)
 }
 

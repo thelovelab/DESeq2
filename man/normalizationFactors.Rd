@@ -1,18 +1,18 @@
 \docType{methods}
 \name{normalizationFactors}
 \alias{normalizationFactors}
-\alias{normalizationFactors,DESeqSummarizedExperiment-method}
+\alias{normalizationFactors,DESeqDataSet-method}
 \alias{normalizationFactors<-}
-\alias{normalizationFactors<-,DESeqSummarizedExperiment,matrix-method}
-\title{Accessor functions for the normalization factors in a DESeqSummarizedExperiment
+\alias{normalizationFactors<-,DESeqDataSet,matrix-method}
+\title{Accessor functions for the normalization factors in a DESeqDataSet
 object.}
 \usage{
-  \S4method{normalizationFactors}{DESeqSummarizedExperiment}(object)
+  \S4method{normalizationFactors}{DESeqDataSet}(object)
 
-  \S4method{normalizationFactors}{DESeqSummarizedExperiment,matrix}(object)<-value
+  \S4method{normalizationFactors}{DESeqDataSet,matrix}(object)<-value
 }
 \arguments{
-  \item{object}{a \code{DESeqSummarizedExperiment} object.}
+  \item{object}{a \code{DESeqDataSet} object.}
 
   \item{value}{the matrix of normalization factors}
 }
@@ -44,11 +44,11 @@ object.}
   factors.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-normFactors <- matrix(runif(nrow(dse)*ncol(dse),0.5,1.5),
-                      ncol=ncol(dse),nrow=nrow(dse))
-normalizationFactors(dse) <- normFactors
-dse <- estimateDispersions(dse)
-dse <- nbinomWaldTest(dse)
+dds <- makeExampleDESeqDataSet()
+normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
+                      ncol=ncol(dds),nrow=nrow(dds))
+normalizationFactors(dds) <- normFactors
+dds <- estimateDispersions(dds)
+dds <- nbinomWaldTest(dds)
 }
 

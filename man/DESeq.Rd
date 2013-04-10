@@ -7,11 +7,10 @@
     betaPrior = TRUE, pAdjustMethod = "BH")
 }
 \arguments{
-  \item{object}{a DESeqSummarizedExperiment object, see the
-  constructor functions
-  \code{\link{DESeqSummarizedExperiment}},
-  \code{\link{DESeqSummarizedExperimentFromMatrix}},
-  \code{\link{DESeqSummarizedExperimentFromHTSeqCount}}.}
+  \item{object}{a DESeqDataSet object, see the constructor
+  functions \code{\link{DESeqDataSet}},
+  \code{\link{DESeqDataSetFromMatrix}},
+  \code{\link{DESeqDataSetFromHTSeqCount}}.}
 
   \item{fitType}{either "parametric", "local", or "geoMean"
   for the type of fitting of dispersions to the mean
@@ -27,13 +26,13 @@
   p-values, see \code{?p.adjust}}
 }
 \value{
-  a \code{\link{DESeqSummarizedExperiment}} object with
-  results stored as metadata columns.  The results can be
-  accessed by calling the \code{\link{results}} function.
-  By default this will return the log2 fold changes and
-  p-values for the last variable in the design formula.
-  See \code{\link{results}} for how to access results for
-  other variables.
+  a \code{\link{DESeqDataSet}} object with results stored
+  as metadata columns.  The results can be accessed by
+  calling the \code{\link{results}} function.  By default
+  this will return the log2 fold changes and p-values for
+  the last variable in the design formula.  See
+  \code{\link{results}} for how to access results for other
+  variables.
 }
 \description{
   This function performs a default analysis by calling, in
@@ -63,9 +62,9 @@
   p-values see \code{\link{nbinomWaldTest}}.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment(betaSd=1)
-dse <- DESeq(dse)
-res <- results(dse)
+dds <- makeExampleDESeqDataSet(betaSd=1)
+dds <- DESeq(dds)
+res <- results(dds)
 }
 \author{
   Michael Love

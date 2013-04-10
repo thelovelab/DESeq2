@@ -1,16 +1,16 @@
 \docType{methods}
 \name{counts}
 \alias{counts}
-\alias{counts,DESeqSummarizedExperiment-method}
-\alias{counts<-,DESeqSummarizedExperiment,matrix-method}
-\title{Accessors for the 'counts' slot of a DESeqSummarizedExperiment object.}
+\alias{counts,DESeqDataSet-method}
+\alias{counts<-,DESeqDataSet,matrix-method}
+\title{Accessors for the 'counts' slot of a DESeqDataSet object.}
 \usage{
-  \S4method{counts}{DESeqSummarizedExperiment}(object,normalized=FALSE)
+  \S4method{counts}{DESeqDataSet}(object,normalized=FALSE)
 
-  \S4method{counts}{DESeqSummarizedExperiment,matrix}(object)<-value
+  \S4method{counts}{DESeqDataSet,matrix}(object)<-value
 }
 \arguments{
-  \item{object}{a \code{DESeqSummarizedExperiment} object.}
+  \item{object}{a \code{DESeqDataSet} object.}
 
   \item{normalized}{logical indicating whether or not to
   divide the counts by the size factors or normalization
@@ -26,8 +26,8 @@
   each sample.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-head(counts(dse))
+dds <- makeExampleDESeqDataSet()
+head(counts(dds))
 }
 \author{
   Simon Anders

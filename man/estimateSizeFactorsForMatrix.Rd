@@ -29,8 +29,8 @@
   \code{\link{estimateSizeFactors}}.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-estimateSizeFactorsForMatrix(counts(dse))
+dds <- makeExampleDESeqDataSet()
+estimateSizeFactorsForMatrix(counts(dds))
 }
 \author{
   Simon Anders

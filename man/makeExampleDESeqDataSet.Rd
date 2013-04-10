@@ -1,9 +1,9 @@
-\name{makeExampleDESeqSummarizedExperiment}
-\alias{makeExampleDESeqSummarizedExperiment}
-\title{Make a simulated DESeqSummarizedExperiment}
+\name{makeExampleDESeqDataSet}
+\alias{makeExampleDESeqDataSet}
+\title{Make a simulated DESeqDataSet}
 \usage{
-  makeExampleDESeqSummarizedExperiment(n = 1000, m = 10,
-    betaSd = 0, interceptMean = 4, interceptSd = 2,
+  makeExampleDESeqDataSet(n = 1000, m = 10, betaSd = 0,
+    interceptMean = 4, interceptSd = 2,
     dispMeanRel = function(x) 4/x + 0.1,
     sizeFactors = rep(1, m))
 }
@@ -28,10 +28,9 @@
   sample}
 }
 \value{
-  a \code{\link{DESeqSummarizedExperiment}} with true
-  dispersion, intercept and beta values in the metadata
-  columns.  Note that the true betas are provided on the
-  log2 scale.
+  a \code{\link{DESeqDataSet}} with true dispersion,
+  intercept and beta values in the metadata columns.  Note
+  that the true betas are provided on the log2 scale.
 }
 \description{
   Constructs a simulated dataset of negative binomial data
@@ -40,7 +39,7 @@
   adjusted with the \code{betaSd} argument.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-dse
+dds <- makeExampleDESeqDataSet()
+dds
 }
 

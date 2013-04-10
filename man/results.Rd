@@ -11,8 +11,8 @@
   removeResults(object)
 }
 \arguments{
-  \item{object}{a DESeqSummarizedExperiment, on which one
-  of the following functions has already been called:
+  \item{object}{a DESeqDataSet, on which one of the
+  following functions has already been called:
   \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or
   \code{\link{nbinomLRT}}}
 
@@ -59,9 +59,9 @@
 }
 \examples{
 example("DESeq")
-results(dse)
-resultsNames(dse)
-dse <- removeResults(dse)
+results(dds)
+resultsNames(dds)
+dds <- removeResults(dds)
 }
 \seealso{
   \code{\link{DESeq}}

@@ -2,13 +2,13 @@
 \alias{plotDispEsts}
 \title{Plot dispersion estimates}
 \usage{
-  plotDispEsts(dse, ymin, genecol = "black",
-    fitcol = "red", finalcol = "blue", legend = TRUE,
+  plotDispEsts(dds, ymin, genecol = "black",
+    fitcol = "red", finalcol = "dodgerblue", legend = TRUE,
     xlab = "mean of normalized counts",
     ylab = "dispersion", log = "xy", cex = 0.45, ...)
 }
 \arguments{
-  \item{dse}{a DESeqSummarizedExperiment}
+  \item{dds}{a DESeqDataSet}
 
   \item{ymin}{the lower bound for points on the plot,
   points beyond this are drawn as triangles at ymin}
@@ -39,10 +39,10 @@
   mean-dispersion relationship.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-dse <- estimateSizeFactors(dse)
-dse <- estimateDispersions(dse)
-plotDispEsts(dse)
+dds <- makeExampleDESeqDataSet()
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+plotDispEsts(dds)
 }
 \author{
   Simon Anders

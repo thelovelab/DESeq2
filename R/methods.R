@@ -1,19 +1,19 @@
-#' Accessors for the 'counts' slot of a DESeqSummarizedExperiment object.
+#' Accessors for the 'counts' slot of a DESeqDataSet object.
 #' 
 #' The counts slot holds the count data as a matrix of non-negative integer
 #' count values, one row for each observational unit (gene or the like), and one
 #' column for each sample. 
 #'
 #' @usage
-#' \S4method{counts}{DESeqSummarizedExperiment}(object,normalized=FALSE)
+#' \S4method{counts}{DESeqDataSet}(object,normalized=FALSE)
 #'
-#' \S4method{counts}{DESeqSummarizedExperiment,matrix}(object)<-value
+#' \S4method{counts}{DESeqDataSet,matrix}(object)<-value
 #'
 #' @docType methods
 #' @name counts
 #' @rdname counts
-#' @aliases counts counts,DESeqSummarizedExperiment-method counts<-,DESeqSummarizedExperiment,matrix-method
-#' @param object a \code{DESeqSummarizedExperiment} object.
+#' @aliases counts counts,DESeqDataSet-method counts<-,DESeqDataSet,matrix-method
+#' @param object a \code{DESeqDataSet} object.
 #' @param normalized logical indicating whether or not to divide the counts by
 #' the size factors or normalization factors before returning
 #' (normalization factors always preempt size factors)
@@ -23,10 +23,10 @@
 #'
 #' @examples
 #' 
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' head(counts(dse))
+#' dds <- makeExampleDESeqDataSet()
+#' head(counts(dds))
 #'
-counts.DESeqSummarizedExperiment <- function(object, normalized=FALSE) {
+counts.DESeqDataSet <- function(object, normalized=FALSE) {
             if(!normalized) {
               return(assays(object)[["counts"]])
             } else {
@@ -42,12 +42,12 @@ counts.DESeqSummarizedExperiment <- function(object, normalized=FALSE) {
 
 #' @rdname counts
 #' @export
-setMethod("counts", signature(object="DESeqSummarizedExperiment"), counts.DESeqSummarizedExperiment)
+setMethod("counts", signature(object="DESeqDataSet"), counts.DESeqDataSet)
 
 #' @name counts
 #' @rdname counts
 #' @exportMethod "counts<-"
-setReplaceMethod("counts", signature(object="DESeqSummarizedExperiment", value="matrix"),
+setReplaceMethod("counts", signature(object="DESeqDataSet", value="matrix"),
   function( object, value ) {
    assays(object)[["counts"]] <- value
    validObject(object)
@@ -55,37 +55,37 @@ setReplaceMethod("counts", signature(object="DESeqSummarizedExperiment", value="
 })   
 
 
-#' Accessors for the 'design' slot of a DESeqSummarizedExperiment object.
+#' Accessors for the 'design' slot of a DESeqDataSet object.
 #' 
-#' Accessors for the 'design' slot of a DESeqSummarizedExperiment object.
+#' Accessors for the 'design' slot of a DESeqDataSet object.
 #' 
 #' @usage
-#' \S4method{design}{DESeqSummarizedExperiment}(object)
+#' \S4method{design}{DESeqDataSet}(object)
 #'
-#' \S4method{design}{DESeqSummarizedExperiment,formula}(object)<-value
+#' \S4method{design}{DESeqDataSet,formula}(object)<-value
 #'
 #' @docType methods
 #' @name design
 #' @rdname design
-#' @aliases design design,DESeqSummarizedExperiment-method design<-,DESeqSummarizedExperiment,formula-method
-#' @param object a \code{DESeqSummarizedExperiment} object
+#' @aliases design design,DESeqDataSet-method design<-,DESeqDataSet,formula-method
+#' @param object a \code{DESeqDataSet} object
 #' @param value a \code{formula} used for estimating dispersion
 #' and fitting negative binomial GLMs
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' design(dse) <- formula(~ 1)
+#' dds <- makeExampleDESeqDataSet()
+#' design(dds) <- formula(~ 1)
 #'
-design.DESeqSummarizedExperiment <- function(object) object@design
+design.DESeqDataSet <- function(object) object@design
 
 #' @rdname design
 #' @export
-setMethod("design", signature(object="DESeqSummarizedExperiment"), design.DESeqSummarizedExperiment)
+setMethod("design", signature(object="DESeqDataSet"), design.DESeqDataSet)
 
 #' @name design
 #' @rdname design
 #' @exportMethod "design<-"
-setReplaceMethod("design", signature(object="DESeqSummarizedExperiment", value="formula"),
+setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"),
   function( object, value ) {  
     object@design <- value
     validObject(object)
@@ -93,57 +93,57 @@ setReplaceMethod("design", signature(object="DESeqSummarizedExperiment", value="
 })
 
 
-#' Accessors for the 'dispersionFunction' slot of a DESeqSummarizedExperiment object.
+#' Accessors for the 'dispersionFunction' slot of a DESeqDataSet object.
 #'
 #' The dispersion function is calculated by \code{\link{estimateDispersions}} and
 #' used by \code{\link{varianceStabilizingTransformation}}.  Parametric dispersion
 #' fits store the coefficients of the fit as attributes in this slot.
 #'
 #' @usage
-#' \S4method{dispersionFunction}{DESeqSummarizedExperiment}(object)
+#' \S4method{dispersionFunction}{DESeqDataSet}(object)
 #'
-#' \S4method{dispersionFunction}{DESeqSummarizedExperiment,function}(object)<-value
+#' \S4method{dispersionFunction}{DESeqDataSet,function}(object)<-value
 #'
 #' @docType methods
 #' @name dispersionFunction
 #' @rdname dispersionFunction
-#' @aliases dispersionFunction dispersionFunction,DESeqSummarizedExperiment-method dispersionFunction<-,DESeqSummarizedExperiment,function-method
-#' @param object a \code{DESeqSummarizedExperiment} object.
+#' @aliases dispersionFunction dispersionFunction,DESeqDataSet-method dispersionFunction<-,DESeqDataSet,function-method
+#' @param object a \code{DESeqDataSet} object.
 #' @param value a \code{function}
 #' @examples
 #'
 #' example("estimateDispersions")
-#' dispersionFunction(dse)
+#' dispersionFunction(dds)
 #'
-dispersionFunction.DESeqSummarizedExperiment <- function(object) object@dispersionFunction
+dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 
 #' @rdname dispersionFunction
 #' @export
-setMethod("dispersionFunction", signature(object="DESeqSummarizedExperiment"),
-          dispersionFunction.DESeqSummarizedExperiment)
-setReplaceMethod("dispersionFunction", signature(object="DESeqSummarizedExperiment", value="function"),
+setMethod("dispersionFunction", signature(object="DESeqDataSet"),
+          dispersionFunction.DESeqDataSet)
+setReplaceMethod("dispersionFunction", signature(object="DESeqDataSet", value="function"),
   function( object, value ) {  
     object@dispersionFunction <- value
     validObject(object)
     object
 })   
 
-#' Accessor functions for the dispersion estimates in a DESeqSummarizedExperiment
+#' Accessor functions for the dispersion estimates in a DESeqDataSet
 #' object.
 #' 
-#' The dispersions for each row of the DESeqSummarizedExperiment.  Generally,
+#' The dispersions for each row of the DESeqDataSet.  Generally,
 #' these should be set only by \code{\link{estimateDispersions}}.
 #' 
 #' @usage
-#' \S4method{dispersions}{DESeqSummarizedExperiment}(object)
+#' \S4method{dispersions}{DESeqDataSet}(object)
 #'
-#' \S4method{dispersions}{DESeqSummarizedExperiment,numeric}(object)<-value
+#' \S4method{dispersions}{DESeqDataSet,numeric}(object)<-value
 #'
 #' @docType methods
 #' @name dispersions
 #' @rdname dispersions
-#' @aliases dispersions dispersions,DESeqSummarizedExperiment-method dispersions<-,DESeqSummarizedExperiment,numeric-method
-#' @param object a \code{DESeqSummarizedExperiment} object.
+#' @aliases dispersions dispersions,DESeqDataSet-method dispersions<-,DESeqDataSet,numeric-method
+#' @param object a \code{DESeqDataSet} object.
 #' @param value the dispersions to use for the negative binomial modeling
 #'
 #' @author Simon Anders
@@ -151,15 +151,15 @@ setReplaceMethod("dispersionFunction", signature(object="DESeqSummarizedExperime
 #' @examples
 #'
 #' example("estimateDispersions")
-#' dispersions(dse)
+#' dispersions(dds)
 #'
-dispersions.DESeqSummarizedExperiment <- function(object) mcols(object)$dispersion
+dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
 
 #' @rdname dispersions
 #' @export
-setMethod("dispersions", signature(object="DESeqSummarizedExperiment"),
-          dispersions.DESeqSummarizedExperiment)
-setReplaceMethod("dispersions", signature(object="DESeqSummarizedExperiment", value="numeric"),
+setMethod("dispersions", signature(object="DESeqDataSet"),
+          dispersions.DESeqDataSet)
+setReplaceMethod("dispersions", signature(object="DESeqDataSet", value="numeric"),
                  function(object, value) {
                    mcols(object)$dispersion <- value
                    validObject( object )
@@ -168,7 +168,7 @@ setReplaceMethod("dispersions", signature(object="DESeqSummarizedExperiment", va
 
 
 
-#' Accessor functions for the 'sizeFactors' information in a DESeqSummarizedExperiment
+#' Accessor functions for the 'sizeFactors' information in a DESeqDataSet
 #' object.
 #' 
 #' The sizeFactors vector assigns to each column of the count matrix a value, the
@@ -178,25 +178,25 @@ setReplaceMethod("dispersions", signature(object="DESeqSummarizedExperiment", va
 #' is desired for each sample, use \code{\link{normalizationFactors}}.
 #' 
 #' @usage
-#' \S4method{sizeFactors}{DESeqSummarizedExperiment}(object)
+#' \S4method{sizeFactors}{DESeqDataSet}(object)
 #'
-#' \S4method{sizeFactors}{DESeqSummarizedExperiment,numeric}(object)<-value
+#' \S4method{sizeFactors}{DESeqDataSet,numeric}(object)<-value
 #'
 #' @docType methods
 #' @name sizeFactors
 #' @rdname sizeFactors
-#' @aliases sizeFactors sizeFactors,DESeqSummarizedExperiment-method sizeFactors<-,DESeqSummarizedExperiment,numeric-method
-#' @param object a \code{DESeqSummarizedExperiment} object.
+#' @aliases sizeFactors sizeFactors,DESeqDataSet-method sizeFactors<-,DESeqDataSet,numeric-method
+#' @param object a \code{DESeqDataSet} object.
 #' @param value a numeric vector, one size factor for each column in the count
 #' data.
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactors}}
 #' @examples
 #' 
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse <- estimateSizeFactors( dse )
-#' sizeFactors(dse)
-sizeFactors.DESeqSummarizedExperiment <- function(object) {
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors( dds )
+#' sizeFactors(dds)
+sizeFactors.DESeqDataSet <- function(object) {
   if (!"sizeFactor" %in% names(colData(object))) return(NULL)
   sf <- colData(object)$sizeFactor
   names( sf ) <- colnames( object )
@@ -205,13 +205,13 @@ sizeFactors.DESeqSummarizedExperiment <- function(object) {
 
 #' @rdname sizeFactors
 #' @export
-setMethod("sizeFactors", signature(object="DESeqSummarizedExperiment"),
-          sizeFactors.DESeqSummarizedExperiment)
+setMethod("sizeFactors", signature(object="DESeqDataSet"),
+          sizeFactors.DESeqDataSet)
 
 #' @name sizeFactors
 #' @rdname sizeFactors
 #' @exportMethod "sizeFactors<-"
-setReplaceMethod("sizeFactors", signature(object="DESeqSummarizedExperiment", value="numeric"),
+setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"),
                  function( object, value ) {
                    if (any(value <= 0)) {
                      stop("size factors must be positive")
@@ -227,7 +227,7 @@ setReplaceMethod("sizeFactors", signature(object="DESeqSummarizedExperiment", va
                    object
                  }) 
 
-#' Accessor functions for the normalization factors in a DESeqSummarizedExperiment
+#' Accessor functions for the normalization factors in a DESeqDataSet
 #' object.
 #'
 #' Gene-specific normalization factors for each sample can be provided as a matrix,
@@ -247,35 +247,35 @@ setReplaceMethod("sizeFactors", signature(object="DESeqSummarizedExperiment", va
 #' a mean around 1, as is the case with size factors.
 #'
 #' @usage
-#' \S4method{normalizationFactors}{DESeqSummarizedExperiment}(object)
+#' \S4method{normalizationFactors}{DESeqDataSet}(object)
 #'
-#' \S4method{normalizationFactors}{DESeqSummarizedExperiment,matrix}(object)<-value
+#' \S4method{normalizationFactors}{DESeqDataSet,matrix}(object)<-value
 #'
 #' @docType methods
 #' @name normalizationFactors
 #' @rdname normalizationFactors
-#' @aliases normalizationFactors normalizationFactors,DESeqSummarizedExperiment-method normalizationFactors<-,DESeqSummarizedExperiment,matrix-method
-#' @param object a \code{DESeqSummarizedExperiment} object.
+#' @aliases normalizationFactors normalizationFactors,DESeqDataSet-method normalizationFactors<-,DESeqDataSet,matrix-method
+#' @param object a \code{DESeqDataSet} object.
 #' @param value the matrix of normalization factors
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' normFactors <- matrix(runif(nrow(dse)*ncol(dse),0.5,1.5),
-#'                       ncol=ncol(dse),nrow=nrow(dse))
-#' normalizationFactors(dse) <- normFactors
-#' dse <- estimateDispersions(dse)
-#' dse <- nbinomWaldTest(dse)
+#' dds <- makeExampleDESeqDataSet()
+#' normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
+#'                       ncol=ncol(dds),nrow=nrow(dds))
+#' normalizationFactors(dds) <- normFactors
+#' dds <- estimateDispersions(dds)
+#' dds <- nbinomWaldTest(dds)
 #'
-normalizationFactors.DESeqSummarizedExperiment <- function(object) {
+normalizationFactors.DESeqDataSet <- function(object) {
   if (!"normalizationFactors" %in% names(assays(object))) return(NULL)
   assays(object)[["normalizationFactors"]]
 }
 
 #' @rdname normalizationFactors
 #' @export
-setMethod("normalizationFactors", signature(object="DESeqSummarizedExperiment"),
-          normalizationFactors.DESeqSummarizedExperiment)
-setReplaceMethod("normalizationFactors", signature(object="DESeqSummarizedExperiment", value="matrix"),
+setMethod("normalizationFactors", signature(object="DESeqDataSet"),
+          normalizationFactors.DESeqDataSet)
+setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value="matrix"),
                  function(object, value) {
                    if (any(value <= 0)) {
                      stop("normalization factors must be positive")
@@ -289,19 +289,19 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqSummarizedExperi
                  })
 
 
-#' Estimate the size factors for a DESeqSummarizedExperiment
+#' Estimate the size factors for a DESeqDataSet
 #' 
-#' Estimate the size factors for a DESeqSummarizedExperiment
+#' Estimate the size factors for a DESeqDataSet
 #' 
 #' This function estimates the size factors and stores the information
 #' which can be accessed using \code{\link{sizeFactors}}
 #'
 #' Typically, the function is called with the idiom:
 #'
-#' \code{dse <- estimateSizeFactors(dse)}
+#' \code{dds <- estimateSizeFactors(dds)}
 #'
 #' See \code{\link{DESeq}} for a description of the use of size factors in the GLM.
-#' You need to call this function after \code{\link{DESeqSummarizedExperiment}}
+#' You need to call this function after \code{\link{DESeqDataSet}}
 #' unless you have manually specified \code{\link{sizeFactors}}.
 #' Alternatively, gene-specific normalization factors for each sample can be provided using
 #' \code{\link{normalizationFactors}} which will always preempt \code{\link{sizeFactors}}
@@ -311,44 +311,44 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqSummarizedExperi
 #' which provides more details on the calculation.
 #'
 #' @usage
-#' \S4method{estimateSizeFactors}{DESeqSummarizedExperiment}(object,locfunc=median)
+#' \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median)
 #'
 #' @docType methods
 #' @name estimateSizeFactors
 #' @rdname estimateSizeFactors
-#' @aliases estimateSizeFactors estimateSizeFactors,DESeqSummarizedExperiment-method
-#' @param object a DESeqSummarizedExperiment
+#' @aliases estimateSizeFactors estimateSizeFactors,DESeqDataSet-method
+#' @param object a DESeqDataSet
 #' @param locfunc a function to compute a location for a sample. By default, the
 #' median is used. However, especially for low counts, the
 #' \code{\link[genefilter]{shorth}} function from the genefilter package may give better results.
-#' @return The DESeqSummarizedExperiment passed as parameters, with the size factors filled
+#' @return The DESeqDataSet passed as parameters, with the size factors filled
 #' in.
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactorsForMatrix}}
 #' 
 #' @examples
 #' 
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse <- estimateSizeFactors( dse )
-#' sizeFactors( dse )
-estimateSizeFactors.DESeqSummarizedExperiment <- function(object, locfunc=median) {
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors( dds )
+#' sizeFactors( dds )
+estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median) {
   sizeFactors(object) <- estimateSizeFactorsForMatrix( counts(object), locfunc )
   object
 }
   
 #' @rdname estimateSizeFactors
 #' @export
-setMethod("estimateSizeFactors", signature(object="DESeqSummarizedExperiment"),
-          estimateSizeFactors.DESeqSummarizedExperiment)
+setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
+          estimateSizeFactors.DESeqDataSet)
 
 
-#' Estimate the dispersions for a DESeqSummarizedExperiment
+#' Estimate the dispersions for a DESeqDataSet
 #' 
 #' This function obtains dispersion estimates for negative binomial distributed data.
 #'
 #' Typically the function is called with the idiom:
 #'
-#' \code{dse <- estimateDispersions(dse)}
+#' \code{dds <- estimateDispersions(dds)}
 #'
 #' The fitting proceeds as follows: for each gene, an estimate of the dispersion
 #' is found which maximizes the Cox Reid-adjusted profile likelihood
@@ -369,9 +369,10 @@ setMethod("estimateSizeFactors", signature(object="DESeqSummarizedExperiment"),
 #' The log normal prior on the dispersion parameter has been proposed
 #' by Wu, et al. (2012) and is also implemented in the DSS package.
 #'
-#' \code{estimateDispersions} checks for the case of a 1-vs-1
-#' comparison, and will temporarily substitute a design formula \code{~ 1} for the
-#' purposes of dispersion estimation.  This treats the two samples as 
+#' \code{estimateDispersions} checks for the case of an analysis
+#' with as many samples as the number of coefficients to fit,
+#' and will temporarily substitute a design formula \code{~ 1} for the
+#' purposes of dispersion estimation.  This treats the samples as 
 #' replicates for the purpose of dispersion estimation. As mentioned in the DESeq paper:
 #' "While one may not want to draw strong conclusions from such an analysis,
 #' it may still be useful for exploration and hypothesis generation."
@@ -382,13 +383,13 @@ setMethod("estimateSizeFactors", signature(object="DESeqSummarizedExperiment"),
 #' \code{\link{estimateDispersionsMAP}}.
 #' 
 #' @usage
-#' \S4method{estimateDispersions}{DESeqSummarizedExperiment}(object,fitType=c("parametric","local","geoMean"))
+#' \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","geoMean"),maxit=100)
 #'
 #' @docType methods
 #' @name estimateDispersions
 #' @rdname estimateDispersions
-#' @aliases estimateDispersions estimateDispersions,DESeqSummarizedExperiment-method
-#' @param object a DESeqSummarizedExperiment
+#' @aliases estimateDispersions estimateDispersions,DESeqDataSet-method
+#' @param object a DESeqDataSet
 #' @param fitType either "parametric", "local", or "geoMean"
 #' for the type of fitting of dispersions to the mean intensity.
 #' \itemize{
@@ -406,8 +407,9 @@ setMethod("estimateSizeFactors", signature(object="DESeqSummarizedExperiment"),
 #'     more to the observed spread of dispersion estimates than the sampling
 #'     variance.
 #' }
+#' @param maxit control parameter: maximum number of iterations to allow for convergence
 #'
-#' @return The DESeqSummarizedExperiment passed as parameters, with the dispersion information
+#' @return The DESeqDataSet passed as parameters, with the dispersion information
 #' filled in as metadata columns, accessible via \code{mcols}, or the final dispersions
 #' accessible via \code{\link{dispersions}}.
 #'
@@ -419,12 +421,12 @@ setMethod("estimateSizeFactors", signature(object="DESeqSummarizedExperiment"),
 #'
 #' @examples
 #' 
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse <- estimateSizeFactors(dse)
-#' dse <- estimateDispersions(dse)
-#' head(dispersions(dse))
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' head(dispersions(dds))
 #'
-estimateDispersions.DESeqSummarizedExperiment <- function(object, fitType=c("parametric","local","geoMean")) {
+estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","geoMean"), maxit=100) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     stop("first call estimateSizeFactors or provide a normalizationFactor matrix before estimateDispersions")
   }
@@ -435,23 +437,23 @@ estimateDispersions.DESeqSummarizedExperiment <- function(object, fitType=c("par
   fitType <- match.arg(fitType)
   
   # if trying to call differential expression for a model
-  # with as many samples as columns which are factors, e.g.
-  # 2 samples and 2 groups,
+  # with as many samples as columns 
+  # e.g., 2 samples and 2 groups,
   # we supply a design formula of ~ 1 for dispersion estimation
   modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))  
-  noReps <- nrow(modelMatrix) == sum(apply(modelMatrix, 2, function(x) all(x %in% 0:1)))
+  noReps <- nrow(modelMatrix) == ncol(modelMatrix)
   if (noReps) {
-    message("same number of samples and factor variables, estimating dispersion by treating samples as replicates")
+    message("same number of samples and coefficients to fit, estimating dispersion by treating samples as replicates")
     designIn <- design(object)
     design(object) <- formula(~ 1)
   }
   
   message("gene-wise dispersion estimates")
-  object <- estimateDispersionsGeneEst(object)
+  object <- estimateDispersionsGeneEst(object, maxit=maxit)
   message("mean-dispersion relationship")
   object <- estimateDispersionsFit(object, fitType=fitType)
   message("final dispersion estimates")
-  object <- estimateDispersionsMAP(object)
+  object <- estimateDispersionsMAP(object, maxit=maxit)
 
   # replace the previous design
   if (noReps) design(object) <- designIn
@@ -461,6 +463,6 @@ estimateDispersions.DESeqSummarizedExperiment <- function(object, fitType=c("par
 
 #' @rdname estimateDispersions
 #' @export
-setMethod("estimateDispersions", signature(object="DESeqSummarizedExperiment"),
-          estimateDispersions.DESeqSummarizedExperiment)
+setMethod("estimateDispersions", signature(object="DESeqDataSet"),
+          estimateDispersions.DESeqDataSet)
 

@@ -20,16 +20,16 @@
 #' \code{\link{normalizationFactors}}.  For details on the fitting of the log2
 #' fold changes and calculation of p-values see \code{\link{nbinomWaldTest}}.
 #'
-#' @return a \code{\link{DESeqSummarizedExperiment}} object with results stored as
+#' @return a \code{\link{DESeqDataSet}} object with results stored as
 #' metadata columns.  The results can be accessed by calling the \code{\link{results}}
 #' function.  By default this will return the log2 fold changes and p-values for the last
 #' variable in the design formula.  See \code{\link{results}} for how to access results
 #' for other variables.
 #'
-#' @param object a DESeqSummarizedExperiment object, see the constructor functions
-#' \code{\link{DESeqSummarizedExperiment}},
-#' \code{\link{DESeqSummarizedExperimentFromMatrix}},
-#' \code{\link{DESeqSummarizedExperimentFromHTSeqCount}}.
+#' @param object a DESeqDataSet object, see the constructor functions
+#' \code{\link{DESeqDataSet}},
+#' \code{\link{DESeqDataSetFromMatrix}},
+#' \code{\link{DESeqDataSetFromHTSeqCount}}.
 #' @param fitType either "parametric", "local", or "geoMean"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
@@ -52,9 +52,9 @@
 #'
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment(betaSd=1)
-#' dse <- DESeq(dse)
-#' res <- results(dse)
+#' dds <- makeExampleDESeqDataSet(betaSd=1)
+#' dds <- DESeq(dds)
+#' res <- results(dds)
 #'
 #' @export
 DESeq <- function(object,fitType=c("parametric","local","geoMean"),betaPrior=TRUE,pAdjustMethod="BH") {
@@ -67,7 +67,7 @@ DESeq <- function(object,fitType=c("parametric","local","geoMean"),betaPrior=TRU
   object
 }
 
-#' Make a simulated DESeqSummarizedExperiment
+#' Make a simulated DESeqDataSet
 #'
 #' Constructs a simulated dataset of negative binomial data from
 #' two conditions. By default, there are no fold changes between
@@ -82,17 +82,17 @@ DESeq <- function(object,fitType=c("parametric","local","geoMean"),betaPrior=TRU
 #' \code{2^trueIntercept}
 #' @param sizeFactors multiplicative factors for each sample
 #'
-#' @return a \code{\link{DESeqSummarizedExperiment}} with true dispersion,
+#' @return a \code{\link{DESeqDataSet}} with true dispersion,
 #' intercept and beta values in the metadata columns.  Note that the true
 #' betas are provided on the log2 scale.
 #'
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse
+#' dds <- makeExampleDESeqDataSet()
+#' dds
 #'
 #' @export
-makeExampleDESeqSummarizedExperiment <- function(n=1000,m=10,betaSd=0,interceptMean=4,interceptSd=2,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
+makeExampleDESeqDataSet <- function(n=1000,m=10,betaSd=0,interceptMean=4,interceptSd=2,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
   beta <- cbind(rnorm(n,interceptMean,interceptSd),rnorm(n,0,betaSd))
   dispersion <- dispMeanRel(2^(beta[,1]))
   colData <- DataFrame(sample = paste("sample",1:m,sep=""),
@@ -103,7 +103,7 @@ makeExampleDESeqSummarizedExperiment <- function(n=1000,m=10,betaSd=0,interceptM
   rownames(colData) <- colData$sample
   rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
   names(rowData) <- paste0("feature",1:n)
-  object <- DESeqSummarizedExperimentFromMatrix(countData = countData,
+  object <- DESeqDataSetFromMatrix(countData = countData,
                                                 colData = colData,
                                                 design = formula(~ condition),
                                                 rowData = rowData)
@@ -138,8 +138,8 @@ makeExampleDESeqSummarizedExperiment <- function(n=1000,m=10,betaSd=0,interceptM
 #' @seealso \code{\link{estimateSizeFactors}}
 #' @examples
 #' 
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' estimateSizeFactorsForMatrix(counts(dse))
+#' dds <- makeExampleDESeqDataSet()
+#' estimateSizeFactorsForMatrix(counts(dds))
 #' 
 #' @export
 estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
@@ -158,37 +158,41 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 #' with the maximum a posteriori dispersion estimation, as demonstrated in the
 #' examples below.
 #'
-#' @param object a DESeqSummarizedExperiment
+#' @param object a DESeqDataSet
 #' @param fitType either "parametric", "local", or "geoMean"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
+#' @param outlierSD the number of prior standard deviations above the
+#' prior mean (fitted value), above which dispersion estimates will be labelled
+#' outliers. Outliers will keep their original value and not be shrunk
+#' using the prior.
+#' @param priorVar the variance of the normal prior on the log dispersions.
+#' If not supplied, this is calculated as the difference between
+#' the mean squared residuals of gene-wise estimates to the
+#' fitted dispersion and the expected sampling variance
+#' of the log dispersion
 #' @param minDisp small value for the minimum dispersion, to allow
 #' for calculations in log scale, one decade above this value is used
 #' as a test for inclusion in mean-dispersion fitting
-#' @param quantilesForPrior numeric vector, e.g. \code{c(lower, upper)}
-#' specifying by quantiles of row mean which rows to use for
-#' calculating the prior width.
-#' If not provided, for fitType = "parametric" or "local", the quantiles
-#' \code{c(.5,1)} are used, otherwise \code{c(0,1)}.
 #' @param kappa_0 control parameter used in setting the initial proposal
 #' in backtracking search, higher kappa_0 results in larger steps
 #' @param dispTol control parameter to test for convergence of log dispersion,
 #' stop when increase in log posterior is less than dispTol
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #'
-#' @return a DESeqSummarizedExperiment with gene-wise, fitted, or final MAP
+#' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
 #'
 #' @aliases estimateDispersionsGeneEst estimateDispersionsFit estimateDispersionsMAP
 #'
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse <- estimateSizeFactors(dse)
-#' dse <- estimateDispersionsGeneEst(dse)
-#' mcols(dse)$dispFit <- rep(median(mcols(dse)$dispGeneEst,na.rm=TRUE),nrow(dse))
-#' dse <- estimateDispersionsMAP(dse, quantilesForPrior=c(0,1))
-#' plotDispEsts(dse)
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersionsGeneEst(dds)
+#' mcols(dds)$dispFit <- rep(median(mcols(dds)$dispGeneEst,na.rm=TRUE),nrow(dds))
+#' dds <- estimateDispersionsMAP(dds)
+#' plotDispEsts(dds)
 #'
 #' @seealso \code{\link{estimateDispersions}}
 #'
@@ -229,7 +233,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
                      maxitSEXP = maxit, use_priorSEXP = FALSE)
 
   if (mean(dispRes$iter < maxit) < .5) {
-    warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged, use larger maxit")
+    warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged, use larger maxit argument with estimateDispersions")
   }
   
   # dont accept moves if the log posterior did not
@@ -262,6 +266,10 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","geoMea
   }
   objectNZ <- object[!mcols(object)$allZero,]
   useForFit <- mcols(objectNZ)$dispGeneEstConv
+
+  # take the first fitType
+  fitType <- fitType[1]
+  
   if (fitType == "parametric") {
     trial <- try(dispFunction <- parametricDispersionFit(mcols(objectNZ)$baseMean[useForFit],
                                                          mcols(objectNZ)$dispGeneEst[useForFit]),
@@ -303,23 +311,12 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","geoMea
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kappa_0=1, dispTol=1e-4, maxit=100) {
+estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100) {
   if ("dispersion" %in% names(mcols(object))) {
     message("you had estimated dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  %in% c("dispersion","dispIter","dispIterAccept","dispConv")]
   }
-
-  # only use the upper quantiles of mean normalized counts
-  # for fitting the width of the prior if we are using
-  # a method where dispersion is based on the mean normalized counts
-  if (missing(quantilesForPrior)) {
-    if (attr(dispersionFunction(object), "fitType" ) %in% c("parametric","local")) {
-      quantilesForPrior <- c(.5,1)
-    } else {
-      quantilesForPrior <- c(0,1)
-    }
-  }
-  
+ 
   modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))  
   objectNZ <- object[!mcols(object)$allZero,]
 
@@ -339,36 +336,36 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
   # log dispersion estimates around the fitted value
   dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
 
-  lowerQuant <- quantile(mcols(objectNZ)$baseMean, quantilesForPrior[1])
-  upperQuant <- quantile(mcols(objectNZ)$baseMean, quantilesForPrior[2])
-  useWithinQuants <- (mcols(objectNZ)$baseMean >= lowerQuant) &
-                     (mcols(objectNZ)$baseMean <= upperQuant)
-
   useDispGeneEstConv <- mcols(objectNZ)$dispGeneEstConv
-  useForPrior <- useNotMinDisp & useWithinQuants & useDispGeneEstConv
+  useForPrior <- useNotMinDisp & useDispGeneEstConv
   if (sum(useForPrior) == 0) {
     stop("no data found which is greater than minDisp, within quants, and converged in gene-wise estimates")
   }
 
-  # take the median abs residual, multiply by a prefactor
-  # described in the 'mad' function to get a robust approximation of sigma
-  varianceLogDispEsts <- (1.4826 * median(abs(dispResiduals[useForPrior])))^2
-
-  m <- nrow(modelMatrix)
-  p <- ncol(modelMatrix)
-  # estimate the expected sampling variance of the log estimates
-  # Var(log(cX)) = Var(log(X)) = E(log(X)^2) - E(log(X))^2
-  # X ~ chi-squared with m - p degrees of freedom
-  if (m > p) {
-    expectedVarianceLogDisp <- (integrate(function(x) (log(x))^2 * dchisq(x,df=(m - p)),0,10*m)$value) - (digamma((m - p)/2) - log(1/2))^2 
-    # set the variance of the prior using these two estimates
-    # with a minimum of .25
-    log_alpha_prior_sigmasq <- pmax(varianceLogDispEsts - expectedVarianceLogDisp, .25)
-  } else {
-    # we have m = p, so do not try to substract sampling variance
-    log_alpha_prior_sigmasq <- varianceLogDispEsts
+  if (missing(priorVar)) {
+    varLogDispEsts <- mad(dispResiduals[useForPrior])^2
+    attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
+    m <- nrow(modelMatrix)
+    p <- ncol(modelMatrix)
+    # estimate the expected sampling variance of the log estimates
+    # Var(log(cX)) = Var(log(X)) = E(log(X)^2) - E(log(X))^2
+    # X ~ chi-squared with m - p degrees of freedom
+    if (m > p) {
+      expVarLogDisp <- expectedVarianceLogDisp(m,p)
+      attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
+      # set the variance of the prior using these two estimates
+      # with a minimum of .25
+      priorVar <- pmax((varLogDispEsts - expVarLogDisp), .25)
+    } else {
+      # we have m = p, so do not try to substract sampling variance
+      priorVar <- varLogDispEsts
+    }
   }
-  
+
+  # set prior variance for fitting dispersion
+  log_alpha_prior_sigmasq <- priorVar
+
+  # get previously calculated mu-hat
   mu_hat <- assays(objectNZ)[["mu-hat"]]
 
   # start fitting at gene estimate unless the points are one decade
@@ -385,12 +382,24 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
                         min_log_alphaSEXP = log(minDisp/10),
                         kappa_0SEXP = kappa_0, tolSEXP = dispTol,
                         maxitSEXP = maxit, use_priorSEXP = TRUE)
-  
-  resultsList <- list(dispersion = exp(dispResMAP$log_alpha),
+
+  # prepare dispersions for storage in mcols(object)
+  dispersionFinal <- dispersionMAP <- exp(dispResMAP$log_alpha) 
+    
+  # detect outliers which have gene-wise estimates
+  # outlierSD * prior standard deviations above the fitted mean (prior mean)
+  # and keep the original gene-est value for these
+  dispOutlier <- log(mcols(objectNZ)$dispGeneEst) > log(mcols(objectNZ)$dispFit) +
+    outlierSD * sqrt(priorVar)
+  dispersionFinal[dispOutlier] <- mcols(objectNZ)$dispGeneEst[dispOutlier]
+ 
+  resultsList <- list(dispersion = dispersionFinal,
                       dispIter = dispResMAP$iter,
                       dispIterAccept = dispResMAP$iter_accept,
                       dispConv = ((dispResMAP$last_change < dispTol)
                                   & (dispResMAP$iter < maxit)),
+                      dispOutlier = dispOutlier,
+                      dispersionMAP = dispersionMAP,
                       dispD2LogPost = dispResMAP$last_d2lp)
 
   if (any(!resultsList$dispConv)) {
@@ -399,11 +408,13 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
   
   dispDataFrame <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
   mcols(dispDataFrame) <- DataFrame(type=rep("intermediate",ncol(dispDataFrame)),
-                                    description=c("final estimates of dispersion",
+                                    description=c("final estimate of dispersion",
                                       "number of iterations",
                                       "number of accepted iterations",
-                                      "convergence of final estimates",
-                                      "second derivative of log posterior"))
+                                      "convergence of final estimate",
+                                      "dispersion flagged as outlier",
+                                      "maximum a posteriori estimate",
+                                      "2nd deriv. log posterior wrt log disp."))
   mcols(object) <- cbind(mcols(object), dispDataFrame)
   return(object)
 }
@@ -436,7 +447,7 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
 #' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
 #'
-#' @param object a DESeqSummarizedExperiment
+#' @param object a DESeqDataSet
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients (Tikhonov/ridge regularization)
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
@@ -446,7 +457,7 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
 #' which if missing is estimated from the rows which do not have any
 #' zeros
 #'
-#' @return a DESeqSummarizedExperiment with results columns accessible
+#' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
 #' reported on a log2 scale.
 #'
@@ -454,11 +465,11 @@ estimateDispersionsMAP <- function(object, minDisp=1e-8, quantilesForPrior, kapp
 #'
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse <- estimateSizeFactors(dse)
-#' dse <- estimateDispersions(dse)
-#' dse <- nbinomWaldTest(dse)
-#' res <- results(dse)
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' dds <- nbinomWaldTest(dds)
+#' res <- results(dds)
 #'
 #' @export
 nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq) {
@@ -525,15 +536,17 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
                    list(betaConv = betaConv))
   WaldResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
 
+  modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
   if (betaPrior) {
-    coefInfo <- paste("log2 fold change (MAP):",modelMatrixNames)
+    coefInfo <- paste("log2 fold change (MAP):",modelMatrixNamesSpaces)
   } else {
-    coefInfo <- paste("log2 fold change:",modelMatrixNames)
+    coefInfo <- paste("log2 fold change:",modelMatrixNamesSpaces)
   }
-  seInfo <- paste("standard error:",modelMatrixNames)
-  statInfo <- paste("Wald test:",modelMatrixNames)
-  pvalInfo <- paste("Wald test:",modelMatrixNames)
-  adjInfo <- paste(paste("Wald test,",pAdjustMethod,"adj.:"),modelMatrixNames)
+  seInfo <- paste("standard error:",modelMatrixNamesSpaces)
+  statInfo <- paste("Wald test:",modelMatrixNamesSpaces)
+  pvalInfo <- paste("Wald test:",modelMatrixNamesSpaces)
+  adjInfo <- paste(paste("Wald test,",pAdjustMethod,"adj.:"),
+                   modelMatrixNamesSpaces)
   
   mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
                                   description = c(coefInfo, seInfo, statInfo, pvalInfo, adjInfo,
@@ -556,14 +569,14 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' This function is comparable to the \code{nbinomGLMTest} of the previous version of DESeq
 #' and an alternative to the default \code{\link{nbinomWaldTest}}.
 #'
-#' @param object a DESeqSummarizedExperiment
+#' @param object a DESeqDataSet
 #' @param full the full model formula, this should be the formula in
 #' \code{design(object)}
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model with a variable of interest removed
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #'
-#' @return a DESeqSummarizedExperiment with new results columns accessible
+#' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
 #' reported on a log2 scale.
 #' 
@@ -571,11 +584,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #'
 #' @examples
 #'
-#' dse <- makeExampleDESeqSummarizedExperiment()
-#' dse <- estimateSizeFactors(dse)
-#' dse <- estimateDispersions(dse)
-#' dse <- nbinomLRT(dse, reduced = ~ 1)
-#' res <- results(dse)
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' dds <- nbinomLRT(dds, reduced = ~ 1)
+#' res <- results(dds)
 #'
 #' @export
 nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH" ) {
@@ -621,8 +634,9 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH" 
   modelComparison <- paste0("'",paste(as.character(full),collapse=" "), "' vs '", paste(as.character(reduced),collapse=" "),"'")
 
   modelMatrixNames <- colnames(fullModel$betaMatrix)
-  coefInfo <- paste("log2 fold change:",modelMatrixNames)
-  seInfo <- paste("standard error:",modelMatrixNames)
+  modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
+  coefInfo <- paste("log2 fold change:",modelMatrixNamesSpaces)
+  seInfo <- paste("standard error:",modelMatrixNamesSpaces)
   statInfo <- paste("LRT statistic:",modelComparison)
   pvalInfo <- paste("LRT p-value:",modelComparison)
   adjInfo <- paste("LRT p-value,",pAdjustMethod,"adj.")
@@ -658,7 +672,7 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH" 
 #'
 #' Results can be removed from an object by calling \code{removeResults}
 #'
-#' @param object a DESeqSummarizedExperiment, on which one
+#' @param object a DESeqDataSet, on which one
 #' of the following functions has already been called:
 #' \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or \code{\link{nbinomLRT}}
 #' @param name the name of the coefficient for which to report log2 fold changes,
@@ -677,9 +691,9 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH" 
 #' @examples
 #'
 #' example("DESeq")
-#' results(dse)
-#' resultsNames(dse)
-#' dse <- removeResults(dse)
+#' results(dds)
+#' resultsNames(dds)
+#' dds <- removeResults(dds)
 #'
 #' @rdname results
 #' @aliases results resultsNames removeResults
@@ -698,7 +712,6 @@ results <- function(object, name) {
   } else {
     stop("cannot find appropriate results, for available names call 'resultsNames(object)'")
   }
-  message(paste("results for model term:",name))
   log2FoldChange <- coef(object, name)
   pvalue <- pvalues(object,test,name)
   FDR <- FDR(object,test,name)
@@ -741,9 +754,9 @@ removeResults <- function(object) {
 # has already been called.  Adds these and a logical column if the row sums
 # are zero to the mcols of the object.
 #
-# object a DESeqSummarizedExperiment object
+# object a DESeqDataSet object
 #
-# return a DESeqSummarizedExperiment object with columns baseMean
+# return a DESeqDataSet object with columns baseMean
 # and baseVar in the row metadata columns
 getBaseMeansAndVariances <- function(object) {
   meanVarZero <- DataFrame(baseMean = rowMeans(counts(object,normalized=TRUE)),
@@ -811,10 +824,10 @@ nbinomLogLike <- function(counts, mu_hat, disp) {
 #
 # Users typically call \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}
 # which calls this function to perform fitting.  These functions return
-# a \code{\link{DESeqSummarizedExperiment}} object with the appropriate columns
+# a \code{\link{DESeqDataSet}} object with the appropriate columns
 # added.  This function returns results as a list.
 #
-# object a DESeqSummarizedExperiment
+# object a DESeqDataSet
 # modelMatrix the design matrix
 # modelFormula a formula specifying how to construct the design matrix
 # alpha_hat the dispersion parameter estimates
@@ -829,15 +842,20 @@ nbinomLogLike <- function(counts, mu_hat, disp) {
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
 fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, large=10, betaTol=1e-8, maxit=100) {
-  if (missing(modelMatrix)) {
-    if (missing(modelFormula)) {
-      modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
-    } else {
-      modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
-    }
+  if (missing(modelFormula)) {
+    modelFormula <- design(object)
   }
+  if (missing(modelMatrix)) {
+   modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
+  }
+
   modelMatrixNames <- colnames(modelMatrix)
+  convertNames <- renameModelMatrixColumns(modelMatrixNames,
+                                           as.data.frame(colData(object)),
+                                           modelFormula)
+  modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
   modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
+  
   if (!is.null(normalizationFactors(object))) {
     normalizationFactors <- normalizationFactors(object)
   } else { 
@@ -883,6 +901,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
   # here we transform the betaMatrix and betaSE to a log2 scale
   betaMatrix <- log2(exp(1))*betaRes$beta_mat
   colnames(betaMatrix) <- modelMatrixNames
+  colnames(modelMatrix) <- modelMatrixNames
   betaSE <- log2(exp(1))*sqrt(betaRes$beta_var_mat)
   colnames(betaSE) <- paste0("SE_",modelMatrixNames)
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
@@ -999,12 +1018,8 @@ matrixToList <- function(m) {
 # in the model matrix, unless specified this will be used for
 # plots and accessor functions
 lastCoefName <- function(object) {
-  lastVar <- tail(all.vars(design(object)),1)
-  if (!is.factor(colData(object)[[lastVar]])) {
-    stop("last variable of the design formula is not a factor, specify lfcColname")
-  }
-  lastLevel <- tail(levels(colData(object)[[lastVar]]),1)
-  paste0(lastVar,lastLevel)
+  resNms <- resultsNames(object)
+  resNms[length(resNms)]
 }
 
 
@@ -1038,4 +1053,26 @@ FDR <- function(object,test="Wald",name) {
   } else {
     stop("unknown test")
   }
+}
+
+# convenience function to make more descriptive names
+# for factor variables
+renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
+  designVars <- all.vars(formula(design))
+  designVarsClass <- sapply(designVars, function(v) class(data[[v]]))
+  factorVars <- designVars[designVarsClass == "factor"]
+  colNamesFrom <- do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1])))
+  colNamesTo <- do.call(c,lapply(factorVars, function(v) paste0(v,"_",levels(data[[v]])[-1],"_vs_",levels(data[[v]])[1])))
+  data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
+}
+
+
+# convenience function for estimating the expected variance
+# for the log dispersion given the number of samples m
+# and the number of parameters to estimate p
+expectedVarianceLogDisp <- function(m,p) {
+  if (m <= p) {
+    stop("m must be greater than p")
+  }
+  (integrate(function(x) (log(x))^2 * dchisq(x,df=(m - p)),0,10*m)$value) - (digamma((m - p)/2) - log(1/2))^2 
 }

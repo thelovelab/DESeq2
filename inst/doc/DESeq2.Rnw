@@ -115,10 +115,10 @@ These steps imply you have a \Rclass{SummarizedExperiment} object
 \Robject{se} with a column \Robject{condition}.
 
 <<quick, eval=FALSE>>=
-dse <- DESeqSummarizedExperiment(se = se,
+dds <- DESeqDataSet(se = se,
                                  design = ~ condition)
-dse <- DESeq(dse)
-res <- results(dse)
+dds <- DESeq(dds)
+res <- results(dds)
 @
 
 \section{Input data} \label{sec:prep}
@@ -154,14 +154,14 @@ a \Rclass{SummarizedExperiment} can be found in the data package
 \Rpackage{parathyroidSE}, which summarizes RNA-Seq data from experiments on
 4 human cell cultures \cite{Haglund2012Evidence}.
 
-<<loadSE>>=
+<<loadSumExp>>=
 library("parathyroidSE")
 data("parathyroidGenesSE")
 se <- parathyroidGenesSE
 colnames(se) <- colData(se)$run
 @
 
-The class used by \Rpackage{DESeq2} is \Rclass{DESeqSummarizedExperiment},
+The class used by \Rpackage{DESeq2} is \Rclass{DESeqDataSet},
 which differs from \Rclass{SummarizedExperiment} in having an associated design
 \Rclass{formula}.  The design formula expresses the variables which will be
 used in modeling. The formula should be a tilde ($\sim$) followed by the
@@ -170,21 +170,21 @@ variables with plus signs between them (it will be coerced into an
 representing the base mean of counts. In order to benefit from the default
 settings of the package, you should put the variable of interest at the end
 of the formula.  The constructor function below shows generation of a
-\Rclass{DESeqSummarizedExperiment} from a \Rclass{SummarizedExperiment} \Robject{se}.
+\Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}.
 
-<<constructDSE>>=
+<<sumExpInput>>=
 library("DESeq2")
-dseGR <- DESeqSummarizedExperiment(se = se,
+ddsGR <- DESeqDataSet(se = se,
                                    design = ~ patient + treatment)
-colData(dseGR)$treatment <- factor(colData(dseGR)$treatment,
+colData(ddsGR)$treatment <- factor(colData(ddsGR)$treatment,
                                    levels=c("Control","DPN","OHT"))
-dseGR
+ddsGR
 @
 
 \subsection{Count matrix input}
 
 Alternatively, if you already have prepared a matrix of read counts,
-you can use the function \Rfunction{DESeqSummarizedExperimentFromMatrix}.
+you can use the function \Rfunction{DESeqDataSetFromMatrix}.
 For this function you should provide the counts matrix, the column
 information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formula.
 
@@ -193,18 +193,18 @@ library("pasilla")
 data("pasillaGenes")
 countData <- counts(pasillaGenes)
 colData <- pData(pasillaGenes)[,c("condition","type")]
-dse <- DESeqSummarizedExperimentFromMatrix(countData = countData,
+dds <- DESeqDataSetFromMatrix(countData = countData,
                                            colData = colData,
                                            design = ~ condition)
-colData(dse)$condition <- factor(colData(dse)$condition,
+colData(dds)$condition <- factor(colData(dds)$condition,
                                  levels=c("untreated","treated"))
-dse
+dds
 @
 
 \subsection{\textit{HTSeq} input}
 
 If you have used the \textit{HTSeq} python scripts, you can use the
-function \Rfunction{DESeqSummarizedExperimentFromHTSeqCount}.  For an
+function \Rfunction{DESeqDataSetFromHTSeqCount}.  For an
 example of using the python scripts, see the \Rpackage{pasilla} or
 \Rpackage{parathyroid} data package.
 
@@ -215,12 +215,12 @@ sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
 sampleTable <- data.frame(sampleName = sampleFiles,
                           fileName = sampleFiles,
                           condition = sampleCondition)
-dseHTSeq <- DESeqSummarizedExperimentFromHTSeqCount(sampleTable = sampleTable,
+ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
                                                     directory = directory,
                                                     design= ~ condition)
-colData(dseHTSeq)$condition <- factor(colData(dseHTSeq)$condition,
+colData(ddsHTSeq)$condition <- factor(colData(ddsHTSeq)$condition,
                                       levels=c("untreated","treated"))
-dseHTSeq
+ddsHTSeq
 detach(package:pasilla)
 detach(package:DESeq)
 @
@@ -232,8 +232,9 @@ to the column of interest in \Robject{colData}, supplying a character
 vector of levels. It is important to supply levels (otherwise the
 levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
 level as the first element, so that the $\log_2$ fold changes
-and results will be most easily interpretable.  The reason is that the
-function \Rfunction{model.matrix} is used by the \Rpackage{DESeq2}
+and results will be most easily interpretable. A helpful R function
+for changing the base level is \Rfunction{relevel}. 
+The function \Rfunction{model.matrix} is used by the \Rpackage{DESeq2}
 package to build model matrices, and this function uses the first level
 as the base level.
 
@@ -244,7 +245,8 @@ count matrix method above. This data set is from an experiment on
 \emph{Drosophila melanogaster} cell cultures and investigated the
 effect of RNAi knock-down of the splicing factor \emph{pasilla}
 \cite{Brooks2010}.  The detailed transcript of the production of
-the \Rpackage{pasilla} data is provided in the vignette of the data package \Rpackage{pasilla}.
+the \Rpackage{pasilla} data is provided in the vignette of the 
+data package \Rpackage{pasilla}.
 
 \section{Differential expression analysis}
 
@@ -253,12 +255,13 @@ into a single function, \Rfunction{DESeq}. The individual functions
 are still available, described in Section \ref{sec:steps}. The
 results are accessed using the function \Rfunction{results}, which
 extracts a results table for a single variable (by default the
-last in the design formula).  Extracting results of other variables
+last variable in the design formula, and if this is a factor, the last
+level of this variable). Extracting results of other variables 
 is discussed in section \ref{sec:multifactor}.
 
 <<deseq>>=
-dse <- DESeq(dse)
-res <- results(dse)
+dds <- DESeq(dds)
+res <- results(dds)
 res <- res[order(res$FDR),]
 head(res)
 @
@@ -274,7 +277,7 @@ will be colored red if the FDR is less than 0.1.  Points which fall out of
 the window are plotted as open triangles.
 
 <<MA, fig=TRUE>>=
-plotMA(dse)
+plotMA(dds)
 @
 
 \begin{figure}[ht]
@@ -298,8 +301,8 @@ mcols(res, use.names=TRUE)
 @
 
 The variable \Robject{condition} and the factor level \Robject{treated} have
-been combined into \Robject{conditiontreated}.  For a particular gene, a
-$\log_2$ fold change of $-1$ for \Robject{conditiontreated} here means that
+been combined into \Robject{condition\_treated\_vs\_untreated}.  For a particular gene, a
+$\log_2$ fold change of $-1$ for \Robject{condition\_treated\_vs\_untreated} here means that
 the treatment induces a change of $2^{-1} = 0.5$ times the counts.  If the variable
 of interest is not a factor, the $\log_2$ fold change can be interpreted as the
 amount of doubling observed on average for every unit of change.
@@ -322,7 +325,7 @@ package have a condition of interest (the column \Robject{condition}), as well a
 the type of sequencing which was performed (the column \Robject{type}).
 
 <<multifactor>>=
-colData(dse)
+colData(dds)
 @
 
 We can account for the different types of sequencing, and get a clearer picture
@@ -330,28 +333,29 @@ of the differences attributable to the treatment.  As \Robject{condition} is the
 variable of interest, we put it at the end of the formula. Here we
 
 <<replaceDesign>>=
-design(dse) <- formula(~ type + condition)
-dse <- DESeq(dse)
+design(dds) <- formula(~ type + condition)
+dds <- DESeq(dds)
 @
 
 Again, we access the results using the \Rfunction{results} function.
 
 <<multiResults>>=
-res <- results(dse)
+res <- results(dds)
 head(res)
 @
 
 It is also possible to retrieve the $\log_2$ fold changes, p-values and FDR
 of the \Robject{type} variable.  The function \Rfunction{results} takes an
-argument \Rcode{name}, which is a combination of the variable and the level
-in the numerator of the fold change.  In addition, there might be minor
+argument \Rcode{name}, which is a combination of the variable, the level
+(numerator of the fold change) and the base level 
+(denominator of the fold change).  In addition, there might be minor
 changes made by the \Rfunction{DataFrame} function on column names, for
-instance \texttt{single-read} to \texttt{single.read}. The function
+instance \texttt{-} to \texttt{.}. The function
 \Rfunction{resultsNames} will tell you the names of all available results.
 
 <<multiTypeResults>>=
-resultsNames(dse)
-resType <- results(dse, "typesingle.read")
+resultsNames(dds)
+resType <- results(dds, "type_single.read_vs_paired.end")
 head(resType)
 mcols(resType)
 @
@@ -582,11 +586,11 @@ estimate an overall mean-dispersion relationship of the data using
 \Rfunction{rlogTransformation} and \Rfunction{varianceStabilizingTransformation}.
 
 <<defvsd>>=
-dseBlind <- dse
-design(dseBlind) <- formula(~ 1)
-dseBlind <- estimateDispersions(dseBlind)
-rld <- rlogTransformation(dseBlind)
-vsd <- varianceStabilizingTransformation(dseBlind)
+ddsBlind <- dds
+design(ddsBlind) <- formula(~ 1)
+ddsBlind <- estimateDispersions(ddsBlind)
+rld <- rlogTransformation(ddsBlind)
+vsd <- varianceStabilizingTransformation(ddsBlind)
 @
 
 \subsection{Regularized log transformation}
@@ -649,7 +653,7 @@ this vignette for the sake of brevity, but can be seen in the
 \end{figure}
 
 <<vsd1, fig=TRUE, echo=FALSE, width=4.5, height=4.5>>=
-px     <- counts(dse)[,1] / sizeFactors(dse)[1]
+px     <- counts(dds)[,1] / sizeFactors(dds)[1]
 ord    <- order(px)
 ord    <- ord[px[ord] < 150]
 ord    <- ord[seq(1, length(ord), length=50)]
@@ -677,8 +681,8 @@ along the whole dynamic range.
 <<vsd2, fig=TRUE, width=8, height=3, results=hide>>=
 library("vsn")
 par(mfrow=c(1,3))
-notAllZero <- (rowSums(counts(dse))>0)
-meanSdPlot(log2(counts(dse,normalized=TRUE)[notAllZero,] + 1),
+notAllZero <- (rowSums(counts(dds))>0)
+meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1),
            ylim = c(0,2.5))
 meanSdPlot(assay(rld[notAllZero,]), ylim = c(0,2.5))
 meanSdPlot(assay(vsd[notAllZero,]), ylim = c(0,2.5))
@@ -709,12 +713,12 @@ raw and transformed data.
 <<heatmap>>=
 library("RColorBrewer")
 library("gplots")
-select <- order(rowMeans(counts(dse,normalized=TRUE)),decreasing=TRUE)[1:30]
+select <- order(rowMeans(counts(dds,normalized=TRUE)),decreasing=TRUE)[1:30]
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
 @
 
 <<figHeatmap2a, fig=TRUE, width=7, height=10>>=
-heatmap.2(counts(dse,normalized=TRUE)[select,], col = hmcol,
+heatmap.2(counts(dds,normalized=TRUE)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
           dendrogram="none", trace="none", margin=c(10,6))
 @
@@ -766,7 +770,7 @@ and dissimilarities between samples (Figure \ref{figHeatmapSamples}):
 
 <<figHeatmapSamples, fig=TRUE, width=7, height=7>>=
 mat <- as.matrix(distsRL)
-rownames(mat) <- colnames(mat) <- with(colData(dse),
+rownames(mat) <- colnames(mat) <- with(colData(dds),
                                        paste(condition, type, sep=" : "))
 heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
 @
@@ -843,24 +847,24 @@ the functions \Rfunction{DESeq} and \Rfunction{estimateDispersions}.
 The function \Rfunction{DESeq} runs the following functions in order:
 
 <<WaldTest, eval=FALSE>>=
-dse <- estimateSizeFactors(dse)
-dse <- estimateDispersions(dse)
-dse <- nbinomWaldTest(dse)
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+dds <- nbinomWaldTest(dds)
 @
 
 \section{Likelihood ratio test}
 
 The likelihood ratio test substitutes \Rfunction{nbinomWaldTest} with
 \Rfunction{nbinomLRT} in the last step above.  In this case, the
-user provides the full formula (the formula stored in \Rcode{design(dse)}),
+user provides the full formula (the formula stored in \Rcode{design(dds)}),
 and a reduced formula, e.g. one which does not contain the variable of
 interest. The degrees of freedom for the test is obtained from the number
 of parameters in the two models. The Wald test and the likelihood ratio test
 share many of the same genes with FDR < .1 for this experiment.
 
 <<likelihoodRatioTest>>=
-dseLRT <- nbinomLRT(dse, reduced = ~ type)
-resLRT <- results(dseLRT)
+ddsLRT <- nbinomLRT(dds, reduced = ~ type)
+resLRT <- results(ddsLRT)
 tab <- table(Wald=res$FDR < .1, LRT=resLRT$FDR < .1)
 addmargins(tab)
 @
@@ -874,7 +878,7 @@ the sample size, number of covariates, and variance present in the data,
 the amount of shrinkage can be more or less than seen here (Figure~\ref{dispFit}).
 
 <<dispFit, fig=TRUE>>=
-plotDispEsts(dse)
+plotDispEsts(dds)
 @
 
 \begin{figure}[ht]
@@ -896,8 +900,8 @@ the curve is pulled dramatically by a few outlier points. In this
 case the two fit types appear to produce similar curves (Figure~\ref{dispFitLocal}).
 
 <<dispFitLocal, fig=TRUE>>=
-dseLocal <- estimateDispersions(dse, fitType="local")
-plotDispEsts(dseLocal)
+ddsLocal <- estimateDispersions(dds, fitType="local")
+plotDispEsts(ddsLocal)
 @
 
 \begin{figure}[ht]
@@ -916,8 +920,8 @@ to use the geometric mean of all gene-wise dispersion estimates to benefit
 from information sharing across genes (Figure~\ref{dispFitGeom}).
 
 <<dispFitGeom, fig=TRUE>>=
-dseGeoMean <- estimateDispersions(dse, fitType="geoMean")
-plotDispEsts(dseGeoMean)
+ddsGeoMean <- estimateDispersions(dds, fitType="geoMean")
+plotDispEsts(ddsGeoMean)
 @
 
 \begin{figure}[ht]
@@ -942,11 +946,11 @@ the fitted values in the column \Robject{fitDisp}.  The width of
 this prior is calculated from the data.
 
 <<dispFitCustom, fig=TRUE>>=
-dse <- estimateDispersionsGeneEst(dse)
-useForMedian <- mcols(dse)$dispGeneEst > 1e-7
-medianDisp <- median(mcols(dse)$dispGeneEst[useForMedian],na.rm=TRUE)
-mcols(dse)$dispFit <- rep(medianDisp,nrow(dse))
-dse <- estimateDispersionsMAP(dse)
+dds <- estimateDispersionsGeneEst(dds)
+useForMedian <- mcols(dds)$dispGeneEst > 1e-7
+medianDisp <- median(mcols(dds)$dispGeneEst[useForMedian],na.rm=TRUE)
+mcols(dds)$dispFit <- rep(medianDisp,nrow(dds))
+dds <- estimateDispersionsMAP(dds)
 @
 
 \section{Access to all calculated values}
@@ -956,8 +960,8 @@ in the original object.  These are accessible via \Rfunction{mcols}.
 Descriptions are accessible by two calls to \Rfunction{mcols}.
 
 <<mcols>>=
-mcols(dse,use.names=TRUE)[1:4,1:5]
-mcols(mcols(dse), use.names=TRUE)[1:4,]
+mcols(dds,use.names=TRUE)[1:4,1:4]
+mcols(mcols(dds), use.names=TRUE)[1:4,]
 @
 
 \section{Multi-level conditions}
@@ -998,7 +1002,7 @@ be accomplished by dividing out the mean of the matrix.
 
 <<normFactors, eval=FALSE>>=
 normFactors <- normFactors / mean(normFactors)
-normalizationFactors(dse) <- normFactors
+normalizationFactors(dds) <- normFactors
 @
 
 These steps then replace \Rfunction{estimateSizeFactors} in the steps
@@ -1015,7 +1019,8 @@ the negative binomial GLM). At the time of writing, the transformation
 from the matrices provided by these packages should be:
 
 <<offsetTransform, eval=FALSE>>=
-cqnNormFactors <- 2^(-1 * cqnOffset)
+cqnOffset <- cqnObject$glm.offset
+cqnNormFactors <- exp(cqnOffset)
 EDASeqNormFactors <- exp(-1 * EDASeqOffset)
 @
 

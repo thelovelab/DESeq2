@@ -23,11 +23,11 @@
   and PCA plots.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment(betaSd=1)
-design(dse) <- formula(~ 1)
-dse <- estimateSizeFactors(dse)
-dse <- estimateDispersions(dse)
-vsd <- varianceStabilizingTransformation(dse)
+dds <- makeExampleDESeqDataSet(betaSd=1)
+design(dds) <- formula(~ 1)
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+vsd <- varianceStabilizingTransformation(dds)
 plotPCA(vsd)
 }
 \author{

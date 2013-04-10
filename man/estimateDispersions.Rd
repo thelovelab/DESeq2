@@ -1,13 +1,13 @@
 \docType{methods}
 \name{estimateDispersions}
 \alias{estimateDispersions}
-\alias{estimateDispersions,DESeqSummarizedExperiment-method}
-\title{Estimate the dispersions for a DESeqSummarizedExperiment}
+\alias{estimateDispersions,DESeqDataSet-method}
+\title{Estimate the dispersions for a DESeqDataSet}
 \usage{
-  \S4method{estimateDispersions}{DESeqSummarizedExperiment}(object,fitType=c("parametric","local","geoMean"))
+  \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","geoMean"),maxit=100)
 }
 \arguments{
-  \item{object}{a DESeqSummarizedExperiment}
+  \item{object}{a DESeqDataSet}
 
   \item{fitType}{either "parametric", "local", or "geoMean"
   for the type of fitting of dispersions to the mean
@@ -28,10 +28,13 @@
   assumption that the log normal prior contributes more to
   the observed spread of dispersion estimates than the
   sampling variance. }}
+
+  \item{maxit}{control parameter: maximum number of
+  iterations to allow for convergence}
 }
 \value{
-  The DESeqSummarizedExperiment passed as parameters, with
-  the dispersion information filled in as metadata columns,
+  The DESeqDataSet passed as parameters, with the
+  dispersion information filled in as metadata columns,
   accessible via \code{mcols}, or the final dispersions
   accessible via \code{\link{dispersions}}.
 }
@@ -42,7 +45,7 @@
 \details{
   Typically the function is called with the idiom:
 
-  \code{dse <- estimateDispersions(dse)}
+  \code{dds <- estimateDispersions(dds)}
 
   The fitting proceeds as follows: for each gene, an
   estimate of the dispersion is found which maximizes the
@@ -68,12 +71,13 @@
   proposed by Wu, et al. (2012) and is also implemented in
   the DSS package.
 
-  \code{estimateDispersions} checks for the case of a
-  1-vs-1 comparison, and will temporarily substitute a
+  \code{estimateDispersions} checks for the case of an
+  analysis with as many samples as the number of
+  coefficients to fit, and will temporarily substitute a
   design formula \code{~ 1} for the purposes of dispersion
-  estimation.  This treats the two samples as replicates
-  for the purpose of dispersion estimation. As mentioned in
-  the DESeq paper: "While one may not want to draw strong
+  estimation.  This treats the samples as replicates for
+  the purpose of dispersion estimation. As mentioned in the
+  DESeq paper: "While one may not want to draw strong
   conclusions from such an analysis, it may still be useful
   for exploration and hypothesis generation."
 
@@ -84,10 +88,10 @@
   \code{\link{estimateDispersionsMAP}}.
 }
 \examples{
-dse <- makeExampleDESeqSummarizedExperiment()
-dse <- estimateSizeFactors(dse)
-dse <- estimateDispersions(dse)
-head(dispersions(dse))
+dds <- makeExampleDESeqDataSet()
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+head(dispersions(dds))
 }
 \references{
   \itemize{ \item Simon Anders, Wolfgang Huber:
