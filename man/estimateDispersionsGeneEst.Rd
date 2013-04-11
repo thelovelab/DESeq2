@@ -23,11 +23,11 @@
   intensity. See \code{\link{estimateDispersions}} for
   description.}
 
-  \item{outlierSD}{the number of prior standard deviations
-  above the prior mean (fitted value), above which
-  dispersion estimates will be labelled outliers. Outliers
-  will keep their original value and not be shrunk using
-  the prior.}
+  \item{outlierSD}{the number of standard deviations of log
+  gene-wise estimates above the prior mean (fitted value),
+  above which dispersion estimates will be labelled
+  outliers. Outliers will keep their original value and not
+  be shrunk using the prior.}
 
   \item{priorVar}{the variance of the normal prior on the
   log dispersions. If not supplied, this is calculated as
