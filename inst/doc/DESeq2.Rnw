@@ -92,10 +92,10 @@
   quantification and statistical inference of systematic changes between conditions, as
   compared to within-condition variability.  The package \Rpackage{DESeq2} provides
   methods to test for differential expression by use of negative binomial generalized
-  linear models; the estimates of dispersion and logarithmic fold changes incorporate data-driven
-  prior distributions \footnote{Other Bioconductor packages with similar aims are
-    \Rpackage{edgeR}, \Rpackage{baySeq} and \Rpackage{DSS}.}. This vignette explains the
-  use of the package and demonstrates typical work flows.
+  linear models; the estimates of dispersion and logarithmic fold changes 
+  incorporate data-driven prior distributions \footnote{Other Bioconductor packages 
+  with similar aims are \Rpackage{edgeR}, \Rpackage{baySeq} and \Rpackage{DSS}.}. 
+  This vignette explains the use of the package and demonstrates typical work flows.
 %%%-- The GB paper is really dated. Let's comment this out until the new ms exists:
 %For an exposition of the statistical method, please see our paper \cite{Anders:2010:GB}.
 \end{abstract}
@@ -115,8 +115,7 @@ These steps imply you have a \Rclass{SummarizedExperiment} object
 \Robject{se} with a column \Robject{condition}.
 
 <<quick, eval=FALSE>>=
-dds <- DESeqDataSet(se = se,
-                                 design = ~ condition)
+dds <- DESeqDataSet(se = se, design = ~ condition)
 dds <- DESeq(dds)
 res <- results(dds)
 @
@@ -174,8 +173,7 @@ of the formula.  The constructor function below shows generation of a
 
 <<sumExpInput>>=
 library("DESeq2")
-ddsGR <- DESeqDataSet(se = se,
-                                   design = ~ patient + treatment)
+ddsGR <- DESeqDataSet(se = se, design = ~ patient + treatment)
 colData(ddsGR)$treatment <- factor(colData(ddsGR)$treatment,
                                    levels=c("Control","DPN","OHT"))
 ddsGR
@@ -194,11 +192,13 @@ data("pasillaGenes")
 countData <- counts(pasillaGenes)
 colData <- pData(pasillaGenes)[,c("condition","type")]
 dds <- DESeqDataSetFromMatrix(countData = countData,
-                                           colData = colData,
-                                           design = ~ condition)
+                              colData = colData,
+                              design = ~ condition)
 colData(dds)$condition <- factor(colData(dds)$condition,
                                  levels=c("untreated","treated"))
 dds
+detach(package:pasilla)
+detach(package:DESeq)
 @
 
 \subsection{\textit{HTSeq} input}
@@ -209,6 +209,7 @@ example of using the python scripts, see the \Rpackage{pasilla} or
 \Rpackage{parathyroid} data package.
 
 <<htseqInput>>=
+library("pasilla")
 directory <- system.file("extdata", package="pasilla", mustWork=TRUE)
 sampleFiles <- grep("treated",list.files(directory),value=TRUE)
 sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
@@ -216,8 +217,8 @@ sampleTable <- data.frame(sampleName = sampleFiles,
                           fileName = sampleFiles,
                           condition = sampleCondition)
 ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
-                                                    directory = directory,
-                                                    design= ~ condition)
+                                       directory = directory,
+                                       design= ~ condition)
 colData(ddsHTSeq)$condition <- factor(colData(ddsHTSeq)$condition,
                                       levels=c("untreated","treated"))
 ddsHTSeq
@@ -256,8 +257,7 @@ are still available, described in Section \ref{sec:steps}. The
 results are accessed using the function \Rfunction{results}, which
 extracts a results table for a single variable (by default the
 last variable in the design formula, and if this is a factor, the last
-level of this variable). Extracting results of other variables 
-is discussed in section \ref{sec:multifactor}.
+level of this variable). 
 
 <<deseq>>=
 dds <- DESeq(dds)
@@ -265,6 +265,11 @@ res <- results(dds)
 res <- res[order(res$FDR),]
 head(res)
 @
+
+Extracting results of other variables is discussed in section 
+\ref{sec:multifactor}. All the values calculated by the \Rpackage{DESeq2} 
+package are stored in the \Rclass{DESeqDataSet} object, and access 
+to these values is discussed in Section \ref{sec:access}.
 
 \section{Exploring results}
 
@@ -314,7 +319,8 @@ or \Rfunction{write.delim}, and a descriptive file name indicating the variable
 which was tested.
 
 <<export, eval=FALSE>>=
-write.csv(res, file="condition_treated_results.csv")
+write.csv(as.data.frame(res), 
+          file="condition_treated_results.csv")
 @
 
 \section{Multi-factor designs} \label{sec:multifactor}
@@ -349,8 +355,8 @@ of the \Robject{type} variable.  The function \Rfunction{results} takes an
 argument \Rcode{name}, which is a combination of the variable, the level
 (numerator of the fold change) and the base level 
 (denominator of the fold change).  In addition, there might be minor
-changes made by the \Rfunction{DataFrame} function on column names, for
-instance \texttt{-} to \texttt{.}. The function
+changes made by the \Rfunction{DataFrame} function on column names, 
+e.g. changing \texttt{-} to \texttt{.}. The function
 \Rfunction{resultsNames} will tell you the names of all available results.
 
 <<multiTypeResults>>=
@@ -841,6 +847,7 @@ adjusted profile likelihood, as first implemented for RNA-Seq data in
 \Rpackage{edgeR} \cite{CR,edgeR_GLM}.  For further details on
 dispersion estimation and inference, please see the manual pages for
 the functions \Rfunction{DESeq} and \Rfunction{estimateDispersions}.
+For access to the calculated values see Section \ref{sec:access}
 
 \section{Wald test individual steps} \label{sec:steps}
 
@@ -873,9 +880,12 @@ addmargins(tab)
 
 Plotting the dispersion estimates is a useful diagnostic. The dispersion
 plot in Figure \ref{dispFit} is typical, with the final estimates shrunk
-from the gene-wise estimates towards the fitted estimates. Depending on
-the sample size, number of covariates, and variance present in the data,
-the amount of shrinkage can be more or less than seen here (Figure~\ref{dispFit}).
+from the gene-wise estimates towards the fitted estimates. Some gene-wise
+estimates are flagged as outliers and not shrunk towards the fitted value,
+(this outlier detection is described in the man page for \Rfunction{estimateDispersionsMAP}).
+The amount of shrinkage can be more or less than seen here, depending 
+on the sample size, the number of coefficients, the row mean
+and the variability of the gene-wise estimates.
 
 <<dispFit, fig=TRUE>>=
 plotDispEsts(dds)
@@ -886,8 +896,7 @@ plotDispEsts(dds)
 \includegraphics[width=.5\textwidth]{DESeq2-dispFit}
 \caption{The dispersion estimate plot shows the gene-wise estimates (black),
   the fitted values (red), and the final maximum \textit{a posteriori}
-  estimates used in testing (blue). The genes with low counts have dispersions
-  which are moved closer to the fitted line than the genes with high counts.}
+  estimates used in testing (blue).}
 \label{dispFit}
 \end{figure}
 
@@ -927,7 +936,9 @@ plotDispEsts(ddsGeoMean)
 \begin{figure}[ht]
 \centering
 \includegraphics[width=.5\textwidth]{DESeq2-dispFitGeom}
-\caption{A dispersion estimate plot using the geometric mean.}
+\caption{A dispersion estimate plot using the geometric mean, though
+this would not be recommended for this dataset as the dispersion 
+estimates exhibit a row-mean-dependent trend.}
 \label{dispFitGeom}
 \end{figure}
 
@@ -945,19 +956,22 @@ dispersions are distributed according to a log-normal prior around
 the fitted values in the column \Robject{fitDisp}.  The width of
 this prior is calculated from the data.
 
-<<dispFitCustom, fig=TRUE>>=
-dds <- estimateDispersionsGeneEst(dds)
-useForMedian <- mcols(dds)$dispGeneEst > 1e-7
-medianDisp <- median(mcols(dds)$dispGeneEst[useForMedian],na.rm=TRUE)
-mcols(dds)$dispFit <- rep(medianDisp,nrow(dds))
-dds <- estimateDispersionsMAP(dds)
+<<dispFitCustom>>=
+ddsMed <- estimateDispersionsGeneEst(dds)
+useForMedian <- mcols(ddsMed)$dispGeneEst > 1e-7
+medianDisp <- median(mcols(ddsMed)$dispGeneEst[useForMedian],na.rm=TRUE)
+mcols(ddsMed)$dispFit <- medianDisp
+ddsMed <- estimateDispersionsMAP(ddsMed)
 @
 
-\section{Access to all calculated values}
+\section{Access to all calculated values}\label{sec:access}
 
-Information on all of the row-wise calculated values are stored
-in the original object.  These are accessible via \Rfunction{mcols}.
-Descriptions are accessible by two calls to \Rfunction{mcols}.
+All row-wise calculated values (intermediate dispersion calculations,
+coefficients, standard errors, etc.) are stored in the \Rclass{DESeqDataSet} 
+object, e.g. \Robject{dds} in this vignette. These values are accessible 
+by calling \Rfunction{mcols} on \Robject{dds}. 
+Descriptions of the columns are accessible by two calls to 
+\Rfunction{mcols}.
 
 <<mcols>>=
 mcols(dds,use.names=TRUE)[1:4,1:4]
@@ -979,9 +993,10 @@ colData(x)$condition <- factor(colData(x)$condition,
 
 In this case, there will be two coefficients in the analysis with
 available results: $\log_2$ fold changes of ``A'' vs ``Control'',
-and $\log_2$ fold changes of ``B'' vs ``Control''. We are working on an
-implementation of contrasts, which would allow the user to compare
-the coefficients of ``A'' against ``B''.
+and $\log_2$ fold changes of ``B'' vs ``Control''. It is also possible
+to set the base level using the R function \Rfunction{relevel}.
+We are working on an implementation of contrasts, which would allow 
+comparison of the coefficients of ``A'' against ``B''.
 
 \section{Sample-/gene-dependent normalization factors}\label{sec:normfactors}
 
