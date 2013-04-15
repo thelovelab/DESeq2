@@ -349,10 +349,10 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   m <- nrow(modelMatrix)
   p <- ncol(modelMatrix)
   # estimate the expected sampling variance of the log estimates
-  # Var(log(cX)) = Var(log(X)) = E(log(X)^2) - E(log(X))^2
+  # Var(log(cX)) = Var(log(X))
   # X ~ chi-squared with m - p degrees of freedom
   if (m > p) {
-    expVarLogDisp <- expectedVarianceLogDisp(m,p)
+    expVarLogDisp <- trigamma((m - p)/2)
     attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
     # set the variance of the prior using these two estimates
     # with a minimum of .25
@@ -390,7 +390,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
                         maxitSEXP = maxit, use_priorSEXP = TRUE)
 
   # prepare dispersions for storage in mcols(object)
-  dispersionFinal <- dispersionMAP <- exp(dispResMAP$log_alpha) 
+  dispersionFinal <- dispMAP <- exp(dispResMAP$log_alpha) 
     
   # detect outliers which have gene-wise estimates
   # outlierSD * standard deviation of log gene-wise estimates
@@ -406,7 +406,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
                       dispConv = ((dispResMAP$last_change < dispTol)
                                   & (dispResMAP$iter < maxit)),
                       dispOutlier = dispOutlier,
-                      dispersionMAP = dispersionMAP,
+                      dispMAP = dispMAP,
                       dispD2LogPost = dispResMAP$last_d2lp)
 
   if (any(!resultsList$dispConv)) {
@@ -1071,15 +1071,4 @@ renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
   colNamesFrom <- do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1])))
   colNamesTo <- do.call(c,lapply(factorVars, function(v) paste0(v,"_",levels(data[[v]])[-1],"_vs_",levels(data[[v]])[1])))
   data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
-}
-
-
-# convenience function for estimating the expected variance
-# for the log dispersion given the number of samples m
-# and the number of parameters to estimate p
-expectedVarianceLogDisp <- function(m,p) {
-  if (m <= p) {
-    stop("m must be greater than p")
-  }
-  (integrate(function(x) (log(x))^2 * dchisq(x,df=(m - p)),0,10*m)$value) - (digamma((m - p)/2) - log(1/2))^2 
 }
