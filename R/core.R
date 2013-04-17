@@ -490,21 +490,19 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   modelMatrixNames <- fit$modelMatrixNames
   if (betaPrior) {
     if (missing(priorSigmasq)) {
-      # find out those rows which have zeros for
-      # all samples of some condition using y*X and y*(X-1)
-      # (subtracting 1 only from the model matrix columns with zeros)
-      X <- fit$modelMatrix
-      Xminus1 <- X
-      Xminus1[,colSums(X == 0) > 0] <- Xminus1[,colSums(X == 0) > 0] - 1
-      yTimesX <- counts(objectNZ) %*% X
-      yTimesXMinus1 <- counts(objectNZ) %*% Xminus1
-      useNoZeros <- apply(yTimesX,1,function(z) all(z != 0)) &
-                    apply(yTimesXMinus1,1,function(z) all(z != 0))
-      if (sum(useNoZeros) == 0) {
-        stop("no rows found without all zeros in one condition")
-      }
       # estimate the width of the prior on betas
-      priorSigmasq <- apply(fit$betaMatrix, 2, function(x) mean(x[useNoZeros]^2))
+      # excluding those rows with coefficients going to infinity
+      # (see the large argument of fitNbinomGLMs)
+      # if all betas are large, use a very large prior
+      priorSigmasq <- apply(fit$betaMatrix, 2, function(x) {
+        useSmall <- abs(x) < 8
+        if (sum(useSmall) == 0 ) {
+          return(1e6)
+        } else {
+          mean(x[useSmall]^2)
+        }
+      })
+           
     } else {
       if (length(priorSigmasq) != ncol(fit$modelMatrix)) {
         stop(paste0("priorSigmasq should have length",ncol(fit$modelMatrix)))
@@ -527,7 +525,12 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   colnames(WaldStatistic) <- paste0("WaldStatistic_",modelMatrixNames)
   WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)
   colnames(WaldPvalue) <- paste0("WaldPvalue_",modelMatrixNames)
-  WaldAdjPvalue <- apply(WaldPvalue,2,p.adjust,method=pAdjustMethod)
+  # if more than 1 row, we adjust p-values
+  if (nrow(WaldPvalue) > 1) {  
+    WaldAdjPvalue <- apply(WaldPvalue,2,p.adjust,method=pAdjustMethod)
+  } else {
+    WaldAdjPvalue <- WaldPvalue
+  }
   colnames(WaldAdjPvalue) <- paste0("WaldAdjPvalue_",modelMatrixNames)
   betaConv <- fit$betaConv
 
