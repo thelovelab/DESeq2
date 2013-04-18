@@ -486,8 +486,14 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   }
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
-  fit <- fitNbinomGLMs(objectNZ)
-  modelMatrixNames <- fit$modelMatrixNames
+
+  # if we do not use a beta prior, or
+  # if we need the MLE betas to fit the prior
+  # variance, then we fit GLMs without prior first
+  if (!betaPrior | missing(priorSigmasq)) {
+    fit <- fitNbinomGLMs(objectNZ)
+  }
+    
   if (betaPrior) {
     if (missing(priorSigmasq)) {
       # estimate the width of the prior on betas
@@ -502,20 +508,26 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
           mean(x[useSmall]^2)
         }
       })
-           
+      # except for intercept which we set to wide prior
+      if ("Intercept" %in% fit$modelMatrixNames) {
+        priorSigmasq[which(fit$modelMatrixNames == "Intercept")] <- 1e6
+      }
     } else {
-      if (length(priorSigmasq) != ncol(fit$modelMatrix)) {
-        stop(paste0("priorSigmasq should have length",ncol(fit$modelMatrix)))
+      # we are provided the prior variance:
+      # check if the lambda is the correct length
+      # given the design formula
+      modelMatrix <- model.matrix(design(objectNZ),
+                                  data=as.data.frame(colData(objectNZ)))
+      if (length(priorSigmasq) != ncol(modelMatrix)) {
+        stop(paste0("priorSigmasq should have length",ncol(modelMatrix)))
       }
     }
     lambda <- 1/priorSigmasq
-    # except for intercept which we set to wide prior
-    if ("Intercept" %in% modelMatrixNames) {
-      lambda[which(fit$modelMatrixNames == "Intercept")] <- 1e-6
-    }
     fit <- fitNbinomGLMs(objectNZ, lambda=lambda)
   }
-
+  
+  modelMatrixNames <- fit$modelMatrixNames
+  
   # add betas, standard errors and Wald p-values to the object
   betaMatrix <- fit$betaMatrix
   colnames(betaMatrix) <- modelMatrixNames
