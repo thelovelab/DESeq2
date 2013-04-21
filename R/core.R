@@ -30,7 +30,7 @@
 #' \code{\link{DESeqDataSet}},
 #' \code{\link{DESeqDataSetFromMatrix}},
 #' \code{\link{DESeqDataSetFromHTSeqCount}}.
-#' @param fitType either "parametric", "local", or "geoMean"
+#' @param fitType either "parametric", "local", or "mean"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
 #' @param betaPrior whether or not to put a zero-mean normal prior on
@@ -57,7 +57,7 @@
 #' res <- results(dds)
 #'
 #' @export
-DESeq <- function(object,fitType=c("parametric","local","geoMean"),betaPrior=TRUE,pAdjustMethod="BH") {
+DESeq <- function(object,fitType=c("parametric","local","mean"),betaPrior=TRUE,pAdjustMethod="BH") {
   message("estimating size factors")
   object <- estimateSizeFactors(object)
   message("estimating dispersions")
@@ -159,7 +159,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 #' examples below.
 #'
 #' @param object a DESeqDataSet
-#' @param fitType either "parametric", "local", or "geoMean"
+#' @param fitType either "parametric", "local", or "mean"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
 #' @param outlierSD the number of standard deviations of log
@@ -260,7 +260,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsFit <- function(object,fitType=c("parametric","local","geoMean"),minDisp=1e-8) {
+estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),minDisp=1e-8) {
   if ("dispFit" %in% names(mcols(object))) {
     message("you had estimated fitted dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit"]
@@ -288,13 +288,13 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","geoMea
                                        minDisp = minDisp)
     dispFit <- dispFunction(mcols(objectNZ)$baseMean)
   }
-  if (fitType == "geoMean") {
+  if (fitType == "mean") {
     useForMean <- mcols(objectNZ)$dispGeneEst > 10*minDisp
-    meanDisp <- exp(mean(log(mcols(objectNZ)$dispGeneEst[useForMean]),na.rm=TRUE))
+    meanDisp <- mean(mcols(objectNZ)$dispGeneEst[useForMean],na.rm=TRUE)
     dispFunction <- function(means) meanDisp
     dispFit <- rep(meanDisp,nrow(objectNZ))
   }
-  if (!(fitType %in% c("parametric","local","geoMean"))) {
+  if (!(fitType %in% c("parametric","local","mean"))) {
     stop("unknown fitType")
   }
 

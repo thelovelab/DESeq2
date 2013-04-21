@@ -2,8 +2,7 @@
 \alias{DESeq}
 \title{Differential expression analysis based on the negative binomial distribution}
 \usage{
-  DESeq(object,
-    fitType = c("parametric", "local", "geoMean"),
+  DESeq(object, fitType = c("parametric", "local", "mean"),
     betaPrior = TRUE, pAdjustMethod = "BH")
 }
 \arguments{
@@ -12,7 +11,7 @@
   \code{\link{DESeqDataSetFromMatrix}},
   \code{\link{DESeqDataSetFromHTSeqCount}}.}
 
-  \item{fitType}{either "parametric", "local", or "geoMean"
+  \item{fitType}{either "parametric", "local", or "mean"
   for the type of fitting of dispersions to the mean
   intensity. See \code{\link{estimateDispersions}} for
   description.}

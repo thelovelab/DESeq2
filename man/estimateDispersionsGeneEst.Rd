@@ -8,7 +8,7 @@
     kappa_0 = 1, dispTol = 1e-06, maxit = 100)
 
   estimateDispersionsFit(object,
-    fitType = c("parametric", "local", "geoMean"),
+    fitType = c("parametric", "local", "mean"),
     minDisp = 1e-08)
 
   estimateDispersionsMAP(object, outlierSD = 2, priorVar,
@@ -18,7 +18,7 @@
 \arguments{
   \item{object}{a DESeqDataSet}
 
-  \item{fitType}{either "parametric", "local", or "geoMean"
+  \item{fitType}{either "parametric", "local", or "mean"
   for the type of fitting of dispersions to the mean
   intensity. See \code{\link{estimateDispersions}} for
   description.}

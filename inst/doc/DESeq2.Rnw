@@ -921,25 +921,25 @@ plotDispEsts(ddsLocal)
 \label{dispFitLocal}
 \end{figure}
 
-\subsection{Geometric mean dispersion}
+\subsection{Mean dispersion}
 
 While RNA-Seq data tend to demonstrate a dispersion-mean dependence,
 this assumption is not appropriate for all assays.  An alternative is
-to use the geometric mean of all gene-wise dispersion estimates to benefit
-from information sharing across genes (Figure~\ref{dispFitGeom}).
+to use the mean of all gene-wise dispersion estimates to benefit
+from information sharing across genes (Figure~\ref{dispFitMean}).
 
-<<dispFitGeom, fig=TRUE>>=
-ddsGeoMean <- estimateDispersions(dds, fitType="geoMean")
-plotDispEsts(ddsGeoMean)
+<<dispFitMean, fig=TRUE>>=
+ddsMean <- estimateDispersions(dds, fitType="mean")
+plotDispEsts(ddsMean)
 @
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=.5\textwidth]{DESeq2-dispFitGeom}
-\caption{A dispersion estimate plot using the geometric mean, though
+\includegraphics[width=.5\textwidth]{DESeq2-dispFitMean}
+\caption{A dispersion estimate plot using the mean, though
 this would not be recommended for this dataset as the dispersion 
 estimates exhibit a row-mean-dependent trend.}
-\label{dispFitGeom}
+\label{dispFitMean}
 \end{figure}
 
 \subsection{Supply a custom dispersion fit}

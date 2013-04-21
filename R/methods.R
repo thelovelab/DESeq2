@@ -383,14 +383,14 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #' \code{\link{estimateDispersionsMAP}}.
 #' 
 #' @usage
-#' \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","geoMean"),maxit=100)
+#' \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100)
 #'
 #' @docType methods
 #' @name estimateDispersions
 #' @rdname estimateDispersions
 #' @aliases estimateDispersions estimateDispersions,DESeqDataSet-method
 #' @param object a DESeqDataSet
-#' @param fitType either "parametric", "local", or "geoMean"
+#' @param fitType either "parametric", "local", or "mean"
 #' for the type of fitting of dispersions to the mean intensity.
 #' \itemize{
 #'   \item parametric - fit a dispersion-mean relation of the form:
@@ -402,10 +402,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #'     of log dispersions over log base mean (normal scale means and dispersions
 #'     are input and output for \code{\link{dispersionFunction}}). The points
 #'     are weighted by normalized mean count in the local regression.
-#'   \item geoMean - use the geometric mean of gene-wise dispersion estimates.
-#'     This is motivated by an assumption that the log normal prior contributes
-#'     more to the observed spread of dispersion estimates than the sampling
-#'     variance.
+#'   \item mean - use the mean of gene-wise dispersion estimates.
 #' }
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #'
@@ -426,7 +423,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #' dds <- estimateDispersions(dds)
 #' head(dispersions(dds))
 #'
-estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","geoMean"), maxit=100) {
+estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"), maxit=100) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     stop("first call estimateSizeFactors or provide a normalizationFactor matrix before estimateDispersions")
   }

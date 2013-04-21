@@ -4,12 +4,12 @@
 \alias{estimateDispersions,DESeqDataSet-method}
 \title{Estimate the dispersions for a DESeqDataSet}
 \usage{
-  \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","geoMean"),maxit=100)
+  \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
 
-  \item{fitType}{either "parametric", "local", or "geoMean"
+  \item{fitType}{either "parametric", "local", or "mean"
   for the type of fitting of dispersions to the mean
   intensity. \itemize{ \item parametric - fit a
   dispersion-mean relation of the form: \deqn{dispersion =
@@ -23,11 +23,8 @@
   and dispersions are input and output for
   \code{\link{dispersionFunction}}). The points are
   weighted by normalized mean count in the local
-  regression.  \item geoMean - use the geometric mean of
-  gene-wise dispersion estimates.  This is motivated by an
-  assumption that the log normal prior contributes more to
-  the observed spread of dispersion estimates than the
-  sampling variance. }}
+  regression.  \item mean - use the mean of gene-wise
+  dispersion estimates. }}
 
   \item{maxit}{control parameter: maximum number of
   iterations to allow for convergence}
