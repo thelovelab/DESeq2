@@ -756,7 +756,7 @@ resultsNames <- function(object) {
 #' @export
 removeResults <- function(object) {
   resCols <- mcols(mcols(object))$type == "results"
-  if (sum(resCols) > 0) {
+  if (sum(resCols,na.rm=TRUE) > 0) {
     mcols(object) <- mcols(object)[,!resCols]
   }
   return(object)
