@@ -854,6 +854,7 @@ nbinomLogLike <- function(counts, mu_hat, disp) {
 # modelFormula a formula specifying how to construct the design matrix
 # alpha_hat the dispersion parameter estimates
 # lambda the 'ridge' term added for the penalized GLM on the log2 scale
+# renameCols whether to give columns variable_B_vs_A style names
 # large control parameter: allow some betas to go to infinity, exempt
 #   these from convergence tests
 # betaTol control parameter: stop when absolute change in beta is less
@@ -863,19 +864,22 @@ nbinomLogLike <- function(counts, mu_hat, disp) {
 #
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
-fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, large=10, betaTol=1e-8, maxit=100) {
+fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, renameCols=TRUE, large=10, betaTol=1e-8, maxit=100) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
   if (missing(modelMatrix)) {
    modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
   }
-
   modelMatrixNames <- colnames(modelMatrix)
-  convertNames <- renameModelMatrixColumns(modelMatrixNames,
-                                           as.data.frame(colData(object)),
-                                           modelFormula)
-  modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
+
+  if (renameCols) {
+    convertNames <- renameModelMatrixColumns(modelMatrixNames,
+                                             as.data.frame(colData(object)),
+                                             modelFormula)
+    modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
+  }
+  
   modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
   
   if (!is.null(normalizationFactors(object))) {

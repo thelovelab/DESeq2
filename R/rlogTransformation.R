@@ -95,7 +95,7 @@ rlogData <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
     if ("(Intercept)" %in% modelMatrixNames) {
       lambda[which(modelMatrixNames == "(Intercept)")] <- 1e-6
     }    
-    fit <- fitNbinomGLMs(objectNZ,modelMatrix=modelMatrix,lambda=lambda)
+    fit <- fitNbinomGLMs(objectNZ,modelMatrix=modelMatrix,lambda=lambda,renameCols=FALSE)
     # use rows which have no zeros
     useNoZeros <- apply(counts(objectNZ),1,function(x) all(x > 0))
     if (sum(useNoZeros) == 0) {
@@ -112,7 +112,7 @@ rlogData <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
   if ("Intercept" %in% fit$modelMatrixNames) {
     lambda[which(fit$modelMatrixNames == "Intercept")] <- 1e-6
   }
-  fit <- fitNbinomGLMs(objectNZ, modelMatrix=modelMatrix, lambda=lambda)
+  fit <- fitNbinomGLMs(objectNZ,modelMatrix=modelMatrix,lambda=lambda,renameCols=FALSE)
   normalizedDataNZ <- t(modelMatrix %*% t(fit$betaMatrix))
   normalizedData <- buildMatrixWithNARows(normalizedDataNZ, mcols(object)$allZero)
   colnames(normalizedData) <- colnames(object)
