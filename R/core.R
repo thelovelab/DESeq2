@@ -337,17 +337,38 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   # log dispersion estimates around the fitted value
   dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
 
-  useDispGeneEstConv <- mcols(objectNZ)$dispGeneEstConv
-  useForPrior <- useNotMinDisp & useDispGeneEstConv
+  useForPrior <- useNotMinDisp
   if (sum(useForPrior) == 0) {
     stop("no data found which is greater than minDisp, within quants, and converged in gene-wise estimates")
   }
 
-
-  varLogDispEsts <- mad(dispResiduals[useForPrior])^2
-  attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
+  varLogDispEsts <- varLogDispEstsAll <- mad(dispResiduals[useForPrior])^2
+  attr(dispersionFunction(object), "varianceFittingMode") <- "all"
+  
   m <- nrow(modelMatrix)
   p <- ncol(modelMatrix)
+  
+  # if the expected variance of log dispersions indicates the
+  # distribution should include estimates with dispersion > m,
+  # estimate the variance from the bottom half of distribution,
+  # as dispersions above m are not reliably estimated
+  if (m > p) {
+    expVarLogDisp <- trigamma((m - p)/2)
+    baseMeanOrder <- order(mcols(objectNZ)$baseMean)
+    middleFittedLogDisp <- log(mcols(objectNZ)$dispFit[baseMeanOrder[round(nrow(objectNZ)/2)]])
+    probForDispsOverM <- pnorm(log(m), middleFittedLogDisp, sqrt(expVarLogDisp), lower.tail=FALSE)
+    if (nrow(objectNZ)*probForDispsOverM > 1) {
+      attr(dispersionFunction(object), "varianceFittingMode") <- "below"
+      medianDispResiduals <- median(dispResiduals[useForPrior])
+      belowTest <- dispResiduals[useForPrior] < medianDispResiduals
+      # this is just the standard mad() except only
+      # using those values below the median
+      # then squared to estimate the variance
+      varLogDispEsts <- (1.4826*median(abs(dispResiduals[useForPrior][belowTest] - medianDispResiduals)))^2
+    }
+  }
+
+  attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
   # estimate the expected sampling variance of the log estimates
   # Var(log(cX)) = Var(log(X))
   # X ~ chi-squared with m - p degrees of freedom
@@ -367,6 +388,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   if (missing(priorVar)) {
     priorVar <- priorVarCalc
   }
+  attr( dispersionFunction(object), "priorVar" ) <- priorVar
   
   # set prior variance for fitting dispersion
   log_alpha_prior_sigmasq <- priorVar
@@ -395,9 +417,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   # detect outliers which have gene-wise estimates
   # outlierSD * standard deviation of log gene-wise estimates
   # above the fitted mean (prior mean)
-  # and keep the original gene-est value for these
+  # and keep the original gene-est value for these.
+  # Note: we use the variance of log dispersions estimates
+  # from all the genes, not only those from below
   dispOutlier <- log(mcols(objectNZ)$dispGeneEst) > log(mcols(objectNZ)$dispFit) +
-    outlierSD * sqrt(varLogDispEsts)
+    outlierSD * sqrt(varLogDispEstsAll)
   dispersionFinal[dispOutlier] <- mcols(objectNZ)$dispGeneEst[dispOutlier]
  
   resultsList <- list(dispersion = dispersionFinal,
