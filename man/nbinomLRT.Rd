@@ -3,7 +3,7 @@
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
   nbinomLRT(object, full = design(object), reduced,
-    pAdjustMethod = "BH")
+    pAdjustMethod = "BH", maxit = 100)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -16,6 +16,9 @@
 
   \item{pAdjustMethod}{the method to use for adjusting
   p-values, see \code{?p.adjust}}
+
+  \item{maxit}{the maximum number of iterations to allow
+  for convergence of the coefficient vector}
 }
 \value{
   a DESeqDataSet with new results columns accessible with

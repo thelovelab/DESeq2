@@ -3,7 +3,7 @@
 \title{Wald test for the GLM coefficients}
 \usage{
   nbinomWaldTest(object, betaPrior = TRUE,
-    pAdjustMethod = "BH", priorSigmasq)
+    pAdjustMethod = "BH", priorSigmasq, maxit = 100)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -19,6 +19,9 @@
   number of model terms including the intercept. which if
   missing is estimated from the rows which do not have any
   zeros}
+
+  \item{maxit}{the maximum number of iterations to allow
+  for convergence of the coefficient vector}
 }
 \value{
   a DESeqDataSet with results columns accessible with the

@@ -49,10 +49,6 @@ plotDispEsts = function( dds, ymin,
   plot(px, pmax(py, ymin), xlab=xlab, ylab=ylab,
     log=log, pch=ifelse(py<ymin, 6, 20), col=col2useful(genecol,.8), cex=cex, ... )
 
-  if (!is.null(mcols(dds)$dispFit)) {
-    points(px, mcols(dds)$dispFit[sel], col=col2useful(fitcol,.8), cex=cex, pch=20)
-  }
-
   # use a circle over outliers
   pchOutlier <- ifelse(mcols(dds)$dispOutlier[sel],1,20)
   cexOutlier <- ifelse(mcols(dds)$dispOutlier[sel],2*cex,cex)
@@ -61,6 +57,10 @@ plotDispEsts = function( dds, ymin,
     points(px, dispersions(dds)[sel], col=col2useful(finalcol,.8), cex=cexOutlier, pch=pchOutlier, lwd=lwdOutlier)
   }
 
+  if (!is.null(mcols(dds)$dispFit)) {
+    points(px, mcols(dds)$dispFit[sel], col=col2useful(fitcol,.8), cex=cex, pch=20)
+  }
+  
   if (legend) {
     legend("bottomright",c("gene-est","fitted","final"),pch=20,col=c(genecol,fitcol,finalcol),bg="white")
   }

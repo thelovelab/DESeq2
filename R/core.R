@@ -487,6 +487,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #  priorSigmasq gives the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
+#' @param maxit the maximum number of iterations to allow for convergence of the
+#' coefficient vector
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -503,7 +505,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq) {
+nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, maxit=100) {
   if ("results" %in% mcols(mcols(object))$type) {
     message("you had results columns, replacing these")
     object <- removeResults(object)
@@ -515,7 +517,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   # if we need the MLE betas to fit the prior
   # variance, then we fit GLMs without prior first
   if (!betaPrior | missing(priorSigmasq)) {
-    fit <- fitNbinomGLMs(objectNZ)
+    fit <- fitNbinomGLMs(objectNZ, maxit=maxit)
   }
     
   if (betaPrior) {
@@ -547,7 +549,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
       }
     }
     lambda <- 1/priorSigmasq
-    fit <- fitNbinomGLMs(objectNZ, lambda=lambda)
+    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit)
   }
   
   modelMatrixNames <- fit$modelMatrixNames
@@ -621,6 +623,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model with a variable of interest removed
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
+#' @param maxit the maximum number of iterations to allow for convergence of the
+#' coefficient vector
 #'
 #' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -637,7 +641,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' res <- results(dds)
 #'
 #' @export
-nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH" ) {
+nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH", maxit=100 ) {
   if (missing(reduced)) {
     stop("please provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
   }
@@ -658,8 +662,8 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH" 
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
   
-  fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full)
-  reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced)
+  fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit)
+  reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit)
  
   if (any(!fullModel$betaConv)) {
     message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)"))
