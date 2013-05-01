@@ -429,7 +429,7 @@ estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","loc
     stop("first call estimateSizeFactors or provide a normalizationFactor matrix before estimateDispersions")
   }
   if (!is.null(dispersions(object))) {
-    message("you had estimated dispersions, replacing these")
+    if (!quiet) message("you had estimated dispersions, replacing these")
     mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results"))]
   }
   fitType <- match.arg(fitType)
@@ -441,17 +441,17 @@ estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","loc
   modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))  
   noReps <- nrow(modelMatrix) == ncol(modelMatrix)
   if (noReps) {
-    message("same number of samples and coefficients to fit, estimating dispersion by treating samples as replicates")
+    if (!quiet) message("same number of samples and coefficients to fit, estimating dispersion by treating samples as replicates")
     designIn <- design(object)
     design(object) <- formula(~ 1)
   }
   
   if (!quiet) message("gene-wise dispersion estimates")
-  object <- estimateDispersionsGeneEst(object, maxit=maxit)
+  object <- estimateDispersionsGeneEst(object, maxit=maxit, quiet=quiet)
   if (!quiet) message("mean-dispersion relationship")
-  object <- estimateDispersionsFit(object, fitType=fitType)
+  object <- estimateDispersionsFit(object, fitType=fitType, quiet=quiet)
   if (!quiet) message("final dispersion estimates")
-  object <- estimateDispersionsMAP(object, maxit=maxit)
+  object <- estimateDispersionsMAP(object, maxit=maxit, quiet=quiet)
 
   # replace the previous design
   if (noReps) design(object) <- designIn

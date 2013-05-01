@@ -64,7 +64,8 @@ DESeq <- function(object,fitType=c("parametric","local","mean"),betaPrior=TRUE,p
   if (!quiet) message("estimating dispersions")
   object <- estimateDispersions(object,fitType=fitType, quiet=quiet)
   if (!quiet) message("fitting generalized linear model")
-  object <- nbinomWaldTest(object,betaPrior=betaPrior,pAdjustMethod=pAdjustMethod)
+  object <- nbinomWaldTest(object, betaPrior=betaPrior,
+                           pAdjustMethod=pAdjustMethod, quiet=quiet)
   object
 }
 
@@ -181,6 +182,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 #' @param dispTol control parameter to test for convergence of log dispersion,
 #' stop when increase in log posterior is less than dispTol
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
+#' @param quiet whether to print messages at each step
 #'
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
@@ -199,9 +201,9 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 #' @seealso \code{\link{estimateDispersions}}
 #'
 #' @export
-estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100) {
+estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100, quiet=FALSE) {
   if ("dispGeneEst" %in% names(mcols(object))) {
-    message("you had estimated gene-wise dispersions, removing these")
+    if (!quiet) message("you had estimated gene-wise dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  == "dispGeneEst"]
   }
   if (log(minDisp/10) <= -30) {
@@ -261,9 +263,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),minDisp=1e-8) {
+estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),minDisp=1e-8, quiet=FALSE) {
   if ("dispFit" %in% names(mcols(object))) {
-    message("you had estimated fitted dispersions, removing these")
+    if (!quiet) message("you had estimated fitted dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit"]
   }
   objectNZ <- object[!mcols(object)$allZero,]
@@ -313,9 +315,9 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100) {
+estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100, quiet=FALSE) {
   if ("dispersion" %in% names(mcols(object))) {
-    message("you had estimated dispersions, removing these")
+    if (!quiet) message("you had estimated dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  %in% c("dispersion","dispIter","dispIterAccept","dispConv")]
   }
  
@@ -435,7 +437,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
                       dispD2LogPost = dispResMAP$last_d2lp)
 
   if (any(!resultsList$dispConv)) {
-    message(paste(sum(!resultsList$dispConv),"rows did not converge in dispersion, labelled in mcols(object)$dispConv. Use larger maxit argument with estimateDispersions"))
+    if (!quiet) message(paste(sum(!resultsList$dispConv),"rows did not converge in dispersion, labelled in mcols(object)$dispConv. Use larger maxit argument with estimateDispersions"))
   }
   
   dispDataFrame <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
@@ -492,6 +494,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
 #' converge within maxit
+#' @param quiet whether to print messages at each step
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -508,9 +511,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, maxit=100, useOptim=TRUE) {
+nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, maxit=100, useOptim=TRUE, quiet=FALSE) {
   if ("results" %in% mcols(mcols(object))$type) {
-    message("you had results columns, replacing these")
+    if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
   }
   # only continue on the rows with non-zero row mean
@@ -576,7 +579,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   betaConv <- fit$betaConv
 
   if (any(!betaConv)) {
-    message(paste(sum(!betaConv),"rows did not converge in beta, labelled in mcols(object)$betaConv. Use larger maxit argument with nbinomWaldTest"))
+    if (!quiet) message(paste(sum(!betaConv),"rows did not converge in beta, labelled in mcols(object)$betaConv. Use larger maxit argument with nbinomWaldTest"))
   }
   
   resultsList <- c(matrixToList(betaMatrix),
@@ -630,6 +633,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
 #' converge within maxit
+#' @param quiet whether to print messages at each step
 #'
 #' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -646,12 +650,12 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' res <- results(dds)
 #'
 #' @export
-nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH", maxit=100, useOptim=TRUE ) {
+nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH", maxit=100, useOptim=TRUE, quiet=FALSE ) {
   if (missing(reduced)) {
     stop("please provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
   }
   if (any(mcols(mcols(object))$type == "results")) {
-    message("you had results columns, replacing these")
+    if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
   } 
 
@@ -671,7 +675,7 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH",
   reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit, useOptim=useOptim)
  
   if (any(!fullModel$betaConv)) {
-    message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT"))
+    if (!quiet) message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT"))
   }
   
   LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
