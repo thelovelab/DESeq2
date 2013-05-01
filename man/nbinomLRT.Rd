@@ -3,7 +3,7 @@
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
   nbinomLRT(object, full = design(object), reduced,
-    pAdjustMethod = "BH", maxit = 100)
+    pAdjustMethod = "BH", maxit = 100, useOptim = TRUE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -19,6 +19,9 @@
 
   \item{maxit}{the maximum number of iterations to allow
   for convergence of the coefficient vector}
+
+  \item{useOptim}{whether to use the native optim function
+  on rows which do not converge within maxit}
 }
 \value{
   a DESeqDataSet with new results columns accessible with

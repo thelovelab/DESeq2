@@ -3,7 +3,8 @@
 \title{Wald test for the GLM coefficients}
 \usage{
   nbinomWaldTest(object, betaPrior = TRUE,
-    pAdjustMethod = "BH", priorSigmasq, maxit = 100)
+    pAdjustMethod = "BH", priorSigmasq, maxit = 100,
+    useOptim = TRUE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -22,6 +23,9 @@
 
   \item{maxit}{the maximum number of iterations to allow
   for convergence of the coefficient vector}
+
+  \item{useOptim}{whether to use the native optim function
+  on rows which do not converge within maxit}
 }
 \value{
   a DESeqDataSet with results columns accessible with the

@@ -489,6 +489,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' zeros
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
+#' @param useOptim whether to use the native optim function on rows which do not
+#' converge within maxit
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -505,7 +507,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, maxit=100) {
+nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, maxit=100, useOptim=TRUE) {
   if ("results" %in% mcols(mcols(object))$type) {
     message("you had results columns, replacing these")
     object <- removeResults(object)
@@ -513,15 +515,15 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
 
-  # if we do not use a beta prior, or
-  # if we need the MLE betas to fit the prior
-  # variance, then we fit GLMs without prior first
-  if (!betaPrior | missing(priorSigmasq)) {
-    fit <- fitNbinomGLMs(objectNZ, maxit=maxit)
+  if (!betaPrior) {
+    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim)
   }
-    
+  
   if (betaPrior) {
     if (missing(priorSigmasq)) {
+      # if we need the MLE betas to fit the prior
+      # variance, then we fit GLMs without prior first
+      fit <- fitNbinomGLMs(objectNZ, maxit=maxit)
       # estimate the width of the prior on betas
       # excluding those rows with coefficients going to infinity
       # (see the large argument of fitNbinomGLMs)
@@ -549,7 +551,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
       }
     }
     lambda <- 1/priorSigmasq
-    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit)
+    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim)
   }
   
   modelMatrixNames <- fit$modelMatrixNames
@@ -625,6 +627,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
+#' @param useOptim whether to use the native optim function on rows which do not
+#' converge within maxit
 #'
 #' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -641,7 +645,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' res <- results(dds)
 #'
 #' @export
-nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH", maxit=100 ) {
+nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH", maxit=100, useOptim=TRUE ) {
   if (missing(reduced)) {
     stop("please provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
   }
@@ -662,7 +666,7 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH",
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
   
-  fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit)
+  fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit, useOptim=useOptim)
   reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit)
  
   if (any(!fullModel$betaConv)) {
@@ -889,10 +893,13 @@ nbinomLogLike <- function(counts, mu_hat, disp) {
 #   than betaTol
 # maxit control parameter: maximum number of iteration to allow for
 #   convergence
+# useOptim whether to use optim on rows which have not converged:
+#   Fisher scoring is not ideal with multiple groups and sparse
+#   count distributions
 #
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
-fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, renameCols=TRUE, large=10, betaTol=1e-8, maxit=100) {
+fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, renameCols=TRUE, large=10, betaTol=1e-8, maxit=100, useOptim=FALSE) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
@@ -939,8 +946,10 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
   # conversion factor log(2)
   lambdaLogScale <- lambda * log2(exp(1))^2
   
-  betaRes <- fitBeta(ySEXP = counts(object), xSEXP = modelMatrix, nfSEXP = normalizationFactors,
-                     alpha_hatSEXP = alpha_hat, beta_matSEXP = beta_mat, lambdaSEXP = lambdaLogScale,
+  betaRes <- fitBeta(ySEXP = counts(object), xSEXP = modelMatrix,
+                     nfSEXP = normalizationFactors,
+                     alpha_hatSEXP = alpha_hat, beta_matSEXP = beta_mat,
+                     lambdaSEXP = lambdaLogScale,
                      tolSEXP = betaTol, maxitSEXP = maxit, largeSEXP = large)
   mu_hat <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
   dispersionVector <- rep(dispersions(object), times=ncol(object))
@@ -951,13 +960,45 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
   betaConv <- apply(((betaRes$last_change < betaTol | abs(betaRes$beta_mat) > large) &
                     (betaRes$iter < maxit)),
                     1, all)
-  
+
   # here we transform the betaMatrix and betaSE to a log2 scale
   betaMatrix <- log2(exp(1))*betaRes$beta_mat
   colnames(betaMatrix) <- modelMatrixNames
   colnames(modelMatrix) <- modelMatrixNames
   betaSE <- log2(exp(1))*sqrt(betaRes$beta_var_mat)
   colnames(betaSE) <- paste0("SE_",modelMatrixNames)
+
+  if (useOptim) {
+    # use optim for those rows which have not converged
+    x <- modelMatrix
+    rowsNotConverged <- which(!betaConv)
+    for (row in rowsNotConverged) {
+      betaRow <- betaMatrix[row,]
+      nf <- normalizationFactors[row,]
+      k <- counts(object)[row,]
+      alpha <- alpha_hat[row]
+      objectiveFn <- function(p) {
+        mu <- as.numeric(nf * 2^(x %*% p))
+        prior <- sum(dnorm(p,0,sqrt(1/lambda),log=TRUE))
+        logLike <- sum(dnbinom(k,mu=mu,size=1/alpha,log=TRUE))
+        -1 * (logLike + prior)
+      }
+      o <- optim(betaRow, objectiveFn, method="L-BFGS-B",
+                 lower=-large, upper=large)
+      ridge <- diag(lambda)
+      if (o$convergence == 0) {
+        betaConv[row] <- TRUE
+        betaMatrix[row,] <- o$par
+        # calculate the standard errors
+        mu <- as.numeric(nf * exp(x %*% (log(2)*o$par)))
+        w <- diag((mu^-1 + alpha)^-1)
+        xtwx <- t(x) %*% w %*% x
+        xtwxRidgeInv <- solve(xtwx + ridge)
+        betaSE[row,] <- log2(exp(1))*sqrt(diag(xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv))
+      }        
+    }
+  }
+  
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
        betaSE = betaSE, mu_hat = mu_hat, lastChange = betaRes$last_change,
        modelMatrix=modelMatrix, modelMatrixNames = modelMatrixNames,
