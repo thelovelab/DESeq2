@@ -3,7 +3,8 @@
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
   nbinomLRT(object, full = design(object), reduced,
-    pAdjustMethod = "BH", maxit = 100, useOptim = TRUE)
+    pAdjustMethod = "BH", maxit = 100, useOptim = TRUE,
+    quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -22,6 +23,8 @@
 
   \item{useOptim}{whether to use the native optim function
   on rows which do not converge within maxit}
+
+  \item{quiet}{whether to print messages at each step}
 }
 \value{
   a DESeqDataSet with new results columns accessible with

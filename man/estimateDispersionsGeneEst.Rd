@@ -5,15 +5,16 @@
 \title{Low-level functions to fit dispersion estimates}
 \usage{
   estimateDispersionsGeneEst(object, minDisp = 1e-08,
-    kappa_0 = 1, dispTol = 1e-06, maxit = 100)
+    kappa_0 = 1, dispTol = 1e-06, maxit = 100,
+    quiet = FALSE)
 
   estimateDispersionsFit(object,
     fitType = c("parametric", "local", "mean"),
-    minDisp = 1e-08)
+    minDisp = 1e-08, quiet = FALSE)
 
   estimateDispersionsMAP(object, outlierSD = 2, priorVar,
     minDisp = 1e-08, kappa_0 = 1, dispTol = 1e-06,
-    maxit = 100)
+    maxit = 100, quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -50,6 +51,8 @@
 
   \item{maxit}{control parameter: maximum number of
   iterations to allow for convergence}
+
+  \item{quiet}{whether to print messages at each step}
 }
 \value{
   a DESeqDataSet with gene-wise, fitted, or final MAP

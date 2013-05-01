@@ -4,7 +4,7 @@
 \usage{
   nbinomWaldTest(object, betaPrior = TRUE,
     pAdjustMethod = "BH", priorSigmasq, maxit = 100,
-    useOptim = TRUE)
+    useOptim = TRUE, quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -26,6 +26,8 @@
 
   \item{useOptim}{whether to use the native optim function
   on rows which do not converge within maxit}
+
+  \item{quiet}{whether to print messages at each step}
 }
 \value{
   a DESeqDataSet with results columns accessible with the
