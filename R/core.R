@@ -37,6 +37,7 @@
 #' the non-intercept coefficients (Tikhonov/ridge regularization)
 #' See \code{\link{nbinomWaldTest}} for description.
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
+#' @param quiet whether to print messages at each step
 #'
 #' @author Michael Love
 #'
@@ -57,12 +58,12 @@
 #' res <- results(dds)
 #'
 #' @export
-DESeq <- function(object,fitType=c("parametric","local","mean"),betaPrior=TRUE,pAdjustMethod="BH") {
-  message("estimating size factors")
+DESeq <- function(object,fitType=c("parametric","local","mean"),betaPrior=TRUE,pAdjustMethod="BH",quiet=FALSE) {
+  if (!quiet) message("estimating size factors")
   object <- estimateSizeFactors(object)
-  message("estimating dispersions")
-  object <- estimateDispersions(object,fitType=fitType)
-  message("fitting generalized linear model")
+  if (!quiet) message("estimating dispersions")
+  object <- estimateDispersions(object,fitType=fitType, quiet=quiet)
+  if (!quiet) message("fitting generalized linear model")
   object <- nbinomWaldTest(object,betaPrior=betaPrior,pAdjustMethod=pAdjustMethod)
   object
 }
@@ -234,7 +235,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
                      maxitSEXP = maxit, use_priorSEXP = FALSE)
 
   if (mean(dispRes$iter < maxit) < .5) {
-    warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged, use larger maxit argument with estimateDispersions")
+    warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged. Use larger maxit argument with estimateDispersions")
   }
   
   # dont accept moves if the log posterior did not
@@ -434,7 +435,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
                       dispD2LogPost = dispResMAP$last_d2lp)
 
   if (any(!resultsList$dispConv)) {
-    message(paste(sum(!resultsList$dispConv),"rows did not converge in dispersion, labelled in mcols(object)$dispConv"))
+    message(paste(sum(!resultsList$dispConv),"rows did not converge in dispersion, labelled in mcols(object)$dispConv. Use larger maxit argument with estimateDispersions"))
   }
   
   dispDataFrame <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
@@ -575,7 +576,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   betaConv <- fit$betaConv
 
   if (any(!betaConv)) {
-    message(paste(sum(!betaConv),"rows did not converge in beta, labelled in mcols(object)$betaConv"))
+    message(paste(sum(!betaConv),"rows did not converge in beta, labelled in mcols(object)$betaConv. Use larger maxit argument with nbinomWaldTest"))
   }
   
   resultsList <- c(matrixToList(betaMatrix),
@@ -670,7 +671,7 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH",
   reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit, useOptim=useOptim)
  
   if (any(!fullModel$betaConv)) {
-    message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)"))
+    message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT"))
   }
   
   LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))

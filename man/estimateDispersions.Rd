@@ -28,6 +28,8 @@
 
   \item{maxit}{control parameter: maximum number of
   iterations to allow for convergence}
+
+  \item{quiet}{whether to print messages at each step}
 }
 \value{
   The DESeqDataSet passed as parameters, with the

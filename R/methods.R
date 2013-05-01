@@ -405,6 +405,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #'   \item mean - use the mean of gene-wise dispersion estimates.
 #' }
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
+#' @param quiet whether to print messages at each step
 #'
 #' @return The DESeqDataSet passed as parameters, with the dispersion information
 #' filled in as metadata columns, accessible via \code{mcols}, or the final dispersions
@@ -423,7 +424,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #' dds <- estimateDispersions(dds)
 #' head(dispersions(dds))
 #'
-estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"), maxit=100) {
+estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"), maxit=100, quiet=FALSE) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     stop("first call estimateSizeFactors or provide a normalizationFactor matrix before estimateDispersions")
   }
@@ -445,11 +446,11 @@ estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","loc
     design(object) <- formula(~ 1)
   }
   
-  message("gene-wise dispersion estimates")
+  if (!quiet) message("gene-wise dispersion estimates")
   object <- estimateDispersionsGeneEst(object, maxit=maxit)
-  message("mean-dispersion relationship")
+  if (!quiet) message("mean-dispersion relationship")
   object <- estimateDispersionsFit(object, fitType=fitType)
-  message("final dispersion estimates")
+  if (!quiet) message("final dispersion estimates")
   object <- estimateDispersionsMAP(object, maxit=maxit)
 
   # replace the previous design

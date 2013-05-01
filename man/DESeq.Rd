@@ -3,7 +3,7 @@
 \title{Differential expression analysis based on the negative binomial distribution}
 \usage{
   DESeq(object, fitType = c("parametric", "local", "mean"),
-    betaPrior = TRUE, pAdjustMethod = "BH")
+    betaPrior = TRUE, pAdjustMethod = "BH", quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet object, see the constructor
@@ -23,6 +23,8 @@
 
   \item{pAdjustMethod}{the method to use for adjusting
   p-values, see \code{?p.adjust}}
+
+  \item{quiet}{whether to print messages at each step}
 }
 \value{
   a \code{\link{DESeqDataSet}} object with results stored
