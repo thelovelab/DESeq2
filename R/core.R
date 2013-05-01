@@ -667,7 +667,7 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH",
   objectNZ <- object[!mcols(object)$allZero,]
   
   fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit, useOptim=useOptim)
-  reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit)
+  reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit, useOptim=useOptim)
  
   if (any(!fullModel$betaConv)) {
     message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)"))
