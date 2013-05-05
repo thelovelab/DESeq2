@@ -4,7 +4,8 @@
 \alias{estimateDispersions,DESeqDataSet-method}
 \title{Estimate the dispersions for a DESeqDataSet}
 \usage{
-  \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100)
+  \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100,
+    quiet=FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}

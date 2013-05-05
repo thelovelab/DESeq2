@@ -383,7 +383,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #' \code{\link{estimateDispersionsMAP}}.
 #' 
 #' @usage
-#' \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100)
+#' \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100, quiet=FALSE)
 #'
 #' @docType methods
 #' @name estimateDispersions
