@@ -352,7 +352,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   p <- ncol(modelMatrix)
   
   # if the expected variance of log dispersions indicates the
-  # distribution should include estimates with dispersion > m,
+  # distribution should include more than 1 percent
+  # of dispersion estimates above the value m,
   # estimate the variance from the bottom half of distribution,
   # as dispersions above m are not reliably estimated
   if (m > p) {
@@ -360,7 +361,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
     baseMeanOrder <- order(mcols(objectNZ)$baseMean)
     middleFittedLogDisp <- log(mcols(objectNZ)$dispFit[baseMeanOrder[round(nrow(objectNZ)/2)]])
     probForDispsOverM <- pnorm(log(m), middleFittedLogDisp, sqrt(expVarLogDisp), lower.tail=FALSE)
-    if (nrow(objectNZ)*probForDispsOverM > 1) {
+    if (probForDispsOverM > .01) {
       attr(dispersionFunction(object), "varianceFittingMode") <- "below"
       medianDispResiduals <- median(dispResiduals[useForPrior])
       belowTest <- dispResiduals[useForPrior] < medianDispResiduals
