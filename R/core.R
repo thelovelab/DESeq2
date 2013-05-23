@@ -293,7 +293,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
   }
   if (fitType == "mean") {
     useForMean <- mcols(objectNZ)$dispGeneEst > 10*minDisp
-    meanDisp <- mean(mcols(objectNZ)$dispGeneEst[useForMean],na.rm=TRUE)
+    meanDisp <- mean(mcols(objectNZ)$dispGeneEst[useForMean],na.rm=TRUE,trim=.05)
     dispFunction <- function(means) meanDisp
     dispFit <- rep(meanDisp,nrow(objectNZ))
   }
@@ -346,33 +346,39 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   }
 
   varLogDispEsts <- varLogDispEstsAll <- mad(dispResiduals[useForPrior])^2
-  attr(dispersionFunction(object), "varianceFittingMode") <- "all"
   
   m <- nrow(modelMatrix)
   p <- ncol(modelMatrix)
-  
-  # if the expected variance of log dispersions indicates the
-  # distribution should include more than 1/1000
-  # of dispersion estimates above the value m, 
-  # estimate the variance from the bottom half of distribution,
-  # as dispersions above m are not reliably estimated
-  if (m > p) {
+
+  # if the residual degrees of freedom is between 1 and 3, the distribution
+  # of log dispersions is especially asymmetric and poorly estimated
+  # by the MAD. we then use an alternate estimator, a monte carlo
+  # approach to match the distribution
+  if (((m - p) <= 3) & (m > p)) {
+    obsDist <- dispResiduals[useForPrior]
+    brks <- -20:20/2
+    obsDist <- obsDist[obsDist > min(brks) & obsDist < max(brks)]
+    obsVarGrid <- seq(from=0,to=8,length=200)
+    obsDistHist <- hist(obsDist,breaks=brks,plot=FALSE)
+    klDivs <- sapply(obsVarGrid, function(x) {
+      randDist <- log(rchisq(1e4,df=(m-p))) + rnorm(1e4,0,sqrt(x)) - log(m - p)
+      randDist <- randDist[randDist > min(brks) & randDist < max(brks)]
+      randDistHist <- hist(randDist,breaks=brks,plot=FALSE)
+      z <- c(obsDistHist$density,randDistHist$density)
+      small <- min(z[z > 0])
+      kl <- sum(obsDistHist$density * (log(obsDistHist$density + small) - log(randDistHist$density + small)))
+      kl
+    })
+    lofit <- loess(klDivs ~ obsVarGrid, span=.2)
+    obsVarFineGrid <- seq(from=0,to=8,length=1000)
+    lofitFitted <- predict(lofit,obsVarFineGrid)
+    argminKL <- obsVarFineGrid[which.min(lofitFitted)]
     expVarLogDisp <- trigamma((m - p)/2)
-    baseMeanOrder <- order(mcols(objectNZ)$baseMean)
-    middleFittedLogDisp <- log(mcols(objectNZ)$dispFit[baseMeanOrder[round(nrow(objectNZ)/2)]])
-    probForDispsOverM <- pnorm(log(m), middleFittedLogDisp, sqrt(expVarLogDisp), lower.tail=FALSE)
-    if (probForDispsOverM > .001) {
-      attr(dispersionFunction(object), "varianceFittingMode") <- "below"
-      medianDispResiduals <- median(dispResiduals[useForPrior])
-      belowTest <- dispResiduals[useForPrior] < medianDispResiduals
-      # this is just the standard mad() except only
-      # using those values below the median
-      # then squared to estimate the variance
-      varLogDispEsts <- (1.4826*median(abs(dispResiduals[useForPrior][belowTest] - medianDispResiduals)))^2
-    }
+    varLogDispEsts <- argminKL + expVarLogDisp
   }
 
   attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
+
   # estimate the expected sampling variance of the log estimates
   # Var(log(cX)) = Var(log(X))
   # X ~ chi-squared with m - p degrees of freedom
@@ -496,6 +502,13 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' @param useOptim whether to use the native optim function on rows which do not
 #' converge within maxit
 #' @param quiet whether to print messages at each step
+#' @param useT whether to use as a null distribution, for significance testing
+#' of the Wald statistics, a t-distribution with degrees of freedom
+#' calculated with the dispersion prior variance.
+#' If FALSE, a standard normal null distribution is used.
+#' @param dfCoef a parameter used, if useT is set to TRUE, to connect the
+#' dispersion prior variance to the degrees of freedom of the t-distribution
+#' for Wald statistics: DF = dfCoef/priorVar + (m - p)
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -512,7 +525,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, maxit=100, useOptim=TRUE, quiet=FALSE) {
+nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, maxit=100, useOptim=TRUE, quiet=FALSE, useT=FALSE, dfCoef) {
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
@@ -568,8 +581,22 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   colnames(betaSE) <- paste0("SE_",modelMatrixNames)
   WaldStatistic <- betaMatrix/betaSE
   colnames(WaldStatistic) <- paste0("WaldStatistic_",modelMatrixNames)
-  WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)
+
+  m <- nrow(fit$modelMatrix)
+  p <- ncol(fit$modelMatrix)
+  
+  # use a t-distribution with degrees of freedom
+  # calculated using the width of the prior for dispersions.
+  # the default dfCoef value is estimated from simulated data
+  if (useT) {
+    priorVar <- attr( dispersionFunction(object), "priorVar" )
+    estDF <- dfCoef/(priorVar + 1) + (m - p)
+    WaldPvalue <- 2*pt(abs(WaldStatistic),df=estDF,lower.tail=FALSE)
+  } else {
+    WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)
+  }
   colnames(WaldPvalue) <- paste0("WaldPvalue_",modelMatrixNames)
+  
   # if more than 1 row, we adjust p-values
   if (nrow(WaldPvalue) > 1) {  
     WaldAdjPvalue <- apply(WaldPvalue,2,p.adjust,method=pAdjustMethod)

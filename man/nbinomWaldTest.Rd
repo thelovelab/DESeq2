@@ -4,7 +4,7 @@
 \usage{
   nbinomWaldTest(object, betaPrior = TRUE,
     pAdjustMethod = "BH", priorSigmasq, maxit = 100,
-    useOptim = TRUE, quiet = FALSE)
+    useOptim = TRUE, quiet = FALSE, useT = FALSE, dfCoef)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -28,6 +28,17 @@
   on rows which do not converge within maxit}
 
   \item{quiet}{whether to print messages at each step}
+
+  \item{useT}{whether to use as a null distribution, for
+  significance testing of the Wald statistics, a
+  t-distribution with degrees of freedom calculated with
+  the dispersion prior variance. If FALSE, a standard
+  normal null distribution is used.}
+
+  \item{dfCoef}{a parameter used, if useT is set to TRUE,
+  to connect the dispersion prior variance to the degrees
+  of freedom of the t-distribution for Wald statistics: DF
+  = dfCoef/priorVar + (m - p)}
 }
 \value{
   a DESeqDataSet with results columns accessible with the
