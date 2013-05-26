@@ -25,8 +25,10 @@
 #'
 #' @aliases rlogTransformation rlogData
 #'
-#' @param object a DESeqDataSet, with \code{design(object) <- formula(~ 1)}
-#' and size factors (or normalization factors) and dispersions already estimated
+#' @param object a DESeqDataSet
+#' @param unsupervised logical, whether the dispersions should be re-estimated
+#' using a design formula with only the intercept. This is recommended
+#' in order to ensure that the data transformation is an unsupervised method.
 #' @param samplesVector a character vector or factor of the sample identifiers
 #' @param priorSigmasq a single value, the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
@@ -36,7 +38,7 @@
 #' 
 #' @return for \code{rlogTransformation},
 #' a SummarizedExperiment with assay data elements equal to
-#' \eqn{\log_2(\mu_{ij}) = X_{j.} \beta_i}{log2(mu_ij) = X_j. * beta_i},
+#' \eqn{\log_2(q_{ij}) = X_{j.} \beta_i}{log2(q_ij) = X_j. * beta_i},
 #' see formula at \code{\link{DESeq}}.
 #' for \code{rlogData}, a \code{matrix} of the same dimension as the
 #' count data, containing the transformed values.  
@@ -45,15 +47,18 @@
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet(betaSd=1)
-#' design(dds) <- formula(~ 1)
-#' rld <- rlogTransformation(dds, colData(dds)$sample)
+#' rld <- rlogTransformation(dds)
 #' dists <- dist(t(assay(rld)))
 #' plot(hclust(dists))
 #'
 #' @export
-rlogTransformation <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
+rlogTransformation <- function(object, unsupervised=TRUE, samplesVector, priorSigmasq, rowVarQuantile=.9) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
+  }
+  if (unsupervised) {
+    design(object) <- ~ 1
+    object <- estimateDispersions(object)
   }
   if (is.null(dispersions(object))) {
     object <- estimateDispersions(object)

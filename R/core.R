@@ -7,15 +7,18 @@
 #'
 #' The differential expression analysis uses a generalized linear model of the form:
 #'
-#' \deqn{ K_{ij} \sim \textrm{NB}(s_j \mu_{ij}, \alpha_i) }{ K_ij ~ NB(s_j * mu_ij, alpha_i) }
-#' \deqn{ \log_2(\mu_{ij}) = X_{j.} \beta_i }{ log2(mu_ij) = X_j. * beta_i }
+#' \deqn{ K_{ij} \sim \textrm{NB}( \mu_{ij}, \alpha_i) }{ K_ij ~ NB(mu_ij, alpha_i) }
+#' \deqn{ \mu_{ij} = s_j q_{ij} }{ mu_ij = s_j * q_ij }
+#' \deqn{ \log_2(q_{ij}) = X_{j.} \beta_i }{ log2(q_ij) = X_j. * beta_i }
 #'
 #' where counts \eqn{K_{ij}}{K_ij} for gene i, sample j are modeled using
-#' a negative binomial distribution with a sample-specific size factor
-#' \eqn{s_j}{s_j}, a fitted mean \eqn{\mu_{ij}}{mu_ij} and a gene-specific
-#' dispersion parameter \eqn{\alpha_i}{alpha_i}.  The coefficients
-#' \eqn{\beta_i}{beta_i} give the log2 fold changes for gene i for each column
-#' of the model matrix \eqn{X}{X}.  The sample-specific size factors
+#' a negative binomial distribution with fitted mean \eqn{\mu_{ij}}{mu_ij}
+#' and a gene-specific dispersion parameter \eqn{\alpha_i}{alpha_i}.
+#' The fitted mean is composed of a sample-specific size factor
+#' \eqn{s_j}{s_j} and a parameter \eqn{q_{ij}}{q_ij} proportional to the
+#' expected true concentration of fragments for sample j.
+#' The coefficients \eqn{\beta_i}{beta_i} give the log2 fold changes for gene i for each
+#' column of the model matrix \eqn{X}{X}.  The sample-specific size factors
 #' can be replaced by gene-specific normalization factors for each sample using
 #' \code{\link{normalizationFactors}}.  For details on the fitting of the log2
 #' fold changes and calculation of p-values see \code{\link{nbinomWaldTest}}.
@@ -220,17 +223,17 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
   bv <- mcols(objectNZ)$baseVar
   bm <- mcols(objectNZ)$baseMean
   # this rough dispersion estimate (alpha_hat)
-  # is for estimating beta and mu-hat
+  # is for estimating beta and mu
   # and for the initial starting point for line search
   alpha_hat <- pmax(minDisp, (bv - xim*bm)/bm^2)
 
-  # fitNbinomGLMs returns mu_hat and modelMatrix
+  # fitNbinomGLMs returns mu and modelMatrix
   fit <- fitNbinomGLMs(objectNZ, alpha_hat=alpha_hat)
   
   # use of kappa_0 in backtracking search
   # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
   # use log(minDisp/10) to stop if dispersions going to -infinity
-  dispRes <- fitDisp(ySEXP = counts(objectNZ), xSEXP = fit$modelMatrix, mu_hatSEXP = fit$mu_hat,
+  dispRes <- fitDisp(ySEXP = counts(objectNZ), xSEXP = fit$modelMatrix, mu_hatSEXP = fit$mu,
                      log_alphaSEXP = log(alpha_hat), log_alpha_prior_meanSEXP = log(alpha_hat),
                      log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
                      kappa_0SEXP = kappa_0, tolSEXP = dispTol,
@@ -256,7 +259,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
                                       "gene-wise dispersion estimate convergence"))
   mcols(object) <- cbind(mcols(object), dispDataFrame)
 
-  assays(object)[["mu-hat"]] <- buildMatrixWithNARows(fit$mu_hat, mcols(object)$allZero)
+  assays(object)[["mu"]] <- buildMatrixWithNARows(fit$mu, mcols(object)$allZero)
   
   return(object)
 }
@@ -403,8 +406,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   # set prior variance for fitting dispersion
   log_alpha_prior_sigmasq <- priorVar
 
-  # get previously calculated mu-hat
-  mu_hat <- assays(objectNZ)[["mu-hat"]]
+  # get previously calculated mu
+  mu <- assays(objectNZ)[["mu"]]
 
   # start fitting at gene estimate unless the points are one decade
   # below the fitted line, then start at fitted line
@@ -413,7 +416,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
                      mcols(objectNZ)$dispFit)
   
   # run with prior
-  dispResMAP <- fitDisp(ySEXP = counts(objectNZ), xSEXP = modelMatrix, mu_hatSEXP = mu_hat,
+  dispResMAP <- fitDisp(ySEXP = counts(objectNZ), xSEXP = modelMatrix, mu_hatSEXP = mu,
                         log_alphaSEXP = log(dispInit),
                         log_alpha_prior_meanSEXP = log(mcols(objectNZ)$dispFit),
                         log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
@@ -485,6 +488,10 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' prior on dispersion estimates results in a Wald statistic
 #' distribution which is approximately normal.
 #'
+#' Cook's distance for each sample are accessible as a matrix "cooks"
+#' stored in the assays() list. This measure is useful for identifying rows where the
+#' observed counts might not fit to a negative binomial distribution.
+#' 
 #' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
 #'
@@ -497,18 +504,23 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #  priorSigmasq gives the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
+#' @param cooksCutoff theshold on Cook's distance, such that if one or more
+#' samples for a row have a distance higher, the p-value for the row is
+#' set to NA.
+#' The default cutoff is the .75 quantile of the F(p, m-p) distribution,
+#' where p is the number of coefficients being fitted and m is the number of samples.
+#' Set to Inf or FALSE to disable the resetting of p-values to NA.
+#' Note: this test excludes the Cook's distance of samples whose removal
+#' would result in rank deficient design matrix.
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
 #' converge within maxit
 #' @param quiet whether to print messages at each step
-#' @param useT whether to use as a null distribution, for significance testing
-#' of the Wald statistics, a t-distribution with degrees of freedom
-#' calculated with the dispersion prior variance.
+#' @param useT whether to use a t-distribution as a null distribution,
+#' for significance testing of the Wald statistics.
 #' If FALSE, a standard normal null distribution is used.
-#' @param dfCoef a parameter used, if useT is set to TRUE, to connect the
-#' dispersion prior variance to the degrees of freedom of the t-distribution
-#' for Wald statistics: DF = dfCoef/priorVar + (m - p)
+#' @param df the degrees of freedom for the t-distribution
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -525,23 +537,27 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, maxit=100, useOptim=TRUE, quiet=FALSE, useT=FALSE, dfCoef) {
+nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, cooksCutoff,
+                           maxit=100, useOptim=TRUE, quiet=FALSE, useT=FALSE, df) {
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
   }
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
-
+  
   if (!betaPrior) {
     fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim)
+    H <- fit$hat_diagonals
   }
   
   if (betaPrior) {
+    # we need the MLE betas to fit the prior variance
+    # and for the hat matrix diagonals in order to
+    # calculate Cook's distance
+    fit <- fitNbinomGLMs(objectNZ, maxit=maxit)
+    H <- fit$hat_diagonals
     if (missing(priorSigmasq)) {
-      # if we need the MLE betas to fit the prior
-      # variance, then we fit GLMs without prior first
-      fit <- fitNbinomGLMs(objectNZ, maxit=maxit)
       # estimate the width of the prior on betas
       # excluding those rows with coefficients going to infinity
       # (see the large argument of fitNbinomGLMs)
@@ -562,16 +578,38 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
       # we are provided the prior variance:
       # check if the lambda is the correct length
       # given the design formula
-      modelMatrix <- model.matrix(design(objectNZ),
-                                  data=as.data.frame(colData(objectNZ)))
-      if (length(priorSigmasq) != ncol(modelMatrix)) {
-        stop(paste0("priorSigmasq should have length",ncol(modelMatrix)))
+      p <- ncol(fit$modelMatrix)
+      if (length(priorSigmasq) != p) {
+        stop(paste0("priorSigmasq should have length",p))
       }
     }
     lambda <- 1/priorSigmasq
     fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim)
   }
-  
+
+  m <- nrow(fit$modelMatrix)
+  p <- ncol(fit$modelMatrix)
+
+  # calculate Cook's distance
+  if (missing(cooksCutoff)) {
+    cooksCutoff <- qf(.75, p, m - p)
+  }
+  if (is.logical(cooksCutoff) & cooksCutoff) {
+    cooksCutoff <- qf(.75, p, m - p)
+  }
+  cooks <- calculateCooksDistance(objectNZ, H, p)
+  looFullRank <- leaveOneOutFullRank(fit$modelMatrix)
+  if (m > p) {
+    maxCooks <- apply(cooks[,looFullRank,drop=FALSE], 1, max)
+    cooksOutlier <- maxCooks > cooksCutoff
+  } else {
+    maxCooks <- rep(NA, nrow(objectNZ))
+    cooksOutlier <- rep(FALSE, nrow(objectNZ))
+  }
+
+  # store Cook's distance for each sample
+  assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
+
   modelMatrixNames <- fit$modelMatrixNames
   
   # add betas, standard errors and Wald p-values to the object
@@ -581,21 +619,21 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   colnames(betaSE) <- paste0("SE_",modelMatrixNames)
   WaldStatistic <- betaMatrix/betaSE
   colnames(WaldStatistic) <- paste0("WaldStatistic_",modelMatrixNames)
-
-  m <- nrow(fit$modelMatrix)
-  p <- ncol(fit$modelMatrix)
   
-  # use a t-distribution with degrees of freedom
-  # calculated using the width of the prior for dispersions.
-  # the default dfCoef value is estimated from simulated data
+  # if useT is set to TRUE, use a t-distribution
   if (useT) {
     priorVar <- attr( dispersionFunction(object), "priorVar" )
-    estDF <- dfCoef/(priorVar + 1) + (m - p)
-    WaldPvalue <- 2*pt(abs(WaldStatistic),df=estDF,lower.tail=FALSE)
+    WaldPvalue <- 2*pt(abs(WaldStatistic),df=df,lower.tail=FALSE)
   } else {
     WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)
   }
   colnames(WaldPvalue) <- paste0("WaldPvalue_",modelMatrixNames)
+
+  # Set to NA the p-values for genes that have one or more
+  # samples with Cook's distance beyond the cutof
+  if (is.numeric(cooksCutoff) | cooksCutoff) {
+    WaldPvalue[cooksOutlier,] <- NA
+  }
   
   # if more than 1 row, we adjust p-values
   if (nrow(WaldPvalue) > 1) {  
@@ -615,9 +653,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
                    matrixToList(WaldStatistic),
                    matrixToList(WaldPvalue),
                    matrixToList(WaldAdjPvalue),
-                   list(betaConv = betaConv))
+                   list(betaConv = betaConv,
+                        maxCooks = maxCooks,
+                        cooksOutlier = cooksOutlier))
   WaldResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
-
+  
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
   if (betaPrior) {
     coefInfo <- paste("log2 fold change (MAP):",modelMatrixNamesSpaces)
@@ -632,7 +672,9 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   
   mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
                                   description = c(coefInfo, seInfo, statInfo, pvalInfo, adjInfo,
-                                    "convergence of betas"))
+                                    "convergence of betas",
+                                    "maximum Cook's distance for row",
+                                    "whether maxCooks > cooksCutoff"))
   
   mcols(object) <- cbind(mcols(object),WaldResults)
   return(object)
@@ -651,12 +693,24 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' This function is comparable to the \code{nbinomGLMTest} of the previous version of DESeq
 #' and an alternative to the default \code{\link{nbinomWaldTest}}.
 #'
+#' Cook's distance for each sample are accessible as a matrix "cooks"
+#' stored in the assays() list. This measure is useful for identifying rows where the
+#' observed counts might not fit to a negative binomial distribution.
+#' 
 #' @param object a DESeqDataSet
 #' @param full the full model formula, this should be the formula in
 #' \code{design(object)}
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model with a variable of interest removed
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
+#' @param cooksCutoff theshold on Cook's distance, such that if one or more
+#' samples for a row have a distance higher, the p-value for the row is
+#' set to NA.
+#' The default cutoff is the .75 quantile of the F(p, m-p) distribution,
+#' where p is the number of coefficients being fitted and m is the number of samples.
+#' Set to Inf or FALSE to disable the resetting of p-values to NA.
+#' Note: this test excludes the Cook's distance of samples whose removal
+#' would result in rank deficient design matrix.
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -678,7 +732,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' res <- results(dds)
 #'
 #' @export
-nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH", maxit=100, useOptim=TRUE, quiet=FALSE ) {
+nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", cooksCutoff,
+                      maxit=100, useOptim=TRUE, quiet=FALSE ) {
   if (missing(reduced)) {
     stop("please provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
   }
@@ -701,13 +756,46 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH",
   
   fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit, useOptim=useOptim)
   reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit, useOptim=useOptim)
- 
+
+  p <- ncol(fullModelMatrix)
+  m <- nrow(fullModelMatrix)
+  H <- fullModel$hat_diagonals
+
+  # calculate Cook's distance
+  if (missing(cooksCutoff)) {
+    cooksCutoff <- qf(.75, p, m - p)
+  }
+  if (is.logical(cooksCutoff) & cooksCutoff) {
+    cooksCutoff <- qf(.75, p, m - p)
+  }
+  cooks <- calculateCooksDistance(objectNZ, H, p)
+  looFullRank <- leaveOneOutFullRank(fullModelMatrix)
+  if (m > p) {
+    maxCooks <- apply(cooks[,looFullRank,drop=FALSE], 1, max)
+    cooksOutlier <- maxCooks > cooksCutoff
+  } else {
+    maxCooks <- rep(NA, nrow(objectNZ))
+    cooksOutlier <- rep(FALSE, nrow(objectNZ))
+  }
+
+  # store Cook's distance for each sample
+  assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
+  
   if (any(!fullModel$betaConv)) {
     if (!quiet) message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT"))
   }
-  
+
+  # calculate LRT statistic and p-values
   LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
   LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
+  
+  # Set to NA the p-values for genes that have one or more
+  # samples with Cook's distance beyond the cutoff
+  if (is.numeric(cooksCutoff) | cooksCutoff) {
+    LRTPvalue[cooksOutlier] <- NA
+  }
+
+  # continue storing LRT results
   LRTAdjPvalue <- p.adjust(LRTPvalue,method=pAdjustMethod)
   resultsList <- c(matrixToList(fullModel$betaMatrix),
                    matrixToList(fullModel$betaSE),
@@ -715,7 +803,9 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH",
                         LRTPvalue = LRTPvalue,
                         LRTAdjPvalue = LRTAdjPvalue,
                         fullBetaConv = fullModel$betaConv,
-                        reducedBetaConv = reducedModel$betaConv))
+                        reducedBetaConv = reducedModel$betaConv,
+                        maxCooks = maxCooks,
+                        cooksOutlier = cooksOutlier))
   LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
 
   modelComparison <- paste0("'",paste(as.character(full),collapse=" "), "' vs '", paste(as.character(reduced),collapse=" "),"'")
@@ -732,7 +822,9 @@ nbinomLRT <- function( object, full=design(object), reduced, pAdjustMethod="BH",
                                  description = c(coefInfo, seInfo,
                                    statInfo, pvalInfo, adjInfo,
                                    "convergence of betas for full model",
-                                   "convergence of betas for reduced model"))
+                                   "convergence of betas for reduced model",
+                                   "maximum Cook's distance for row",
+                                   "whether maxCooks > cooksCutoff"))
   mcols(object) <- cbind(mcols(object),LRTResults)
   return(object)
 }
@@ -900,9 +992,9 @@ localDispersionFit <- function( means, disps, minDisp ) {
 
 
 # convenience function for testing the log likelihood
-# for a count matrix, mu_hat matrix and vector disp
-nbinomLogLike <- function(counts, mu_hat, disp) {
-  rowSums(matrix(dnbinom(counts, mu=mu_hat,size=1/disp,
+# for a count matrix, mu matrix and vector disp
+nbinomLogLike <- function(counts, mu, disp) {
+  rowSums(matrix(dnbinom(counts, mu=mu,size=1/disp,
                          log=TRUE),ncol=ncol(counts)))
 }
 
@@ -984,15 +1076,14 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
                      alpha_hatSEXP = alpha_hat, beta_matSEXP = beta_mat,
                      lambdaSEXP = lambdaLogScale,
                      tolSEXP = betaTol, maxitSEXP = maxit, largeSEXP = large)
-  mu_hat <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
+  mu <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
   dispersionVector <- rep(dispersions(object), times=ncol(object))
-  logLike <- nbinomLogLike(counts(object), mu_hat, dispersions(object))
+  logLike <- nbinomLogLike(counts(object), mu, dispersions(object))
 
   # convergence: either beta change less than betaTol or beta is very large, and
   # less than maxit iterations
-  betaConv <- apply(((betaRes$last_change < betaTol | abs(betaRes$beta_mat) > large) &
-                    (betaRes$iter < maxit)),
-                    1, all)
+  betaConv <- apply(( (betaRes$last_change < betaTol | abs(betaRes$beta_mat) > large) &
+                    (betaRes$iter < maxit) ), 1, all)
 
   # here we transform the betaMatrix and betaSE to a log2 scale
   betaMatrix <- log2(exp(1))*betaRes$beta_mat
@@ -1000,7 +1091,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
   colnames(modelMatrix) <- modelMatrixNames
   betaSE <- log2(exp(1))*sqrt(betaRes$beta_var_mat)
   colnames(betaSE) <- paste0("SE_",modelMatrixNames)
-
+  
   if (useOptim) {
     # use optim for those rows which have not converged
     x <- modelMatrix
@@ -1011,9 +1102,9 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
       k <- counts(object)[row,]
       alpha <- alpha_hat[row]
       objectiveFn <- function(p) {
-        mu <- as.numeric(nf * 2^(x %*% p))
+        mu_row <- as.numeric(nf * 2^(x %*% p))
         prior <- sum(dnorm(p,0,sqrt(1/lambda),log=TRUE))
-        logLike <- sum(dnbinom(k,mu=mu,size=1/alpha,log=TRUE))
+        logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
         -1 * (logLike + prior)
       }
       o <- optim(betaRow, objectiveFn, method="L-BFGS-B",
@@ -1023,19 +1114,20 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
         betaConv[row] <- TRUE
         betaMatrix[row,] <- o$par
         # calculate the standard errors
-        mu <- as.numeric(nf * exp(x %*% (log(2)*o$par)))
-        w <- diag((mu^-1 + alpha)^-1)
+        mu_row <- as.numeric(nf * exp(x %*% (log(2)*o$par)))
+        w <- diag((mu_row^-1 + alpha)^-1)
         xtwx <- t(x) %*% w %*% x
         xtwxRidgeInv <- solve(xtwx + ridge)
         betaSE[row,] <- log2(exp(1))*sqrt(diag(xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv))
+        mu[row,] <- mu_row
       }        
     }
   }
   
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
-       betaSE = betaSE, mu_hat = mu_hat, lastChange = betaRes$last_change,
+       betaSE = betaSE, mu = mu, lastChange = betaRes$last_change,
        modelMatrix=modelMatrix, modelMatrixNames = modelMatrixNames,
-       nterms=ncol(modelMatrix))
+       nterms=ncol(modelMatrix), hat_diagonals=betaRes$hat_diagonals)
 }
 
 
@@ -1192,4 +1284,15 @@ renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
   colNamesFrom <- do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1])))
   colNamesTo <- do.call(c,lapply(factorVars, function(v) paste0(v,"_",levels(data[[v]])[-1],"_vs_",levels(data[[v]])[1])))
   data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
+}
+
+calculateCooksDistance <- function(object, H, p) {
+  V <- assays(object)[["mu"]] + mcols(object)$dispFit * assays(object)[["mu"]]^2
+  PearsonResSq <- (counts(object) - assays(object)[["mu"]])^2 / V
+  cooks <- PearsonResSq / p  * H / (1 - H)^2
+  cooks
+}
+
+leaveOneOutFullRank <- function(modelMatrix) {
+  sapply(seq_len(nrow(modelMatrix)), function(i) qr(modelMatrix[-i,])$rank) == ncol(modelMatrix)
 }

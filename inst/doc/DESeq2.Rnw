@@ -406,7 +406,7 @@ plot(res$baseMean, pmin(-log10(res$pvalue),50),
      log="x", xlab="mean of normalized counts",
      ylab=expression(-log[10](pvalue)))
 abline(v=10,col="red",lwd=1)
-use <- res$baseMean >= 10
+use <- res$baseMean >= 10 & !is.na(res$pvalue)
 table(use)
 @
 
@@ -586,17 +586,15 @@ One method incorporates priors on the sample differences,
 and the other uses the concept of variance stabilizing
 transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
 
-We add a design formula which includes only an intercept, then
-estimate an overall mean-dispersion relationship of the data using
-\Rfunction{estimateDispersions} and call the functions
-\Rfunction{rlogTransformation} and \Rfunction{varianceStabilizingTransformation}.
+By default, the two functions, \Rfunction{rlogTransformation} and 
+\Rfunction{varianceStabilizingTransformation}, will use a design formula 
+which includes only an intercept, then re-estimate the mean-dispersion relationship using
+\Rfunction{estimateDispersions}. This ensures that the data transformation remains 
+an unsupervised method.
 
 <<defvsd>>=
-ddsBlind <- dds
-design(ddsBlind) <- formula(~ 1)
-ddsBlind <- estimateDispersions(ddsBlind)
-rld <- rlogTransformation(ddsBlind)
-vsd <- varianceStabilizingTransformation(ddsBlind)
+rld <- rlogTransformation(dds)
+vsd <- varianceStabilizingTransformation(dds)
 @
 
 \subsection{Regularized log transformation}
@@ -609,11 +607,11 @@ which is estimated from the data. This is very similar to the regularization
 used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in
 Figure \ref{MA}. The resulting data contains elements defined as:
 
-$$ \log_2(\mu_{ij}) = X_{j.} \beta_i $$
+$$ \log_2(q_{ij}) = X_{j.} \beta_i $$
 
-where $\mu_{ij}$ is the fitted mean of the generalized linear model 
-(see Section \ref{sec:glm})
-for gene $i$ and sample $j$, $X_{j.}$ is the $j$-th row of the design 
+where $q_{ij}$ is a parameter proportional to the expected 
+true concentration of fragments for gene $i$ and sample $j$
+(see Section \ref{sec:glm}), $X_{j.}$ is the $j$-th row of the design 
 matrix $X$, which has a $1$ for the intercept and a $1$ for the sample-specific
 beta, and $\beta_i$ is the vector of coefficients for gene $i$.
 Without priors, this design matrix would lead to a non-unique solution,
@@ -832,17 +830,20 @@ version \Rpackage{DESeq}, are as follows:
 The differential expression analysis in \Rpackage{DESeq2} uses a generalized
 linear model of the form:
 
-$$ K_{ij} \sim \textrm{NB}(s_j \mu_{ij}, \alpha_i) $$
-$$ \log_2(\mu_{ij}) = X_{j.} \beta_i $$
+$$ K_{ij} \sim \textrm{NB}(\mu_{ij}, \alpha_i) $$
+$$ \mu_{ij} = s_j q_{ij} $$
+$$ \log_2(q_{ij}) = X_{j.} \beta_i $$
 
-where the count $K_{ij}$ of reads for gene $i$, sample $j$ are modeled
-using a negative binomial distribution with a sample-dependent size
-factor $s_j$\footnote{The model can be generalised to use sample-
-  \textbf{and} gene-dependent normalisation factors, see
-  Appendix~\ref{sec:normfactors}.}, a fitted mean $\mu_{ij}$ and a
-gene-dependent dispersion parameter $\alpha_i$.  The coefficients
-$\beta_i$ give the $\log_2$ fold changes for gene $i$ for each column
-of the model matrix $X$. Dispersions are estimated using a Cox-Reid
+where counts $K_{ij}$ for gene $i$, sample $j$ are modeled using
+a negative binomial distribution with fitted mean $\mu_{ij}$
+and a gene-specific dispersion parameter $\alpha_i$.
+The fitted mean is composed of a sample-specific size factor
+$s_j$\footnote{The model can be generalised to use sample- 
+\textbf{and} gene-dependent normalisation factors, see
+Appendix~\ref{sec:normfactors}.} and a parameter $q_{ij}$ 
+proportional to the expected true concentration of fragments for sample $j$.
+The coefficients $\beta_i$ give the $\log_2$ fold changes for gene $i$ for each 
+column of the model matrix $X$. Dispersions are estimated using a Cox-Reid
 adjusted profile likelihood, as first implemented for RNA-Seq data in
 \Rpackage{edgeR} \cite{CR,edgeR_GLM}.  For further details on
 dispersion estimation and inference, please see the manual pages for
@@ -964,6 +965,54 @@ mcols(ddsMed)$dispFit <- medianDisp
 ddsMed <- estimateDispersionsMAP(ddsMed)
 @
 
+\section{Count outlier detection}
+
+\Rpackage{DESeq2} relies on the negative binomial distribution to
+make estimates and perform statistical inference on differences.  While the 
+negative binomial is versatile in having a mean and dispersion
+parameter, extreme counts in individual samples might not fit 
+well to the negative binomial. For this reason, we perform automatic 
+detection of count outliers. We use Cook's distance, which is
+a measure of how much the fitted coefficients would change if an individual
+sample were removed.\cite{Cook1977Detection}
+The Cook's distances are stored as a matrix available in
+\Rcode{assays(dds)[["cooks"]]}. These values are the same as 
+those produced by the \Rfunction{cooks.distance} function of the \Rpackage{stats}
+package, except using the fitted dispersion and taking into account the size factors.
+
+By default, if the Cook's distance for a sample is larger than the $.75$
+quantile of the $F(p,m-p)$ distribution (with $p$ the number of parameters including
+the intercept and $m$ number of samples), then the gene is flagged in 
+\Robject{mcols(dds)\$cooksOutlier}, and the p-value of the row is set to \Rcode{NA}.
+The cutoff can be modified using the \Robject{cooksCutoff} argument to
+\Rfunction{nbinomWaldTest} or \Rfunction{nbinomLRT}.
+The functionality can be disabled by setting \Robject{cooksCutoff} to \Rcode{Inf}
+or \Rcode{FALSE}. If the removal of a sample would mean that a coefficient
+cannot be fitted (e.g. if there is only one sample for a given group), then the 
+Cook's distance for this sample is not counted towards the flagging.
+
+<<cooksPlot, fig=TRUE>>=
+W <- mcols(dds)$WaldStatistic_condition_treated_vs_untreated
+maxCooks <- mcols(dds)$maxCooks
+idx <- !is.na(W)
+plot(rank(W[idx]), maxCooks[idx], xlab="rank of Wald statistic", 
+     ylab="maximum Cook's distance per gene",
+     ylim=c(0,5), cex=.4, col=rgb(0,0,0,.3))
+m <- ncol(dds)
+p <- 3
+abline(h=qf(.75, p, m - p))
+@ 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.5\textwidth]{DESeq2-cooksPlot}
+\caption{Plot of the maximum Cook's distance per gene over the rank of
+the Wald statistics for the condition. The two regions with small Cook's 
+distances are genes with a single count in one sample. The horizontal 
+line is the default cutoff used for 7 samples and 3 estimated parameters.}
+\label{cooksPlot}
+\end{figure}
+
 \section{Access to all calculated values}\label{sec:access}
 
 All row-wise calculated values (intermediate dispersion calculations,
@@ -1006,9 +1055,9 @@ bias might vary across samples coming from different labs or
 processed at different times. We use the terms ``normalization factors''
 for a gene $\times$ sample matrix, and ``size factors'' for a
 single number per sample.  Incorporating normalization factors,
-the model from Section \ref{sec:glm} becomes:
+the mean parameter $\mu_{ij}$ from Section \ref{sec:glm} becomes:
 
-$$ K_{ij} \sim \textrm{NB}(NF_{ij} \mu_{ij}, \alpha_i) $$
+$$ \mu_{ij} = NF_{ij} q_{ij} $$
 
 with normalization factor matrix $NF$ having the same dimensions
 as the counts matrix $K$. This matrix can be incorporated as shown

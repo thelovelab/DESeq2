@@ -3,8 +3,9 @@
 \title{Wald test for the GLM coefficients}
 \usage{
   nbinomWaldTest(object, betaPrior = TRUE,
-    pAdjustMethod = "BH", priorSigmasq, maxit = 100,
-    useOptim = TRUE, quiet = FALSE, useT = FALSE, dfCoef)
+    pAdjustMethod = "BH", priorSigmasq, cooksCutoff,
+    maxit = 100, useOptim = TRUE, quiet = FALSE,
+    useT = FALSE, df)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -21,6 +22,16 @@
   missing is estimated from the rows which do not have any
   zeros}
 
+  \item{cooksCutoff}{theshold on Cook's distance, such that
+  if one or more samples for a row have a distance higher,
+  the p-value for the row is set to NA. The default cutoff
+  is the .75 quantile of the F(p, m-p) distribution, where
+  p is the number of coefficients being fitted and m is the
+  number of samples. Set to Inf or FALSE to disable the
+  resetting of p-values to NA. Note: this test excludes the
+  Cook's distance of samples whose removal would result in
+  rank deficient design matrix.}
+
   \item{maxit}{the maximum number of iterations to allow
   for convergence of the coefficient vector}
 
@@ -29,16 +40,12 @@
 
   \item{quiet}{whether to print messages at each step}
 
-  \item{useT}{whether to use as a null distribution, for
-  significance testing of the Wald statistics, a
-  t-distribution with degrees of freedom calculated with
-  the dispersion prior variance. If FALSE, a standard
-  normal null distribution is used.}
+  \item{useT}{whether to use a t-distribution as a null
+  distribution, for significance testing of the Wald
+  statistics. If FALSE, a standard normal null distribution
+  is used.}
 
-  \item{dfCoef}{a parameter used, if useT is set to TRUE,
-  to connect the dispersion prior variance to the degrees
-  of freedom of the t-distribution for Wald statistics: DF
-  = dfCoef/priorVar + (m - p)}
+  \item{df}{the degrees of freedom for the t-distribution}
 }
 \value{
   a DESeqDataSet with results columns accessible with the
@@ -72,6 +79,11 @@
   for real datasets, the effect of the prior on dispersion
   estimates results in a Wald statistic distribution which
   is approximately normal.
+
+  Cook's distance for each sample are accessible as a
+  matrix "cooks" stored in the assays() list. This measure
+  is useful for identifying rows where the observed counts
+  might not fit to a negative binomial distribution.
 
   The Wald test can be replaced with the
   \code{\link{nbinomLRT}} for an alternative test of

@@ -3,16 +3,19 @@
 \alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
-  rlogTransformation(object, samplesVector, priorSigmasq,
-    rowVarQuantile = 0.9)
+  rlogTransformation(object, unsupervised = TRUE,
+    samplesVector, priorSigmasq, rowVarQuantile = 0.9)
 
   rlogData(object, samplesVector, priorSigmasq,
     rowVarQuantile = 0.9)
 }
 \arguments{
-  \item{object}{a DESeqDataSet, with \code{design(object)
-  <- formula(~ 1)} and size factors (or normalization
-  factors) and dispersions already estimated}
+  \item{object}{a DESeqDataSet}
+
+  \item{unsupervised}{logical, whether the dispersions
+  should be re-estimated using a design formula with only
+  the intercept. This is recommended in order to ensure
+  that the data transformation is an unsupervised method.}
 
   \item{samplesVector}{a character vector or factor of the
   sample identifiers}
@@ -27,8 +30,8 @@
 }
 \value{
   for \code{rlogTransformation}, a SummarizedExperiment
-  with assay data elements equal to \eqn{\log_2(\mu_{ij}) =
-  X_{j.} \beta_i}{log2(mu_ij) = X_j. * beta_i}, see formula
+  with assay data elements equal to \eqn{\log_2(q_{ij}) =
+  X_{j.} \beta_i}{log2(q_ij) = X_j. * beta_i}, see formula
   at \code{\link{DESeq}}. for \code{rlogData}, a
   \code{matrix} of the same dimension as the count data,
   containing the transformed values.
@@ -64,8 +67,7 @@
 }
 \examples{
 dds <- makeExampleDESeqDataSet(betaSd=1)
-design(dds) <- formula(~ 1)
-rld <- rlogTransformation(dds, colData(dds)$sample)
+rld <- rlogTransformation(dds)
 dists <- dist(t(assay(rld)))
 plot(hclust(dists))
 }

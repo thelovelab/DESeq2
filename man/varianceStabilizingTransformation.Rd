@@ -3,7 +3,8 @@
 \alias{varianceStabilizingTransformation}
 \title{Apply a variance stabilizing transformation (VST) to the count data}
 \usage{
-  varianceStabilizingTransformation(object)
+  varianceStabilizingTransformation(object,
+    unsupervised = TRUE)
 
   getVarianceStabilizedData(object)
 }
@@ -12,6 +13,11 @@
   <- formula(~ 1)} and size factors (or normalization
   factors) and dispersions estimated using local or
   parametric \code{fitType}.}
+
+  \item{unsupervised}{logical, whether the dispersions
+  should be re-estimated using a design formula with only
+  the intercept. This is recommended in order to ensure
+  that the data transformation is an unsupervised method.}
 }
 \value{
   for \code{varianceStabilizingTransformation}, a
@@ -38,11 +44,10 @@
   For each sample (i.e., column of \code{counts(dds)}), the
   full variance function is calculated from the raw
   variance (by scaling according to the size factor and
-  adding the shot noise). The function requires a blind
-  estimate of the variance function, i.e., one ignoring
-  conditions. This is achieved by setting the design
-  formula to \code{~ 1} and then calling
-  \code{\link{estimateDispersions}}.
+  adding the shot noise). We recommend an unsupervised
+  estimation of the variance function, i.e., one ignoring
+  conditions. This is performed by default, and can be
+  modified using the 'unsupervised' argument.
 
   A typical workflow is shown in Section \emph{Variance
   stabilizing transformation} in the package vignette.
@@ -78,9 +83,6 @@
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
-design(dds) <- formula(~ 1)
-dds <- estimateSizeFactors(dds)
-dds <- estimateDispersions(dds)
 vsd <- varianceStabilizingTransformation(dds)
 par(mfrow=c(1,2))
 plot(rank(rowMeans(counts(dds))), genefilter::rowVars(log2(counts(dds)+1)), main="log2(x+1) transform")

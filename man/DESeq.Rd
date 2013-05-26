@@ -45,15 +45,19 @@
   The differential expression analysis uses a generalized
   linear model of the form:
 
-  \deqn{ K_{ij} \sim \textrm{NB}(s_j \mu_{ij}, \alpha_i) }{
-  K_ij ~ NB(s_j * mu_ij, alpha_i) } \deqn{ \log_2(\mu_{ij})
-  = X_{j.} \beta_i }{ log2(mu_ij) = X_j. * beta_i }
+  \deqn{ K_{ij} \sim \textrm{NB}( \mu_{ij}, \alpha_i) }{
+  K_ij ~ NB(mu_ij, alpha_i) } \deqn{ \mu_{ij} = s_j q_{ij}
+  }{ mu_ij = s_j * q_ij } \deqn{ \log_2(q_{ij}) = X_{j.}
+  \beta_i }{ log2(q_ij) = X_j. * beta_i }
 
   where counts \eqn{K_{ij}}{K_ij} for gene i, sample j are
-  modeled using a negative binomial distribution with a
-  sample-specific size factor \eqn{s_j}{s_j}, a fitted mean
-  \eqn{\mu_{ij}}{mu_ij} and a gene-specific dispersion
-  parameter \eqn{\alpha_i}{alpha_i}.  The coefficients
+  modeled using a negative binomial distribution with
+  fitted mean \eqn{\mu_{ij}}{mu_ij} and a gene-specific
+  dispersion parameter \eqn{\alpha_i}{alpha_i}. The fitted
+  mean is composed of a sample-specific size factor
+  \eqn{s_j}{s_j} and a parameter \eqn{q_{ij}}{q_ij}
+  proportional to the expected true concentration of
+  fragments for sample j. The coefficients
   \eqn{\beta_i}{beta_i} give the log2 fold changes for gene
   i for each column of the model matrix \eqn{X}{X}.  The
   sample-specific size factors can be replaced by

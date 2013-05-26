@@ -234,6 +234,8 @@ int y_n = y.n_rows;
 arma::vec alpha_hat = Rcpp::as<arma::vec>(alpha_hatSEXP);
 arma::mat beta_mat = Rcpp::as<arma::mat>(beta_matSEXP);
 arma::mat beta_var_mat = arma::zeros(beta_mat.n_rows, beta_mat.n_cols);
+arma::mat hat_matrix = arma::zeros(x.n_rows, x.n_rows);
+arma::mat hat_diagonals = arma::zeros(y.n_rows, y.n_cols);
 arma::colvec lambda = Rcpp::as<arma::colvec>(lambdaSEXP);
 int maxit = Rcpp::as<int>(maxitSEXP);
 arma::colvec yrow, nfrow, beta_hat, mu_hat, z, beta_hat_new, change;
@@ -271,13 +273,16 @@ for (int i = 0; i < y_n; i++) {
   }
   last_change.row(i) = change.t();
   beta_mat.row(i) = beta_hat.t();
+  hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i() * x.t() * sqrt(w);
+  hat_diagonals.row(i) = arma::diagvec(hat_matrix).t();
   beta_var_mat.row(i) = arma::diagvec((x.t() * w * x + ridge).i() * x.t() * w * x * (x.t() * w * x + ridge).i()).t();
 }
 
 return Rcpp::List::create(Rcpp::Named("beta_mat",beta_mat),
 			  Rcpp::Named("beta_var_mat",beta_var_mat),
 			  Rcpp::Named("iter",iter),
-			  Rcpp::Named("last_change",last_change));
+			  Rcpp::Named("last_change",last_change),
+			  Rcpp::Named("hat_diagonals",hat_diagonals));
 END_RCPP
 }
 
