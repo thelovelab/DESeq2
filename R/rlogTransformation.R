@@ -26,9 +26,11 @@
 #' @aliases rlogTransformation rlogData
 #'
 #' @param object a DESeqDataSet
-#' @param unsupervised logical, whether the dispersions should be re-estimated
-#' using a design formula with only the intercept. This is recommended
-#' in order to ensure that the data transformation is an unsupervised method.
+#' @param blind logical, whether to blind the transformation to the experimental
+#' design. blind=TRUE should be used for comparing samples in an manner unbiased by
+#' prior information on samples, for example to perform sample QA (quality assurance).
+#' blind=FALSE should be used for transforming data for downstream analysis,
+#' where the full use of the design information should be made.
 #' @param samplesVector a character vector or factor of the sample identifiers
 #' @param priorSigmasq a single value, the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
@@ -47,16 +49,16 @@
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet(betaSd=1)
-#' rld <- rlogTransformation(dds)
+#' rld <- rlogTransformation(dds, blind=TRUE)
 #' dists <- dist(t(assay(rld)))
 #' plot(hclust(dists))
 #'
 #' @export
-rlogTransformation <- function(object, unsupervised=TRUE, samplesVector, priorSigmasq, rowVarQuantile=.9) {
+rlogTransformation <- function(object, blind=TRUE, samplesVector, priorSigmasq, rowVarQuantile=.9) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
-  if (unsupervised) {
+  if (blind) {
     design(object) <- ~ 1
     object <- estimateDispersions(object)
   }

@@ -586,15 +586,23 @@ One method incorporates priors on the sample differences,
 and the other uses the concept of variance stabilizing
 transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
 
-By default, the two functions, \Rfunction{rlogTransformation} and 
-\Rfunction{varianceStabilizingTransformation}, will use a design formula 
-which includes only an intercept, then re-estimate the mean-dispersion relationship using
-\Rfunction{estimateDispersions}. This ensures that the data transformation remains 
-an unsupervised method.
+The two functions, \Rfunction{rlogTransformation} and 
+\Rfunction{varianceStabilizingTransformation}, have an argument \Rcode{blind},
+for whether the transformation should be blind to the sample information specified by the 
+design formula. By setting the argument \Rcode{blind} to \Rcode{TRUE},
+the functions will re-estimate the dispersions using only an intercept
+(design formula \Rcode{\~ 1}. This setting should be used in order to compare samples 
+in a manner unbiased by the information about experimental groups, 
+for example to perform sample QA (quality assurance) as demonstrated below. 
+By setting \Rcode{blind} to \Rcode{FALSE}, the dispersions 
+already estimated will be used to perform transformations, 
+or if not present, they will be estimated using the current
+design formula. This setting should be used for transforming data for 
+downstream analysis.
 
 <<defvsd>>=
-rld <- rlogTransformation(dds)
-vsd <- varianceStabilizingTransformation(dds)
+rld <- rlogTransformation(dds, blind=TRUE)
+vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 @
 
 \subsection{Regularized log transformation}

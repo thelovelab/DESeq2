@@ -3,8 +3,8 @@
 \alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
-  rlogTransformation(object, unsupervised = TRUE,
-    samplesVector, priorSigmasq, rowVarQuantile = 0.9)
+  rlogTransformation(object, blind = TRUE, samplesVector,
+    priorSigmasq, rowVarQuantile = 0.9)
 
   rlogData(object, samplesVector, priorSigmasq,
     rowVarQuantile = 0.9)
@@ -12,10 +12,13 @@
 \arguments{
   \item{object}{a DESeqDataSet}
 
-  \item{unsupervised}{logical, whether the dispersions
-  should be re-estimated using a design formula with only
-  the intercept. This is recommended in order to ensure
-  that the data transformation is an unsupervised method.}
+  \item{blind}{logical, whether to blind the transformation
+  to the experimental design. blind=TRUE should be used for
+  comparing samples in an manner unbiased by prior
+  information on samples, for example to perform sample QA
+  (quality assurance). blind=FALSE should be used for
+  transforming data for downstream analysis, where the full
+  use of the design information should be made.}
 
   \item{samplesVector}{a character vector or factor of the
   sample identifiers}
@@ -67,7 +70,7 @@
 }
 \examples{
 dds <- makeExampleDESeqDataSet(betaSd=1)
-rld <- rlogTransformation(dds)
+rld <- rlogTransformation(dds, blind=TRUE)
 dists <- dist(t(assay(rld)))
 plot(hclust(dists))
 }

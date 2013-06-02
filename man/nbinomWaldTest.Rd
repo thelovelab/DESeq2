@@ -3,7 +3,7 @@
 \title{Wald test for the GLM coefficients}
 \usage{
   nbinomWaldTest(object, betaPrior = TRUE,
-    pAdjustMethod = "BH", priorSigmasq, cooksCutoff,
+    pAdjustMethod = "BH", priorSigmaSq, cooksCutoff,
     maxit = 100, useOptim = TRUE, quiet = FALSE,
     useT = FALSE, df)
 }
@@ -17,7 +17,7 @@
   \item{pAdjustMethod}{the method to use for adjusting
   p-values, see \code{?p.adjust}}
 
-  \item{priorSigmasq}{a vector with length equal to the
+  \item{priorSigmaSq}{a vector with length equal to the
   number of model terms including the intercept. which if
   missing is estimated from the rows which do not have any
   zeros}

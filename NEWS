@@ -1,3 +1,15 @@
+CHANGES IN VERSION 1.0.10
+-------------------------
+
+    o Outlier detection: Cook's distances are calculated for each
+      sample per gene and the matrix is stored in the assays list.
+      These values are used to determine genes in which a single 
+      sample disproportionately influences the fitted coefficients. 
+      These genes are flagged and the p-values set to NA.
+      The argument 'cooksCutoff' of nbinomWaldTest() and 
+      nbinomLRT() can be used to control this functionality.
+
+
 CHANGES IN VERSION 1.0.0
 ------------------------
 

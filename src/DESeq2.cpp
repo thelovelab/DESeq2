@@ -108,7 +108,7 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
 // declarations
 extern "C" {
 SEXP fitDisp( SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP use_priorSEXP) ;
-SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP largeSEXP) ;
+SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP) ;
 }
 
 // definition
@@ -225,12 +225,13 @@ END_RCPP
 }
 
 
-SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP largeSEXP ){
+SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP ){
 BEGIN_RCPP
 arma::mat y = Rcpp::as<arma::mat>(ySEXP);
 arma::mat nf = Rcpp::as<arma::mat>(nfSEXP);
 arma::mat x = Rcpp::as<arma::mat>(xSEXP);
 int y_n = y.n_rows;
+int y_m = y.n_cols;
 arma::vec alpha_hat = Rcpp::as<arma::vec>(alpha_hatSEXP);
 arma::mat beta_mat = Rcpp::as<arma::mat>(beta_matSEXP);
 arma::mat beta_var_mat = arma::zeros(beta_mat.n_rows, beta_mat.n_cols);
@@ -238,40 +239,39 @@ arma::mat hat_matrix = arma::zeros(x.n_rows, x.n_rows);
 arma::mat hat_diagonals = arma::zeros(y.n_rows, y.n_cols);
 arma::colvec lambda = Rcpp::as<arma::colvec>(lambdaSEXP);
 int maxit = Rcpp::as<int>(maxitSEXP);
-arma::colvec yrow, nfrow, beta_hat, mu_hat, z, beta_hat_new, change;
+arma::colvec yrow, nfrow, beta_hat, mu_hat, z;
 arma::mat w, ridge;
-arma::mat last_change(beta_mat.n_rows, beta_mat.n_cols);
+double dev, dev_old, conv_test;
 double tol = Rcpp::as<double>(tolSEXP);
-double large = Rcpp::as<double>(largeSEXP);
-Rcpp::NumericVector beta_hat_nv, beta_hat_new_nv, change_nv;
-Rcpp::LogicalVector too_large;
 Rcpp::NumericVector iter(y_n);
-
+Rcpp::NumericVector deviance(y_n);
 for (int i = 0; i < y_n; i++) {
   R_CheckUserInterrupt();
   nfrow = nf.row(i).t();
   yrow = y.row(i).t();
   beta_hat = beta_mat.row(i).t();
+  mu_hat = nfrow % exp(x * beta_hat);
+  dev = 0.0;
+  dev_old = 0.0;
   for (int t = 0; t < maxit; t++) {
     iter(i)++;
-    mu_hat = nfrow % exp(x * beta_hat);
     w = arma::diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
     z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
     ridge = arma::diagmat(lambda);
-    beta_hat_new = (x.t() * w * x + ridge).i() * x.t() * w * z;
-    beta_hat_nv = wrap(beta_hat);
-    beta_hat_new_nv = wrap(beta_hat_new);
-    change = abs(beta_hat_new - beta_hat);
-    change_nv = abs(beta_hat_new_nv - beta_hat_nv);
-    too_large = abs(beta_hat_new_nv) > large;
-    beta_hat = beta_hat_new;
-    if (all(too_large).is_true()) {
-      break;
-    } else if (all(too_large | (change_nv < tol)).is_true()) {
+    beta_hat = (x.t() * w * x + ridge).i() * x.t() * w * z;
+    mu_hat = nfrow % exp(x * beta_hat);
+    dev = 0.0;
+    for (int j = 0; j < y_m; j++) {
+      // note the order for Rf_dnbinom_mu: x, sz, mu, lg
+      dev = dev + -2.0 * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+    }
+    conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
+    if ((t > 0) & (conv_test < tol)) {
       break;
     }
+    dev_old = dev;
   }
-  last_change.row(i) = change.t();
+  deviance(i) = dev;
   beta_mat.row(i) = beta_hat.t();
   hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i() * x.t() * sqrt(w);
   hat_diagonals.row(i) = arma::diagvec(hat_matrix).t();
@@ -281,8 +281,8 @@ for (int i = 0; i < y_n; i++) {
 return Rcpp::List::create(Rcpp::Named("beta_mat",beta_mat),
 			  Rcpp::Named("beta_var_mat",beta_var_mat),
 			  Rcpp::Named("iter",iter),
-			  Rcpp::Named("last_change",last_change),
-			  Rcpp::Named("hat_diagonals",hat_diagonals));
+			  Rcpp::Named("hat_diagonals",hat_diagonals),
+			  Rcpp::Named("deviance",deviance));
 END_RCPP
 }
 

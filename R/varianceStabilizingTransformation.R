@@ -14,10 +14,12 @@
 #' @param object a DESeqDataSet, with \code{design(object) <- formula(~ 1)}
 #' and size factors (or normalization factors) and dispersions estimated
 #' using local or parametric \code{fitType}.
-#' @param unsupervised logical, whether the dispersions should be re-estimated
-#' using a design formula with only the intercept. This is recommended
-#' in order to ensure that the data transformation is an unsupervised method.
-#'
+#' @param blind logical, whether to blind the transformation to the experimental
+#' design. blind=TRUE should be used for comparing samples in an manner unbiased by
+#' prior information on samples, for example to perform sample QA (quality assurance).
+#' blind=FALSE should be used for transforming data for downstream analysis,
+#' where the full use of the design information should be made.
+#' 
 #' @details For each sample (i.e., column of \code{counts(dds)}), the full variance function
 #'   is calculated from the raw variance (by scaling according to the size factor and adding 
 #'   the shot noise). We recommend an unsupervised estimation of the variance function, i.e.,
@@ -59,17 +61,17 @@
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet()
-#' vsd <- varianceStabilizingTransformation(dds)
+#' vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 #' par(mfrow=c(1,2))
 #' plot(rank(rowMeans(counts(dds))), genefilter::rowVars(log2(counts(dds)+1)), main="log2(x+1) transform")
 #' plot(rank(rowMeans(assay(vsd))), genefilter::rowVars(assay(vsd)), main="VST")
 #' 
 #' @export
-varianceStabilizingTransformation <- function (object, unsupervised=TRUE) {
+varianceStabilizingTransformation <- function (object, blind=TRUE) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
-  if (unsupervised) {
+  if (blind) {
     design(object) <- ~ 1
     object <- estimateDispersions(object)
   }

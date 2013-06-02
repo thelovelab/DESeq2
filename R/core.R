@@ -149,7 +149,10 @@ makeExampleDESeqDataSet <- function(n=1000,m=10,betaSd=0,interceptMean=4,interce
 #' @export
 estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 {
-   loggeomeans <- rowMeans( log(counts) )
+   loggeomeans <- rowMeans( log( counts ) )
+   if (all(is.infinite(loggeomeans))) {
+     stop("every gene contains at least one zero, cannot compute log geometric means")
+   }
    apply( counts, 2, function(cnts)
       exp( locfunc( ( log(cnts) - loggeomeans )[ is.finite(loggeomeans) ] ) ) )
 }
@@ -439,12 +442,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
  
   resultsList <- list(dispersion = dispersionFinal,
                       dispIter = dispResMAP$iter,
-                      dispIterAccept = dispResMAP$iter_accept,
-                      dispConv = ((dispResMAP$last_change < dispTol)
-                                  & (dispResMAP$iter < maxit)),
+                      dispConv = (dispResMAP$iter < maxit),
                       dispOutlier = dispOutlier,
-                      dispMAP = dispMAP,
-                      dispD2LogPost = dispResMAP$last_d2lp)
+                      dispMAP = dispMAP)
 
   if (any(!resultsList$dispConv)) {
     if (!quiet) message(paste(sum(!resultsList$dispConv),"rows did not converge in dispersion, labelled in mcols(object)$dispConv. Use larger maxit argument with estimateDispersions"))
@@ -454,11 +454,10 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   mcols(dispDataFrame) <- DataFrame(type=rep("intermediate",ncol(dispDataFrame)),
                                     description=c("final estimate of dispersion",
                                       "number of iterations",
-                                      "number of accepted iterations",
                                       "convergence of final estimate",
                                       "dispersion flagged as outlier",
-                                      "maximum a posteriori estimate",
-                                      "2nd deriv. log posterior wrt log disp."))
+                                      "maximum a posteriori estimate"))
+
   mcols(object) <- cbind(mcols(object), dispDataFrame)
   return(object)
 }
@@ -499,9 +498,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients (Tikhonov/ridge regularization)
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
-#' @param priorSigmasq a vector with length equal to the number of
+#' @param priorSigmaSq a vector with length equal to the number of
 #' model terms including the intercept.
-#  priorSigmasq gives the variance of the prior on the sample betas,
+#  priorSigmaSq gives the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
 #' @param cooksCutoff theshold on Cook's distance, such that if one or more
@@ -537,8 +536,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmasq, cooksCutoff,
+nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmaSq, cooksCutoff,
                            maxit=100, useOptim=TRUE, quiet=FALSE, useT=FALSE, df) {
+  if (is.null(dispersions(object))) {
+    stop("testing requires dispersion estimates, first call estimateDispersions()")
+  }  
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
@@ -557,12 +559,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
     # calculate Cook's distance
     fit <- fitNbinomGLMs(objectNZ, maxit=maxit)
     H <- fit$hat_diagonals
-    if (missing(priorSigmasq)) {
+    if (missing(priorSigmaSq)) {
       # estimate the width of the prior on betas
-      # excluding those rows with coefficients going to infinity
-      # (see the large argument of fitNbinomGLMs)
+      # excluding those rows with coefficients going to infinity.
       # if all betas are large, use a very large prior
-      priorSigmasq <- apply(fit$betaMatrix, 2, function(x) {
+      priorSigmaSq <- apply(fit$betaMatrix, 2, function(x) {
         useSmall <- abs(x) < 8
         if (sum(useSmall) == 0 ) {
           return(1e6)
@@ -572,18 +573,18 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
       })
       # except for intercept which we set to wide prior
       if ("Intercept" %in% fit$modelMatrixNames) {
-        priorSigmasq[which(fit$modelMatrixNames == "Intercept")] <- 1e6
+        priorSigmaSq[which(fit$modelMatrixNames == "Intercept")] <- 1e6
       }
     } else {
       # we are provided the prior variance:
       # check if the lambda is the correct length
       # given the design formula
       p <- ncol(fit$modelMatrix)
-      if (length(priorSigmasq) != p) {
-        stop(paste0("priorSigmasq should have length",p))
+      if (length(priorSigmaSq) != p) {
+        stop(paste0("priorSigmaSq should have length",p))
       }
     }
-    lambda <- 1/priorSigmasq
+    lambda <- 1/priorSigmaSq
     fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim)
   }
 
@@ -654,6 +655,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
                    matrixToList(WaldPvalue),
                    matrixToList(WaldAdjPvalue),
                    list(betaConv = betaConv,
+                        betaIter = fit$betaIter,
+                        deviance = -2 * fit$logLike,
                         maxCooks = maxCooks,
                         cooksOutlier = cooksOutlier))
   WaldResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
@@ -673,6 +676,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
                                   description = c(coefInfo, seInfo, statInfo, pvalInfo, adjInfo,
                                     "convergence of betas",
+                                    "iterations for betas",
+                                    "deviance for the fitted model",
                                     "maximum Cook's distance for row",
                                     "whether maxCooks > cooksCutoff"))
   
@@ -734,6 +739,9 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", cooksCutoff,
                       maxit=100, useOptim=TRUE, quiet=FALSE ) {
+  if (is.null(dispersions(object))) {
+    stop("testing requires dispersion estimates, first call estimateDispersions()")
+  }
   if (missing(reduced)) {
     stop("please provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
   }
@@ -804,6 +812,8 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
                         LRTAdjPvalue = LRTAdjPvalue,
                         fullBetaConv = fullModel$betaConv,
                         reducedBetaConv = reducedModel$betaConv,
+                        betaIter = fullModel$betaIter,
+                        deviance = -2 * fullModel$logLike,
                         maxCooks = maxCooks,
                         cooksOutlier = cooksOutlier))
   LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
@@ -823,6 +833,8 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
                                    statInfo, pvalInfo, adjInfo,
                                    "convergence of betas for full model",
                                    "convergence of betas for reduced model",
+                                   "iterations for betas for full model",
+                                   "deviance of the full model",
                                    "maximum Cook's distance for row",
                                    "whether maxCooks > cooksCutoff"))
   mcols(object) <- cbind(mcols(object),LRTResults)
@@ -1012,10 +1024,8 @@ nbinomLogLike <- function(counts, mu, disp) {
 # alpha_hat the dispersion parameter estimates
 # lambda the 'ridge' term added for the penalized GLM on the log2 scale
 # renameCols whether to give columns variable_B_vs_A style names
-# large control parameter: allow some betas to go to infinity, exempt
-#   these from convergence tests
-# betaTol control parameter: stop when absolute change in beta is less
-#   than betaTol
+# betaTol control parameter: stop when the following is satisfied:
+#   abs(dev - dev_old)/(abs(dev) + 0.1) < betaTol
 # maxit control parameter: maximum number of iteration to allow for
 #   convergence
 # useOptim whether to use optim on rows which have not converged:
@@ -1024,7 +1034,8 @@ nbinomLogLike <- function(counts, mu, disp) {
 #
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
-fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, renameCols=TRUE, large=10, betaTol=1e-8, maxit=100, useOptim=FALSE) {
+fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
+                          renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=FALSE) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
@@ -1052,6 +1063,10 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
     alpha_hat <- dispersions(object)
   }
 
+  if (length(alpha_hat) != nrow(object)) {
+    stop("alpha_hat needs to be the same length as nrows(object)")
+  }
+  
   if ("Intercept" %in% modelMatrixNames) {
     beta_mat <- matrix(0, ncol=ncol(modelMatrix), nrow=nrow(object))
     beta_mat[,which(modelMatrixNames == "Intercept")] <- log(mcols(object)$baseMean)
@@ -1075,15 +1090,13 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
                      nfSEXP = normalizationFactors,
                      alpha_hatSEXP = alpha_hat, beta_matSEXP = beta_mat,
                      lambdaSEXP = lambdaLogScale,
-                     tolSEXP = betaTol, maxitSEXP = maxit, largeSEXP = large)
+                     tolSEXP = betaTol, maxitSEXP = maxit)
   mu <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
   dispersionVector <- rep(dispersions(object), times=ncol(object))
   logLike <- nbinomLogLike(counts(object), mu, dispersions(object))
 
-  # convergence: either beta change less than betaTol or beta is very large, and
-  # less than maxit iterations
-  betaConv <- apply(( (betaRes$last_change < betaTol | abs(betaRes$beta_mat) > large) &
-                    (betaRes$iter < maxit) ), 1, all)
+  # test for convergence
+  betaConv <- betaRes$iter < maxit
 
   # here we transform the betaMatrix and betaSE to a log2 scale
   betaMatrix <- log2(exp(1))*betaRes$beta_mat
@@ -1096,6 +1109,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
     # use optim for those rows which have not converged
     x <- modelMatrix
     rowsNotConverged <- which(!betaConv)
+    large <- 10
     for (row in rowsNotConverged) {
       betaRow <- betaMatrix[row,]
       nf <- normalizationFactors[row,]
@@ -1125,7 +1139,8 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda, 
   }
   
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
-       betaSE = betaSE, mu = mu, lastChange = betaRes$last_change,
+       betaSE = betaSE, mu = mu, betaIter = betaRes$iter,
+       deviance = betaRes$deviance,
        modelMatrix=modelMatrix, modelMatrixNames = modelMatrixNames,
        nterms=ncol(modelMatrix), hat_diagonals=betaRes$hat_diagonals)
 }
@@ -1178,21 +1193,20 @@ fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_me
 # lambdaSEXP k length vector of the ridge values
 # tolSEXP tolerance for convergence in estimates
 # maxitSEXP maximum number of iterations
-# largeSEXP the radius of a ball around 0, outside of which we don't check for convergence for these coefficients
 #
-# return a list with elements: beta_mat, beta_var_mat, iter, last_change.  Note: at this
-# level the betas are on the natural log scale
+# return a list with elements: beta_mat, beta_var_mat, iter.
+# Note: at this level the betas are on the natural log scale
 fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, largeSEXP) {
   # test for any NAs in arguments
   arg.names <- names(formals(fitBeta))
-  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, largeSEXP), function(x) any(is.na(x)))
+  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP), function(x) any(is.na(x)))
   if (any(na.test)) {
     stop(paste("in call to fitBeta, the following arguments contain NA:",paste(arg.names[na.test],collapse=", ")))
   }
   .Call("fitBeta", ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP,
         alpha_hatSEXP=alpha_hatSEXP, beta_matSEXP=beta_matSEXP,
         lambdaSEXP=lambdaSEXP, tolSEXP=tolSEXP, maxitSEXP=maxitSEXP,
-        largeSEXP=largeSEXP, PACKAGE = "DESeq2")
+        PACKAGE = "DESeq2")
 }
 
 
