@@ -53,7 +53,7 @@ double dlog_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numeri
   arma::mat dw = arma::diagmat(Rcpp::as<arma::vec>(dw_diag));
   arma::mat b = x.t() * w * x;
   arma::mat db = x.t() * dw * x;
-  double ddetb = ( det(b) * trace(b.i() * db) );
+  double ddetb = ( det(b) * trace(b.i(true) * db) );
   double cr_term = -0.5 * ddetb / det(b);
   double alpha_neg1 = R_pow_di(alpha, -1);
   double alpha_neg2 = R_pow_di(alpha, -2);
@@ -81,10 +81,10 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
   Rcpp::NumericVector d2w_diag = 2 * pow(pow(mu, -1) + alpha, -3);
   arma::mat d2w = arma::diagmat(as<arma::vec>(d2w_diag));
   arma::mat b = x.t() * w * x;
-  arma::mat b_i = b.i();
+  arma::mat b_i = b.i(true);
   arma::mat db = x.t() * dw * x;
   arma::mat d2b = x.t() * d2w * x;
-  double ddetb = ( det(b) * trace(b.i() * db) );
+  double ddetb = ( det(b) * trace(b.i(true) * db) );
   double d2detb = ( det(b) * (R_pow_di(trace(b_i * db), 2) - trace(b_i * db * b_i * db) + trace(b_i * d2b)) );
   double cr_term = 0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b); 
   double alpha_neg1 = R_pow_di(alpha, -1);
@@ -258,7 +258,7 @@ for (int i = 0; i < y_n; i++) {
     w = arma::diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
     z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
     ridge = arma::diagmat(lambda);
-    beta_hat = (x.t() * w * x + ridge).i() * x.t() * w * z;
+    beta_hat = (x.t() * w * x + ridge).i(true) * x.t() * w * z;
     mu_hat = nfrow % exp(x * beta_hat);
     dev = 0.0;
     for (int j = 0; j < y_m; j++) {
@@ -273,9 +273,9 @@ for (int i = 0; i < y_n; i++) {
   }
   deviance(i) = dev;
   beta_mat.row(i) = beta_hat.t();
-  hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i() * x.t() * sqrt(w);
+  hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i(true) * x.t() * sqrt(w);
   hat_diagonals.row(i) = arma::diagvec(hat_matrix).t();
-  beta_var_mat.row(i) = arma::diagvec((x.t() * w * x + ridge).i() * x.t() * w * x * (x.t() * w * x + ridge).i()).t();
+  beta_var_mat.row(i) = arma::diagvec((x.t() * w * x + ridge).i(true) * x.t() * w * x * (x.t() * w * x + ridge).i(true)).t();
 }
 
 return Rcpp::List::create(Rcpp::Named("beta_mat",beta_mat),

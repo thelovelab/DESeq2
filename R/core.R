@@ -249,8 +249,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
   # dont accept moves if the log posterior did not
   # increase by more than one millionth,
   # and set the small estimates to the minimum dispersion
-  dispGeneEst <- ifelse(dispRes$last_lp > dispRes$initial_lp + abs(dispRes$initial_lp)/1e6,
-                        exp(dispRes$log_alpha), alpha_hat)
+  dispGeneEst <- exp(dispRes$log_alpha)
+  noIncrease <- dispRes$last_lp < dispRes$initial_lp + abs(dispRes$initial_lp)/1e6
+  dispGeneEst[which(noIncrease)] <- alpha_hat[which(noIncrease)]
   dispGeneEst <- pmax(dispGeneEst, minDisp)
   dispGeneEstConv <- dispRes$iter < maxit
   
@@ -1196,7 +1197,7 @@ fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_me
 #
 # return a list with elements: beta_mat, beta_var_mat, iter.
 # Note: at this level the betas are on the natural log scale
-fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, largeSEXP) {
+fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP) {
   # test for any NAs in arguments
   arg.names <- names(formals(fitBeta))
   na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP), function(x) any(is.na(x)))
