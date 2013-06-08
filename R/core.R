@@ -1163,7 +1163,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
       betaSE[row,] <- log2(exp(1))*sqrt(diag(xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv))
       # store the new mu vector
       mu[row,] <- mu_row
-      logLike[row] <- sum(dnbinom(k, mu_row, size=1/alpha, log=TRUE))
+      logLike[row] <- sum(dnbinom(k, mu=mu_row, size=1/alpha, log=TRUE))
     }
   }
   
