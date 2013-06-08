@@ -9,7 +9,7 @@
 #'
 #' \deqn{ K_{ij} \sim \textrm{NB}( \mu_{ij}, \alpha_i) }{ K_ij ~ NB(mu_ij, alpha_i) }
 #' \deqn{ \mu_{ij} = s_j q_{ij} }{ mu_ij = s_j * q_ij }
-#' \deqn{ \log_2(q_{ij}) = X_{j.} \beta_i }{ log2(q_ij) = X_j. * beta_i }
+#' \deqn{ \log_2(q_{ij}) = x_{j.} \beta_i }{ log2(q_ij) = x_j. * beta_i }
 #'
 #' where counts \eqn{K_{ij}}{K_ij} for gene i, sample j are modeled using
 #' a negative binomial distribution with fitted mean \eqn{\mu_{ij}}{mu_ij}
@@ -332,7 +332,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   objectNZ <- object[!mcols(object)$allZero,]
 
   useNotMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*10
-  if (sum(useNotMinDisp) == 0) {
+  if (sum(useNotMinDisp,na.rm=TRUE) == 0) {
     warning(paste0("all genes have dispersion estimates < ",minDisp*10,
                    ", returning disp = ",minDisp*10))
     resultsList <- list(dispersion = minDisp*10)
@@ -348,11 +348,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
 
   useForPrior <- useNotMinDisp
-  if (sum(useForPrior) == 0) {
+  if (sum(useForPrior,na.rm=TRUE) == 0) {
     stop("no data found which is greater than minDisp, within quants, and converged in gene-wise estimates")
   }
 
-  varLogDispEsts <- varLogDispEstsAll <- mad(dispResiduals[useForPrior])^2
+  varLogDispEsts <- varLogDispEstsAll <- mad(dispResiduals[useForPrior],na.rm=TRUE)^2
   
   m <- nrow(modelMatrix)
   p <- ncol(modelMatrix)
@@ -418,6 +418,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   dispInit <- ifelse(mcols(objectNZ)$dispGeneEst >  0.1 * mcols(objectNZ)$dispFit,
                      mcols(objectNZ)$dispGeneEst,
                      mcols(objectNZ)$dispFit)
+
+  # if any missing values, fill in the fitted value to initialize
+  dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
   
   # run with prior
   dispResMAP <- fitDisp(ySEXP = counts(objectNZ), xSEXP = modelMatrix, mu_hatSEXP = mu,
@@ -437,8 +440,10 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   # and keep the original gene-est value for these.
   # Note: we use the variance of log dispersions estimates
   # from all the genes, not only those from below
-  dispOutlier <- log(mcols(objectNZ)$dispGeneEst) > log(mcols(objectNZ)$dispFit) +
-    outlierSD * sqrt(varLogDispEstsAll)
+  dispOutlier <- log(mcols(objectNZ)$dispGeneEst) >
+                 log(mcols(objectNZ)$dispFit) +
+                 outlierSD * sqrt(varLogDispEstsAll)
+  dispOutlier[is.na(dispOutlier)] <- FALSE
   dispersionFinal[dispOutlier] <- mcols(objectNZ)$dispGeneEst[dispOutlier]
  
   resultsList <- list(dispersion = dispersionFinal,
@@ -845,7 +850,7 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' Extract results from a DESeq analysis
 #'
 #' Extract results from a DESeq analysis giving base means across samples,
-#' log2 fold changes, p-values and FDR from p-value adjustment;
+#' log2 fold changes, standard errors, p-values and adjusted p-values.
 #' Find available names for results; Return an object with results columns
 #' removed.
 #'
@@ -905,13 +910,15 @@ results <- function(object, name) {
     stop("cannot find appropriate results, for available names call 'resultsNames(object)'")
   }
   log2FoldChange <- coef(object, name)
+  lfcSE <- coefSE(object, name)
   pvalue <- pvalues(object,test,name)
-  FDR <- FDR(object,test,name)
+  padj <- padj(object,test,name)
   res <- cbind(mcols(object)["baseMean"],
                log2FoldChange,
+               lfcSE,
                pvalue,
-               FDR)
-  names(res) <- c("baseMean","log2FoldChange","pvalue","FDR")
+               padj)
+  names(res) <- c("baseMean","log2FoldChange","lfcSE","pvalue","padj")
   rownames(res) <- rownames(object)
   res
 }
@@ -1036,7 +1043,7 @@ nbinomLogLike <- function(counts, mu, disp) {
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
 fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
-                          renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=FALSE) {
+                          renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=TRUE) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
@@ -1096,23 +1103,40 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   dispersionVector <- rep(dispersions(object), times=ncol(object))
   logLike <- nbinomLogLike(counts(object), mu, dispersions(object))
 
-  # test for convergence
-  betaConv <- betaRes$iter < maxit
+  # test for stability
+  rowStable <- apply(betaRes$beta_mat,1,function(row) sum(is.na(row))) == 0
 
+  # test for positive variances
+  rowVarPositive <- apply(betaRes$beta_var_mat,1,function(row) sum(row <= 0)) == 0
+  
+  # test for convergence, stability and positive variances
+  betaConv <- betaRes$iter < maxit
+  
   # here we transform the betaMatrix and betaSE to a log2 scale
   betaMatrix <- log2(exp(1))*betaRes$beta_mat
   colnames(betaMatrix) <- modelMatrixNames
   colnames(modelMatrix) <- modelMatrixNames
   betaSE <- log2(exp(1))*sqrt(betaRes$beta_var_mat)
   colnames(betaSE) <- paste0("SE_",modelMatrixNames)
-  
+
+  # switch based on whether we should also use optim
+  # on rows which did not converge
   if (useOptim) {
-    # use optim for those rows which have not converged
+    rowsForOptim <- which(!betaConv | !rowStable | !rowVarPositive)
+  } else {
+    rowsForOptim <- which(!rowStable | !rowVarPositive)
+  }
+  
+  if (length(rowsForOptim) > 0) {
     x <- modelMatrix
-    rowsNotConverged <- which(!betaConv)
-    large <- 10
-    for (row in rowsNotConverged) {
-      betaRow <- betaMatrix[row,]
+    large <- 30
+    for (row in rowsForOptim) {
+      if (rowStable[row]) {
+        betaRow <- betaMatrix[row,]
+      } else {
+        betaRow <- beta_mat[row,]
+      }
+      betaRow <- pmin(pmax(betaRow, -large), large)
       nf <- normalizationFactors[row,]
       k <- counts(object)[row,]
       alpha <- alpha_hat[row]
@@ -1125,17 +1149,21 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
       o <- optim(betaRow, objectiveFn, method="L-BFGS-B",
                  lower=-large, upper=large)
       ridge <- diag(lambda)
+      # if we converged, change betaConv to TRUE
       if (o$convergence == 0) {
         betaConv[row] <- TRUE
-        betaMatrix[row,] <- o$par
-        # calculate the standard errors
-        mu_row <- as.numeric(nf * exp(x %*% (log(2)*o$par)))
-        w <- diag((mu_row^-1 + alpha)^-1)
-        xtwx <- t(x) %*% w %*% x
-        xtwxRidgeInv <- solve(xtwx + ridge)
-        betaSE[row,] <- log2(exp(1))*sqrt(diag(xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv))
-        mu[row,] <- mu_row
-      }        
+      }
+      # with or without convergence, store the estimate from optim
+      betaMatrix[row,] <- o$par
+      # calculate the standard errors
+      mu_row <- as.numeric(nf * exp(x %*% (log(2)*o$par)))
+      w <- diag((mu_row^-1 + alpha)^-1)
+      xtwx <- t(x) %*% w %*% x
+      xtwxRidgeInv <- solve(xtwx + ridge)
+      betaSE[row,] <- log2(exp(1))*sqrt(diag(xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv))
+      # store the new mu vector
+      mu[row,] <- mu_row
+      logLike[row] <- sum(dnbinom(k, mu_row, size=1/alpha, log=TRUE))
     }
   }
   
@@ -1258,12 +1286,18 @@ lastCoefName <- function(object) {
 }
 
 
-# functions to get coef, pvalues and FDR from mcols(object)
+# functions to get coef, coefSE, pvalues and padj from mcols(object)
 coef <- function(object,name) {
   if (missing(name)) {
     name <- lastCoefName(object)
   }
   mcols(object)[name]
+}
+coefSE <- function(object,name) {
+  if (missing(name)) {
+    name <- lastCoefName(object)
+  }
+  mcols(object)[paste0("SE_",name)]
 }
 pvalues <- function(object,test="Wald",name) {
   if (missing(name)) {
@@ -1277,7 +1311,7 @@ pvalues <- function(object,test="Wald",name) {
     stop("unknown test")
   }
 }
-FDR <- function(object,test="Wald",name) {
+padj <- function(object,test="Wald",name) {
   if (missing(name)) {
     name <- lastCoefName(object)
   }

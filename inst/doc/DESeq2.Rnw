@@ -262,7 +262,7 @@ level of this variable).
 <<deseq>>=
 dds <- DESeq(dds)
 res <- results(dds)
-res <- res[order(res$FDR),]
+res <- res[order(res$padj),]
 head(res)
 @
 
@@ -278,7 +278,7 @@ to these values is discussed in Section \ref{sec:access}.
 For \Rpackage{DESeq2}, the function \Rfunction{plotMA} shows the $\log_2$
 fold changes attributable to a variable over the mean of normalized counts.
 By default, the last variable in the design formula is chosen, and points
-will be colored red if the FDR is less than 0.1.  Points which fall out of
+will be colored red if the adjusted p-value is less than 0.1.  Points which fall out of
 the window are plotted as open triangles.
 
 <<MA, fig=TRUE>>=
@@ -350,10 +350,10 @@ res <- results(dds)
 head(res)
 @
 
-It is also possible to retrieve the $\log_2$ fold changes, p-values and FDR
-of the \Robject{type} variable.  The function \Rfunction{results} takes an
+It is also possible to retrieve the $\log_2$ fold changes, p-values and adjusted
+p-values of the \Robject{type} variable.  The function \Rfunction{results} takes an
 argument \Rcode{name}, which is a combination of the variable, the level
-(numerator of the fold change) and the base level 
+(numeratoFr of the fold change) and the base level 
 (denominator of the fold change).  In addition, there might be minor
 changes made by the \Rfunction{DataFrame} function on column names, 
 e.g. changing \texttt{-} to \texttt{.}. The function
@@ -422,13 +422,13 @@ table(use)
 
 We set aside those genes with normalized mean less than 10.  Applying
 Benjamini-Hochberg adjustment on p-values results in a gain of genes
-with FDR below 0.1.
+with adjusted p-value below 0.1.
 
 <<indFilt>>=
 resFilt <- res[use,]
-resFilt$FDR <- p.adjust(resFilt$pvalue, method="BH")
-sum(res$FDR < .1, na.rm=TRUE)
-sum(resFilt$FDR < .1, na.rm=TRUE)
+resFilt$padj <- p.adjust(resFilt$pvalue, method="BH")
+sum(res$padj < .1, na.rm=TRUE)
+sum(resFilt$padj < .1, na.rm=TRUE)
 @
 
 %--------------------------------------------------
@@ -454,7 +454,7 @@ legend("topright", fill=rev(colori), legend=rev(names(colori)))
 \begin{figure}[ht]
 \centering
 \includegraphics[width=.5\textwidth]{DESeq2-fighistindepfilt}
-\caption{Histogram of $p$ values for all tests (\Robject{res\$FDR}).
+\caption{Histogram of $p$ values for all tests (\Robject{res\$pvalue}).
   The area shaded in blue indicates the subset of those that pass the filtering,
   the area in khaki those that do not pass.}
 \label{fighistindepfilt}
@@ -485,8 +485,8 @@ whichBH <- which(resFilt$pvalue[orderInPlot] <= alpha*seq(along=resFilt$pvalue)/
 ##   from p.adjust (i.e. padjFilt)
 stopifnot(length(whichBH)>0,
           identical(whichBH, seq(along=whichBH)),
-          resFilt$FDR[orderInPlot][ whichBH] <= alpha,
-          resFilt$FDR[orderInPlot][-whichBH]  > alpha)
+          resFilt$padj[orderInPlot][ whichBH] <= alpha,
+          resFilt$padj[orderInPlot][-whichBH]  > alpha)
 @
 %
 Schweder and Spj\o{}tvoll \cite{SchwederSpjotvoll1982} suggested a diagnostic plot
@@ -615,11 +615,11 @@ which is estimated from the data. This is very similar to the regularization
 used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in
 Figure \ref{MA}. The resulting data contains elements defined as:
 
-$$ \log_2(q_{ij}) = X_{j.} \beta_i $$
+$$ \log_2(q_{ij}) = x_{j.} \beta_i $$
 
 where $q_{ij}$ is a parameter proportional to the expected 
 true concentration of fragments for gene $i$ and sample $j$
-(see Section \ref{sec:glm}), $X_{j.}$ is the $j$-th row of the design 
+(see Section \ref{sec:glm}), $x_{j.}$ is the $j$-th row of the design 
 matrix $X$, which has a $1$ for the intercept and a $1$ for the sample-specific
 beta, and $\beta_i$ is the vector of coefficients for gene $i$.
 Without priors, this design matrix would lead to a non-unique solution,
@@ -840,7 +840,7 @@ linear model of the form:
 
 $$ K_{ij} \sim \textrm{NB}(\mu_{ij}, \alpha_i) $$
 $$ \mu_{ij} = s_j q_{ij} $$
-$$ \log_2(q_{ij}) = X_{j.} \beta_i $$
+$$ \log_2(q_{ij}) = x_{j.} \beta_i $$
 
 where counts $K_{ij}$ for gene $i$, sample $j$ are modeled using
 a negative binomial distribution with fitted mean $\mu_{ij}$
@@ -876,12 +876,12 @@ user provides the full formula (the formula stored in \Rcode{design(dds)}),
 and a reduced formula, e.g. one which does not contain the variable of
 interest. The degrees of freedom for the test is obtained from the number
 of parameters in the two models. The Wald test and the likelihood ratio test
-share many of the same genes with FDR < .1 for this experiment.
+share many of the same genes with adjusted p-value < .1 for this experiment.
 
 <<likelihoodRatioTest>>=
 ddsLRT <- nbinomLRT(dds, reduced = ~ type)
 resLRT <- results(ddsLRT)
-tab <- table(Wald=res$FDR < .1, LRT=resLRT$FDR < .1)
+tab <- table(Wald=res$padj < .1, LRT=resLRT$padj < .1)
 addmargins(tab)
 @
 

@@ -106,6 +106,9 @@ plotMA = function(dds, lfcColname, pvalColname, pvalCutoff=.1, ylim, col = ifels
   }
   if (missing(pvalColname)) {
     pvalColname <- paste0("WaldAdjPvalue_",lfcColname)
+    if (!pvalColname %in% names(mcols(dds))) {
+      pvalColname <- "LRTAdjPvalue"
+    }
   }
   x = mcols(dds)
   col = col[x$baseMean > 0]

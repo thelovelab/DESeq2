@@ -34,7 +34,7 @@
 \value{
   for \code{rlogTransformation}, a SummarizedExperiment
   with assay data elements equal to \eqn{\log_2(q_{ij}) =
-  X_{j.} \beta_i}{log2(q_ij) = X_j. * beta_i}, see formula
+  x_{j.} \beta_i}{log2(q_ij) = x_j. * beta_i}, see formula
   at \code{\link{DESeq}}. for \code{rlogData}, a
   \code{matrix} of the same dimension as the count data,
   containing the transformed values.

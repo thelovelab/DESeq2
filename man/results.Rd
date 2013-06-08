@@ -32,9 +32,9 @@
 }
 \description{
   Extract results from a DESeq analysis giving base means
-  across samples, log2 fold changes, p-values and FDR from
-  p-value adjustment; Find available names for results;
-  Return an object with results columns removed.
+  across samples, log2 fold changes, standard errors,
+  p-values and adjusted p-values. Find available names for
+  results; Return an object with results columns removed.
 }
 \details{
   Multiple results can be returned for an analysis with

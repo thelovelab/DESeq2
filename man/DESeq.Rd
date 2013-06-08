@@ -47,8 +47,8 @@
 
   \deqn{ K_{ij} \sim \textrm{NB}( \mu_{ij}, \alpha_i) }{
   K_ij ~ NB(mu_ij, alpha_i) } \deqn{ \mu_{ij} = s_j q_{ij}
-  }{ mu_ij = s_j * q_ij } \deqn{ \log_2(q_{ij}) = X_{j.}
-  \beta_i }{ log2(q_ij) = X_j. * beta_i }
+  }{ mu_ij = s_j * q_ij } \deqn{ \log_2(q_{ij}) = x_{j.}
+  \beta_i }{ log2(q_ij) = x_j. * beta_i }
 
   where counts \eqn{K_{ij}}{K_ij} for gene i, sample j are
   modeled using a negative binomial distribution with
