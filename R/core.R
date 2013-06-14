@@ -362,6 +362,13 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   # by the MAD. we then use an alternate estimator, a monte carlo
   # approach to match the distribution
   if (((m - p) <= 3) & (m > p)) {
+    # in order to produce identical results we set the seed, 
+    # and so we need to save and restore the .Random.seed value first
+    if (exists(".Random.seed")) {
+      oldRandomSeed <- .Random.seed
+    }
+    set.seed(2)
+    # The residuals are the observed distribution we try to match
     obsDist <- dispResiduals[useForPrior]
     brks <- -20:20/2
     obsDist <- obsDist[obsDist > min(brks) & obsDist < max(brks)]
@@ -382,6 +389,10 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
     argminKL <- obsVarFineGrid[which.min(lofitFitted)]
     expVarLogDisp <- trigamma((m - p)/2)
     varLogDispEsts <- argminKL + expVarLogDisp
+    # finally, restore the .Random.seed if it existed beforehand
+    if (exists("oldRandomSeed")) {
+      .Random.seed <<- oldRandomSeed
+    }
   }
 
   attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
