@@ -1,3 +1,13 @@
+CHANGES IN VERSION 1.1.21
+-------------------------
+
+    o The regularized log transformation uses the fitted
+      dispersions instead of the MAP dispersions. This prevents
+      large, true log fold changes from being moderated due to
+      a large dispersion estimate blind to the design formula.
+      This behavior is also more consistent with the variance
+      stabilizing transformation.
+
 CHANGES IN VERSION 1.0.10
 -------------------------
 

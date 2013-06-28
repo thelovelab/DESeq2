@@ -56,7 +56,11 @@
 \details{
   The 'regularization' referred to here corresponds to the
   maximum a posteriori solution to the GLM with a prior on
-  the coefficients for each sample. The prior width is
+  the coefficients for each sample. The fitted dispersions
+  are used rather than the MAP dispersions (so similar to
+  the \code{\link{varianceStabilizingTransformation}}) as
+  the blind dispersion estimation would otherwise shrink
+  large, true log fold changes. The prior width is
   calculated as follows: coefficients are fit for a model
   with a term for each sample and for the intercept. This
   would typically result in an unidentifiable solution, so
