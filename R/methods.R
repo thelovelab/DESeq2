@@ -27,7 +27,7 @@
 #' head(counts(dds))
 #'
 counts.DESeqDataSet <- function(object, normalized=FALSE) {
-            if(!normalized) {
+            if (!normalized) {
               return(assays(object)[["counts"]])
             } else {
               if (!is.null(normalizationFactors(object))) {
@@ -425,7 +425,8 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #' dds <- estimateDispersions(dds)
 #' head(dispersions(dds))
 #'
-estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"), maxit=100, quiet=FALSE) {
+estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
+                                             maxit=100, quiet=FALSE) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     stop("first call estimateSizeFactors or provide a normalizationFactor matrix before estimateDispersions")
   }
@@ -433,6 +434,7 @@ estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","loc
     if (!quiet) message("you had estimated dispersions, replacing these")
     mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results"))]
   }
+  stopifnot(length(maxit)==1)
   fitType <- match.arg(fitType)
   
   # if trying to call differential expression for a model

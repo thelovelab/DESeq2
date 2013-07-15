@@ -85,6 +85,7 @@ rlogData <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
   if (missing(samplesVector)) {
     samplesVector <- as.character(seq_len(ncol(object)))
   }
+  stopifnot(length(rowVarQuantile)==1)
   
   # make a design matrix with a term for every sample
   # this would typically produce unidentifiable solution
@@ -118,6 +119,7 @@ rlogData <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
     betaRowMeanSquared <- rowMeans(fit$betaMatrix[,-which(fit$modelMatrixNames == "Intercept")]^2)
     priorSigmasq <- quantile(betaRowMeanSquared[useNoZeros], rowVarQuantile)
   }
+  stopifnot(length(priorSigmasq)==1)
   
   lambda <- 1/rep(priorSigmasq,ncol(modelMatrix))
   # except for intercept which we set to wide prior

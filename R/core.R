@@ -212,6 +212,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
     if (!quiet) message("you had estimated gene-wise dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  == "dispGeneEst"]
   }
+  stopifnot(length(minDisp) == 1)
+  stopifnot(length(kappa_0) == 1)
+  stopifnot(length(dispTol) == 1)
+  stopifnot(length(maxit) == 1)
   if (log(minDisp/10) <= -30) {
     stop("for computational stability, log(minDisp/10) should be above -30")
   }
@@ -280,7 +284,8 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
 
   # take the first fitType
   fitType <- fitType[1]
-  
+  stopifnot(length(fitType)==1)
+  stopifnot(length(minDisp)==1)
   if (fitType == "parametric") {
     trial <- try(dispFunction <- parametricDispersionFit(mcols(objectNZ)$baseMean[useForFit],
                                                          mcols(objectNZ)$dispGeneEst[useForFit]),
@@ -323,6 +328,11 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
 #' @rdname estimateDispersionsGeneEst
 #' @export
 estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100, quiet=FALSE) {
+  stopifnot(length(outlierSD)==1)
+  stopifnot(length(minDisp)==1)
+  stopifnot(length(kappa_0)==1)
+  stopifnot(length(dispTol)==1)
+  stopifnot(length(maxit)==1)
   if ("dispersion" %in% names(mcols(object))) {
     if (!quiet) message("you had estimated dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  %in% c("dispersion","dispIter","dispIterAccept","dispConv")]
@@ -412,10 +422,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
   }
   
 
-  # fill in the calculated prior variance
+  # fill in the calculated dispersion prior variance
   if (missing(priorVar)) {
     priorVar <- priorVarCalc
   }
+  stopifnot(length(priorVar)==1)
   attr( dispersionFunction(object), "priorVar" ) <- priorVar
   
   # set prior variance for fitting dispersion
@@ -553,8 +564,12 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigmaSq, cooksCutoff,
-                           maxit=100, useOptim=TRUE, quiet=FALSE, useT=FALSE, df) {
+nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
+                           priorSigmaSq, cooksCutoff,
+                           maxit=100, useOptim=TRUE, quiet=FALSE,
+                           useT=FALSE, df) {
+  stopifnot(length(pAdjustMethod)==1)
+  stopifnot(length(maxit)==1)
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }  
@@ -612,6 +627,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   if (missing(cooksCutoff)) {
     cooksCutoff <- qf(.75, p, m - p)
   }
+  stopifnot(length(cooksCutoff)==1)
   if (is.logical(cooksCutoff) & cooksCutoff) {
     cooksCutoff <- qf(.75, p, m - p)
   }
@@ -641,6 +657,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH", priorSigm
   # if useT is set to TRUE, use a t-distribution
   if (useT) {
     priorVar <- attr( dispersionFunction(object), "priorVar" )
+    stopifnot(length(df)==1)
     WaldPvalue <- 2*pt(abs(WaldStatistic),df=df,lower.tail=FALSE)
   } else {
     WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)
@@ -790,6 +807,7 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
   if (missing(cooksCutoff)) {
     cooksCutoff <- qf(.75, p, m - p)
   }
+  stopifnot(length(cooksCutoff)==1)
   if (is.logical(cooksCutoff) & cooksCutoff) {
     cooksCutoff <- qf(.75, p, m - p)
   }
@@ -878,13 +896,19 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' is stored in the metadata columns, accessible by calling \code{mcol}
 #' on the object returned by \code{results}.
 #'
+#' For analyses using the likelihood ratio test (using \code{\link{nbinomLRT}}),
+#' the p-values are determined solely by the difference in deviance between
+#' the full and reduced model formula.
+#' In this case, the \code{name} argument only specifies which
+#' coefficient should be used for reporting the log2 fold changes.
+#'
 #' Results can be removed from an object by calling \code{removeResults}
 #'
 #' @param object a DESeqDataSet, on which one
 #' of the following functions has already been called:
 #' \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or \code{\link{nbinomLRT}}
-#' @param name the name of the coefficient for which to report log2 fold changes,
-#' p-values and FDR
+#' @param name the name of the coefficient for which to report log2 fold changes
+#' -- and for the Wald test, p-values and adjusted p-values
 #'
 #' @return For \code{results}: a DataFrame of results columns with metadata
 #' columns of coefficient and test information
@@ -909,6 +933,9 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 results <- function(object, name) {
   if (missing(name)) {
     name <- lastCoefName(object)
+  }
+  if (length(name) != 1 | !is.character(name)) {
+    stop("the argument 'name' should be a character vector of length 1")
   }
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
@@ -1067,6 +1094,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
     convertNames <- renameModelMatrixColumns(modelMatrixNames,
                                              as.data.frame(colData(object)),
                                              modelFormula)
+    convertNames <- convertNames[convertNames$from %in% modelMatrixNames,]
     modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
   }
   

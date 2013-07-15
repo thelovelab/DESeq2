@@ -104,17 +104,23 @@ plotMA = function(dds, lfcColname, pvalColname, pvalCutoff=.1, ylim, col = ifels
   if (missing(lfcColname)) {
     lfcColname <- lastCoefName(dds)
   }
+  if (length(lfcColname) != 1 | !is.character(lfcColname)) {
+    stop("the argument 'lfcColname' should be a character vector of length 1")
+  }
   if (missing(pvalColname)) {
     pvalColname <- paste0("WaldAdjPvalue_",lfcColname)
     if (!pvalColname %in% names(mcols(dds))) {
       pvalColname <- "LRTAdjPvalue"
     }
   }
+  if (length(pvalColname) != 1 | !is.character(pvalColname)) {
+    stop("the argument 'pvalColname' should be a character vector of length 1")
+  }
   x = mcols(dds)
   col = col[x$baseMean > 0]
   x = x[x$baseMean > 0,]
   py = x[,lfcColname]
-  if(missing(ylim))
+  if (missing(ylim))
       ylim = c(-1,1) * quantile(abs(py[is.finite(py)]), probs=0.99) * 1.1
   plot(x$baseMean, pmax(ylim[1], pmin(ylim[2], py)),
        log=log, pch=ifelse(py<ylim[1], 6, ifelse(py>ylim[2], 2, 20)),

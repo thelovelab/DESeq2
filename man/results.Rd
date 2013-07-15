@@ -17,7 +17,8 @@
   \code{\link{nbinomLRT}}}
 
   \item{name}{the name of the coefficient for which to
-  report log2 fold changes, p-values and FDR}
+  report log2 fold changes -- and for the Wald test,
+  p-values and adjusted p-values}
 }
 \value{
   For \code{results}: a DataFrame of results columns with
@@ -53,6 +54,13 @@
   test) is stored in the metadata columns, accessible by
   calling \code{mcol} on the object returned by
   \code{results}.
+
+  For analyses using the likelihood ratio test (using
+  \code{\link{nbinomLRT}}), the p-values are determined
+  solely by the difference in deviance between the full and
+  reduced model formula. In this case, the \code{name}
+  argument only specifies which coefficient should be used
+  for reporting the log2 fold changes.
 
   Results can be removed from an object by calling
   \code{removeResults}
