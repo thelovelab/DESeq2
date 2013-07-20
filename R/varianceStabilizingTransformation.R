@@ -75,7 +75,7 @@ varianceStabilizingTransformation <- function (object, blind=TRUE) {
     design(object) <- ~ 1
     object <- estimateDispersions(object)
   }
-  if (is.null(dispersions(object))) {
+  if (is.null(attr(dispersionFunction(object),"fitType"))) {
     object <- estimateDispersions(object)
   }
   SummarizedExperiment(

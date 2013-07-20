@@ -21,7 +21,8 @@
 #' column of the model matrix \eqn{X}{X}.  The sample-specific size factors
 #' can be replaced by gene-specific normalization factors for each sample using
 #' \code{\link{normalizationFactors}}.  For details on the fitting of the log2
-#' fold changes and calculation of p-values see \code{\link{nbinomWaldTest}}.
+#' fold changes and calculation of p-values see \code{\link{nbinomWaldTest}}
+#' (or \code{\link{nbinomLRT}} if using \code{test="LRT"}).
 #'
 #' @return a \code{\link{DESeqDataSet}} object with results stored as
 #' metadata columns.  The results can be accessed by calling the \code{\link{results}}
@@ -33,12 +34,21 @@
 #' \code{\link{DESeqDataSet}},
 #' \code{\link{DESeqDataSetFromMatrix}},
 #' \code{\link{DESeqDataSetFromHTSeqCount}}.
+#' @param test either "Wald" or "LRT", which will then use either
+#' Wald tests if coefficients are equal to zero (\code{\link{nbinomWaldTest}}),
+#' or the likelihood ratio test on the difference in deviance between a
+#' full and reduced model formula (\code{\link{nbinomLRT}})
 #' @param fitType either "parametric", "local", or "mean"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients (Tikhonov/ridge regularization)
-#' See \code{\link{nbinomWaldTest}} for description.
+#' See \code{\link{nbinomWaldTest}} for description. Only used
+#' for the Wald test.
+#' @param full the full model formula, this should be the formula in
+#' \code{design(object)}
+#' @param reduced a reduced formula to compare against, e.g.
+#' the full model with a term or terms of interest removed
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #' @param quiet whether to print messages at each step
 #'
@@ -49,6 +59,7 @@
 #' @import Biobase GenomicRanges IRanges
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars
+#' @importFrom genefilter filtered_p
 #' @importFrom RColorBrewer brewer.pal
 #' @useDynLib DESeq2
 #'
@@ -56,19 +67,34 @@
 #'
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(betaSd=1)
+#' dds <- makeExampleDESeqDataSet(betaSD=1)
 #' dds <- DESeq(dds)
 #' res <- results(dds)
+#' ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)
+#' resLRT <- results(ddsLRT)
 #'
 #' @export
-DESeq <- function(object,fitType=c("parametric","local","mean"),betaPrior=TRUE,pAdjustMethod="BH",quiet=FALSE) {
+DESeq <- function(object, test=c("Wald","LRT"),
+                  fitType=c("parametric","local","mean"), betaPrior=TRUE,
+                  full=design(object), reduced,
+                  pAdjustMethod="BH", quiet=FALSE) {
+  if (missing(test)) {
+    test <- test[1]
+  }
+  stopifnot(length(test)==1 & test %in% c("Wald","LRT"))
   if (!quiet) message("estimating size factors")
   object <- estimateSizeFactors(object)
   if (!quiet) message("estimating dispersions")
   object <- estimateDispersions(object,fitType=fitType, quiet=quiet)
-  if (!quiet) message("fitting generalized linear model")
-  object <- nbinomWaldTest(object, betaPrior=betaPrior,
-                           pAdjustMethod=pAdjustMethod, quiet=quiet)
+  if (!quiet) message("fitting model and testing")
+  if (test == "Wald") {
+    object <- nbinomWaldTest(object, betaPrior=betaPrior,
+                             pAdjustMethod=pAdjustMethod, quiet=quiet)
+                             
+  } else if (test == "LRT") {
+    object <- nbinomLRT(object, full=full, reduced=reduced,
+                        pAdjustMethod=pAdjustMethod, quiet=quiet)
+  }
   object
 }
 
@@ -76,13 +102,13 @@ DESeq <- function(object,fitType=c("parametric","local","mean"),betaPrior=TRUE,p
 #'
 #' Constructs a simulated dataset of negative binomial data from
 #' two conditions. By default, there are no fold changes between
-#' the two conditions, but this can be adjusted with the \code{betaSd} argument.
+#' the two conditions, but this can be adjusted with the \code{betaSD} argument.
 #'
 #' @param n number of rows
 #' @param m number of columns
-#' @param betaSd the standard deviation for non-intercept betas, i.e. beta ~ N(0,betaSd)
+#' @param betaSD the standard deviation for non-intercept betas, i.e. beta ~ N(0,betaSD)
 #' @param interceptMean the mean of the intercept betas (log2 scale)
-#' @param interceptSd the standard deviation of the intercept betas (log2 scale)
+#' @param interceptSD the standard deviation of the intercept betas (log2 scale)
 #' @param dispMeanRel a function specifying the relationship of the dispersions on
 #' \code{2^trueIntercept}
 #' @param sizeFactors multiplicative factors for each sample
@@ -97,8 +123,8 @@ DESeq <- function(object,fitType=c("parametric","local","mean"),betaPrior=TRUE,p
 #' dds
 #'
 #' @export
-makeExampleDESeqDataSet <- function(n=1000,m=10,betaSd=0,interceptMean=4,interceptSd=2,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
-  beta <- cbind(rnorm(n,interceptMean,interceptSd),rnorm(n,0,betaSd))
+makeExampleDESeqDataSet <- function(n=1000,m=10,betaSD=0,interceptMean=4,interceptSD=2,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
+  beta <- cbind(rnorm(n,interceptMean,interceptSD),rnorm(n,0,betaSD))
   dispersion <- dispMeanRel(2^(beta[,1]))
   colData <- DataFrame(sample = paste("sample",1:m,sep=""),
                        condition=factor(rep(c("A","B"),times=c(ceiling(m/2),floor(m/2)))))
@@ -207,7 +233,8 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 #' @seealso \code{\link{estimateDispersions}}
 #'
 #' @export
-estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100, quiet=FALSE) {
+estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
+                                       dispTol=1e-6, maxit=100, quiet=FALSE) {
   if ("dispGeneEst" %in% names(mcols(object))) {
     if (!quiet) message("you had estimated gene-wise dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  == "dispGeneEst"]
@@ -274,7 +301,8 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1, dispTol=
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),minDisp=1e-8, quiet=FALSE) {
+estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),
+                                   minDisp=1e-8, quiet=FALSE) {
   if ("dispFit" %in% names(mcols(object))) {
     if (!quiet) message("you had estimated fitted dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit"]
@@ -327,7 +355,9 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsMAP <- function(object, outlierSD=2, priorVar, minDisp=1e-8, kappa_0=1, dispTol=1e-6, maxit=100, quiet=FALSE) {
+estimateDispersionsMAP <- function(object, outlierSD=2, priorVar,
+                                   minDisp=1e-8, kappa_0=1, dispTol=1e-6,
+                                   maxit=100, quiet=FALSE) {
   stopifnot(length(outlierSD)==1)
   stopifnot(length(minDisp)==1)
   stopifnot(length(kappa_0)==1)
@@ -713,7 +743,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
                                     "iterations for betas",
                                     "deviance for the fitted model",
                                     "maximum Cook's distance for row",
-                                    "whether maxCooks > cooksCutoff"))
+                                    "maxCooks over cooksCutoff"))
   
   mcols(object) <- cbind(mcols(object),WaldResults)
   return(object)
@@ -740,7 +770,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
 #' @param full the full model formula, this should be the formula in
 #' \code{design(object)}
 #' @param reduced a reduced formula to compare against, e.g.
-#' the full model with a variable of interest removed
+#' the full model with a term or terms of interest removed
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #' @param cooksCutoff theshold on Cook's distance, such that if one or more
 #' samples for a row have a distance higher, the p-value for the row is
@@ -871,7 +901,7 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
                                    "iterations for betas for full model",
                                    "deviance of the full model",
                                    "maximum Cook's distance for row",
-                                   "whether maxCooks > cooksCutoff"))
+                                   "maxCooks over cooksCutoff"))
   mcols(object) <- cbind(mcols(object),LRTResults)
   return(object)
 }
@@ -896,6 +926,15 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' is stored in the metadata columns, accessible by calling \code{mcol}
 #' on the object returned by \code{results}.
 #'
+#' By default, independent filtering is performed to select a set of genes
+#' which will result in the most genes with adjusted p-values less than a
+#' threshold, alpha. The adjusted p-values for the genes which do not pass 
+#' the filter threshold are set to \code{NA}.
+#' By default, the mean of normalized counts
+#' is used to perform this filtering, though other statistics can be provided.
+#' Several arguments are provided to control or
+#' turn off the independent filtering behavior.
+#'
 #' For analyses using the likelihood ratio test (using \code{\link{nbinomLRT}}),
 #' the p-values are determined solely by the difference in deviance between
 #' the full and reduced model formula.
@@ -909,6 +948,15 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or \code{\link{nbinomLRT}}
 #' @param name the name of the coefficient for which to report log2 fold changes
 #' -- and for the Wald test, p-values and adjusted p-values
+#' @param independentFiltering logical, whether independent filtering should be
+#' applied automatically
+#' @param alpha the significance cutoff used for optimizing the independent
+#' filtering
+#' @param filter the vector of filter statistics over which the independent
+#' filtering will be optimized. By default the mean of normalized counts is used.
+#' @param theta the quantiles at which to assess the number of rejections
+#' from independent filtering
+#' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #'
 #' @return For \code{results}: a DataFrame of results columns with metadata
 #' columns of coefficient and test information
@@ -930,10 +978,14 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' @rdname results
 #' @aliases results resultsNames removeResults
 #' @export
-results <- function(object, name) {
+results <- function(object, name, independentFiltering=TRUE,
+                    alpha=0.1, filter, theta=seq(0, 0.95, by=0.05),
+                    pAdjustMethod="BH") {
   if (missing(name)) {
     name <- lastCoefName(object)
   }
+  stopifnot(length(alpha)==1)
+  stopifnot(length(theta) > 1)
   if (length(name) != 1 | !is.character(name)) {
     stop("the argument 'name' should be a character vector of length 1")
   }
@@ -958,6 +1010,20 @@ results <- function(object, name) {
                padj)
   names(res) <- c("baseMean","log2FoldChange","lfcSE","pvalue","padj")
   rownames(res) <- rownames(object)
+  if (independentFiltering) {
+    if (missing(filter)) {
+      filter <- res$baseMean
+    }
+    stopifnot(length(filter) == nrow(object))
+    filtPadj <- filtered_p(filter=filter, test=res$pvalue,
+                           theta=theta, method=pAdjustMethod) 
+    numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
+    j <- which.max(numRej)
+    res$padj <- filtPadj[, j, drop=TRUE]
+    cutoffs <- quantile(filter, theta) 
+    attr(res, "filterThreshold") <- cutoffs[j]
+    attr(res, "filterNumRej") <- data.frame(theta=theta, numRej=numRej)
+  }
   res
 }
 
@@ -1384,3 +1450,18 @@ calculateCooksDistance <- function(object, H, p) {
 leaveOneOutFullRank <- function(modelMatrix) {
   sapply(seq_len(nrow(modelMatrix)), function(i) qr(modelMatrix[-i,])$rank) == ncol(modelMatrix)
 }
+
+## brute force appraoch, based on genefilter::filtered_R
+pAdjustWithIndependentFiltering <- function(p, filterstat, alpha=0.1, method = "BH", plot=FALSE ){
+  theta <- seq(0, 0.95, by=0.05)
+  cutoffs <- quantile( filterstat, theta ) 
+  padj <- filtered_p( filterstat, p, cutoffs, method ) 
+  rej  <- colSums(padj < alpha, na.rm = TRUE )
+  if(plot) plot(theta, rej)
+  j <- which.max(rej)
+  rv <- padj[, j, drop=TRUE]
+  attr(rv, "filterthreshold") = cutoffs[j]
+  rv 
+
+}
+  

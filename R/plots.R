@@ -97,8 +97,14 @@ plotDispEsts = function( dds, ymin,
 #' plotMA(dds)
 #' 
 #' @export
-plotMA = function(dds, lfcColname, pvalColname, pvalCutoff=.1, ylim, col = ifelse(mcols(dds)[,pvalColname] < pvalCutoff, "red", "black"), linecol = "#ff000080", xlab = "mean of normalized counts", ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...)
+plotMA = function(dds, lfcColname, pvalColname, pvalCutoff=.1, ylim,
+  col = ifelse(mcols(dds)[,pvalColname] < pvalCutoff, "red", "black"),
+  linecol = "#ff000080", xlab = "mean of normalized counts",
+  ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...)
 {
+  if (!"results" %in% mcols(mcols(dds))$type) {
+    stop("first run DESeq() in order to produce an MA-plot")
+  }
   # if not specified, try the last variable of the design formula,
   # the last level of this variable, and the Wald test adjusted p-values
   if (missing(lfcColname)) {
@@ -146,7 +152,7 @@ plotMA = function(dds, lfcColname, pvalColname, pvalCutoff=.1, ylim, col = ifels
 #'
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(betaSd=1)
+#' dds <- makeExampleDESeqDataSet(betaSD=1)
 #' design(dds) <- formula(~ 1)
 #' dds <- estimateSizeFactors(dds)
 #' dds <- estimateDispersions(dds)

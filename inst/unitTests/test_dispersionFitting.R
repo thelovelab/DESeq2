@@ -68,3 +68,19 @@ test_dispersionFitting <- function() {
 
   checkEqualsNumeric(dispD2DESeq, dispD2Num, tolerance=1e-6)
 }
+
+
+test_alternativeDispersions <- function() {
+  dds <- makeExampleDESeqDataSet()
+  dds <- estimateSizeFactors(dds)
+  
+  ddsLocal <- estimateDispersions(dds, fitType="local")
+  
+  ddsMean <- estimateDispersions(dds, fitType="mean")
+  
+  ddsMed <- estimateDispersionsGeneEst(dds)
+  useForMedian <- mcols(ddsMed)$dispGeneEst > 1e-7
+  medianDisp <- median(mcols(ddsMed)$dispGeneEst[useForMedian],na.rm=TRUE)
+  mcols(ddsMed)$dispFit <- medianDisp
+  ddsMed <- estimateDispersionsMAP(ddsMed)
+}

@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.1.23
+
+    o The results() function automatically performs independent
+      filtering using the genefilter package and optimizing 
+      over the mean of normalized counts.
+
 CHANGES IN VERSION 1.1.21
 -------------------------
 

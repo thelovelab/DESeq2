@@ -2,14 +2,22 @@
 \alias{DESeq}
 \title{Differential expression analysis based on the negative binomial distribution}
 \usage{
-  DESeq(object, fitType = c("parametric", "local", "mean"),
-    betaPrior = TRUE, pAdjustMethod = "BH", quiet = FALSE)
+  DESeq(object, test = c("Wald", "LRT"),
+    fitType = c("parametric", "local", "mean"),
+    betaPrior = TRUE, full = design(object), reduced,
+    pAdjustMethod = "BH", quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet object, see the constructor
   functions \code{\link{DESeqDataSet}},
   \code{\link{DESeqDataSetFromMatrix}},
   \code{\link{DESeqDataSetFromHTSeqCount}}.}
+
+  \item{test}{either "Wald" or "LRT", which will then use
+  either Wald tests if coefficients are equal to zero
+  (\code{\link{nbinomWaldTest}}), or the likelihood ratio
+  test on the difference in deviance between a full and
+  reduced model formula (\code{\link{nbinomLRT}})}
 
   \item{fitType}{either "parametric", "local", or "mean"
   for the type of fitting of dispersions to the mean
@@ -19,7 +27,13 @@
   \item{betaPrior}{whether or not to put a zero-mean normal
   prior on the non-intercept coefficients (Tikhonov/ridge
   regularization) See \code{\link{nbinomWaldTest}} for
-  description.}
+  description. Only used for the Wald test.}
+
+  \item{full}{the full model formula, this should be the
+  formula in \code{design(object)}}
+
+  \item{reduced}{a reduced formula to compare against, e.g.
+  the full model with a term or terms of interest removed}
 
   \item{pAdjustMethod}{the method to use for adjusting
   p-values, see \code{?p.adjust}}
@@ -64,12 +78,15 @@
   gene-specific normalization factors for each sample using
   \code{\link{normalizationFactors}}.  For details on the
   fitting of the log2 fold changes and calculation of
-  p-values see \code{\link{nbinomWaldTest}}.
+  p-values see \code{\link{nbinomWaldTest}} (or
+  \code{\link{nbinomLRT}} if using \code{test="LRT"}).
 }
 \examples{
-dds <- makeExampleDESeqDataSet(betaSd=1)
+dds <- makeExampleDESeqDataSet(betaSD=1)
 dds <- DESeq(dds)
 res <- results(dds)
+ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)
+resLRT <- results(ddsLRT)
 }
 \author{
   Michael Love

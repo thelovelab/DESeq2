@@ -4,7 +4,9 @@
 \alias{resultsNames}
 \title{Extract results from a DESeq analysis}
 \usage{
-  results(object, name)
+  results(object, name, independentFiltering = TRUE,
+    alpha = 0.1, filter, theta = seq(0, 0.95, by = 0.05),
+    pAdjustMethod = "BH")
 
   resultsNames(object)
 
@@ -19,6 +21,22 @@
   \item{name}{the name of the coefficient for which to
   report log2 fold changes -- and for the Wald test,
   p-values and adjusted p-values}
+
+  \item{independentFiltering}{logical, whether independent
+  filtering should be applied automatically}
+
+  \item{alpha}{the significance cutoff used for optimizing
+  the independent filtering}
+
+  \item{filter}{the vector of filter statistics over which
+  the independent filtering will be optimized. By default
+  the mean of normalized counts is used.}
+
+  \item{theta}{the quantiles at which to assess the number
+  of rejections from independent filtering}
+
+  \item{pAdjustMethod}{the method to use for adjusting
+  p-values, see \code{?p.adjust}}
 }
 \value{
   For \code{results}: a DataFrame of results columns with
@@ -54,6 +72,16 @@
   test) is stored in the metadata columns, accessible by
   calling \code{mcol} on the object returned by
   \code{results}.
+
+  By default, independent filtering is performed to select
+  a set of genes which will result in the most genes with
+  adjusted p-values less than a threshold, alpha. The
+  adjusted p-values for the genes which do not pass the
+  filter threshold are set to \code{NA}. By default, the
+  mean of normalized counts is used to perform this
+  filtering, though other statistics can be provided.
+  Several arguments are provided to control or turn off the
+  independent filtering behavior.
 
   For analyses using the likelihood ratio test (using
   \code{\link{nbinomLRT}}), the p-values are determined

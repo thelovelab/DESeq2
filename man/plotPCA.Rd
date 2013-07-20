@@ -23,7 +23,7 @@
   and PCA plots.
 }
 \examples{
-dds <- makeExampleDESeqDataSet(betaSd=1)
+dds <- makeExampleDESeqDataSet(betaSD=1)
 design(dds) <- formula(~ 1)
 dds <- estimateSizeFactors(dds)
 dds <- estimateDispersions(dds)

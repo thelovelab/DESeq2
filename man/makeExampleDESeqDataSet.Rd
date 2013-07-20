@@ -2,8 +2,8 @@
 \alias{makeExampleDESeqDataSet}
 \title{Make a simulated DESeqDataSet}
 \usage{
-  makeExampleDESeqDataSet(n = 1000, m = 10, betaSd = 0,
-    interceptMean = 4, interceptSd = 2,
+  makeExampleDESeqDataSet(n = 1000, m = 10, betaSD = 0,
+    interceptMean = 4, interceptSD = 2,
     dispMeanRel = function(x) 4/x + 0.1,
     sizeFactors = rep(1, m))
 }
@@ -12,13 +12,13 @@
 
   \item{m}{number of columns}
 
-  \item{betaSd}{the standard deviation for non-intercept
-  betas, i.e. beta ~ N(0,betaSd)}
+  \item{betaSD}{the standard deviation for non-intercept
+  betas, i.e. beta ~ N(0,betaSD)}
 
   \item{interceptMean}{the mean of the intercept betas
   (log2 scale)}
 
-  \item{interceptSd}{the standard deviation of the
+  \item{interceptSD}{the standard deviation of the
   intercept betas (log2 scale)}
 
   \item{dispMeanRel}{a function specifying the relationship
@@ -36,7 +36,7 @@
   Constructs a simulated dataset of negative binomial data
   from two conditions. By default, there are no fold
   changes between the two conditions, but this can be
-  adjusted with the \code{betaSd} argument.
+  adjusted with the \code{betaSD} argument.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()

@@ -13,7 +13,7 @@
   formula in \code{design(object)}}
 
   \item{reduced}{a reduced formula to compare against, e.g.
-  the full model with a variable of interest removed}
+  the full model with a term or terms of interest removed}
 
   \item{pAdjustMethod}{the method to use for adjusting
   p-values, see \code{?p.adjust}}

@@ -52,7 +52,7 @@
 #' @seealso \code{\link{plotPCA}}, \code{\link{varianceStabilizingTransformation}}
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(betaSd=1)
+#' dds <- makeExampleDESeqDataSet(betaSD=1)
 #' rld <- rlogTransformation(dds, blind=TRUE)
 #' dists <- dist(t(assay(rld)))
 #' plot(hclust(dists))
