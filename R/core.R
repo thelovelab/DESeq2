@@ -614,6 +614,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
   if (!betaPrior) {
     fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim)
     H <- fit$hat_diagonals
+    # record the wide prior which was used in fitting
+    betaPriorVar <- rep(1e6, ncol(fit$modelMatrix))
   }
 
   # calculate the prior variance (on the log2 scale)
