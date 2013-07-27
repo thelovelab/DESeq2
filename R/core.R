@@ -1598,12 +1598,14 @@ getContrast <- function(object, contrast, useT=FALSE, df, pAdjustMethod="BH") {
   } else {
     contrastAdjPvalue <- contrastPvalue
   }
-  contrastResults <- buildDataFrameWithNARows(list(log2FoldChange=contrastEstimate,
-                                                   lfcSE=contrastSE,
-                                                   stat=contrastStatistic,
-                                                   pvalue=contrastPvalue,
-                                                   padj=contrastAdjPvalue),
+  contrastList <- list(log2FoldChange=contrastEstimate,
+                       lfcSE=contrastSE,
+                       stat=contrastStatistic,
+                       pvalue=contrastPvalue,
+                       padj=contrastAdjPvalue)
+  contrastResults <- buildDataFrameWithNARows(contrastList,
                                               mcols(object)$allZero)
+  names(contrastResults) <- c("log2FoldChange","lfcSE","stat","pvalue","padj")
   contrastResults
 }
 

@@ -2,13 +2,13 @@
 \alias{plotDispEsts}
 \title{Plot dispersion estimates}
 \usage{
-  plotDispEsts(dds, ymin, genecol = "black",
+  plotDispEsts(object, ymin, genecol = "black",
     fitcol = "red", finalcol = "dodgerblue", legend = TRUE,
     xlab = "mean of normalized counts",
     ylab = "dispersion", log = "xy", cex = 0.45, ...)
 }
 \arguments{
-  \item{dds}{a DESeqDataSet}
+  \item{object}{a DESeqDataSet}
 
   \item{ymin}{the lower bound for points on the plot,
   points beyond this are drawn as triangles at ymin}

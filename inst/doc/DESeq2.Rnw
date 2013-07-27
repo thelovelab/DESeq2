@@ -89,40 +89,43 @@ counts allow assessing the measurement precision correctly. Hence, please
 do not supply other quantities, such as (rounded) normalized counts, or
 counts of covered base pairs -- this will only lead to nonsensical results.
 
-\subsubsection{\Rclass{SummarizedExperiment} input}
+\subsubsection{\Rclass{SummarizedExperiment} input} \label{sec:sumExpInput}
 
-In the \Biocpkg{DESeq2} package, in order to simplify the preparation
-of a count matrix, we attempt a closer integration with the core \Bioconductor{}
-package \Biocpkg{GenomicRanges}. This should facilitate preparation steps
-and also downstream exploration of results. For counting aligned reads in
-genes, the \Rfunction{summarizeOverlaps} function of
+The class used by the \Biocpkg{DESeq2} package to store the read counts 
+extends the \Rclass{SummarizedExperiment} class of the \Biocpkg{GenomicRanges}
+package. This facilitates preparation steps and also downstream exploration of results. 
+For counting aligned reads in genes, the \Rfunction{summarizeOverlaps} function of
 \Biocpkg{GenomicRanges}/\Biocpkg{Rsamtools} with \Robject{mode="Union"} is
 encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Biocpkg{easyRNASeq}
 is another \Bioconductor{} package which can prepare \Rclass{SummarizedExperiment}
 objects as input for \Biocpkg{DESeq2}). An example of the steps to produce
 a \Rclass{SummarizedExperiment} can be found in the data package
 \Biocannopkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
-4 human cell cultures \cite{Haglund2012Evidence}. We also subset to the 
-samples taken 48 hours after treatment.
+4 human cell cultures \cite{Haglund2012Evidence}.
 
 <<loadSumExp>>=
 library("parathyroidSE")
 data("parathyroidGenesSE")
 se <- parathyroidGenesSE
 colnames(se) <- colData(se)$run
-se <- se[,colData(se)$time == "48h"]
 @
 
-The class used by \Biocpkg{DESeq2} is \Rclass{DESeqDataSet},
-which differs from \Rclass{SummarizedExperiment} in having an associated design
-\Rclass{formula}.  The design formula expresses the variables which will be
+The data storage class used by \Biocpkg{DESeq2} is \Rclass{DESeqDataSet} 
+which has an associated design \Rclass{formula}.  
+The design formula expresses the variables which will be
 used in modeling. The formula should be a tilde ($\sim$) followed by the
 variables with plus signs between them (it will be coerced into an
 \Rclass{formula} if it is not already).  An intercept is included,
-representing the base mean of counts. In order to benefit from the default
+representing the base mean of counts. The design can be changed later, 
+however then all differential analysis steps should be repeated, 
+as the design formula is used to estimate the dispersions and 
+to estimate the log fold changes of the model.
+
+The constructor function below shows generation of a
+\Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}. 
+Note: In order to benefit from the default
 settings of the package, you should put the variable of interest at the end
-of the formula.  The constructor function below shows generation of a
-\Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}.
+of the formula.  
 
 <<sumExpInput>>=
 library("DESeq2")
@@ -139,11 +142,17 @@ you can use the function \Rfunction{DESeqDataSetFromMatrix}.
 For this function you should provide the counts matrix, the column
 information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formula.
 
-<<matrixInput>>=
+<<loadPasilla>>=
 library("pasilla")
 data("pasillaGenes")
 countData <- counts(pasillaGenes)
 colData <- pData(pasillaGenes)[,c("condition","type")]
+@ 
+
+Now that we have a matrix of counts and the column information,
+we can construct a \Rclass{DESeqDataSet}:
+
+<<matrixInput>>=
 dds <- DESeqDataSetFromMatrix(countData = countData,
                               colData = colData,
                               design = ~ condition)
@@ -187,10 +196,18 @@ vector of levels. It is important to supply levels (otherwise the
 levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
 level as the first element, so that the $\log_2$ fold changes
 and results will be most easily interpretable. A helpful \R{} function
-for changing the base level is \Rfunction{relevel}. 
-The function \Rfunction{model.matrix} is used by the \Biocpkg{DESeq2}
-package to build model matrices, and this function uses the first level
-as the base level.
+for easily changing the base level is \Rfunction{relevel}. An example of 
+setting the base level with \Rfunction{relevel} is:
+
+<<relevel, eval=FALSE>>=
+colData(dds)$condition <- relevel(colData(dds)$condition, "control")
+@ 
+
+The reason for the importance of the specifying the base level is that 
+the function \Rfunction{model.matrix} is used by the \Biocpkg{DESeq2}
+package to build model matrices, and these matrices will be used to compare
+all other levels to the base level. See \ref{sec:contrasts} for examples
+on how to compare factor levels to other levels than the base level.
 
 \subsubsection{About the pasilla dataset}
 
@@ -213,6 +230,10 @@ last variable in the design formula, and if this is a factor, the last
 level of this variable). Note that the \Rfunction{results} function
 performs independent filtering by default using the \Biocpkg{genefilter}
 package, discussed in Section \ref{sec:autoFilt}.
+
+<<subset>>=
+dds <- dds[1:1000,]
+@ 
 
 <<deseq>>=
 dds <- DESeq(dds)
@@ -257,7 +278,7 @@ mcols(res, use.names=TRUE)
 @
 
 The variable \Robject{condition} and the factor level \Robject{treated} have
-been combined into \Robject{condition\_treated\_vs\_untreated}.  For a particular gene, a
+been combined into ``condition\_treated\_vs\_untreated''.  For a particular gene, a
 $\log_2$ fold change of $-1$ for \Robject{condition\_treated\_vs\_untreated} here means that
 the treatment induces a change of $2^{-1} = 0.5$ times the counts.  If the variable
 of interest is not a factor, the $\log_2$ fold change can be interpreted as the
@@ -462,8 +483,8 @@ meanSdPlot(assay(vsd[notAllZero,]), ylim = c(0,2.5))
 
 Data quality assessment and quality control (i.\,e.\ the removal of
 insufficiently good data) are essential steps of any data
-analysis. Even though we present these steps towards the end of this vignette,
-they should typically be performed very early in the analysis of a new data set,
+analysis. These steps should typically be performed 
+very early in the analysis of a new data set,
 preceding or in parallel to the differential expression testing.
 
 We define the term \emph{quality} as \emph{fitness for
@@ -573,38 +594,95 @@ dds <- nbinomWaldTest(dds)
 
 \subsection{Contrasts} \label{sec:contrasts}
 
-<<contrasts>>=
-ddsCtrst <- ddsPara[1:1000,]
+A contrast is a linear combination of factor level means, which can be
+used to test if combinations of variables are different than zero.
+The simplest use case for contrasts is the case of a factor with three 
+levels, say A,B and C, where A is the base level.
+While the standard \Biocpkg{DESeq2} workflow generates p-values for the null
+hypotheses that the log fold change of B vs A is zero, and that
+the log fold change of C vs A is zero, a contrast
+is needed to compare if the log fold change of C vs B is zero.
+
+Here we show how to make all three pairwise comparisons using the
+parathyroid dataset which was built in Section \ref{sec:sumExpInput}.
+The three levels of the factor \Robject{treatment} are: Control,
+DPN and OHT. The samples are also split according to the patient
+from which the cell cultures were derived, so we include this
+in the design formula. 
+
+<<paraSetup>>=
+ddsCtrst <- ddsPara[1:1000,colData(ddsPara)$time == "48h"]
+as.data.frame(colData(ddsCtrst)[,c("patient","treatment")])
 design(ddsCtrst) <- ~ patient + treatment
-ddsCtrst <- DESeq(ddsCtrst)
-resCtrst <- results(ddsCtrst, contrast=c("treatment","OHT","DPN"))
-resultsNames(ddsCtrst)
-resCtrst <- results(ddsCtrst, contrast=c(0,0,0,0,-1,1))
-resCtrst
-mcols(resCtrst)
-table(resCtrst$padj < .1)
-plot(attr(resCtrst,"filterNumRej"))
 @ 
+
+First we run \Rfunction{DESeq} and show how to extract one of the
+two comparisons of the treatment factor with the base level: 
+the comparison of DPN vs Control or the comparison of OHT vs Control.
+
+<<paraDE>>=
+ddsCtrst <- DESeq(ddsCtrst)
+resultsNames(ddsCtrst)
+resPara <- results(ddsCtrst,"treatment_OHT_vs_Control")
+head(resPara,2)
+mcols(resPara)
+@ 
+
+Using the \Robject{contrast} argument of the \Rfunction{results} function,
+we can specify a test of OHT vs DPN. The contrast argument takes a character 
+vector of length three, containing the name of the factor, 
+the name of the numerator level, and the name of the denominator level,
+where we test the log fold change of numerator vs denominator.
+Here we extract the results for the log fold change of 
+OHT vs DPN for the treatment factor.
+
+<<contrastsChar>>=
+resCtrst <- results(ddsCtrst, contrast=c("treatment","OHT","DPN"))
+head(resCtrst,2)
+mcols(resCtrst)
+@ 
+
+For advanced users, a numeric contrast vector can also be provided
+with one element for each element provided by \Rfunction{resultsNames}, 
+i.e. columns of the model matrix. Note that the following 
+contrast is the same as specified by the character vector in the 
+previous code chunk.
+
+<<contrastsNum>>= 
+resCtrst <- results(ddsCtrst, contrast=c(0,0,0,0,-1,1))
+head(resCtrst,2)
+mcols(resCtrst)
+@ 
+
+The formula that is used to generate the contrasts can be
+found in Section \ref{sec:ctrstTheory}.
 
 \subsection{Likelihood ratio test}
 
 The likelihood ratio test can also be specified using the \Robject{test}
 argument to \Rfunction{DESeq}, which substitutes \Rfunction{nbinomWaldTest} with
-\Rfunction{nbinomLRT} in the last step above.  In this case, the
+\Rfunction{nbinomLRT}.  In this case, the
 user provides the full formula (the formula stored in \Robject{design(dds)}),
 and a reduced formula, e.g. one which does not contain the variable of
 interest. The degrees of freedom for the test is obtained from the number
 of parameters in the two models. The Wald test and the likelihood ratio test
 share many of the same genes with adjusted p-value < .1 for this experiment.
 
+One reason to use the likelihood ratio test is in order to test the 
+null hypothesis that log fold changes for multiple levels of a factor, 
+or for multiple variables, such as all interactions between two variables,
+are equal to zero.
+
 As we already have an object \Robject{dds} with dispersions calculated 
 for the design formula \texttt{~ type + condition}, 
-we only need to run the function \Rfunction{nbinomLRT}:
+we only need to run the function \Rfunction{nbinomLRT}, with a reduced formula
+including only the type of sequencing, in order to test the log fold change
+attributable to the condition:
 
 <<likelihoodRatioTest>>=
 ddsLRT <- nbinomLRT(dds, reduced = ~ type)
 resLRT <- results(ddsLRT)
-resLRT
+head(resLRT,2)
 mcols(resLRT)
 tab <- table(Wald=res$padj < .1, LRT=resLRT$padj < .1)
 addmargins(tab)
@@ -895,6 +973,21 @@ abline(h=qf(.75, p, m - p))
   distances are genes with a single count in one sample. The horizontal 
   line is the default cutoff used for 7 samples and 3 estimated parameters.
 }
+
+\subsection{Contrasts} \label{sec:ctrstTheory}
+
+Contrasts can be calculated for a \Rclass{DESeqDataSet} object for which
+the GLM coefficients have already been fit using the Wald test steps
+(\Rfunction{DESeq} with \texttt{test="Wald"} or using \Rfunction{nbinomWaldTest}).
+The vector of coefficients $\beta$ is left multiplied by the contrast vector $c$
+to form the numerator of the test statistic. The denominator is formed by multiplying
+the covariance matrix $\Sigma$ for the coefficients on either side by the 
+contrast vector $c$. The square root of this product is an estimate
+of the standard error for the contrast. The contrast statistic is then compared
+to a normal distribution as are the Wald statistics for the \Biocpkg{DESeq2}
+package.
+
+$$ W = \frac{c^t \beta}{\sqrt{c^t \Sigma c}} $$
 
 %--------------------------------------------------
 \subsection{Independent filtering and multiple testing} \label{sec:indepfilt}

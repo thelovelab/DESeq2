@@ -10,7 +10,7 @@ col2useful <- function(col,alpha) {
 #' A simple helper function that plots the per-gene dispersion
 #' estimates together with the fitted mean-dispersion relationship.
 #'
-#' @param dds a DESeqDataSet
+#' @param object a DESeqDataSet
 #' @param ymin the lower bound for points on the plot, points beyond this
 #'    are drawn as triangles at ymin
 #' @param genecol the color for gene-wise dispersion estimates
@@ -33,16 +33,16 @@ col2useful <- function(col,alpha) {
 #' plotDispEsts(dds)
 #' 
 #' @export
-plotDispEsts = function( dds, ymin,
+plotDispEsts = function( object, ymin,
   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
   legend=TRUE, xlab = "mean of normalized counts",
   ylab = "dispersion", log = "xy", cex = 0.45, ... )
 { 
-  px = mcols(dds)$baseMean
+  px = mcols(object)$baseMean
   sel = (px>0)
   px = px[sel]
 
-  py = mcols(dds)$dispGeneEst[sel]
+  py = mcols(object)$dispGeneEst[sel]
   if(missing(ymin))
       ymin = 10^floor(log10(min(py[py>0], na.rm=TRUE))-0.1)
 
@@ -50,15 +50,15 @@ plotDispEsts = function( dds, ymin,
     log=log, pch=ifelse(py<ymin, 6, 20), col=col2useful(genecol,.8), cex=cex, ... )
 
   # use a circle over outliers
-  pchOutlier <- ifelse(mcols(dds)$dispOutlier[sel],1,20)
-  cexOutlier <- ifelse(mcols(dds)$dispOutlier[sel],2*cex,cex)
-  lwdOutlier <- ifelse(mcols(dds)$dispOutlier[sel],2,1)
-  if (!is.null(dispersions(dds))) {
-    points(px, dispersions(dds)[sel], col=col2useful(finalcol,.8), cex=cexOutlier, pch=pchOutlier, lwd=lwdOutlier)
+  pchOutlier <- ifelse(mcols(object)$dispOutlier[sel],1,20)
+  cexOutlier <- ifelse(mcols(object)$dispOutlier[sel],2*cex,cex)
+  lwdOutlier <- ifelse(mcols(object)$dispOutlier[sel],2,1)
+  if (!is.null(dispersions(object))) {
+    points(px, dispersions(object)[sel], col=col2useful(finalcol,.8), cex=cexOutlier, pch=pchOutlier, lwd=lwdOutlier)
   }
 
-  if (!is.null(mcols(dds)$dispFit)) {
-    points(px, mcols(dds)$dispFit[sel], col=col2useful(fitcol,.8), cex=cex, pch=20)
+  if (!is.null(mcols(object)$dispFit)) {
+    points(px, mcols(object)$dispFit[sel], col=col2useful(fitcol,.8), cex=cex, pch=20)
   }
   
   if (legend) {
@@ -73,7 +73,8 @@ plotDispEsts = function( dds, ymin,
 #' scatter plot of log2 fold changes (on the y-axis) versus the mean of
 #' normalized counts (on the x-axis).
 #'
-#' @param dds a DESeqDataSet
+#' @param object a DESeqDataSet or a DataFrame produced by the
+#' results function
 #' @param lfcColname the name of the column for log fold changes, if
 #'    not provided this will default to the last variable in the design formula
 #' @param pvalColname the name of the column for pvalues/adjusted pvalues, if
@@ -97,41 +98,47 @@ plotDispEsts = function( dds, ymin,
 #' plotMA(dds)
 #' 
 #' @export
-plotMA = function(dds, lfcColname, pvalColname, pvalCutoff=.1, ylim,
-  col = ifelse(mcols(dds)[,pvalColname] < pvalCutoff, "red", "black"),
-  linecol = "#ff000080", xlab = "mean of normalized counts",
-  ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...)
-{
-  if (!"results" %in% mcols(mcols(dds))$type) {
-    stop("first run DESeq() in order to produce an MA-plot")
-  }
-  # if not specified, try the last variable of the design formula,
-  # the last level of this variable, and the Wald test adjusted p-values
-  if (missing(lfcColname)) {
-    lfcColname <- lastCoefName(dds)
-  }
-  if (length(lfcColname) != 1 | !is.character(lfcColname)) {
-    stop("the argument 'lfcColname' should be a character vector of length 1")
-  }
-  if (missing(pvalColname)) {
-    pvalColname <- paste0("WaldAdjPvalue_",lfcColname)
-    if (!pvalColname %in% names(mcols(dds))) {
-      pvalColname <- "LRTAdjPvalue"
+plotMA = function(object, lfcColname, pvalColname, pvalCutoff=.1, ylim,
+  col, linecol = "#ff000080", xlab = "mean of normalized counts",
+  ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...) {
+    if (class(object) == "DESeqDataSet") {
+        if (!"results" %in% mcols(mcols(object))$type) {
+            stop("first run DESeq() in order to produce an MA-plot")
+        }
+        # if not specified, try the last variable of the design formula,
+        # the last level of this variable, and the Wald test adjusted p-values
+        if (missing(lfcColname)) {
+            lfcColname <- lastCoefName(object)
+        }
+        if (length(lfcColname) != 1 | !is.character(lfcColname)) {
+            stop("the argument 'lfcColname' should be a character vector of length 1")
+        }
+        if (missing(pvalColname)) {
+            pvalColname <- paste0("WaldAdjPvalue_",lfcColname)
+            if (!pvalColname %in% names(mcols(object))) {
+                pvalColname <- "LRTAdjPvalue"
+            }
+        }
+        if (length(pvalColname) != 1 | !is.character(pvalColname)) {
+            stop("the argument 'pvalColname' should be a character vector of length 1")
+        }
+        x <- mcols(object)
+    } else if (class(object) == "DataFrame") {
+        pvalColname <- "pvalue"
+        lfcColname <- "log2FoldChange"
+        x <- object
     }
-  }
-  if (length(pvalColname) != 1 | !is.character(pvalColname)) {
-    stop("the argument 'pvalColname' should be a character vector of length 1")
-  }
-  x = mcols(dds)
-  col = col[x$baseMean > 0]
-  x = x[x$baseMean > 0,]
-  py = x[,lfcColname]
-  if (missing(ylim))
-      ylim = c(-1,1) * quantile(abs(py[is.finite(py)]), probs=0.99) * 1.1
-  plot(x$baseMean, pmax(ylim[1], pmin(ylim[2], py)),
-       log=log, pch=ifelse(py<ylim[1], 6, ifelse(py>ylim[2], 2, 20)),
-       cex=cex, col=col, xlab=xlab, ylab=ylab, ylim=ylim, ...)
-  abline(h=0, lwd=4, col=linecol)
+
+    col <- ifelse(x[,pvalColname] < pvalCutoff, "red", "black")
+    col = col[x$baseMean > 0]
+    x = x[x$baseMean > 0,]
+    py = x[,lfcColname]
+    if (missing(ylim))
+        ylim = c(-1,1) * quantile(abs(py[is.finite(py)]), probs=0.99) * 1.1
+    plot(x$baseMean, pmax(ylim[1], pmin(ylim[2], py)),
+         log=log, pch=ifelse(py<ylim[1], 6, ifelse(py>ylim[2], 2, 20)),
+         cex=cex, col=col, xlab=xlab, ylab=ylab, ylim=ylim, ...)
+    abline(h=0, lwd=4, col=linecol)
 }
 
 

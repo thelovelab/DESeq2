@@ -1,4 +1,14 @@
+CHANGES IN VERSION 1.1.24
+-------------------------
+
+    o The results() function allows the user to specify a 
+      contrast of coefficients, either using the names of 
+      the factor and levels, or using a numeric contrast 
+      vector. Contrasts are only available for the Wald test
+      differential analysis.
+
 CHANGES IN VERSION 1.1.23
+-------------------------
 
     o The results() function automatically performs independent
       filtering using the genefilter package and optimizing 

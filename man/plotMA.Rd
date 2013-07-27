@@ -2,16 +2,15 @@
 \alias{plotMA}
 \title{MA-plot from base means and log fold changes}
 \usage{
-  plotMA(dds, lfcColname, pvalColname, pvalCutoff = 0.1,
-    ylim,
-    col = ifelse(mcols(dds)[, pvalColname] < pvalCutoff, "red", "black"),
-    linecol = "#ff000080",
+  plotMA(object, lfcColname, pvalColname, pvalCutoff = 0.1,
+    ylim, col, linecol = "#ff000080",
     xlab = "mean of normalized counts",
     ylab = expression(log[2] ~ fold ~ change), log = "x",
     cex = 0.45, ...)
 }
 \arguments{
-  \item{dds}{a DESeqDataSet}
+  \item{object}{a DESeqDataSet or a DataFrame produced by
+  the results function}
 
   \item{lfcColname}{the name of the column for log fold
   changes, if not provided this will default to the last

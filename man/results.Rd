@@ -25,10 +25,10 @@
   \item{contrast}{either a character vector with exactly
   three elements (name of the factor, name of the numerator
   level, name of the denominator level), or a numeric
-  contrast vector with one element for each column of the
-  model matrix. Currently, the DESeqDataSet must be one
-  produced using the Wald test steps in order to use
-  contrasts.}
+  contrast vector with one element for each element in
+  \code{resultsNames(object)}, i.e. columns of the model
+  matrix. Currently, the DESeqDataSet must be one produced
+  using the Wald test steps in order to use contrasts.}
 
   \item{independentFiltering}{logical, whether independent
   filtering should be applied automatically}

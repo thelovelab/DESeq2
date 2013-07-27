@@ -103,7 +103,24 @@ DESeqDataSet <- function(se, design) {
       colData(se)[[v]] <- factor(colData(se)[[v]])
     }
   }
-  # add metadata columns on the columns
+
+  # sanity check: if the last variable in the design formula is a
+  # factor, and has a level 'control', check if it is
+  # the base level and if not print a message
+  lastDV <- length(designVars)
+  if (designVarsClass[lastDV] == "factor") {
+      lastDVLvls <- levels(colData(se)[[designVars[lastDV]]])
+      controlSynonyms <- c("control","Control","CONTROL")
+      for (cSyn in controlSynonyms) {
+          if (cSyn %in% lastDVLvls) {
+              if (cSyn != lastDVLvls[1]) {
+                  message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"', has a factor level, '",cSyn,"', which is not the base level. we recommend you use factor(...,levels=...) or relevel() to set this as the base level before proceeding. for more information, please see the 'Note on factor levels' in vignette('DESeq2')."))
+              }
+          }
+      }
+  }
+  
+  # Add columns on the columns
   mcolsCols <- DataFrame(type=rep("input",ncol(colData(se))),
                          description=rep("",ncol(colData(se))))
   if (is.null(mcols(colData(se)))) {
