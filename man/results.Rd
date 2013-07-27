@@ -4,9 +4,9 @@
 \alias{resultsNames}
 \title{Extract results from a DESeq analysis}
 \usage{
-  results(object, name, independentFiltering = TRUE,
-    alpha = 0.1, filter, theta = seq(0, 0.95, by = 0.05),
-    pAdjustMethod = "BH")
+  results(object, name, contrast,
+    independentFiltering = TRUE, alpha = 0.1, filter,
+    theta = seq(0, 0.95, by = 0.05), pAdjustMethod = "BH")
 
   resultsNames(object)
 
@@ -21,6 +21,14 @@
   \item{name}{the name of the coefficient for which to
   report log2 fold changes -- and for the Wald test,
   p-values and adjusted p-values}
+
+  \item{contrast}{either a character vector with exactly
+  three elements (name of the factor, name of the numerator
+  level, name of the denominator level), or a numeric
+  contrast vector with one element for each column of the
+  model matrix. Currently, the DESeqDataSet must be one
+  produced using the Wald test steps in order to use
+  contrasts.}
 
   \item{independentFiltering}{logical, whether independent
   filtering should be applied automatically}
@@ -82,6 +90,14 @@
   filtering, though other statistics can be provided.
   Several arguments are provided to control or turn off the
   independent filtering behavior.
+
+  A contrast can be performed by specifying the variable
+  and factor levels which should be compared, or by
+  specifying the numeric contrast vector. The test
+  statistic is then:
+
+  \deqn{ c^t \beta / \sqrt{c^t \Sigma c } }{ c' beta /
+  sqrt( c' Sigma c ) }
 
   For analyses using the likelihood ratio test (using
   \code{\link{nbinomLRT}}), the p-values are determined

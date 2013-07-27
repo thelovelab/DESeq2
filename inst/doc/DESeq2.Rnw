@@ -102,13 +102,15 @@ is another \Bioconductor{} package which can prepare \Rclass{SummarizedExperimen
 objects as input for \Biocpkg{DESeq2}). An example of the steps to produce
 a \Rclass{SummarizedExperiment} can be found in the data package
 \Biocannopkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
-4 human cell cultures \cite{Haglund2012Evidence}.
+4 human cell cultures \cite{Haglund2012Evidence}. We also subset to the 
+samples taken 48 hours after treatment.
 
 <<loadSumExp>>=
 library("parathyroidSE")
 data("parathyroidGenesSE")
 se <- parathyroidGenesSE
 colnames(se) <- colData(se)$run
+se <- se[,colData(se)$time == "48h"]
 @
 
 The class used by \Biocpkg{DESeq2} is \Rclass{DESeqDataSet},
@@ -124,10 +126,10 @@ of the formula.  The constructor function below shows generation of a
 
 <<sumExpInput>>=
 library("DESeq2")
-ddsGR <- DESeqDataSet(se = se, design = ~ patient + treatment)
-colData(ddsGR)$treatment <- factor(colData(ddsGR)$treatment,
-                                   levels=c("Control","DPN","OHT"))
-ddsGR
+ddsPara <- DESeqDataSet(se = se, design = ~ patient + treatment)
+colData(ddsPara)$treatment <- factor(colData(ddsPara)$treatment,
+                                     levels=c("Control","DPN","OHT"))
+ddsPara
 @
 
 \subsubsection{Count matrix input}
@@ -314,41 +316,6 @@ resType <- results(dds, "type_single.read_vs_paired.end")
 head(resType)
 mcols(resType)
 @
-
-\subsection{Independent filtering of results}\label{sec:autoFilt}
-
-The \Rfunction{results} function of the \Biocpkg{DESeq2} package 
-performs independent filtering by default using 
-the mean of normalized counts as a filter statistic. 
-A threshold on the filter statistic is found which optimizes the number
-of adjusted p-values lower than a significance level \Robject{alpha}
-(we use the standard variable name for significance level, 
-though it is unrelated to the dispersion parameter $\alpha$). 
-The theory behind independent filtering is discussed in greater detail
-in Section \ref{sec:indepfilt}. The adjusted p-values for the genes
-which do not pass the filter threshold are set to \Robject{NA}.
-
-The independent filtering is performed using the \Rfunction{filtered\_p} function 
-of the \Biocpkg{genefilter} package, and all of the arguments of \Rfunction{filtered\_p}
-can be passed to the \Rfunction{results} function. 
-The filter threshold value and the number of rejections at each quantile
-of the filter statistic are available as attributes of the object 
-returned by \Rfunction{results}. For example, we can easily visualize
-the optimization by plotting the \Robject{filterNumRej} attribute of 
-the results object, as seen in Figure \ref{DESeq2-filtByMean}.
-
-<<filtByMean, fig=TRUE>>=
-attr(res,"filterThreshold")
-plot(attr(res,"filterNumRej"),type="b",
-     ylab="number of rejections")
-@
-
-\incfig{DESeq2-filtByMean}{.5\textwidth}{Independent filtering.}{
-  The \Rfunction{results} function maximizes the 
-  number of rejections (adjusted p-value less than a 
-  significance level), over theta, the quantiles 
-  of a filtering statistic (in this case, the mean of normalized counts).
-}
 
 \section{Data transformations and visualization}
 
@@ -604,6 +571,21 @@ dds <- estimateDispersions(dds)
 dds <- nbinomWaldTest(dds)
 @
 
+\subsection{Contrasts} \label{sec:contrasts}
+
+<<contrasts>>=
+ddsCtrst <- ddsPara[1:1000,]
+design(ddsCtrst) <- ~ patient + treatment
+ddsCtrst <- DESeq(ddsCtrst)
+resCtrst <- results(ddsCtrst, contrast=c("treatment","OHT","DPN"))
+resultsNames(ddsCtrst)
+resCtrst <- results(ddsCtrst, contrast=c(0,0,0,0,-1,1))
+resCtrst
+mcols(resCtrst)
+table(resCtrst$padj < .1)
+plot(attr(resCtrst,"filterNumRej"))
+@ 
+
 \subsection{Likelihood ratio test}
 
 The likelihood ratio test can also be specified using the \Robject{test}
@@ -614,12 +596,16 @@ and a reduced formula, e.g. one which does not contain the variable of
 interest. The degrees of freedom for the test is obtained from the number
 of parameters in the two models. The Wald test and the likelihood ratio test
 share many of the same genes with adjusted p-value < .1 for this experiment.
-As we have already calculated dispersions, we only need to run the function
-\Rfunction{nbinomLRT}:
+
+As we already have an object \Robject{dds} with dispersions calculated 
+for the design formula \texttt{~ type + condition}, 
+we only need to run the function \Rfunction{nbinomLRT}:
 
 <<likelihoodRatioTest>>=
 ddsLRT <- nbinomLRT(dds, reduced = ~ type)
 resLRT <- results(ddsLRT)
+resLRT
+mcols(resLRT)
 tab <- table(Wald=res$padj < .1, LRT=resLRT$padj < .1)
 addmargins(tab)
 @
@@ -687,6 +673,41 @@ medianDisp <- median(mcols(ddsMed)$dispGeneEst[useForMedian],na.rm=TRUE)
 mcols(ddsMed)$dispFit <- medianDisp
 ddsMed <- estimateDispersionsMAP(ddsMed)
 @
+
+\subsection{Independent filtering of results}\label{sec:autoFilt}
+
+The \Rfunction{results} function of the \Biocpkg{DESeq2} package 
+performs independent filtering by default using 
+the mean of normalized counts as a filter statistic. 
+A threshold on the filter statistic is found which optimizes the number
+of adjusted p-values lower than a significance level \Robject{alpha}
+(we use the standard variable name for significance level, 
+though it is unrelated to the dispersion parameter $\alpha$). 
+The theory behind independent filtering is discussed in greater detail
+in Section \ref{sec:indepfilt}. The adjusted p-values for the genes
+which do not pass the filter threshold are set to \Robject{NA}.
+
+The independent filtering is performed using the \Rfunction{filtered\_p} function 
+of the \Biocpkg{genefilter} package, and all of the arguments of \Rfunction{filtered\_p}
+can be passed to the \Rfunction{results} function. 
+The filter threshold value and the number of rejections at each quantile
+of the filter statistic are available as attributes of the object 
+returned by \Rfunction{results}. For example, we can easily visualize
+the optimization by plotting the \Robject{filterNumRej} attribute of 
+the results object, as seen in Figure \ref{DESeq2-filtByMean}.
+
+<<filtByMean, fig=TRUE>>=
+attr(res,"filterThreshold")
+plot(attr(res,"filterNumRej"),type="b",
+     ylab="number of rejections")
+@
+
+\incfig{DESeq2-filtByMean}{.5\textwidth}{Independent filtering.}{
+  The \Rfunction{results} function maximizes the 
+  number of rejections (adjusted p-value less than a 
+  significance level), over theta, the quantiles 
+  of a filtering statistic (in this case, the mean of normalized counts).
+}
 
 \subsection{Customizing independent filtering}
 

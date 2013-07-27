@@ -12,9 +12,9 @@
     fitType = c("parametric", "local", "mean"),
     minDisp = 1e-08, quiet = FALSE)
 
-  estimateDispersionsMAP(object, outlierSD = 2, priorVar,
-    minDisp = 1e-08, kappa_0 = 1, dispTol = 1e-06,
-    maxit = 100, quiet = FALSE)
+  estimateDispersionsMAP(object, outlierSD = 2,
+    dispPriorVar, minDisp = 1e-08, kappa_0 = 1,
+    dispTol = 1e-06, maxit = 100, quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -30,9 +30,9 @@
   outliers. Outliers will keep their original value and not
   be shrunk using the prior.}
 
-  \item{priorVar}{the variance of the normal prior on the
-  log dispersions. If not supplied, this is calculated as
-  the difference between the mean squared residuals of
+  \item{dispPriorVar}{the variance of the normal prior on
+  the log dispersions. If not supplied, this is calculated
+  as the difference between the mean squared residuals of
   gene-wise estimates to the fitted dispersion and the
   expected sampling variance of the log dispersion}
 

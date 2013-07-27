@@ -108,7 +108,7 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
 // declarations
 extern "C" {
 SEXP fitDisp( SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP use_priorSEXP) ;
-SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP) ;
+SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP) ;
 }
 
 // definition
@@ -225,7 +225,7 @@ END_RCPP
 }
 
 
-SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP ){
+SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP ){
 BEGIN_RCPP
 arma::mat y = Rcpp::as<arma::mat>(ySEXP);
 arma::mat nf = Rcpp::as<arma::mat>(nfSEXP);
@@ -235,12 +235,15 @@ int y_m = y.n_cols;
 arma::vec alpha_hat = Rcpp::as<arma::vec>(alpha_hatSEXP);
 arma::mat beta_mat = Rcpp::as<arma::mat>(beta_matSEXP);
 arma::mat beta_var_mat = arma::zeros(beta_mat.n_rows, beta_mat.n_cols);
+arma::mat contrast_num = arma::zeros(beta_mat.n_rows, 1);
+arma::mat contrast_denom = arma::zeros(beta_mat.n_rows, 1);
 arma::mat hat_matrix = arma::zeros(x.n_rows, x.n_rows);
 arma::mat hat_diagonals = arma::zeros(y.n_rows, y.n_cols);
 arma::colvec lambda = Rcpp::as<arma::colvec>(lambdaSEXP);
+arma::colvec contrast = Rcpp::as<arma::colvec>(contrastSEXP);
 int maxit = Rcpp::as<int>(maxitSEXP);
 arma::colvec yrow, nfrow, beta_hat, mu_hat, z;
-arma::mat w, ridge;
+arma::mat w, ridge, sigma;
 double dev, dev_old, conv_test;
 double tol = Rcpp::as<double>(tolSEXP);
 Rcpp::NumericVector iter(y_n);
@@ -251,13 +254,13 @@ for (int i = 0; i < y_n; i++) {
   yrow = y.row(i).t();
   beta_hat = beta_mat.row(i).t();
   mu_hat = nfrow % exp(x * beta_hat);
+  ridge = arma::diagmat(lambda);
   dev = 0.0;
   dev_old = 0.0;
   for (int t = 0; t < maxit; t++) {
     iter(i)++;
     w = arma::diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
     z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
-    ridge = arma::diagmat(lambda);
     beta_hat = (x.t() * w * x + ridge).i(true) * x.t() * w * z;
     mu_hat = nfrow % exp(x * beta_hat);
     dev = 0.0;
@@ -273,15 +276,23 @@ for (int i = 0; i < y_n; i++) {
   }
   deviance(i) = dev;
   beta_mat.row(i) = beta_hat.t();
+  // recalculate w so that this is identical if we start with beta_hat
+  w = arma::diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
   hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i(true) * x.t() * sqrt(w);
   hat_diagonals.row(i) = arma::diagvec(hat_matrix).t();
-  beta_var_mat.row(i) = arma::diagvec((x.t() * w * x + ridge).i(true) * x.t() * w * x * (x.t() * w * x + ridge).i(true)).t();
+  // sigma is the covariance matrix for the betas
+  sigma = (x.t() * w * x + ridge).i(true) * x.t() * w * x * (x.t() * w * x + ridge).i(true);
+  contrast_num.row(i) = contrast.t() * beta_hat;
+  contrast_denom.row(i) = sqrt(contrast.t() * sigma * contrast);
+  beta_var_mat.row(i) = arma::diagvec(sigma).t();
 }
 
 return Rcpp::List::create(Rcpp::Named("beta_mat",beta_mat),
 			  Rcpp::Named("beta_var_mat",beta_var_mat),
 			  Rcpp::Named("iter",iter),
 			  Rcpp::Named("hat_diagonals",hat_diagonals),
+			  Rcpp::Named("contrast_num",contrast_num),
+			  Rcpp::Named("contrast_denom",contrast_denom),
 			  Rcpp::Named("deviance",deviance));
 END_RCPP
 }

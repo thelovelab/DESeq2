@@ -2,7 +2,7 @@
 \alias{makeExampleDESeqDataSet}
 \title{Make a simulated DESeqDataSet}
 \usage{
-  makeExampleDESeqDataSet(n = 1000, m = 10, betaSD = 0,
+  makeExampleDESeqDataSet(n = 1000, m = 12, betaSD = 0,
     interceptMean = 4, interceptSD = 2,
     dispMeanRel = function(x) 4/x + 0.1,
     sizeFactors = rep(1, m))

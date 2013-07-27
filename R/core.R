@@ -123,7 +123,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
 #' dds
 #'
 #' @export
-makeExampleDESeqDataSet <- function(n=1000,m=10,betaSD=0,interceptMean=4,interceptSD=2,dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
+makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interceptSD=2,
+                                    dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
   beta <- cbind(rnorm(n,interceptMean,interceptSD),rnorm(n,0,betaSD))
   dispersion <- dispMeanRel(2^(beta[,1]))
   colData <- DataFrame(sample = paste("sample",1:m,sep=""),
@@ -201,7 +202,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
 #' above which dispersion estimates will be labelled
 #' outliers. Outliers will keep their original value and
 #' not be shrunk using the prior.
-#' @param priorVar the variance of the normal prior on the log dispersions.
+#' @param dispPriorVar the variance of the normal prior on the log dispersions.
 #' If not supplied, this is calculated as the difference between
 #' the mean squared residuals of gene-wise estimates to the
 #' fitted dispersion and the expected sampling variance
@@ -355,7 +356,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsMAP <- function(object, outlierSD=2, priorVar,
+estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    minDisp=1e-8, kappa_0=1, dispTol=1e-6,
                                    maxit=100, quiet=FALSE) {
   stopifnot(length(outlierSD)==1)
@@ -445,22 +446,22 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar,
     attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
     # set the variance of the prior using these two estimates
     # with a minimum of .25
-    priorVarCalc <- pmax((varLogDispEsts - expVarLogDisp), .25)
+    dispPriorVarCalc <- pmax((varLogDispEsts - expVarLogDisp), .25)
   } else {
     # we have m = p, so do not try to substract sampling variance
-    priorVarCalc <- varLogDispEsts
+    dispPriorVarCalc <- varLogDispEsts
   }
   
 
   # fill in the calculated dispersion prior variance
-  if (missing(priorVar)) {
-    priorVar <- priorVarCalc
+  if (missing(dispPriorVar)) {
+    dispPriorVar <- dispPriorVarCalc
   }
-  stopifnot(length(priorVar)==1)
-  attr( dispersionFunction(object), "priorVar" ) <- priorVar
+  stopifnot(length(dispPriorVar)==1)
+  attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
   
   # set prior variance for fitting dispersion
-  log_alpha_prior_sigmasq <- priorVar
+  log_alpha_prior_sigmasq <- dispPriorVar
 
   # get previously calculated mu
   mu <- assays(objectNZ)[["mu"]]
@@ -556,9 +557,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar,
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients (Tikhonov/ridge regularization)
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
-#' @param priorSigmaSq a vector with length equal to the number of
+#' @param betaPriorVar a vector with length equal to the number of
 #' model terms including the intercept.
-#  priorSigmaSq gives the variance of the prior on the sample betas,
+#  betaPriorVar gives the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
 #' @param cooksCutoff theshold on Cook's distance, such that if one or more
@@ -595,7 +596,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, priorVar,
 #'
 #' @export
 nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
-                           priorSigmaSq, cooksCutoff,
+                           betaPriorVar, cooksCutoff,
                            maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df) {
   stopifnot(length(pAdjustMethod)==1)
@@ -614,18 +615,19 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
     fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim)
     H <- fit$hat_diagonals
   }
-  
+
+  # calculate the prior variance (on the log2 scale)
   if (betaPrior) {
     # we need the MLE betas to fit the prior variance
     # and for the hat matrix diagonals in order to
     # calculate Cook's distance
     fit <- fitNbinomGLMs(objectNZ, maxit=maxit)
     H <- fit$hat_diagonals
-    if (missing(priorSigmaSq)) {
+    if (missing(betaPriorVar)) {
       # estimate the width of the prior on betas
       # excluding those rows with coefficients going to infinity.
       # if all betas are large, use a very large prior
-      priorSigmaSq <- apply(fit$betaMatrix, 2, function(x) {
+      betaPriorVar <- apply(fit$betaMatrix, 2, function(x) {
         useSmall <- abs(x) < 8
         if (sum(useSmall) == 0 ) {
           return(1e6)
@@ -635,20 +637,24 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
       })
       # except for intercept which we set to wide prior
       if ("Intercept" %in% fit$modelMatrixNames) {
-        priorSigmaSq[which(fit$modelMatrixNames == "Intercept")] <- 1e6
+        betaPriorVar[which(fit$modelMatrixNames == "Intercept")] <- 1e6
       }
     } else {
-      # we are provided the prior variance:
+      # else we are provided the prior variance:
       # check if the lambda is the correct length
       # given the design formula
       p <- ncol(fit$modelMatrix)
-      if (length(priorSigmaSq) != p) {
-        stop(paste0("priorSigmaSq should have length",p))
+      if (length(betaPriorVar) != p) {
+        stop(paste0("betaPriorVar should have length",p))
       }
     }
-    lambda <- 1/priorSigmaSq
+    lambda <- 1/betaPriorVar
     fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim)
   }
+
+  # store the prior variance directly as an attribute
+  # of the DESeqDataSet object
+  attr(object,"betaPriorVar") <- betaPriorVar
 
   m <- nrow(fit$modelMatrix)
   p <- ncol(fit$modelMatrix)
@@ -686,7 +692,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
   
   # if useT is set to TRUE, use a t-distribution
   if (useT) {
-    priorVar <- attr( dispersionFunction(object), "priorVar" )
+    dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" )
     stopifnot(length(df)==1)
     WaldPvalue <- 2*pt(abs(WaldStatistic),df=df,lower.tail=FALSE)
   } else {
@@ -732,9 +738,9 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
     coefInfo <- paste("log2 fold change:",modelMatrixNamesSpaces)
   }
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
-  statInfo <- paste("Wald test:",modelMatrixNamesSpaces)
-  pvalInfo <- paste("Wald test:",modelMatrixNamesSpaces)
-  adjInfo <- paste(paste("Wald test,",pAdjustMethod,"adj.:"),
+  statInfo <- paste("Wald statistic:",modelMatrixNamesSpaces)
+  pvalInfo <- paste("Wald test p-value:",modelMatrixNamesSpaces)
+  adjInfo <- paste(paste("Wald test p-value,",pAdjustMethod,"adj.:"),
                    modelMatrixNamesSpaces)
   
   mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
@@ -935,6 +941,12 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' Several arguments are provided to control or
 #' turn off the independent filtering behavior.
 #'
+#' A contrast can be performed by specifying the variable and factor
+#' levels which should be compared, or by specifying the numeric contrast
+#' vector. The test statistic is then:
+#'
+#' \deqn{ c^t \beta / \sqrt{c^t \Sigma c } }{ c' beta / sqrt( c' Sigma c ) }
+#'
 #' For analyses using the likelihood ratio test (using \code{\link{nbinomLRT}}),
 #' the p-values are determined solely by the difference in deviance between
 #' the full and reduced model formula.
@@ -948,6 +960,12 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or \code{\link{nbinomLRT}}
 #' @param name the name of the coefficient for which to report log2 fold changes
 #' -- and for the Wald test, p-values and adjusted p-values
+#' @param contrast either a character vector with exactly three elements
+#' (name of the factor, name of the numerator level, name of the
+#' denominator level), or a numeric contrast vector with one element
+#' for each element in \code{resultsNames(object)}, i.e. columns of the model matrix.
+#' Currently, the DESeqDataSet must be
+#' one produced using the Wald test steps in order to use contrasts.
 #' @param independentFiltering logical, whether independent filtering should be
 #' applied automatically
 #' @param alpha the significance cutoff used for optimizing the independent
@@ -978,7 +996,8 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' @rdname results
 #' @aliases results resultsNames removeResults
 #' @export
-results <- function(object, name, independentFiltering=TRUE,
+results <- function(object, name, contrast,
+                    independentFiltering=TRUE,
                     alpha=0.1, filter, theta=seq(0, 0.95, by=0.05),
                     pAdjustMethod="BH") {
   if (missing(name)) {
@@ -992,6 +1011,8 @@ results <- function(object, name, independentFiltering=TRUE,
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
   }
+  
+  # determine test type from the names of mcols(object)
   if (paste0("WaldPvalue_",name) %in% names(mcols(object))) {
     test <- "Wald"
   } else if ("LRTPvalue" %in% names(mcols(object))) {
@@ -999,17 +1020,30 @@ results <- function(object, name, independentFiltering=TRUE,
   } else {
     stop("cannot find appropriate results, for available names call 'resultsNames(object)'")
   }
-  log2FoldChange <- coef(object, name)
-  lfcSE <- coefSE(object, name)
-  pvalue <- pvalues(object,test,name)
-  padj <- padj(object,test,name)
-  res <- cbind(mcols(object)["baseMean"],
-               log2FoldChange,
-               lfcSE,
-               pvalue,
-               padj)
-  names(res) <- c("baseMean","log2FoldChange","lfcSE","pvalue","padj")
+
+  # if performing a contrast call the function cleanContrast()
+  if (!missing(contrast)) {
+    # must have performed the Wald test steps
+    if (test != "Wald") {
+      stop("using contrasts requires that the Wald test was performed")
+    }
+    res <- cleanContrast(object, contrast, pAdjustMethod)
+  } else {
+    # if not performing a contrast
+    # pull relevant columns from mcols(object)
+    log2FoldChange <- getCoef(object, name)
+    lfcSE <- getCoefSE(object, name)
+    stat <- getStat(object, test, name)
+    pvalue <- getPvalue(object, test, name)
+    padj <- getPadj(object, test, name)
+    res <- cbind(mcols(object)["baseMean"],
+                 log2FoldChange,lfcSE,stat,
+                 pvalue,padj)
+    names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue","padj")
+  }
   rownames(res) <- rownames(object)
+  
+  # perform independent filtering
   if (independentFiltering) {
     if (missing(filter)) {
       filter <- res$baseMean
@@ -1062,9 +1096,9 @@ removeResults <- function(object) {
 # return a DESeqDataSet object with columns baseMean
 # and baseVar in the row metadata columns
 getBaseMeansAndVariances <- function(object) {
-  meanVarZero <- DataFrame(baseMean = rowMeans(counts(object,normalized=TRUE)),
-                           baseVar = rowVars(counts(object,normalized=TRUE)),
-                           allZero = rowSums(counts(object)) == 0)
+  meanVarZero <- DataFrame(baseMean = unname(rowMeans(counts(object,normalized=TRUE))),
+                           baseVar = unname(rowVars(counts(object,normalized=TRUE))),
+                           allZero = unname(rowSums(counts(object)) == 0))
   mcols(meanVarZero) <- DataFrame(type = rep("intermediate",ncol(meanVarZero)),
                                   description = c("the base mean over all rows",
                                     "the base variance over all rows",
@@ -1193,15 +1227,16 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   }
 
   # here we convert from the log2 scale of the betas
-  # to the log scale used in the C++ code
-  # lambda is the inverse of the variance
-  # so we use the squared inverse of the typical
-  # conversion factor log(2)
-  lambdaLogScale <- lambda * log2(exp(1))^2
-  
+  # and the beta prior variance to the log scale
+  # used in fitBeta.
+  # so we divide by the square of the
+  # conversion factor, log(2)
+  lambdaLogScale <- lambda / log(2)^2
+
   betaRes <- fitBeta(ySEXP = counts(object), xSEXP = modelMatrix,
                      nfSEXP = normalizationFactors,
-                     alpha_hatSEXP = alpha_hat, beta_matSEXP = beta_mat,
+                     alpha_hatSEXP = alpha_hat,
+                     beta_matSEXP = beta_mat,
                      lambdaSEXP = lambdaLogScale,
                      tolSEXP = betaTol, maxitSEXP = maxit)
   mu <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
@@ -1265,7 +1300,8 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
       w <- diag((mu_row^-1 + alpha)^-1)
       xtwx <- t(x) %*% w %*% x
       xtwxRidgeInv <- solve(xtwx + ridge)
-      betaSE[row,] <- log2(exp(1))*sqrt(diag(xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv))
+      sigma <- xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv
+      betaSE[row,] <- log2(exp(1))*sqrt(diag(sigma))
       # store the new mu vector
       mu[row,] <- mu_row
       logLike[row] <- sum(dnbinom(k, mu=mu_row, size=1/alpha, log=TRUE))
@@ -1323,22 +1359,26 @@ fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_me
 # xSEXP m by k design matrix
 # nfSEXP n by m matrix of normalization factors
 # alpha_hatSEXP n length vector of the disperion estimates
+# contrastSEXP a k length vector for a possible contrast
 # beta_matSEXP n by k matrix of the initial estimates for the betas
 # lambdaSEXP k length vector of the ridge values
 # tolSEXP tolerance for convergence in estimates
 # maxitSEXP maximum number of iterations
 #
-# return a list with elements: beta_mat, beta_var_mat, iter.
 # Note: at this level the betas are on the natural log scale
-fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP) {
+fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP) {
+  if ( missing(contrastSEXP) ) {
+    contrastSEXP <- c(1,rep(0,ncol(xSEXP)-1))
+  }
   # test for any NAs in arguments
   arg.names <- names(formals(fitBeta))
-  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP), function(x) any(is.na(x)))
+  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP), function(x) any(is.na(x)))
   if (any(na.test)) {
     stop(paste("in call to fitBeta, the following arguments contain NA:",paste(arg.names[na.test],collapse=", ")))
   }
   .Call("fitBeta", ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP,
-        alpha_hatSEXP=alpha_hatSEXP, beta_matSEXP=beta_matSEXP,
+        alpha_hatSEXP=alpha_hatSEXP, contrastSEXP=contrastSEXP,
+        beta_matSEXP=beta_matSEXP,
         lambdaSEXP=lambdaSEXP, tolSEXP=tolSEXP, maxitSEXP=maxitSEXP,
         PACKAGE = "DESeq2")
 }
@@ -1392,19 +1432,31 @@ lastCoefName <- function(object) {
 
 
 # functions to get coef, coefSE, pvalues and padj from mcols(object)
-coef <- function(object,name) {
+getCoef <- function(object,name) {
   if (missing(name)) {
     name <- lastCoefName(object)
   }
   mcols(object)[name]
 }
-coefSE <- function(object,name) {
+getCoefSE <- function(object,name) {
   if (missing(name)) {
     name <- lastCoefName(object)
   }
   mcols(object)[paste0("SE_",name)]
 }
-pvalues <- function(object,test="Wald",name) {
+getStat <- function(object,test="Wald",name) {
+  if (missing(name)) {
+    name <- lastCoefName(object)
+  }
+  if (test == "Wald") {
+    return(mcols(object)[paste0("WaldStatistic_",name)])
+  } else if (test == "LRT") {
+    return(mcols(object)["LRTStatistic"])
+  } else {
+    stop("unknown test")
+  }
+}
+getPvalue <- function(object,test="Wald",name) {
   if (missing(name)) {
     name <- lastCoefName(object)
   }
@@ -1416,7 +1468,7 @@ pvalues <- function(object,test="Wald",name) {
     stop("unknown test")
   }
 }
-padj <- function(object,test="Wald",name) {
+getPadj <- function(object,test="Wald",name) {
   if (missing(name)) {
     name <- lastCoefName(object)
   }
@@ -1451,7 +1503,6 @@ leaveOneOutFullRank <- function(modelMatrix) {
   sapply(seq_len(nrow(modelMatrix)), function(i) qr(modelMatrix[-i,])$rank) == ncol(modelMatrix)
 }
 
-## brute force appraoch, based on genefilter::filtered_R
 pAdjustWithIndependentFiltering <- function(p, filterstat, alpha=0.1, method = "BH", plot=FALSE ){
   theta <- seq(0, 0.95, by=0.05)
   cutoffs <- quantile( filterstat, theta ) 
@@ -1464,4 +1515,214 @@ pAdjustWithIndependentFiltering <- function(p, filterstat, alpha=0.1, method = "
   rv 
 
 }
+
+# an unexported diagnostic function
+# to retrieve the covariance matrix
+# for the GLM coefficients of a single row
+covarianceMatrix <- function(object, rowNumber) {
+  # convert coefficients to log scale
+  coefColumns <- names(mcols(object))[grep("log2 fold change",mcols(mcols(object))$description)]
+  beta <- log(2) * as.numeric(as.data.frame(mcols(object)[rowNumber,coefColumns]))
+  x <- model.matrix(design(object), as.data.frame(colData(object)))
+  y <- counts(object)[rowNumber,]
+  sf <- sizeFactors(object)
+  alpha <- dispersions(object)[rowNumber]
+  mu.hat <- as.vector(sf * exp(x %*% beta))
+  w <- diag(1/(1/mu.hat^2 * ( mu.hat + alpha * mu.hat^2 )))
+  betaPriorVar <- attr(object,"betaPriorVar")
+  ridge <- diag(1/(log(2)^2 * betaPriorVar))
+  sigma <- solve(t(x) %*% w %*% x + ridge) %*% (t(x) %*% w %*% x) %*% t(solve(t(x) %*% w %*% x + ridge))
+  # convert back to log2 scale
+  sigmaLog2Scale <- log2(exp(1))^2 * sigma
+  sigmaLog2Scale
+}
+
+# two low-level functions:
+#
+# getContrast takes a DESeqDataSet object
+# and a numeric vector specifying a contrast
+# and returns a vector of Wald statistics
+# corresponding to the contrast.
+#
+# cleanContrast checks for the validity of
+# the specified contrast (numeric or character vector)
+# and turns character vector contrast into the appropriate
+# numeric vector contrast
+#
+# results() calls cleanContrast() which calls getContrast()
+#
+# the formula used is:
+# c' beta / sqrt( c' sigma c)
+# where beta is the coefficient vector
+# and sigma is the covariance matrix for beta
+getContrast <- function(object, contrast, useT=FALSE, df, pAdjustMethod="BH") {
+  if (missing(contrast)) {
+    stop("must provide a contrast")
+  }
+  modelFormula <- design(object)
+  modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
+  # only continue on the rows with non-zero row mean
+  objectNZ <- object[!mcols(object)$allZero,]
+  if (!is.null(normalizationFactors(objectNZ))) {
+    normalizationFactors <- normalizationFactors(objectNZ)
+  } else { 
+    normalizationFactors <- matrix(rep(sizeFactors(objectNZ),each=nrow(objectNZ)),
+                                   ncol=ncol(objectNZ))
+  }
+  alpha_hat <- dispersions(objectNZ)
+  coefColumns <- names(mcols(objectNZ))[grep("log2 fold change",mcols(mcols(object))$description)]
+  # convert betas to log scale
+  beta_mat <- log(2) * as.matrix(mcols(objectNZ)[,coefColumns,drop=FALSE])
+  # convert beta prior variance to log scale
+  lambda = 1/(log(2)^2 * attr(object,"betaPriorVar")) 
+  betaRes <- fitBeta(ySEXP = counts(objectNZ), xSEXP = modelMatrix,
+                     nfSEXP = normalizationFactors,
+                     alpha_hatSEXP = alpha_hat,
+                     contrastSEXP = contrast,
+                     beta_matSEXP = beta_mat,
+                     lambdaSEXP = lambda,
+                     tolSEXP = 1e-8, maxitSEXP = 0)
+  # convert back to log2 scale
+  contrastEstimate <- log2(exp(1)) * betaRes$contrast_num
+  contrastSE <- log2(exp(1)) * betaRes$contrast_denom
+  contrastStatistic <- contrastEstimate / contrastSE
+  if (useT) {
+    stopifnot(length(df)==1)
+    contrastPvalue <- 2*pt(abs(contrastStatistic),df=df,lower.tail=FALSE)
+  } else {
+    contrastPvalue <- 2*pnorm(abs(contrastStatistic),lower.tail=FALSE)
+  }
+  # if more than 1 row, we adjust p-values
+  if (nrow(contrastPvalue) > 1) {  
+    contrastAdjPvalue <- apply(contrastPvalue,2,p.adjust,method=pAdjustMethod)
+  } else {
+    contrastAdjPvalue <- contrastPvalue
+  }
+  contrastResults <- buildDataFrameWithNARows(list(log2FoldChange=contrastEstimate,
+                                                   lfcSE=contrastSE,
+                                                   stat=contrastStatistic,
+                                                   pvalue=contrastPvalue,
+                                                   padj=contrastAdjPvalue),
+                                              mcols(object)$allZero)
+  contrastResults
+}
+
+cleanContrast <- function(object, contrast, pAdjustMethod) {
+  resNames <- resultsNames(object)
+  # check contrast validity
+  if (is.numeric(contrast)) {
+    if (length(contrast) != length(resNames) )
+      stop("numeric contrast vector should have one element for every element of 'resultsNames(object)'")
+    if (all(contrast==0)) {
+      stop("numeric contrast vector cannot have all elements equal to 0")
+    }
+  } else if (is.character(contrast)) {
+    # check if the appropriate columns are in the resultsNames
+    if (contrast[2] == contrast[3]) {
+      stop(paste(contrast[2],"and",contrast[3],"should be different level names"))
+    }
+    contrastFactor <- make.names(contrast[1])
+    if (!contrastFactor %in% names(colData(object))) {
+      stop(paste(contrastFactor,"should be the name of a factor in the colData of the DESeqDataSet"))
+    }
+    contrastNumLevel <- make.names(contrast[2])
+    contrastDenomLevel <- make.names(contrast[3])
+    contrastBaseLevel <- make.names(levels(colData(object)[,contrastFactor])[1])
+    # use make.names() so the column names are
+    # the same as created by DataFrame in mcols(object).
+    contrastNumColumn <- paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel)
+    contrastDenomColumn <- paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel)
+    resNames <- resultsNames(object)
+
+    # a brief detour...
+    # check in case the desired contrast is already
+    # available in mcols(object), and then we can either
+    # take it directly or multiply the log fold
+    # changes and stat by -1
+    if ( contrastDenomLevel == contrastBaseLevel ) {
+      # the results can be pulled directly from mcols(object)
+      name <- paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel)
+      if (!name %in% resNames) {
+        stop(paste("as",contrastDenomLevel,"is the base level, was expecting",name,"to be present in 'resultsNames(object)'"))
+      }
+      test <- "Wald"
+      log2FoldChange <- getCoef(object, name)
+      lfcSE <- getCoefSE(object, name)
+      stat <- getStat(object, test, name)
+      pvalue <- getPvalue(object, test, name)
+      padj <- getPadj(object, test, name)
+      res <- cbind(mcols(object)["baseMean"],
+                   log2FoldChange,lfcSE,stat,
+                   pvalue,padj)
+      names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue","padj")
+      return(res)
+    } else if ( contrastNumLevel == contrastBaseLevel ) {
+      # fetch the results for denom vs num 
+      # and mutiply the log fold change and stat by -1
+      cleanName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
+      swapName <- paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel)
+      if (!swapName %in% resNames) {
+        stop(paste("as",contrastNumLevel,"is the base level, was expecting",swapName,"to be present in 'resultsNames(object)'"))
+      }
+      test <- "Wald"
+      log2FoldChange <- getCoef(object, swapName)
+      lfcSE <- getCoefSE(object, swapName)
+      stat <- getStat(object, test, swapName)
+      pvalue <- getPvalue(object, test, swapName)
+      padj <- getPadj(object, test, swapName)
+      res <- cbind(mcols(object)["baseMean"],
+                   log2FoldChange,lfcSE,stat,
+                   pvalue,padj)
+      names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue","padj")
+      res$log2FoldChange <- -1 * res$log2FoldChange
+      res$stat <- -1 * res$stat
+      # also need to swap the name in the mcols
+      contrastDescriptions <- paste(c("log2 fold change (MAP):",
+                                      "standard error:",
+                                      "Wald statistic:",
+                                      "Wald test p-value:",
+                                      "Wald test p-value, BH adj.:"),
+                                    cleanName)
+      mcols(res)$description[mcols(res)$type == "results"] <- contrastDescriptions
+      return(res)
+    }
+
+    # ...back to the normal contrast case
+    if ( ! (contrastNumColumn %in% resNames &
+            contrastDenomColumn %in% resNames) ) {
+      # each contrast factor + level name should be once in results names
+      stop(paste(contrastNumLevel,"and",contrastDenomLevel,"should be levels of",contrastFactor,"such that",contrastNumColumn,"and",contrastDenomColumn,"are contained in 'resultsNames(object)'"))
+    }
+  } else {
+    stop("contrast vector should be either a numeric vector or character vector, see the argument description in ?results")
+  }
   
+  # make name for numeric contrast
+  if (is.numeric(contrast)) {
+    signMap <- c("","","+")
+    contrastSigns <- signMap[sign(contrast)+2]
+    contrastName <- paste(paste0(contrastSigns,as.character(contrast)),collapse=",")
+  } else if (is.character(contrast)) {
+    # interpret character contrast into numeric
+    # and make a name for the contrast
+    contrastNumeric <- rep(0,length(resNames))
+    contrastNumeric[resNames == contrastNumColumn] <- 1
+    contrastNumeric[resNames == contrastDenomColumn] <- -1
+    contrast <- contrastNumeric
+    contrastName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
+  }
+
+  contrastResults <- getContrast(object, contrast, useT=FALSE,
+                                 df, pAdjustMethod=pAdjustMethod)
+  contrastDescriptions <- paste(c("log2 fold change (MAP):",
+                                  "standard error:",
+                                  "Wald statistic:",
+                                  "Wald test p-value:",
+                                  "Wald test p-value, BH adj.:"),
+                                contrastName)
+  mcols(contrastResults) <- DataFrame(type=rep("results",ncol(contrastResults)),
+                                      description=contrastDescriptions)
+  res <- cbind(mcols(object)["baseMean"],
+               contrastResults)
+  res
+}
