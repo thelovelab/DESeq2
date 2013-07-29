@@ -742,7 +742,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
   statInfo <- paste("Wald statistic:",modelMatrixNamesSpaces)
   pvalInfo <- paste("Wald test p-value:",modelMatrixNamesSpaces)
-  adjInfo <- paste(paste("Wald test p-value,",pAdjustMethod,"adj.:"),
+  adjInfo <- paste("Wald test p-value,",pAdjustMethod,"adj.:",
                    modelMatrixNamesSpaces)
   
   mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
@@ -899,7 +899,7 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
   statInfo <- paste("LRT statistic:",modelComparison)
   pvalInfo <- paste("LRT p-value:",modelComparison)
-  adjInfo <- paste("LRT p-value,",pAdjustMethod,"adj.")
+  adjInfo <- paste("LRT p-value,",pAdjustMethod,"adj.",modelComparison)
 
   mcols(LRTResults) <- DataFrame(type = rep("results",ncol(LRTResults)),
                                  description = c(coefInfo, seInfo,
@@ -916,32 +916,36 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 
 #' Extract results from a DESeq analysis
 #'
-#' Extract results from a DESeq analysis giving base means across samples,
-#' log2 fold changes, standard errors, p-values and adjusted p-values.
-#' Find available names for results; Return an object with results columns
-#' removed.
+#' \code{results} extracts results from a DESeq analysis
+#' giving base means across samples,
+#' log2 fold changes, standard errors, test statistics,
+#' p-values and adjusted p-values.
+#' \code{resultsNames} finds available names for results;
+#' \code{removeResults} returns a \code{DESeqDataSet} object
+#' with results columns removed.
 #'
 #' Multiple results can be returned for an analysis with multifactor design,
-#' so \code{results} takes an argument \code{name}
+#' so \code{results} takes an argument \code{name} as well as the
+#' argument \code{contrast} explained below.
 #'
 #' The available names can be checked using \code{resultsNames};
 #' these are combined variable names and factor levels, potentially 
-#' with minor changes made by the \code{DataFrame} function on column names
+#' with minor changes made by the \code{make.names} function on column names
 #' (e.g. dashes into periods).
 #'
-#' By default, results for the last variable will be returned. Information on the variable
-#' represented and the test used for p-values (Wald test or likelihood ratio test)
+#' By default, results for the last variable will be returned.
+#' Information on the variable represented and the test
+#' used for p-values (Wald test or likelihood ratio test)
 #' is stored in the metadata columns, accessible by calling \code{mcol}
-#' on the object returned by \code{results}.
+#' on the \code{DataFrame} returned by \code{results}.
 #'
 #' By default, independent filtering is performed to select a set of genes
 #' which will result in the most genes with adjusted p-values less than a
 #' threshold, alpha. The adjusted p-values for the genes which do not pass 
-#' the filter threshold are set to \code{NA}.
-#' By default, the mean of normalized counts
+#' the filter threshold are set to \code{NA}. By default, the mean of normalized counts
 #' is used to perform this filtering, though other statistics can be provided.
-#' Several arguments are provided to control or
-#' turn off the independent filtering behavior.
+#' Several arguments from the \code{filtered_p} function of genefilter
+#' are provided to control or turn off the independent filtering behavior.
 #'
 #' A contrast can be performed by specifying the variable and factor
 #' levels which should be compared, or by specifying the numeric contrast
@@ -957,6 +961,8 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #'
 #' Results can be removed from an object by calling \code{removeResults}
 #'
+#' @references Richard Bourgon, Robert Gentleman, Wolfgang Huber: Independent filtering increases detection power for high-throughput experiments. PNAS (2010), \url{http://dx.doi.org/10.1073/pnas.0914005107}
+#' 
 #' @param object a DESeqDataSet, on which one
 #' of the following functions has already been called:
 #' \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or \code{\link{nbinomLRT}}
@@ -966,8 +972,8 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' (name of the factor, name of the numerator level, name of the
 #' denominator level), or a numeric contrast vector with one element
 #' for each element in \code{resultsNames(object)}, i.e. columns of the model matrix.
-#' Currently, the DESeqDataSet must be
-#' one produced using the Wald test steps in order to use contrasts.
+#' The DESeqDataSet must be one produced using the Wald test steps
+#' in order to use contrasts.
 #' @param independentFiltering logical, whether independent filtering should be
 #' applied automatically
 #' @param alpha the significance cutoff used for optimizing the independent

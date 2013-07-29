@@ -27,8 +27,8 @@
   level, name of the denominator level), or a numeric
   contrast vector with one element for each element in
   \code{resultsNames(object)}, i.e. columns of the model
-  matrix. Currently, the DESeqDataSet must be one produced
-  using the Wald test steps in order to use contrasts.}
+  matrix. The DESeqDataSet must be one produced using the
+  Wald test steps in order to use contrasts.}
 
   \item{independentFiltering}{logical, whether independent
   filtering should be applied automatically}
@@ -58,27 +58,30 @@
   results metadata columns removed
 }
 \description{
-  Extract results from a DESeq analysis giving base means
-  across samples, log2 fold changes, standard errors,
-  p-values and adjusted p-values. Find available names for
-  results; Return an object with results columns removed.
+  \code{results} extracts results from a DESeq analysis
+  giving base means across samples, log2 fold changes,
+  standard errors, test statistics, p-values and adjusted
+  p-values. \code{resultsNames} finds available names for
+  results; \code{removeResults} returns a
+  \code{DESeqDataSet} object with results columns removed.
 }
 \details{
   Multiple results can be returned for an analysis with
   multifactor design, so \code{results} takes an argument
-  \code{name}
+  \code{name} as well as the argument \code{contrast}
+  explained below.
 
   The available names can be checked using
   \code{resultsNames}; these are combined variable names
   and factor levels, potentially with minor changes made by
-  the \code{DataFrame} function on column names (e.g.
+  the \code{make.names} function on column names (e.g.
   dashes into periods).
 
   By default, results for the last variable will be
   returned. Information on the variable represented and the
   test used for p-values (Wald test or likelihood ratio
   test) is stored in the metadata columns, accessible by
-  calling \code{mcol} on the object returned by
+  calling \code{mcol} on the \code{DataFrame} returned by
   \code{results}.
 
   By default, independent filtering is performed to select
@@ -88,7 +91,8 @@
   filter threshold are set to \code{NA}. By default, the
   mean of normalized counts is used to perform this
   filtering, though other statistics can be provided.
-  Several arguments are provided to control or turn off the
+  Several arguments from the \code{filtered_p} function of
+  genefilter are provided to control or turn off the
   independent filtering behavior.
 
   A contrast can be performed by specifying the variable
@@ -114,6 +118,12 @@ example("DESeq")
 results(dds)
 resultsNames(dds)
 dds <- removeResults(dds)
+}
+\references{
+  Richard Bourgon, Robert Gentleman, Wolfgang Huber:
+  Independent filtering increases detection power for
+  high-throughput experiments. PNAS (2010),
+  \url{http://dx.doi.org/10.1073/pnas.0914005107}
 }
 \seealso{
   \code{\link{DESeq}}

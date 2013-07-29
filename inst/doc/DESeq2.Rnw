@@ -92,8 +92,9 @@ counts of covered base pairs -- this will only lead to nonsensical results.
 \subsubsection{\Rclass{SummarizedExperiment} input} \label{sec:sumExpInput}
 
 The class used by the \Biocpkg{DESeq2} package to store the read counts 
-extends the \Rclass{SummarizedExperiment} class of the \Biocpkg{GenomicRanges}
-package. This facilitates preparation steps and also downstream exploration of results. 
+is \Rclass{DESeqDataSet} which extends the \Rclass{SummarizedExperiment} 
+class of the \Biocpkg{GenomicRanges} package. 
+This facilitates preparation steps and also downstream exploration of results. 
 For counting aligned reads in genes, the \Rfunction{summarizeOverlaps} function of
 \Biocpkg{GenomicRanges}/\Biocpkg{Rsamtools} with \Robject{mode="Union"} is
 encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Biocpkg{easyRNASeq}
@@ -110,8 +111,7 @@ se <- parathyroidGenesSE
 colnames(se) <- colData(se)$run
 @
 
-The data storage class used by \Biocpkg{DESeq2} is \Rclass{DESeqDataSet} 
-which has an associated design \Rclass{formula}.  
+A \Rclass{DESeqDataSet} object must have an associated design formula.  
 The design formula expresses the variables which will be
 used in modeling. The formula should be a tilde ($\sim$) followed by the
 variables with plus signs between them (it will be coerced into an
@@ -121,11 +121,11 @@ however then all differential analysis steps should be repeated,
 as the design formula is used to estimate the dispersions and 
 to estimate the log fold changes of the model.
 
-The constructor function below shows generation of a
+The constructor function below shows the generation of a
 \Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}. 
-Note: In order to benefit from the default
-settings of the package, you should put the variable of interest at the end
-of the formula.  
+Note: In order to benefit from the default settings of the package, 
+you should put the variable of interest at the end
+of the formula and make sure the control level is the first level.  
 
 <<sumExpInput>>=
 library("DESeq2")
@@ -327,7 +327,7 @@ p-values of the \Robject{type} variable.  The function \Rfunction{results} takes
 argument \Robject{name}, which is a combination of the variable, the level
 (numeratoFr of the fold change) and the base level 
 (denominator of the fold change).  In addition, there might be minor
-changes made by the \Rfunction{DataFrame} function on column names, 
+changes made by the \Rfunction{make.names} function on column names, 
 e.g. changing \texttt{-} (a dash) to \texttt{.} (a period). The function
 \Rfunction{resultsNames} will tell you the names of all available results.
 
@@ -787,8 +787,6 @@ plot(attr(res,"filterNumRej"),type="b",
   of a filtering statistic (in this case, the mean of normalized counts).
 }
 
-\subsection{Customizing independent filtering}
-
 Independent filtering can be turned off by setting 
 \Robject{independentFiltering} to \Robject{FALSE}.
 Alternative filtering statistics can be easily provided
@@ -816,26 +814,6 @@ Descriptions of the columns are accessible by two calls to
 mcols(dds,use.names=TRUE)[1:4,1:4]
 mcols(mcols(dds), use.names=TRUE)[1:4,]
 @
-
-\subsection{Multi-level conditions}
-
-As mentioned in Section \ref{sec:factorLevels}, it is important to
-refactor columns which will be used in analysis, providing the levels
-in the order desired, as the first level will be used as a base level.
-For a column with 3 levels ``Control'', ``A'', and ``B'', the refactoring
-would be:
-
-<<multilevelExample, eval=FALSE>>=
-colData(x)$condition <- factor(colData(x)$condition,
-                               levels=c("Control","A","B"))
-@
-
-In this case, there will be two coefficients in the analysis with
-available results: $\log_2$ fold changes of ``A'' vs ``Control'',
-and $\log_2$ fold changes of ``B'' vs ``Control''. It is also possible
-to set the base level using the \R{} function \Rfunction{relevel}.
-We are working on an implementation of contrasts, which would allow 
-comparison of the coefficients of ``A'' against ``B''.
 
 \subsection{Sample-/gene-dependent normalization factors}\label{sec:normfactors}
 
