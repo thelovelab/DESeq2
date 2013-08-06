@@ -170,7 +170,7 @@ plotMA = function(object, lfcColname, pvalColname, pvalCutoff=.1, ylim,
 plotPCA = function(x, intgroup="condition", ntop=500)
 {
   rv = rowVars(assay(x))
-  select = order(rv, decreasing=TRUE)[seq_len(ntop)]
+  select = order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
   pca = prcomp(t(assay(x)[select,]))
 
   fac = factor(apply( as.data.frame(colData(x)[, intgroup, drop=FALSE]), 1, paste, collapse=" : "))
