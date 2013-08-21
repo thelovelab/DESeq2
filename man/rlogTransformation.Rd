@@ -4,9 +4,9 @@
 \title{Apply a 'regularized log' transformation}
 \usage{
   rlogTransformation(object, blind = TRUE, samplesVector,
-    priorSigmasq, rowVarQuantile = 0.9)
+    betaPriorVar, rowVarQuantile = 0.9)
 
-  rlogData(object, samplesVector, priorSigmasq,
+  rlogData(object, samplesVector, betaPriorVar,
     rowVarQuantile = 0.9)
 }
 \arguments{
@@ -23,7 +23,7 @@
   \item{samplesVector}{a character vector or factor of the
   sample identifiers}
 
-  \item{priorSigmasq}{a single value, the variance of the
+  \item{betaPriorVar}{a single value, the variance of the
   prior on the sample betas, which if missing is estimated
   from the rows which do not have any zeros}
 

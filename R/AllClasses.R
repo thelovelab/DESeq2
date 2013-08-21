@@ -104,11 +104,11 @@ DESeqDataSet <- function(se, design) {
     }
   }
 
-  # sanity check: if the last variable in the design formula is a
+  # if the last variable in the design formula is a
   # factor, and has a level 'control', check if it is
   # the base level and if not print a message
   lastDV <- length(designVars)
-  if (designVarsClass[lastDV] == "factor") {
+  if (length(designVars) > 0 && designVarsClass[lastDV] == "factor") {
       lastDVLvls <- levels(colData(se)[[designVars[lastDV]]])
       controlSynonyms <- c("control","Control","CONTROL")
       for (cSyn in controlSynonyms) {

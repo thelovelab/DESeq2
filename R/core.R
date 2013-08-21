@@ -147,6 +147,11 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
                                  "simulated beta values",
                                  "simulated dispersion values"))
   mcols(object) <- cbind(mcols(object),trueVals)
+  # cleaning up environment from formula above
+  objNames <- ls()
+  objNames <- objNames[objNames != "object"]
+  rm(list=objNames)
+  rm("objNames")
   object
 }
 
@@ -1294,9 +1299,14 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
         logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
         -1 * (logLike + prior)
       }
-      o <- optim(betaRow, objectiveFn, method="L-BFGS-B",
-                 lower=-large, upper=large)
-      ridge <- diag(lambda)
+      o <- optim(betaRow, objectiveFn, method="Nelder-Mead")
+
+      if (length(lambda) > 1) {
+        ridge <- diag(lambda)
+      } else {
+        ridge <- as.matrix(lambda,ncol=1)
+      }
+      
       # if we converged, change betaConv to TRUE
       if (o$convergence == 0) {
         betaConv[row] <- TRUE

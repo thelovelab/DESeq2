@@ -7,12 +7,16 @@ test_dispersionFitting <- function() {
   y <- rpois(m,20)
   sf <- rep(1,m)
   x <- cbind(rep(1,m),rep(0:1,each=m/2))
+  colnames(x) <- c("Intercept","condition")
+  
   lambda <- 2
   alpha <- .5
-  
+
+  # make a DESeqDataSet but don't use the design formula
+  # instead we supply a model matrix below
   dds <- DESeqDataSetFromMatrix(matrix(y,nrow=1),
-                                colData=DataFrame(x=x[,2]),
-                                design= ~ x)
+                                colData=DataFrame(condition=x[,2]),
+                                design= ~ condition)
   sizeFactors(dds) <- sf
   dispersions(dds) <- alpha
   mcols(dds)$baseMean <- mean(y)
@@ -20,7 +24,8 @@ test_dispersionFitting <- function() {
   # for testing we convert beta to the naturual log scale:
   # convert lambda from log to log2 scale by multiplying by log(2)^2
   # then convert beta back from log2 to log scale by multiplying by log(2)
-  betaDESeq <- log(2)*DESeq2:::fitNbinomGLMs(dds, lambda=c(0,lambda*log(2)^2))$betaMatrix
+  betaDESeq <- log(2)*DESeq2:::fitNbinomGLMs(dds, lambda=c(0,lambda*log(2)^2),
+                                             modelMatrix=x)$betaMatrix
 
   log_alpha_prior_mean <- .5
   log_alpha_prior_sigmasq <- 1
@@ -45,6 +50,7 @@ test_dispersionFitting <- function() {
     prior <- dnorm(log.alpha, log_alpha_prior_mean, sqrt(log_alpha_prior_sigmasq), log=TRUE)
     (logLike + coxReid + prior)
   }
+
   dispOptim <- optim(0, function(p) -1*logPost(p), control=list(reltol=1e-16),
                      method="Brent", lower=-10, upper=10)$par
 

@@ -36,7 +36,7 @@
 #' blind=FALSE should be used for transforming data for downstream analysis,
 #' where the full use of the design information should be made.
 #' @param samplesVector a character vector or factor of the sample identifiers
-#' @param priorSigmasq a single value, the variance of the prior on the sample betas,
+#' @param betaPriorVar a single value, the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
 #' @param rowVarQuantile the quantile of the row variances of log fold changes
@@ -58,19 +58,21 @@
 #' plot(hclust(dists))
 #'
 #' @export
-rlogTransformation <- function(object, blind=TRUE, samplesVector, priorSigmasq, rowVarQuantile=.9) {
+rlogTransformation <- function(object, blind=TRUE, samplesVector, betaPriorVar, rowVarQuantile=.9) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
   if (blind) {
     design(object) <- ~ 1
-    object <- estimateDispersions(object)
+    object <- estimateDispersionsGeneEst(object)
+    object <- estimateDispersionsFit(object)
   }
-  if (is.null(dispersions(object))) {
-    object <- estimateDispersions(object)
+  if (is.null(mcols(object)$dispFit)) {
+    object <- estimateDispersionsGeneEst(object)
+    object <- estimateDispersionsFit(object)
   }
   SummarizedExperiment(
-    assays = rlogData(object, samplesVector, priorSigmasq, rowVarQuantile),
+    assays = rlogData(object, samplesVector, betaPriorVar, rowVarQuantile),
     colData = colData(object),
     rowData = rowData(object),
     exptData = exptData(object))
@@ -78,8 +80,8 @@ rlogTransformation <- function(object, blind=TRUE, samplesVector, priorSigmasq, 
 
 #' @rdname rlogTransformation
 #' @export
-rlogData <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
-  if (is.null(dispersions(object))) {
+rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.9) {
+  if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion with a design of formula(~ 1)")
   }
   if (missing(samplesVector)) {
@@ -102,12 +104,13 @@ rlogData <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
 
   # if a prior sigma squared not provided, calculate it
   # from betas calculated with a wide prior
-  if (missing(priorSigmasq)) {
+  if (missing(betaPriorVar)) {
     lambda <- rep(1e-4, ncol(modelMatrix))
     if ("(Intercept)" %in% modelMatrixNames) {
       lambda[which(modelMatrixNames == "(Intercept)")] <- 1e-6
     }    
-    fit <- fitNbinomGLMs(objectNZ,modelMatrix=modelMatrix,lambda=lambda,renameCols=FALSE,
+    fit <- fitNbinomGLMs(object=objectNZ, modelMatrix=modelMatrix,
+                         lambda=lambda, renameCols=FALSE,
                          alpha_hat=mcols(objectNZ)$dispFit)
     # use rows which have no zeros
     useNoZeros <- apply(counts(objectNZ),1,function(x) all(x > 0))
@@ -117,16 +120,17 @@ rlogData <- function(object, samplesVector, priorSigmasq, rowVarQuantile=.9) {
     # calculate priors on sample betas
     # take row means of squares of sample betas
     betaRowMeanSquared <- rowMeans(fit$betaMatrix[,-which(fit$modelMatrixNames == "Intercept")]^2)
-    priorSigmasq <- quantile(betaRowMeanSquared[useNoZeros], rowVarQuantile)
+    betaPriorVar <- quantile(betaRowMeanSquared[useNoZeros], rowVarQuantile)
   }
-  stopifnot(length(priorSigmasq)==1)
+  stopifnot(length(betaPriorVar)==1)
   
-  lambda <- 1/rep(priorSigmasq,ncol(modelMatrix))
+  lambda <- 1/rep(betaPriorVar,ncol(modelMatrix))
   # except for intercept which we set to wide prior
   if ("Intercept" %in% fit$modelMatrixNames) {
     lambda[which(fit$modelMatrixNames == "Intercept")] <- 1e-6
   }
-  fit <- fitNbinomGLMs(objectNZ,modelMatrix=modelMatrix,lambda=lambda,renameCols=FALSE,
+  fit <- fitNbinomGLMs(object=objectNZ, modelMatrix=modelMatrix,
+                       lambda=lambda, renameCols=FALSE,
                        alpha_hat=mcols(objectNZ)$dispFit)
   normalizedDataNZ <- t(modelMatrix %*% t(fit$betaMatrix))
   normalizedData <- buildMatrixWithNARows(normalizedDataNZ, mcols(object)$allZero)
