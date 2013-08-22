@@ -3,7 +3,7 @@
 \title{MA-plot from base means and log fold changes}
 \usage{
   plotMA(object, lfcColname, pvalColname, pvalCutoff = 0.1,
-    ylim, col, linecol = "#ff000080",
+    ylim, linecol = "#ff000080",
     xlab = "mean of normalized counts",
     ylab = expression(log[2] ~ fold ~ change), log = "x",
     cex = 0.45, ...)
@@ -23,20 +23,19 @@
   \item{pvalCutoff}{the cutoff for drawing red or black
   points}
 
-  \item{ylim}{ylim}
-
-  \item{col}{col}
+  \item{ylim}{the limits for the y axis (chosen
+  automatically if not specified)}
 
   \item{linecol}{the color of the horizontal line}
 
-  \item{xlab}{xlab}
+  \item{xlab}{the label for the x axis}
 
-  \item{ylab}{ylab}
+  \item{ylab}{the label for the y axis}
 
   \item{log}{log, defaults to "x", the y-axis is already in
   log scale}
 
-  \item{cex}{cex}
+  \item{cex}{the size of the points}
 
   \item{...}{further arguments to \code{plot}}
 }
