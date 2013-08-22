@@ -80,13 +80,12 @@ plotDispEsts = function( object, ymin,
 #' @param pvalColname the name of the column for pvalues/adjusted pvalues, if
 #'    not provided this will default to \code{WaldAdjPvalue_lfcColname}
 #' @param pvalCutoff the cutoff for drawing red or black points
-#' @param ylim ylim
-#' @param col col
+#' @param ylim the limits for the y axis (chosen automatically if not specified)
 #' @param linecol the color of the horizontal line
-#' @param xlab xlab
-#' @param ylab ylab
+#' @param xlab the label for the x axis
+#' @param ylab the label for the y axis
 #' @param log log, defaults to "x", the y-axis is already in log scale
-#' @param cex cex
+#' @param cex the size of the points
 #' @param ... further arguments to \code{plot}
 #'
 #' @author Wolfgang Huber
@@ -99,7 +98,7 @@ plotDispEsts = function( object, ymin,
 #' 
 #' @export
 plotMA = function(object, lfcColname, pvalColname, pvalCutoff=.1, ylim,
-  col, linecol = "#ff000080", xlab = "mean of normalized counts",
+  linecol = "#ff000080", xlab = "mean of normalized counts",
   ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...) {
     if (class(object) == "DESeqDataSet") {
         if (!"results" %in% mcols(mcols(object))$type) {
@@ -128,6 +127,8 @@ plotMA = function(object, lfcColname, pvalColname, pvalCutoff=.1, ylim,
         lfcColname <- "log2FoldChange"
         x <- object
     }
+
+    stopifnot( length(cex) == 1 )
 
     col <- ifelse(x[,pvalColname] < pvalCutoff, "red", "black")
     col = col[x$baseMean > 0]
