@@ -4,10 +4,10 @@
 \title{Apply a 'regularized log' transformation}
 \usage{
   rlogTransformation(object, blind = TRUE, samplesVector,
-    betaPriorVar, rowVarQuantile = 0.9)
+    betaPriorVar, rowVarQuantile = 0.75)
 
   rlogData(object, samplesVector, betaPriorVar,
-    rowVarQuantile = 0.9)
+    rowVarQuantile = 0.75)
 }
 \arguments{
   \item{object}{a DESeqDataSet}

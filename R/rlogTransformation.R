@@ -58,7 +58,8 @@
 #' plot(hclust(dists))
 #'
 #' @export
-rlogTransformation <- function(object, blind=TRUE, samplesVector, betaPriorVar, rowVarQuantile=.9) {
+rlogTransformation <- function(object, blind=TRUE, samplesVector,
+                               betaPriorVar, rowVarQuantile=.75) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
@@ -80,7 +81,7 @@ rlogTransformation <- function(object, blind=TRUE, samplesVector, betaPriorVar, 
 
 #' @rdname rlogTransformation
 #' @export
-rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.9) {
+rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.75) {
   if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion with a design of formula(~ 1)")
   }
@@ -98,40 +99,29 @@ rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.9) {
                    levels=c("null_level",levels(samplesVector)))
   modelMatrix <- model.matrix(~samples)[-1,]
   modelMatrixNames <- colnames(modelMatrix)
+  modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
   
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
 
-  # if a prior sigma squared not provided, calculate it
-  # from betas calculated with a wide prior
+  # if a prior sigma squared not provided, estimate this
+  # by the variance of log2 counts plus a pseudocount
   if (missing(betaPriorVar)) {
-    lambda <- rep(1e-4, ncol(modelMatrix))
-    if ("(Intercept)" %in% modelMatrixNames) {
-      lambda[which(modelMatrixNames == "(Intercept)")] <- 1e-6
-    }    
-    fit <- fitNbinomGLMs(object=objectNZ, modelMatrix=modelMatrix,
-                         lambda=lambda, renameCols=FALSE,
-                         alpha_hat=mcols(objectNZ)$dispFit)
-    # use rows which have no zeros
-    useNoZeros <- apply(counts(objectNZ),1,function(x) all(x > 0))
-    if (sum(useNoZeros) == 0) {
-      stop("no rows found without zeros")
-    } 
-    # calculate priors on sample betas
-    # take row means of squares of sample betas
-    betaRowMeanSquared <- rowMeans(fit$betaMatrix[,-which(fit$modelMatrixNames == "Intercept")]^2)
-    betaPriorVar <- quantile(betaRowMeanSquared[useNoZeros], rowVarQuantile)
+    logCounts <- log2(counts(objectNZ,normalized=TRUE) + 0.5)
+    betaRowMeanSquared <- apply(logCounts,1,var)
+    betaPriorVar <- quantile(betaRowMeanSquared, rowVarQuantile)
   }
   stopifnot(length(betaPriorVar)==1)
   
   lambda <- 1/rep(betaPriorVar,ncol(modelMatrix))
   # except for intercept which we set to wide prior
-  if ("Intercept" %in% fit$modelMatrixNames) {
-    lambda[which(fit$modelMatrixNames == "Intercept")] <- 1e-6
+  if ("Intercept" %in% modelMatrixNames) {
+    lambda[which(modelMatrixNames == "Intercept")] <- 1e-6
   }
   fit <- fitNbinomGLMs(object=objectNZ, modelMatrix=modelMatrix,
                        lambda=lambda, renameCols=FALSE,
-                       alpha_hat=mcols(objectNZ)$dispFit)
+                       alpha_hat=mcols(objectNZ)$dispFit,
+                       betaTol=1e-4,useOptim=FALSE)
   normalizedDataNZ <- t(modelMatrix %*% t(fit$betaMatrix))
   normalizedData <- buildMatrixWithNARows(normalizedDataNZ, mcols(object)$allZero)
   colnames(normalizedData) <- colnames(object)
