@@ -1,3 +1,12 @@
+CHANGES IN VERSION 1.1.31
+-------------------------
+
+    o The adjustment of p-values and use of Cook's distance
+      for outlier detection is moved to results() function
+      instead of nbinomWaldTest(), nbinomLRT(), or DESeq().
+      This allows the user to change parameter settings 
+      without having to refit the model.
+
 CHANGES IN VERSION 1.1.24
 -------------------------
 

@@ -2,7 +2,7 @@
 \alias{plotMA}
 \title{MA-plot from base means and log fold changes}
 \usage{
-  plotMA(object, lfcColname, pvalColname, pvalCutoff = 0.1,
+  plotMA(object, lfcColname, pvalues, pvalCutoff = 0.1,
     ylim, linecol = "#ff000080",
     xlab = "mean of normalized counts",
     ylab = expression(log[2] ~ fold ~ change), log = "x",
@@ -16,9 +16,9 @@
   changes, if not provided this will default to the last
   variable in the design formula}
 
-  \item{pvalColname}{the name of the column for
-  pvalues/adjusted pvalues, if not provided this will
-  default to \code{WaldAdjPvalue_lfcColname}}
+  \item{pvalues}{a vector of the p-values or adjusted
+  p-values to use in coloring the points. If not provided,
+  defaults to the 'padj' column of results(object)}
 
   \item{pvalCutoff}{the cutoff for drawing red or black
   points}

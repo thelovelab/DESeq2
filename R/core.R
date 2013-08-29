@@ -49,7 +49,6 @@
 #' \code{design(object)}
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model with a term or terms of interest removed
-#' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #' @param quiet whether to print messages at each step
 #'
 #' @author Michael Love
@@ -76,8 +75,7 @@
 #' @export
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior=TRUE,
-                  full=design(object), reduced,
-                  pAdjustMethod="BH", quiet=FALSE) {
+                  full=design(object), reduced, quiet=FALSE) {
   if (missing(test)) {
     test <- test[1]
   }
@@ -88,12 +86,10 @@ DESeq <- function(object, test=c("Wald","LRT"),
   object <- estimateDispersions(object,fitType=fitType, quiet=quiet)
   if (!quiet) message("fitting model and testing")
   if (test == "Wald") {
-    object <- nbinomWaldTest(object, betaPrior=betaPrior,
-                             pAdjustMethod=pAdjustMethod, quiet=quiet)
+    object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet)
                              
   } else if (test == "LRT") {
-    object <- nbinomLRT(object, full=full, reduced=reduced,
-                        pAdjustMethod=pAdjustMethod, quiet=quiet)
+    object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
   }
   object
 }
@@ -550,10 +546,6 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' examination of Wald statistics for real datasets, the effect of the
 #' prior on dispersion estimates results in a Wald statistic
 #' distribution which is approximately normal.
-#'
-#' Cook's distance for each sample are accessible as a matrix "cooks"
-#' stored in the assays() list. This measure is useful for identifying rows where the
-#' observed counts might not fit to a negative binomial distribution.
 #' 
 #' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
@@ -561,20 +553,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' @param object a DESeqDataSet
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients (Tikhonov/ridge regularization)
-#' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #' @param betaPriorVar a vector with length equal to the number of
 #' model terms including the intercept.
 #  betaPriorVar gives the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
-#' @param cooksCutoff theshold on Cook's distance, such that if one or more
-#' samples for a row have a distance higher, the p-value for the row is
-#' set to NA.
-#' The default cutoff is the .75 quantile of the F(p, m-p) distribution,
-#' where p is the number of coefficients being fitted and m is the number of samples.
-#' Set to Inf or FALSE to disable the resetting of p-values to NA.
-#' Note: this test excludes the Cook's distance of samples whose removal
-#' would result in rank deficient design matrix.
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -600,11 +583,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
-                           betaPriorVar, cooksCutoff,
+nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, 
                            maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df) {
-  stopifnot(length(pAdjustMethod)==1)
   stopifnot(length(maxit)==1)
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
@@ -612,6 +593,9 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
+  }
+  if (!"allZero" %in% names(mcols(object))) {
+    object <- getBaseMeansAndVariances(object)
   }
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
@@ -659,29 +643,25 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
     fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim)
   }
 
+  # store mu in case the user did not call estimateDispersionsGeneEst
+  assays(objectNZ)[["mu"]] <- fit$mu
+  assays(object)[["mu"]] <- buildMatrixWithNARows(fit$mu, mcols(object)$allZero)
+
   # store the prior variance directly as an attribute
   # of the DESeqDataSet object
   attr(object,"betaPriorVar") <- betaPriorVar
+  attr(object,"modelMatrix") <- fit$modelMatrix
 
   m <- nrow(fit$modelMatrix)
   p <- ncol(fit$modelMatrix)
 
-  # calculate Cook's distance
-  if (missing(cooksCutoff)) {
-    cooksCutoff <- qf(.75, p, m - p)
-  }
-  stopifnot(length(cooksCutoff)==1)
-  if (is.logical(cooksCutoff) & cooksCutoff) {
-    cooksCutoff <- qf(.75, p, m - p)
-  }
+  # calculate Cook's distance'
   cooks <- calculateCooksDistance(objectNZ, H, p)
   looFullRank <- leaveOneOutFullRank(fit$modelMatrix)
   if (m > p) {
     maxCooks <- apply(cooks[,looFullRank,drop=FALSE], 1, max)
-    cooksOutlier <- maxCooks > cooksCutoff
   } else {
     maxCooks <- rep(NA, nrow(objectNZ))
-    cooksOutlier <- rep(FALSE, nrow(objectNZ))
   }
 
   # store Cook's distance for each sample
@@ -706,20 +686,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
     WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)
   }
   colnames(WaldPvalue) <- paste0("WaldPvalue_",modelMatrixNames)
-
-  # Set to NA the p-values for genes that have one or more
-  # samples with Cook's distance beyond the cutof
-  if (is.numeric(cooksCutoff) | cooksCutoff) {
-    WaldPvalue[cooksOutlier,] <- NA
-  }
   
-  # if more than 1 row, we adjust p-values
-  if (nrow(WaldPvalue) > 1) {  
-    WaldAdjPvalue <- apply(WaldPvalue,2,p.adjust,method=pAdjustMethod)
-  } else {
-    WaldAdjPvalue <- WaldPvalue
-  }
-  colnames(WaldAdjPvalue) <- paste0("WaldAdjPvalue_",modelMatrixNames)
   betaConv <- fit$betaConv
 
   if (any(!betaConv)) {
@@ -730,12 +697,10 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
                    matrixToList(betaSE),
                    matrixToList(WaldStatistic),
                    matrixToList(WaldPvalue),
-                   matrixToList(WaldAdjPvalue),
                    list(betaConv = betaConv,
                         betaIter = fit$betaIter,
                         deviance = -2 * fit$logLike,
-                        maxCooks = maxCooks,
-                        cooksOutlier = cooksOutlier))
+                        maxCooks = maxCooks))
   WaldResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
   
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
@@ -747,16 +712,13 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
   statInfo <- paste("Wald statistic:",modelMatrixNamesSpaces)
   pvalInfo <- paste("Wald test p-value:",modelMatrixNamesSpaces)
-  adjInfo <- paste("Wald test p-value,",pAdjustMethod,"adj.:",
-                   modelMatrixNamesSpaces)
   
   mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
-                                  description = c(coefInfo, seInfo, statInfo, pvalInfo, adjInfo,
+                                  description = c(coefInfo, seInfo, statInfo, pvalInfo,
                                     "convergence of betas",
                                     "iterations for betas",
                                     "deviance for the fitted model",
-                                    "maximum Cook's distance for row",
-                                    "maxCooks over cooksCutoff"))
+                                    "maximum Cook's distance for row"))
   
   mcols(object) <- cbind(mcols(object),WaldResults)
   return(object)
@@ -774,25 +736,12 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
 #' with df = (reduced residual degrees of freedom - full residual degrees of freedom).
 #' This function is comparable to the \code{nbinomGLMTest} of the previous version of DESeq
 #' and an alternative to the default \code{\link{nbinomWaldTest}}.
-#'
-#' Cook's distance for each sample are accessible as a matrix "cooks"
-#' stored in the assays() list. This measure is useful for identifying rows where the
-#' observed counts might not fit to a negative binomial distribution.
 #' 
 #' @param object a DESeqDataSet
 #' @param full the full model formula, this should be the formula in
 #' \code{design(object)}
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model with a term or terms of interest removed
-#' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
-#' @param cooksCutoff theshold on Cook's distance, such that if one or more
-#' samples for a row have a distance higher, the p-value for the row is
-#' set to NA.
-#' The default cutoff is the .75 quantile of the F(p, m-p) distribution,
-#' where p is the number of coefficients being fitted and m is the number of samples.
-#' Set to Inf or FALSE to disable the resetting of p-values to NA.
-#' Note: this test excludes the Cook's distance of samples whose removal
-#' would result in rank deficient design matrix.
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -814,7 +763,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, pAdjustMethod="BH",
 #' res <- results(dds)
 #'
 #' @export
-nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", cooksCutoff,
+nbinomLRT <- function(object, full=design(object), reduced,
                       maxit=100, useOptim=TRUE, quiet=FALSE ) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
@@ -836,32 +785,32 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
   df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
   if (df < 1) stop("less than one degree of freedom, perhaps full and reduced models are not in the correct order")
 
+  if (!"allZero" %in% names(mcols(object))) {
+    object <- getBaseMeansAndVariances(object)
+  }
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
   
   fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit, useOptim=useOptim)
   reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit, useOptim=useOptim)
 
+  attr(object,"modelMatrix") <- fullModelMatrix
+  
   p <- ncol(fullModelMatrix)
   m <- nrow(fullModelMatrix)
   H <- fullModel$hat_diagonals
 
+  # store mu in case the user did not call estimateDispersionsGeneEst
+  assays(objectNZ)[["mu"]] <- fullModel$mu
+  assays(object)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
+  
   # calculate Cook's distance
-  if (missing(cooksCutoff)) {
-    cooksCutoff <- qf(.75, p, m - p)
-  }
-  stopifnot(length(cooksCutoff)==1)
-  if (is.logical(cooksCutoff) & cooksCutoff) {
-    cooksCutoff <- qf(.75, p, m - p)
-  }
   cooks <- calculateCooksDistance(objectNZ, H, p)
   looFullRank <- leaveOneOutFullRank(fullModelMatrix)
   if (m > p) {
     maxCooks <- apply(cooks[,looFullRank,drop=FALSE], 1, max)
-    cooksOutlier <- maxCooks > cooksCutoff
   } else {
     maxCooks <- rep(NA, nrow(objectNZ))
-    cooksOutlier <- rep(FALSE, nrow(objectNZ))
   }
 
   # store Cook's distance for each sample
@@ -874,29 +823,21 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
   # calculate LRT statistic and p-values
   LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
   LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
-  
-  # Set to NA the p-values for genes that have one or more
-  # samples with Cook's distance beyond the cutoff
-  if (is.numeric(cooksCutoff) | cooksCutoff) {
-    LRTPvalue[cooksOutlier] <- NA
-  }
 
   # continue storing LRT results
-  LRTAdjPvalue <- p.adjust(LRTPvalue,method=pAdjustMethod)
   resultsList <- c(matrixToList(fullModel$betaMatrix),
                    matrixToList(fullModel$betaSE),
                    list(LRTStatistic = LRTStatistic,
                         LRTPvalue = LRTPvalue,
-                        LRTAdjPvalue = LRTAdjPvalue,
                         fullBetaConv = fullModel$betaConv,
                         reducedBetaConv = reducedModel$betaConv,
                         betaIter = fullModel$betaIter,
                         deviance = -2 * fullModel$logLike,
-                        maxCooks = maxCooks,
-                        cooksOutlier = cooksOutlier))
+                        maxCooks = maxCooks))
   LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
 
-  modelComparison <- paste0("'",paste(as.character(full),collapse=" "), "' vs '", paste(as.character(reduced),collapse=" "),"'")
+  modelComparison <- paste0("'",paste(as.character(full),collapse=" "),
+                            "' vs '", paste(as.character(reduced),collapse=" "),"'")
 
   modelMatrixNames <- colnames(fullModel$betaMatrix)
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
@@ -904,17 +845,15 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
   statInfo <- paste("LRT statistic:",modelComparison)
   pvalInfo <- paste("LRT p-value:",modelComparison)
-  adjInfo <- paste("LRT p-value,",pAdjustMethod,"adj.",modelComparison)
 
   mcols(LRTResults) <- DataFrame(type = rep("results",ncol(LRTResults)),
                                  description = c(coefInfo, seInfo,
-                                   statInfo, pvalInfo, adjInfo,
+                                   statInfo, pvalInfo, 
                                    "convergence of betas for full model",
                                    "convergence of betas for reduced model",
                                    "iterations for betas for full model",
                                    "deviance of the full model",
-                                   "maximum Cook's distance for row",
-                                   "maxCooks over cooksCutoff"))
+                                   "maximum Cook's distance for row"))
   mcols(object) <- cbind(mcols(object),LRTResults)
   return(object)
 }
@@ -964,6 +903,10 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' In this case, the \code{name} argument only specifies which
 #' coefficient should be used for reporting the log2 fold changes.
 #'
+#' Cook's distance for each sample are accessible as a matrix "cooks"
+#' stored in the assays() list. This measure is useful for identifying rows where the
+#' observed counts might not fit to a negative binomial distribution.
+#' 
 #' Results can be removed from an object by calling \code{removeResults}
 #'
 #' @references Richard Bourgon, Robert Gentleman, Wolfgang Huber: Independent filtering increases detection power for high-throughput experiments. PNAS (2010), \url{http://dx.doi.org/10.1073/pnas.0914005107}
@@ -979,6 +922,14 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' for each element in \code{resultsNames(object)}, i.e. columns of the model matrix.
 #' The DESeqDataSet must be one produced using the Wald test steps
 #' in order to use contrasts.
+#' @param cooksCutoff theshold on Cook's distance, such that if one or more
+#' samples for a row have a distance higher, the p-value for the row is
+#' set to NA.
+#' The default cutoff is the .75 quantile of the F(p, m-p) distribution,
+#' where p is the number of coefficients being fitted and m is the number of samples.
+#' Set to Inf or FALSE to disable the resetting of p-values to NA.
+#' Note: this test excludes the Cook's distance of samples whose removal
+#' would result in rank deficient design matrix.
 #' @param independentFiltering logical, whether independent filtering should be
 #' applied automatically
 #' @param alpha the significance cutoff used for optimizing the independent
@@ -1009,7 +960,7 @@ nbinomLRT <- function(object, full=design(object), reduced, pAdjustMethod="BH", 
 #' @rdname results
 #' @aliases results resultsNames removeResults
 #' @export
-results <- function(object, name, contrast,
+results <- function(object, name, contrast, cooksCutoff,
                     independentFiltering=TRUE,
                     alpha=0.1, filter, theta=seq(0, 0.95, by=0.05),
                     pAdjustMethod="BH") {
@@ -1018,6 +969,7 @@ results <- function(object, name, contrast,
   }
   stopifnot(length(alpha)==1)
   stopifnot(length(theta) > 1)
+  stopifnot(length(pAdjustMethod)==1)
   if (length(name) != 1 | !is.character(name)) {
     stop("the argument 'name' should be a character vector of length 1")
   }
@@ -1040,7 +992,7 @@ results <- function(object, name, contrast,
     if (test != "Wald") {
       stop("using contrasts requires that the Wald test was performed")
     }
-    res <- cleanContrast(object, contrast, pAdjustMethod)
+    res <- cleanContrast(object, contrast)
   } else {
     # if not performing a contrast
     # pull relevant columns from mcols(object)
@@ -1048,14 +1000,30 @@ results <- function(object, name, contrast,
     lfcSE <- getCoefSE(object, name)
     stat <- getStat(object, test, name)
     pvalue <- getPvalue(object, test, name)
-    padj <- getPadj(object, test, name)
     res <- cbind(mcols(object)["baseMean"],
                  log2FoldChange,lfcSE,stat,
-                 pvalue,padj)
-    names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue","padj")
+                 pvalue)
+    names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
   }
   rownames(res) <- rownames(object)
-  
+
+  # calculate Cook's cutoff
+  m <- nrow(attr(object,"modelMatrix"))
+  p <- ncol(attr(object,"modelMatrix"))
+  if (missing(cooksCutoff)) {
+    cooksCutoff <- qf(.75, p, m - p)
+  }
+  stopifnot(length(cooksCutoff)==1)
+  if (is.logical(cooksCutoff) & cooksCutoff) {
+    cooksCutoff <- qf(.75, p, m - p)
+  }
+
+  # apply cutoff based on maximum Cook's distance
+  if ((m > p) & (is.numeric(cooksCutoff) | cooksCutoff)) {
+    cooksOutlier <- mcols(object)$maxCooks > cooksCutoff
+    res$pvalue[cooksOutlier] <- NA
+  }
+
   # perform independent filtering
   if (independentFiltering) {
     if (missing(filter)) {
@@ -1070,7 +1038,16 @@ results <- function(object, name, contrast,
     cutoffs <- quantile(filter, theta) 
     attr(res, "filterThreshold") <- cutoffs[j]
     attr(res, "filterNumRej") <- data.frame(theta=theta, numRej=numRej)
+  } else {
+    # regular p-value adjustment
+    # which does not include those rows which were removed
+    # by maximum Cook's distance
+    res$padj <- p.adjust(res$pvalue,method=pAdjustMethod)
   }
+
+  mcols(res)$type[names(res)=="padj"] <- "results"
+  mcols(res)$description[names(res)=="padj"] <- paste(pAdjustMethod,"adjusted p-values")
+  
   res
 }
 
@@ -1085,7 +1062,7 @@ resultsNames <- function(object) {
 removeResults <- function(object) {
   resCols <- mcols(mcols(object))$type == "results"
   if (sum(resCols,na.rm=TRUE) > 0) {
-    mcols(object) <- mcols(object)[,!resCols]
+    mcols(object) <- mcols(object)[,-which(resCols)]
   }
   return(object)
 }
@@ -1486,18 +1463,6 @@ getPvalue <- function(object,test="Wald",name) {
     stop("unknown test")
   }
 }
-getPadj <- function(object,test="Wald",name) {
-  if (missing(name)) {
-    name <- lastCoefName(object)
-  }
-  if (test == "Wald") {
-    return(mcols(object)[paste0("WaldAdjPvalue_",name)])
-  } else if (test == "LRT") {
-    return(mcols(object)["LRTAdjPvalue"])
-  } else {
-    stop("unknown test")
-  }
-}
 
 # convenience function to make more descriptive names
 # for factor variables
@@ -1511,7 +1476,12 @@ renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
 }
 
 calculateCooksDistance <- function(object, H, p) {
-  V <- assays(object)[["mu"]] + mcols(object)$dispFit * assays(object)[["mu"]]^2
+  if (!is.null(mcols(object)$dispFit)) {
+    dispersions <- mcols(object)$dispFit
+  } else {
+    dispersions <- dispersions(object)
+  }
+  V <- assays(object)[["mu"]] + dispersions * assays(object)[["mu"]]^2
   PearsonResSq <- (counts(object) - assays(object)[["mu"]])^2 / V
   cooks <- PearsonResSq / p  * H / (1 - H)^2
   cooks
@@ -1573,7 +1543,7 @@ covarianceMatrix <- function(object, rowNumber) {
 # c' beta / sqrt( c' sigma c)
 # where beta is the coefficient vector
 # and sigma is the covariance matrix for beta
-getContrast <- function(object, contrast, useT=FALSE, df, pAdjustMethod="BH") {
+getContrast <- function(object, contrast, useT=FALSE, df) {
   if (missing(contrast)) {
     stop("must provide a contrast")
   }
@@ -1610,24 +1580,17 @@ getContrast <- function(object, contrast, useT=FALSE, df, pAdjustMethod="BH") {
   } else {
     contrastPvalue <- 2*pnorm(abs(contrastStatistic),lower.tail=FALSE)
   }
-  # if more than 1 row, we adjust p-values
-  if (nrow(contrastPvalue) > 1) {  
-    contrastAdjPvalue <- apply(contrastPvalue,2,p.adjust,method=pAdjustMethod)
-  } else {
-    contrastAdjPvalue <- contrastPvalue
-  }
   contrastList <- list(log2FoldChange=contrastEstimate,
                        lfcSE=contrastSE,
                        stat=contrastStatistic,
-                       pvalue=contrastPvalue,
-                       padj=contrastAdjPvalue)
+                       pvalue=contrastPvalue)
   contrastResults <- buildDataFrameWithNARows(contrastList,
                                               mcols(object)$allZero)
-  names(contrastResults) <- c("log2FoldChange","lfcSE","stat","pvalue","padj")
+  names(contrastResults) <- c("log2FoldChange","lfcSE","stat","pvalue")
   contrastResults
 }
 
-cleanContrast <- function(object, contrast, pAdjustMethod) {
+cleanContrast <- function(object, contrast) {
   resNames <- resultsNames(object)
   # check contrast validity
   if (is.numeric(contrast)) {
@@ -1670,11 +1633,10 @@ cleanContrast <- function(object, contrast, pAdjustMethod) {
       lfcSE <- getCoefSE(object, name)
       stat <- getStat(object, test, name)
       pvalue <- getPvalue(object, test, name)
-      padj <- getPadj(object, test, name)
       res <- cbind(mcols(object)["baseMean"],
                    log2FoldChange,lfcSE,stat,
-                   pvalue,padj)
-      names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue","padj")
+                   pvalue)
+      names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
       return(res)
     } else if ( contrastNumLevel == contrastBaseLevel ) {
       # fetch the results for denom vs num 
@@ -1689,19 +1651,17 @@ cleanContrast <- function(object, contrast, pAdjustMethod) {
       lfcSE <- getCoefSE(object, swapName)
       stat <- getStat(object, test, swapName)
       pvalue <- getPvalue(object, test, swapName)
-      padj <- getPadj(object, test, swapName)
       res <- cbind(mcols(object)["baseMean"],
                    log2FoldChange,lfcSE,stat,
-                   pvalue,padj)
-      names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue","padj")
+                   pvalue)
+      names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
       res$log2FoldChange <- -1 * res$log2FoldChange
       res$stat <- -1 * res$stat
       # also need to swap the name in the mcols
       contrastDescriptions <- paste(c("log2 fold change (MAP):",
                                       "standard error:",
                                       "Wald statistic:",
-                                      "Wald test p-value:",
-                                      "Wald test p-value, BH adj.:"),
+                                      "Wald test p-value:"),
                                     cleanName)
       mcols(res)$description[mcols(res)$type == "results"] <- contrastDescriptions
       return(res)
@@ -1732,13 +1692,11 @@ cleanContrast <- function(object, contrast, pAdjustMethod) {
     contrastName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
   }
 
-  contrastResults <- getContrast(object, contrast, useT=FALSE,
-                                 df, pAdjustMethod=pAdjustMethod)
+  contrastResults <- getContrast(object, contrast, useT=FALSE, df)
   contrastDescriptions <- paste(c("log2 fold change (MAP):",
                                   "standard error:",
                                   "Wald statistic:",
-                                  "Wald test p-value:",
-                                  "Wald test p-value, BH adj.:"),
+                                  "Wald test p-value:"),
                                 contrastName)
   mcols(contrastResults) <- DataFrame(type=rep("results",ncol(contrastResults)),
                                       description=contrastDescriptions)

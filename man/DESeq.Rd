@@ -5,7 +5,7 @@
   DESeq(object, test = c("Wald", "LRT"),
     fitType = c("parametric", "local", "mean"),
     betaPrior = TRUE, full = design(object), reduced,
-    pAdjustMethod = "BH", quiet = FALSE)
+    quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet object, see the constructor
@@ -34,9 +34,6 @@
 
   \item{reduced}{a reduced formula to compare against, e.g.
   the full model with a term or terms of interest removed}
-
-  \item{pAdjustMethod}{the method to use for adjusting
-  p-values, see \code{?p.adjust}}
 
   \item{quiet}{whether to print messages at each step}
 }

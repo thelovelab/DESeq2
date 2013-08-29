@@ -77,8 +77,8 @@ plotDispEsts = function( object, ymin,
 #' results function
 #' @param lfcColname the name of the column for log fold changes, if
 #'    not provided this will default to the last variable in the design formula
-#' @param pvalColname the name of the column for pvalues/adjusted pvalues, if
-#'    not provided this will default to \code{WaldAdjPvalue_lfcColname}
+#' @param pvalues a vector of the p-values or adjusted p-values to use in coloring
+#'    the points. If not provided, defaults to the 'padj' column of results(object)
 #' @param pvalCutoff the cutoff for drawing red or black points
 #' @param ylim the limits for the y axis (chosen automatically if not specified)
 #' @param linecol the color of the horizontal line
@@ -97,49 +97,50 @@ plotDispEsts = function( object, ymin,
 #' plotMA(dds)
 #' 
 #' @export
-plotMA = function(object, lfcColname, pvalColname, pvalCutoff=.1, ylim,
+plotMA = function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
   linecol = "#ff000080", xlab = "mean of normalized counts",
   ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...) {
-    if (class(object) == "DESeqDataSet") {
-        if (!"results" %in% mcols(mcols(object))$type) {
-            stop("first run DESeq() in order to produce an MA-plot")
-        }
-        # if not specified, try the last variable of the design formula,
-        # the last level of this variable, and the Wald test adjusted p-values
-        if (missing(lfcColname)) {
-            lfcColname <- lastCoefName(object)
-        }
-        if (length(lfcColname) != 1 | !is.character(lfcColname)) {
-            stop("the argument 'lfcColname' should be a character vector of length 1")
-        }
-        if (missing(pvalColname)) {
-            pvalColname <- paste0("WaldAdjPvalue_",lfcColname)
-            if (!pvalColname %in% names(mcols(object))) {
-                pvalColname <- "LRTAdjPvalue"
-            }
-        }
-        if (length(pvalColname) != 1 | !is.character(pvalColname)) {
-            stop("the argument 'pvalColname' should be a character vector of length 1")
-        }
-        x <- mcols(object)
-    } else if (class(object) == "DataFrame") {
-        pvalColname <- "pvalue"
-        lfcColname <- "log2FoldChange"
-        x <- object
+  if (!missing(pvalues)) {
+    if (length(pvalues) != nrow(object)) {
+      stop("length of pvalues should be equal to the number of rows of object")
     }
-
-    stopifnot( length(cex) == 1 )
-
-    col <- ifelse(x[,pvalColname] < pvalCutoff, "red", "black")
-    col = col[x$baseMean > 0]
-    x = x[x$baseMean > 0,]
-    py = x[,lfcColname]
-    if (missing(ylim))
-        ylim = c(-1,1) * quantile(abs(py[is.finite(py)]), probs=0.99) * 1.1
-    plot(x$baseMean, pmax(ylim[1], pmin(ylim[2], py)),
-         log=log, pch=ifelse(py<ylim[1], 6, ifelse(py>ylim[2], 2, 20)),
-         cex=cex, col=col, xlab=xlab, ylab=ylab, ylim=ylim, ...)
-    abline(h=0, lwd=4, col=linecol)
+  }
+  if (class(object) == "DESeqDataSet") {
+    if (!"results" %in% mcols(mcols(object))$type) {
+      stop("first run DESeq() in order to produce an MA-plot")
+    }
+    # if not specified, try the last variable of the design formula,
+    # the last level of this variable, and the Wald test adjusted p-values
+    if (missing(lfcColname)) {
+      lfcColname <- lastCoefName(object)
+    }
+    if (length(lfcColname) != 1 | !is.character(lfcColname)) {
+      stop("the argument 'lfcColname' should be a character vector of length 1")
+    }
+    if (missing(pvalues)) {
+      res <- results(object)
+      pvalues <- res$padj
+    }
+        x <- mcols(object)
+  } else if (class(object) == "DataFrame") {
+    if (missing(pvalues)) {
+      pvalues <- object$padj
+    }
+    lfcColname <- "log2FoldChange"
+    x <- object
+  }    
+  stopifnot( length(cex) == 1 )
+  col <- ifelse(is.na(pvalues) | pvalues > pvalCutoff, "black", "red")
+  
+  col = col[x$baseMean > 0]
+  x = x[x$baseMean > 0,]
+  py = x[,lfcColname]
+  if (missing(ylim))
+    ylim = c(-1,1) * quantile(abs(py[is.finite(py)]), probs=0.99) * 1.1
+  plot(x$baseMean, pmax(ylim[1], pmin(ylim[2], py)),
+       log=log, pch=ifelse(py<ylim[1], 6, ifelse(py>ylim[2], 2, 20)),
+       cex=cex, col=col, xlab=xlab, ylab=ylab, ylim=ylim, ...)
+  abline(h=0, lwd=4, col=linecol)
 }
 
 

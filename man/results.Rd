@@ -4,7 +4,7 @@
 \alias{resultsNames}
 \title{Extract results from a DESeq analysis}
 \usage{
-  results(object, name, contrast,
+  results(object, name, contrast, cooksCutoff,
     independentFiltering = TRUE, alpha = 0.1, filter,
     theta = seq(0, 0.95, by = 0.05), pAdjustMethod = "BH")
 
@@ -29,6 +29,16 @@
   \code{resultsNames(object)}, i.e. columns of the model
   matrix. The DESeqDataSet must be one produced using the
   Wald test steps in order to use contrasts.}
+
+  \item{cooksCutoff}{theshold on Cook's distance, such that
+  if one or more samples for a row have a distance higher,
+  the p-value for the row is set to NA. The default cutoff
+  is the .75 quantile of the F(p, m-p) distribution, where
+  p is the number of coefficients being fitted and m is the
+  number of samples. Set to Inf or FALSE to disable the
+  resetting of p-values to NA. Note: this test excludes the
+  Cook's distance of samples whose removal would result in
+  rank deficient design matrix.}
 
   \item{independentFiltering}{logical, whether independent
   filtering should be applied automatically}
@@ -109,6 +119,11 @@
   reduced model formula. In this case, the \code{name}
   argument only specifies which coefficient should be used
   for reporting the log2 fold changes.
+
+  Cook's distance for each sample are accessible as a
+  matrix "cooks" stored in the assays() list. This measure
+  is useful for identifying rows where the observed counts
+  might not fit to a negative binomial distribution.
 
   Results can be removed from an object by calling
   \code{removeResults}
