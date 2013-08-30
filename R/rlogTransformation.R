@@ -27,6 +27,15 @@
 #' See the vignette for an example of the use and a comparison with
 #' \code{varianceStabilizingTransformation}
 #'
+#' The parameters of the rlog transformation from a previous dataset
+#' can be "frozen" and reapplied to new samples. See the "Data quality assessment"
+#' section of the vignette for strategies to see if new samples are
+#' sufficiently similar to previous datasets. 
+#' The "freezing" is accomplished by saving the dispersion function,
+#' beta prior variance and the intercept from a previous dataset,
+#' and running rlogTransformation with 'blind' set to FALSE
+#' (see example below).
+#' 
 #' @aliases rlogTransformation rlogData
 #'
 #' @param object a DESeqDataSet
@@ -36,11 +45,15 @@
 #' blind=FALSE should be used for transforming data for downstream analysis,
 #' where the full use of the design information should be made.
 #' @param samplesVector a character vector or factor of the sample identifiers
-#' @param betaPriorVar a single value, the variance of the prior on the sample betas,
-#' which if missing is estimated from the rows which do not have any
-#' zeros
+#' @param betaPriorVar a single value, the variance of the prior on the sample
+#' betas, which if missing is estimated from the data
 #' @param rowVarQuantile the quantile of the row variances of log fold changes
 #' which will be used to set the width of the prior
+#' @param intercept by default, this is not provided and calculated automatically.
+#' if provided, this should be a vector as long as the number of rows of object,
+#' which is log2 of the mean normalized counts from a previous dataset.
+#' this will enforce the intercept for the GLM, allowing for a "frozen" rlog
+#' transformation based on a previous dataset.
 #' 
 #' @return for \code{rlogTransformation},
 #' a SummarizedExperiment with assay data elements equal to
@@ -57,9 +70,25 @@
 #' dists <- dist(t(assay(rld)))
 #' plot(hclust(dists))
 #'
+#' # run the rlog transformation on one dataset
+#' design(dds) <- ~ 1
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' rld <- rlogTransformation(dds, blind=FALSE)
+#'
+#' # apply the parameters to a new sample
+#' ddsNew <- makeExampleDESeqDataSet(m=1)
+#' mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
+#' betaPriorVar <- attr(rld,"betaPriorVar")
+#' intercept <- mcols(rld)$rlogIntercept
+#' rldNew <- rlogTransformation(ddsNew, blind=FALSE,
+#'                            betaPriorVar=betaPriorVar,
+#'                            intercept=intercept)
+#' 
 #' @export
 rlogTransformation <- function(object, blind=TRUE, samplesVector,
-                               betaPriorVar, rowVarQuantile=.75) {
+                               betaPriorVar, rowVarQuantile=.75,
+                               intercept) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
@@ -72,38 +101,88 @@ rlogTransformation <- function(object, blind=TRUE, samplesVector,
     object <- estimateDispersionsGeneEst(object)
     object <- estimateDispersionsFit(object)
   }
-  SummarizedExperiment(
-    assays = rlogData(object, samplesVector, betaPriorVar, rowVarQuantile),
-    colData = colData(object),
-    rowData = rowData(object),
-    exptData = exptData(object))
+  if (!missing(intercept)) {
+    if (length(intercept) != nrow(object)) {
+      stop("intercept should be as long as the number of rows of object")
+    }
+  }
+  rld <- rlogData(object, samplesVector, betaPriorVar, rowVarQuantile, intercept)
+  se <- SummarizedExperiment(
+           assays = rld,
+           colData = colData(object),
+           rowData = rowData(object),
+           exptData = exptData(object))
+  attr(se,"betaPriorVar") <- attr(rld, "betaPriorVar")
+  if (!is.null(attr(rld,"intercept"))) {
+    mcols(se)$rlogIntercept <- attr(rld,"intercept")
+  }
+  se
 }
 
 #' @rdname rlogTransformation
 #' @export
-rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.75) {
+rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.75,
+                     intercept) {
   if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion with a design of formula(~ 1)")
   }
   if (missing(samplesVector)) {
     samplesVector <- as.character(seq_len(ncol(object)))
   }
+  if (!missing(intercept)) {
+    if (length(intercept) != nrow(object)) {
+      stop("intercept should be as long as the number of rows of object")
+    }
+  }
   stopifnot(length(rowVarQuantile)==1)
+
+  if (!"allZero" %in% names(mcols(object))) {
+    mcols(object)$allZero <- rowSums(counts(object)) == 0
+  }
   
   # make a design matrix with a term for every sample
   # this would typically produce unidentifiable solution
   # for the GLM, but we add priors for all terms except
   # the intercept
   samplesVector <- factor(samplesVector,levels=unique(samplesVector))
-  samples <- factor(c("null_level",as.character(samplesVector)),
-                   levels=c("null_level",levels(samplesVector)))
-  modelMatrix <- model.matrix(~samples)[-1,]
-  modelMatrixNames <- colnames(modelMatrix)
-  modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
-  
-  # only continue on the rows with non-zero row mean
-  objectNZ <- object[!mcols(object)$allZero,]
+  if (missing(intercept)) {
+    samples <- factor(c("null_level",as.character(samplesVector)),
+                      levels=c("null_level",levels(samplesVector)))
+    modelMatrix <- model.matrix(~samples)[-1,]
+    modelMatrixNames <- colnames(modelMatrix)
+    modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
+  } else {
+    # or we want to set the intercept using the
+    # provided intercept instead
+    samples <- factor(samplesVector)
+    if (length(samples) > 1) {
+      modelMatrix <- model.matrix(~ 0 + samples)
+    } else {
+      modelMatrix <- matrix(1,ncol=1)
+      modelMatrixNames <- "samples1"
+    }
+    modelMatrixNames <- colnames(modelMatrix)
+    if (!is.null(normalizationFactors(object))) { 
+      nf <- normalizationFactors(object)
+    } else {
+      sf <- sizeFactors(object)
+      nf <- matrix(rep(sf,each=nrow(object)),ncol=ncol(object))
+    }
+    # if the intercept is not finite, these rows
+    # are all zero. here we put a small value instead
+    intercept <- as.numeric(intercept)
+    infiniteIntercept <- !is.finite(intercept)
+    intercept[infiniteIntercept] <- -10
+    normalizationFactors(object) <- nf * 2^intercept
+    # we set the intercept, so replace the all zero
+    # column with the rows which were all zero
+    # in the previous dataset
+    mcols(object)$allZero <- infiniteIntercept
+  }
 
+  # only continue on the rows with non-zero row sums
+  objectNZ <- object[!mcols(object)$allZero,]
+    
   # if a prior sigma squared not provided, estimate this
   # by the variance of log2 counts plus a pseudocount
   if (missing(betaPriorVar)) {
@@ -121,9 +200,20 @@ rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.75) {
   fit <- fitNbinomGLMs(object=objectNZ, modelMatrix=modelMatrix,
                        lambda=lambda, renameCols=FALSE,
                        alpha_hat=mcols(objectNZ)$dispFit,
-                       betaTol=1e-4,useOptim=FALSE)
+                       betaTol=1e-4, useOptim=FALSE,
+                       useQR=TRUE)
   normalizedDataNZ <- t(modelMatrix %*% t(fit$betaMatrix))
   normalizedData <- buildMatrixWithNARows(normalizedDataNZ, mcols(object)$allZero)
+  # add back in the intercept
+  if (!missing(intercept)) {
+    normalizedData <- normalizedData + intercept 
+  }
   colnames(normalizedData) <- colnames(object)
-  return(normalizedData)
+  attr(normalizedData,"betaPriorVar") <- betaPriorVar
+  if ("Intercept" %in% modelMatrixNames) {
+    fittedInterceptNZ <- fit$betaMatrix[,which(modelMatrixNames == "Intercept"),drop=FALSE]
+    fittedIntercept <- buildMatrixWithNARows(fittedInterceptNZ, mcols(object)$allZero)
+    attr(normalizedData,"intercept") <- fittedIntercept
+  }
+  normalizedData
 }

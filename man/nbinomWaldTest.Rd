@@ -4,7 +4,7 @@
 \usage{
   nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar,
     maxit = 100, useOptim = TRUE, quiet = FALSE,
-    useT = FALSE, df)
+    useT = FALSE, df, useQR = TRUE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -32,6 +32,9 @@
   is used.}
 
   \item{df}{the degrees of freedom for the t-distribution}
+
+  \item{useQR}{whether to use the QR decomposition on the
+  design matrix X while fitting the GLM}
 }
 \value{
   a DESeqDataSet with results columns accessible with the

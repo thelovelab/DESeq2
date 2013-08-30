@@ -4,7 +4,7 @@
 \alias{estimateSizeFactors,DESeqDataSet-method}
 \title{Estimate the size factors for a DESeqDataSet}
 \usage{
-  \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median)
+  \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -14,6 +14,12 @@
   especially for low counts, the
   \code{\link[genefilter]{shorth}} function from the
   genefilter package may give better results.}
+
+  \item{geoMeans}{by default this is not provided and the
+  geometric means of the counts are calculated within the
+  function. A vector of geometric means from another count
+  matrix can be provided for a "frozen" size factor
+  calculation}
 }
 \value{
   The DESeqDataSet passed as parameters, with the size
@@ -46,8 +52,11 @@
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
-dds <- estimateSizeFactors( dds )
-sizeFactors( dds )
+dds <- estimateSizeFactors(dds)
+sizeFactors(dds)
+geoMeans <- exp(rowMeans(log(counts(dds))))
+dds <- estimateSizeFactors(dds,geoMeans=geoMeans)
+sizeFactors(dds)
 }
 \author{
   Simon Anders

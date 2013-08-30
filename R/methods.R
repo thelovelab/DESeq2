@@ -281,9 +281,6 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
                    if (any(value <= 0)) {
                      stop("normalization factors must be positive")
                    }
-                   if (mean(value) > 10) {
-                     warning("the replacement matrix has a mean above 10, normalization factors should have an overall mean near 1 as is the case with size factors")
-                   }
                    assays(object)[["normalizationFactors"]] <- value
                    validObject( object )
                    object
@@ -312,7 +309,7 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' which provides more details on the calculation.
 #'
 #' @usage
-#' \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median)
+#' \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans)
 #'
 #' @docType methods
 #' @name estimateSizeFactors
@@ -322,6 +319,10 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' @param locfunc a function to compute a location for a sample. By default, the
 #' median is used. However, especially for low counts, the
 #' \code{\link[genefilter]{shorth}} function from the genefilter package may give better results.
+#' @param geoMeans by default this is not provided and the
+#' geometric means of the counts are calculated within the function.
+#' A vector of geometric means from another count matrix can be provided
+#' for a "frozen" size factor calculation
 #' @return The DESeqDataSet passed as parameters, with the size factors filled
 #' in.
 #' @author Simon Anders
@@ -330,10 +331,14 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' @examples
 #' 
 #' dds <- makeExampleDESeqDataSet()
-#' dds <- estimateSizeFactors( dds )
-#' sizeFactors( dds )
-estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median) {
-  sizeFactors(object) <- estimateSizeFactorsForMatrix( counts(object), locfunc )
+#' dds <- estimateSizeFactors(dds)
+#' sizeFactors(dds)
+#' geoMeans <- exp(rowMeans(log(counts(dds))))
+#' dds <- estimateSizeFactors(dds,geoMeans=geoMeans)
+#' sizeFactors(dds)
+#' 
+estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median, geoMeans) {
+  sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc, geoMeans=geoMeans)
   object
 }
   

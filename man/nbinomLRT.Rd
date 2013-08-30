@@ -3,7 +3,8 @@
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
   nbinomLRT(object, full = design(object), reduced,
-    maxit = 100, useOptim = TRUE, quiet = FALSE)
+    maxit = 100, useOptim = TRUE, quiet = FALSE,
+    useQR = TRUE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -21,6 +22,9 @@
   on rows which do not converge within maxit}
 
   \item{quiet}{whether to print messages at each step}
+
+  \item{useQR}{whether to use the QR decomposition on the
+  design matrix X while fitting the GLM}
 }
 \value{
   a DESeqDataSet with new results columns accessible with

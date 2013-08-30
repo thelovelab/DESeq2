@@ -2,7 +2,8 @@
 \alias{estimateSizeFactorsForMatrix}
 \title{Low-level function to estimate size factors with robust regression.}
 \usage{
-  estimateSizeFactorsForMatrix(counts, locfunc = median)
+  estimateSizeFactorsForMatrix(counts, locfunc = median,
+    geoMeans)
 }
 \arguments{
   \item{counts}{a matrix or data frame of counts, i.e.,
@@ -13,6 +14,12 @@
   especially for low counts, the
   \code{\link[genefilter]{shorth}} function from genefilter
   may give better results.}
+
+  \item{geoMeans}{by default this is not provided, and the
+  geometric means of the counts are calculated within the
+  function. A vector of geometric means from another count
+  matrix can be provided for a "frozen" size factor
+  calculation}
 }
 \value{
   a vector with the estimates size factors, one element per
@@ -31,6 +38,8 @@
 \examples{
 dds <- makeExampleDESeqDataSet()
 estimateSizeFactorsForMatrix(counts(dds))
+geoMeans <- exp(rowMeans(log(counts(dds))))
+estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
 }
 \author{
   Simon Anders

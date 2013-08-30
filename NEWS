@@ -1,3 +1,16 @@
+CHANGES IN VERSION 1.1.32
+-------------------------
+
+    o By default, use QR decomposition on the design matrix X.
+      This stabilizes the GLM fitting. Can be turned off with
+      the useQR argument of nbinomWaldTest() and nbinomLRT().
+
+    o Allow for "frozen" normalization of new samples using
+      previous estimated parameters for the functions: 
+      estimateSizeFactors(), varianceStabilizingTransformation(),
+      and rlogTransformation(). See manual pages for details and
+      examples.
+
 CHANGES IN VERSION 1.1.31
 -------------------------
 

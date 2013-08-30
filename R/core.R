@@ -86,8 +86,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   object <- estimateDispersions(object,fitType=fitType, quiet=quiet)
   if (!quiet) message("fitting model and testing")
   if (test == "Wald") {
-    object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet)
-                             
+    object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet)                             
   } else if (test == "LRT") {
     object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
   }
@@ -125,16 +124,25 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   dispersion <- dispMeanRel(2^(beta[,1]))
   colData <- DataFrame(sample = paste("sample",1:m,sep=""),
                        condition=factor(rep(c("A","B"),times=c(ceiling(m/2),floor(m/2)))))
-  x <- model.matrix(~ colData$condition)
+  if (m > 1) {
+    x <- model.matrix(~ colData$condition)
+  } else {
+    x <- cbind(rep(1,m),rep(0,m))
+  }
   mu <- 2^(t(x %*% t(beta))) * rep(sizeFactors, each=n)
   countData <- matrix(rnbinom(m*n, mu=mu, size=1/dispersion), ncol=m)
   rownames(colData) <- colData$sample
   rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
   names(rowData) <- paste0("feature",1:n)
+  if (m > 1) {
+    designFormula <- formula(~ condition)
+  } else {
+    designFormula <- formula(~ 1)
+  }
   object <- DESeqDataSetFromMatrix(countData = countData,
-                                                colData = colData,
-                                                design = formula(~ condition),
-                                                rowData = rowData)
+                                   colData = colData,
+                                   design = designFormula,
+                                   rowData = rowData)
   trueVals <- DataFrame(trueIntercept = beta[,1],
                         trueBeta = beta[,2],
                         trueDisp = dispersion)
@@ -166,6 +174,10 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' @param locfunc a function to compute a location for a sample. By default, the
 #' median is used. However, especially for low counts, the
 #' \code{\link[genefilter]{shorth}} function from genefilter may give better results.
+#' @param geoMeans by default this is not provided, and the
+#' geometric means of the counts are calculated within the function.
+#' A vector of geometric means from another count matrix can be provided
+#' for a "frozen" size factor calculation
 #' @return a vector with the estimates size factors, one element per column
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactors}}
@@ -173,16 +185,25 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' 
 #' dds <- makeExampleDESeqDataSet()
 #' estimateSizeFactorsForMatrix(counts(dds))
+#' geoMeans <- exp(rowMeans(log(counts(dds))))
+#' estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
 #' 
 #' @export
-estimateSizeFactorsForMatrix <- function( counts, locfunc = median )
+estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans)
 {
-   loggeomeans <- rowMeans( log( counts ) )
-   if (all(is.infinite(loggeomeans))) {
-     stop("every gene contains at least one zero, cannot compute log geometric means")
-   }
-   apply( counts, 2, function(cnts)
-      exp( locfunc( ( log(cnts) - loggeomeans )[ is.finite(loggeomeans) ] ) ) )
+  if (missing(geoMeans)) {
+    loggeomeans <- rowMeans(log(counts))
+  } else {
+    if (length(geoMeans) != nrow(counts)) {
+      stop("geoMeans should be as long as the number of rows of counts")
+    }
+    loggeomeans <- log(geoMeans)
+  }
+  if (all(is.infinite(loggeomeans))) {
+    stop("every gene contains at least one zero, cannot compute log geometric means")
+  }
+  apply( counts, 2, function(cnts)
+        exp(locfunc((log(cnts) - loggeomeans)[is.finite(loggeomeans) & (cnts > 0)])))
 }
 
 #' Low-level functions to fit dispersion estimates
@@ -567,6 +588,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' for significance testing of the Wald statistics.
 #' If FALSE, a standard normal null distribution is used.
 #' @param df the degrees of freedom for the t-distribution
+#' @param useQR whether to use the QR decomposition on the design
+#' matrix X while fitting the GLM
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -585,7 +608,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' @export
 nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, 
                            maxit=100, useOptim=TRUE, quiet=FALSE,
-                           useT=FALSE, df) {
+                           useT=FALSE, df, useQR=TRUE) {
   stopifnot(length(maxit)==1)
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
@@ -601,7 +624,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   objectNZ <- object[!mcols(object)$allZero,]
   
   if (!betaPrior) {
-    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim)
+    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR)
     H <- fit$hat_diagonals
     # record the wide prior which was used in fitting
     betaPriorVar <- rep(1e6, ncol(fit$modelMatrix))
@@ -612,7 +635,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
     # we need the MLE betas to fit the prior variance
     # and for the hat matrix diagonals in order to
     # calculate Cook's distance
-    fit <- fitNbinomGLMs(objectNZ, maxit=maxit)
+    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useQR=useQR)
     H <- fit$hat_diagonals
     if (missing(betaPriorVar)) {
       # estimate the width of the prior on betas
@@ -640,7 +663,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
       }
     }
     lambda <- 1/betaPriorVar
-    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim)
+    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
+                         useQR=useQR)
   }
 
   # store mu in case the user did not call estimateDispersionsGeneEst
@@ -648,7 +672,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   assays(object)[["mu"]] <- buildMatrixWithNARows(fit$mu, mcols(object)$allZero)
 
   # store the prior variance directly as an attribute
-  # of the DESeqDataSet object
+  # of the DESeqDataSet object, so it can be pulled later by
+  # the results function (necessary for setting max Cook's distance)
   attr(object,"betaPriorVar") <- betaPriorVar
   attr(object,"modelMatrix") <- fit$modelMatrix
 
@@ -747,6 +772,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
 #' @param useOptim whether to use the native optim function on rows which do not
 #' converge within maxit
 #' @param quiet whether to print messages at each step
+#' @param useQR whether to use the QR decomposition on the design
+#' matrix X while fitting the GLM
 #'
 #' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -764,7 +791,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
 #'
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
-                      maxit=100, useOptim=TRUE, quiet=FALSE ) {
+                      maxit=100, useOptim=TRUE, quiet=FALSE,
+                      useQR=TRUE) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
@@ -791,8 +819,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
   
-  fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit, useOptim=useOptim)
-  reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit, useOptim=useOptim)
+  fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit,
+                             useOptim=useOptim, useQR=useQR)
+  reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
+                                useOptim=useOptim, useQR=useQR)
 
   attr(object,"modelMatrix") <- fullModelMatrix
   
@@ -1167,11 +1197,13 @@ nbinomLogLike <- function(counts, mu, disp) {
 # useOptim whether to use optim on rows which have not converged:
 #   Fisher scoring is not ideal with multiple groups and sparse
 #   count distributions
+# useQR whether to use the QR decomposition on the design matrix X
 #
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
 fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
-                          renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=TRUE) {
+                          renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=TRUE,
+                          useQR=TRUE) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
@@ -1228,7 +1260,8 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
                      alpha_hatSEXP = alpha_hat,
                      beta_matSEXP = beta_mat,
                      lambdaSEXP = lambdaLogScale,
-                     tolSEXP = betaTol, maxitSEXP = maxit)
+                     tolSEXP = betaTol, maxitSEXP = maxit,
+                     useQRSEXP=useQR)
   mu <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
   dispersionVector <- rep(dispersions(object), times=ncol(object))
   logLike <- nbinomLogLike(counts(object), mu, dispersions(object))
@@ -1359,15 +1392,16 @@ fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_me
 # lambdaSEXP k length vector of the ridge values
 # tolSEXP tolerance for convergence in estimates
 # maxitSEXP maximum number of iterations
+# useQRSEXP whether to use QR decomposition
 #
 # Note: at this level the betas are on the natural log scale
-fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP) {
+fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP) {
   if ( missing(contrastSEXP) ) {
     contrastSEXP <- c(1,rep(0,ncol(xSEXP)-1))
   }
   # test for any NAs in arguments
   arg.names <- names(formals(fitBeta))
-  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP), function(x) any(is.na(x)))
+  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP), function(x) any(is.na(x)))
   if (any(na.test)) {
     stop(paste("in call to fitBeta, the following arguments contain NA:",paste(arg.names[na.test],collapse=", ")))
   }
@@ -1375,6 +1409,7 @@ fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_mat
         alpha_hatSEXP=alpha_hatSEXP, contrastSEXP=contrastSEXP,
         beta_matSEXP=beta_matSEXP,
         lambdaSEXP=lambdaSEXP, tolSEXP=tolSEXP, maxitSEXP=maxitSEXP,
+        useQRSEXP=useQRSEXP,
         PACKAGE = "DESeq2")
 }
 
@@ -1479,6 +1514,7 @@ calculateCooksDistance <- function(object, H, p) {
   if (!is.null(mcols(object)$dispFit)) {
     dispersions <- mcols(object)$dispFit
   } else {
+    message("using dispersions(object) rather than fitted dispersions (the default)")
     dispersions <- dispersions(object)
   }
   V <- assays(object)[["mu"]] + dispersions * assays(object)[["mu"]]^2
@@ -1569,7 +1605,8 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
                      contrastSEXP = contrast,
                      beta_matSEXP = beta_mat,
                      lambdaSEXP = lambda,
-                     tolSEXP = 1e-8, maxitSEXP = 0)
+                     tolSEXP = 1e-8, maxitSEXP = 0,
+                     useQRSEXP=FALSE)
   # convert back to log2 scale
   contrastEstimate <- log2(exp(1)) * betaRes$contrast_num
   contrastSE <- log2(exp(1)) * betaRes$contrast_denom

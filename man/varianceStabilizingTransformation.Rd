@@ -46,10 +46,10 @@
   For each sample (i.e., column of \code{counts(dds)}), the
   full variance function is calculated from the raw
   variance (by scaling according to the size factor and
-  adding the shot noise). We recommend an unsupervised
-  estimation of the variance function, i.e., one ignoring
-  conditions. This is performed by default, and can be
-  modified using the 'unsupervised' argument.
+  adding the shot noise). We recommend a blind estimation
+  of the variance function, i.e., one ignoring conditions.
+  This is performed by default, and can be modified using
+  the 'blind' argument.
 
   A typical workflow is shown in Section \emph{Variance
   stabilizing transformation} in the package vignette.
@@ -73,6 +73,20 @@
   large counts, it becomes asymptotically (for large
   values) equal to the logarithm to base 2.
 
+  The variance stabilizing transformation from a previous
+  dataset can be "frozen" and reapplied to new samples. See
+  the "Data quality assessment" section of the vignette for
+  strategies to see if new samples are sufficiently similar
+  to previous datasets. The "freezing" is accomplished by
+  saving the dispersion function accessible with
+  \code{\link{dispersionFunction}}, assigning this to the
+  \code{DESeqDataSet} with the new samples, and running
+  varianceStabilizingTransformation with 'blind' set to
+  FALSE (see example below). Then the dispersion function
+  from the previous dataset will be used to transform the
+  new sample(s). See \code{\link{estimateSizeFactors}} for
+  details on how to "freeze" size factor estimation.
+
   Limitations: In order to preserve normalization, the same
   transformation has to be used for all samples. This
   results in the variance stabilizition to be only
@@ -87,8 +101,20 @@
 dds <- makeExampleDESeqDataSet()
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 par(mfrow=c(1,2))
-plot(rank(rowMeans(counts(dds))), genefilter::rowVars(log2(counts(dds)+1)), main="log2(x+1) transform")
-plot(rank(rowMeans(assay(vsd))), genefilter::rowVars(assay(vsd)), main="VST")
+plot(rank(rowMeans(counts(dds))), genefilter::rowVars(log2(counts(dds)+1)),
+     main="log2(x+1) transform")
+plot(rank(rowMeans(assay(vsd))), genefilter::rowVars(assay(vsd)),
+     main="VST")
+
+# learn the dispersion function of a dataset
+design(dds) <- ~ 1
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+
+# use the previous dispersion function for a new sample
+ddsNew <- makeExampleDESeqDataSet(m=1)
+dispersionFunction(ddsNew) <- dispersionFunction(dds)
+vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
 }
 \author{
   Simon Anders
