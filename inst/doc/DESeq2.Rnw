@@ -219,7 +219,7 @@ effect of RNAi knock-down of the splicing factor \emph{pasilla}
 the \Biocannopkg{pasilla} data is provided in the vignette of the 
 data package \Biocannopkg{pasilla}.
 
-\subsection{Differential expression analysis}
+\subsection{Differential expression analysis} \label{sec:de}
 
 The standard differential expression analysis steps are wrapped
 into a single function, \Rfunction{DESeq}. The individual functions
@@ -907,7 +907,7 @@ version \Biocpkg{DESeq}, are as follows:
 \item It is possible to provide a matrix of sample-/gene-dependent normalization factors.
 \end{itemize}
 
-\subsection{Count outlier detection}
+\subsection{Count outlier detection} \label{sec:cooks}
 
 \Biocpkg{DESeq2} relies on the negative binomial distribution to
 make estimates and perform statistical inference on differences.  While the 
@@ -1001,7 +1001,7 @@ dispersion. For example, we can plot the $-\log_{10}$ p-values from all genes
 over the normalized mean counts.
 
 <<indFilt, fig=TRUE>>=
-plot(res$baseMean, pmin(-log10(res$pvalue),50),
+plot(res$baseMean+1, -log10(res$pvalue),
      log="x", xlab="mean of normalized counts",
      ylab=expression(-log[10](pvalue)),
      cex=.4, col=rgb(0,0,0,.3))
@@ -1026,8 +1026,8 @@ more or less uniformly in $[0,1]$.
 <<histindepfilt, width=7, height=5>>=
 use <- res$baseMean > attr(res,"filterThreshold")
 table(use)
-h1 <- hist(res$pvalue[!use], breaks=50, plot=FALSE)
-h2 <- hist(res$pvalue[use], breaks=50, plot=FALSE)
+h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
+h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
 colori <- c(`do not pass`="khaki", `pass`="powderblue")
 <<fighistindepfilt, fig=TRUE>>=
 barplot(height = rbind(h1$counts, h2$counts), beside = FALSE,
@@ -1146,11 +1146,52 @@ abline(a=0, slope, col="red3", lwd=2)
 \label{figmulttest}
 \end{figure}
 
+\section{Frequently asked questions}
+
+\begin{itemize} \itemsep1em
+  
+\item Why are some p-values set to \texttt{NA}?
+  
+  \vspace{1em}
+  
+  At various steps in the \Biocpkg{DESeq2} pipeline, certain rows
+  will have p-values set to \texttt{NA}:
+  
+  \begin{enumerate} 
+  \item If within a row, all samples have zero
+    counts, this is recorded in \texttt{mcols(dds)\$allZero} and
+    $\log_2$ fold change  estimates, p-value and adjusted p-value
+    will all be set to \texttt{NA}.
+  \item If a row contains a sample with outlying Cook's distance
+    (see Section \ref{sec:cooks}), 
+    then the p-value and adjusted p-value are set to \texttt{NA}.
+  \item If a row is filtered by automatic independent
+    filtering (see Section \ref{sec:autoFilt}),
+    then the adjusted p-value is set to \texttt{NA}.
+  \end{enumerate}
+  
+\item How do I use the variance stabilized / rlog transformed data for
+  differential testing?
+  
+  \vspace{1em}
+  
+  The variance stabilizing and rlog transformations are provided for
+  applications other than differential testing, for example clustering
+  of samples or other machine learning applications. For differential
+  testing we recommend the \Rfunction{DESeq} function applied to raw
+  counts as outlined in Section \ref{sec:de}.
+      
+\end{itemize}
+
 \section{Session Info}
 
 <<sessInfo, results=tex, echo=FALSE>>=
 toLatex(sessionInfo())
 @
+
+<<resetOptions, echo=FALSE>>=
+options(prompt="> ", continue="+ ")
+@ 
 
 \bibliographystyle{unsrt}
 \bibliography{library}
