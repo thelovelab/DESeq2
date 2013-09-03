@@ -80,8 +80,18 @@ DESeq <- function(object, test=c("Wald","LRT"),
     test <- test[1]
   }
   stopifnot(length(test)==1 & test %in% c("Wald","LRT"))
-  if (!quiet) message("estimating size factors")
-  object <- estimateSizeFactors(object)
+  if (!is.null(sizeFactors(object)) || !is.null(normalizationFactors(object))) {
+    if (!quiet) {
+      if (!is.null(normalizationFactors(object))) {
+        message("using pre-existing normalization factors")
+      } else {
+        message("using pre-existing size factors")
+      }
+    }
+  } else {
+    if (!quiet) message("estimating size factors")
+    object <- estimateSizeFactors(object)
+  }
   if (!quiet) message("estimating dispersions")
   object <- estimateDispersions(object,fitType=fitType, quiet=quiet)
   if (!quiet) message("fitting model and testing")
@@ -659,7 +669,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
       # given the design formula
       p <- ncol(fit$modelMatrix)
       if (length(betaPriorVar) != p) {
-        stop(paste0("betaPriorVar should have length",p))
+        stop(paste("betaPriorVar should have length",p))
       }
     }
     lambda <- 1/betaPriorVar
@@ -1514,7 +1524,7 @@ calculateCooksDistance <- function(object, H, p) {
   if (!is.null(mcols(object)$dispFit)) {
     dispersions <- mcols(object)$dispFit
   } else {
-    message("using dispersions(object) rather than fitted dispersions (the default)")
+    message("in calculating Cook's distance: using dispersions(object) rather than fitted dispersions")
     dispersions <- dispersions(object)
   }
   V <- assays(object)[["mu"]] + dispersions * assays(object)[["mu"]]^2

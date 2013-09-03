@@ -32,7 +32,7 @@ counts.DESeqDataSet <- function(object, normalized=FALSE) {
             } else {
               if (!is.null(normalizationFactors(object))) {
                 return( assays(object)[["counts"]]/normalizationFactors(object) )
-              } else if (is.null(sizeFactors(object)) | any(is.na(sizeFactors(object)))) {
+              } else if (is.null(sizeFactors(object)) || any(is.na(sizeFactors(object)))) {
                 stop("first calculate size factors, add normalizationFactors, or set normalized=FALSE")
               } else {
                 return( t( t( assays(object)[["counts"]] ) / sizeFactors(object) ) )
@@ -161,7 +161,12 @@ setMethod("dispersions", signature(object="DESeqDataSet"),
           dispersions.DESeqDataSet)
 setReplaceMethod("dispersions", signature(object="DESeqDataSet", value="numeric"),
                  function(object, value) {
+                   firstRowDataColumn <- ncol(mcols(object)) == 0
                    mcols(object)$dispersion <- value
+                   if (firstRowDataColumn) {
+                     mcols(mcols(object)) <- DataFrame(type="input",
+                                                       description="final estimate of dispersion")
+                   }
                    validObject( object )
                    object
                  })
