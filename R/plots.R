@@ -82,6 +82,8 @@ plotDispEsts = function( object, ymin,
 #' @param pvalCutoff the cutoff for drawing red or black points
 #' @param ylim the limits for the y axis (chosen automatically if not specified)
 #' @param linecol the color of the horizontal line
+#' @param pointcol a vector of length two of the colors for the not significant and
+#' significant points, respectively
 #' @param xlab the label for the x axis
 #' @param ylab the label for the y axis
 #' @param log log, defaults to "x", the y-axis is already in log scale
@@ -98,13 +100,15 @@ plotDispEsts = function( object, ymin,
 #' 
 #' @export
 plotMA = function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
-  linecol = "#ff000080", xlab = "mean of normalized counts",
+  linecol = "#ff000080", pointcol = c("black","red"),
+  xlab = "mean of normalized counts",
   ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...) {
   if (!missing(pvalues)) {
     if (length(pvalues) != nrow(object)) {
       stop("length of pvalues should be equal to the number of rows of object")
     }
   }
+  stopifnot(length(pointcol) == 2)
   if (class(object) == "DESeqDataSet") {
     if (!"results" %in% mcols(mcols(object))$type) {
       stop("first run DESeq() in order to produce an MA-plot")
@@ -130,7 +134,7 @@ plotMA = function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
     x <- object
   }    
   stopifnot( length(cex) == 1 )
-  col <- ifelse(is.na(pvalues) | pvalues > pvalCutoff, "black", "red")
+  col <- ifelse(is.na(pvalues) | pvalues > pvalCutoff, pointcol[1], pointcol[2])
   
   col = col[x$baseMean > 0]
   x = x[x$baseMean > 0,]
