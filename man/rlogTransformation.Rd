@@ -4,10 +4,10 @@
 \title{Apply a 'regularized log' transformation}
 \usage{
   rlogTransformation(object, blind = TRUE, samplesVector,
-    betaPriorVar, rowVarQuantile = 0.75, intercept)
+    betaPriorVar, rowVarQuantile = 0.5, intercept)
 
   rlogData(object, samplesVector, betaPriorVar,
-    rowVarQuantile = 0.75, intercept)
+    rowVarQuantile = 0.5, intercept)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -68,17 +68,14 @@
   are used rather than the MAP dispersions (so similar to
   the \code{\link{varianceStabilizingTransformation}}) as
   the blind dispersion estimation would otherwise shrink
-  large, true log fold changes. The prior width is
-  calculated as follows: coefficients are fit for a model
-  with a term for each sample and for the intercept. This
-  would typically result in an unidentifiable solution, so
-  a very wide prior is used. Then the prior variance is
-  estimated by taking the mean of the row-wise variance of
-  the sample coefficients. A second and final GLM fit is
-  performed using this prior. It is also possible to supply
-  the variance of the prior. See the vignette for an
-  example of the use and a comparison with
-  \code{varianceStabilizingTransformation}
+  large, true log fold changes. The prior variance is
+  calculated as follows: the row-wise variance of the log2
+  of the counts plus a pseudocount of 0.5 is generated. The
+  beta prior is set to the median of these row variances. A
+  second and final GLM fit is performed using this prior.
+  It is also possible to supply the variance of the prior.
+  See the vignette for an example of the use and a
+  comparison with \code{varianceStabilizingTransformation}
 
   The parameters of the rlog transformation from a previous
   dataset can be "frozen" and reapplied to new samples. See

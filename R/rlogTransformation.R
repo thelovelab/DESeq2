@@ -17,12 +17,10 @@
 #' (so similar to the \code{\link{varianceStabilizingTransformation}})
 #' as the blind dispersion estimation would otherwise shrink
 #' large, true log fold changes.
-#' The prior width is calculated as follows: coefficients are fit for a model
-#' with a term for each sample and for the intercept. This would typically
-#' result in an unidentifiable solution, so a very wide prior is used.
-#' Then the prior variance is estimated by taking the mean of the
-#' row-wise variance of the sample coefficients. A second and final GLM fit
-#' is performed using this prior.
+#' The prior variance is calculated as follows: the row-wise variance of the
+#' log2 of the counts plus a pseudocount of 0.5 is generated.
+#' The beta prior is set to the median of these row variances.
+#' A second and final GLM fit is performed using this prior.
 #' It is also possible to supply the variance of the prior.
 #' See the vignette for an example of the use and a comparison with
 #' \code{varianceStabilizingTransformation}
@@ -87,7 +85,7 @@
 #' 
 #' @export
 rlogTransformation <- function(object, blind=TRUE, samplesVector,
-                               betaPriorVar, rowVarQuantile=.75,
+                               betaPriorVar, rowVarQuantile=.5,
                                intercept) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
@@ -121,7 +119,7 @@ rlogTransformation <- function(object, blind=TRUE, samplesVector,
 
 #' @rdname rlogTransformation
 #' @export
-rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.75,
+rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.5,
                      intercept) {
   if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion with a design of formula(~ 1)")

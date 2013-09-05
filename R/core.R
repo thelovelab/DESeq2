@@ -565,8 +565,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' The fitting proceeds as follows: standard maximum likelihood estimates
 #' for GLM coefficients are calculated; a zero-mean normal prior distribution
 #' is assumed; the variance of the prior distribution for each
-#' non-intercept coefficient is calculated as the mean squared maximum likelihood
-#' estimates over the genes which do not contain zeros for some condition;
+#' non-intercept coefficient is calculated as the square of the adjusted
+#' median absolute deviation (see \code{\link{mad}})
+#' of the maximum likelihood estimates over the genes;
 #' the final coefficients are then maximum a posteriori estimates
 #' (using Tikhonov/ridge regularization) using this prior.
 #' The use of a prior has little effect on genes with high counts and helps to
@@ -648,17 +649,15 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
     fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useQR=useQR)
     H <- fit$hat_diagonals
     if (missing(betaPriorVar)) {
-      # estimate the width of the prior on betas
-      # excluding those rows with coefficients going to infinity.
-      # if all betas are large, use a very large prior
-      betaPriorVar <- apply(fit$betaMatrix, 2, function(x) {
-        useSmall <- abs(x) < 8
-        if (sum(useSmall) == 0 ) {
-          return(1e6)
-        } else {
-          mean(x[useSmall]^2)
-        }
-      })
+      # estimate the variance of the prior on betas
+      # using the squared, scaled median absolute deviation
+      if (nrow(fit$betaMatrix) > 1) {
+        betaPriorVar <- apply(fit$betaMatrix, 2, function(x) {
+          mad(x)^2
+        })
+      } else {
+        betaPriorVar <- (fit$betaMatrix)^2
+      }
       # except for intercept which we set to wide prior
       if ("Intercept" %in% fit$modelMatrixNames) {
         betaPriorVar[which(fit$modelMatrixNames == "Intercept")] <- 1e6
