@@ -17,10 +17,12 @@
 #' (so similar to the \code{\link{varianceStabilizingTransformation}})
 #' as the blind dispersion estimation would otherwise shrink
 #' large, true log fold changes.
-#' The prior variance is calculated as follows: the row-wise variance of the
-#' log2 of the counts plus a pseudocount of 0.5 is generated.
-#' The beta prior is set to the median of these row variances.
-#' A second and final GLM fit is performed using this prior.
+#' The prior variance is calculated as follows: 
+#' a matrix is constructed of the logarithm of the counts plus a pseudocount of 0.5,
+#' the row means of these log counts are then subtracted, leaving an estimate of
+#' the log fold changes per sample. The prior variance is set to the variance of
+#' all log fold change estimates.
+#' A second and final GLM fit is then performed using this prior.
 #' It is also possible to supply the variance of the prior.
 #' See the vignette for an example of the use and a comparison with
 #' \code{varianceStabilizingTransformation}
@@ -45,8 +47,6 @@
 #' @param samplesVector a character vector or factor of the sample identifiers
 #' @param betaPriorVar a single value, the variance of the prior on the sample
 #' betas, which if missing is estimated from the data
-#' @param rowVarQuantile the quantile of the row variances of log fold changes
-#' which will be used to set the width of the prior
 #' @param intercept by default, this is not provided and calculated automatically.
 #' if provided, this should be a vector as long as the number of rows of object,
 #' which is log2 of the mean normalized counts from a previous dataset.
@@ -85,8 +85,7 @@
 #' 
 #' @export
 rlogTransformation <- function(object, blind=TRUE, samplesVector,
-                               betaPriorVar, rowVarQuantile=.5,
-                               intercept) {
+                               betaPriorVar, intercept) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
@@ -104,7 +103,7 @@ rlogTransformation <- function(object, blind=TRUE, samplesVector,
       stop("intercept should be as long as the number of rows of object")
     }
   }
-  rld <- rlogData(object, samplesVector, betaPriorVar, rowVarQuantile, intercept)
+  rld <- rlogData(object, samplesVector, betaPriorVar, intercept)
   se <- SummarizedExperiment(
            assays = rld,
            colData = colData(object),
@@ -119,8 +118,7 @@ rlogTransformation <- function(object, blind=TRUE, samplesVector,
 
 #' @rdname rlogTransformation
 #' @export
-rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.5,
-                     intercept) {
+rlogData <- function(object, samplesVector, betaPriorVar, intercept) {
   if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion with a design of formula(~ 1)")
   }
@@ -132,7 +130,6 @@ rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.5,
       stop("intercept should be as long as the number of rows of object")
     }
   }
-  stopifnot(length(rowVarQuantile)==1)
 
   if (!"allZero" %in% names(mcols(object))) {
     mcols(object)$allZero <- rowSums(counts(object)) == 0
@@ -185,8 +182,8 @@ rlogData <- function(object, samplesVector, betaPriorVar, rowVarQuantile=.5,
   # by the variance of log2 counts plus a pseudocount
   if (missing(betaPriorVar)) {
     logCounts <- log2(counts(objectNZ,normalized=TRUE) + 0.5)
-    betaRowMeanSquared <- apply(logCounts,1,var)
-    betaPriorVar <- quantile(betaRowMeanSquared, rowVarQuantile)
+    logFoldChangeMatrix <- logCounts - rowMeans(logCounts)
+    betaPriorVar <- var(as.numeric(logFoldChangeMatrix))
   }
   stopifnot(length(betaPriorVar)==1)
   

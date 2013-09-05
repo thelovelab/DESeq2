@@ -4,10 +4,9 @@
 \title{Apply a 'regularized log' transformation}
 \usage{
   rlogTransformation(object, blind = TRUE, samplesVector,
-    betaPriorVar, rowVarQuantile = 0.5, intercept)
+    betaPriorVar, intercept)
 
-  rlogData(object, samplesVector, betaPriorVar,
-    rowVarQuantile = 0.5, intercept)
+  rlogData(object, samplesVector, betaPriorVar, intercept)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -26,10 +25,6 @@
   \item{betaPriorVar}{a single value, the variance of the
   prior on the sample betas, which if missing is estimated
   from the data}
-
-  \item{rowVarQuantile}{the quantile of the row variances
-  of log fold changes which will be used to set the width
-  of the prior}
 
   \item{intercept}{by default, this is not provided and
   calculated automatically. if provided, this should be a
@@ -69,13 +64,16 @@
   the \code{\link{varianceStabilizingTransformation}}) as
   the blind dispersion estimation would otherwise shrink
   large, true log fold changes. The prior variance is
-  calculated as follows: the row-wise variance of the log2
-  of the counts plus a pseudocount of 0.5 is generated. The
-  beta prior is set to the median of these row variances. A
-  second and final GLM fit is performed using this prior.
-  It is also possible to supply the variance of the prior.
-  See the vignette for an example of the use and a
-  comparison with \code{varianceStabilizingTransformation}
+  calculated as follows: a matrix is constructed of the
+  logarithm of the counts plus a pseudocount of 0.5, the
+  row means of these log counts are then subtracted,
+  leaving an estimate of the log fold changes per sample.
+  The prior variance is set to the variance of all log fold
+  change estimates. A second and final GLM fit is then
+  performed using this prior. It is also possible to supply
+  the variance of the prior. See the vignette for an
+  example of the use and a comparison with
+  \code{varianceStabilizingTransformation}
 
   The parameters of the rlog transformation from a previous
   dataset can be "frozen" and reapplied to new samples. See
