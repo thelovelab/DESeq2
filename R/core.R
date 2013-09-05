@@ -1207,12 +1207,13 @@ nbinomLogLike <- function(counts, mu, disp) {
 #   Fisher scoring is not ideal with multiple groups and sparse
 #   count distributions
 # useQR whether to use the QR decomposition on the design matrix X
+# forceOptim whether to use optim on all rows
 #
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
 fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
                           renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=TRUE,
-                          useQR=TRUE) {
+                          useQR=TRUE, forceOptim=FALSE) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
@@ -1298,15 +1299,21 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   } else {
     rowsForOptim <- which(!rowStable | !rowVarPositive)
   }
+  if (forceOptim) {
+    rowsForOptim <- seq_along(betaConv)
+  }
   
   if (length(rowsForOptim) > 0) {
-    x <- modelMatrix
+    scaleCols <- apply(modelMatrix,2,function(z) max(abs(z)))
+    x <- sweep(modelMatrix,2,scaleCols,"/")
+    lambdaColScale <- lambda / scaleCols^2
+    lambdaLogScaleColScale <- lambdaLogScale / scaleCols^2
     large <- 30
     for (row in rowsForOptim) {
       if (rowStable[row]) {
-        betaRow <- betaMatrix[row,]
+        betaRow <- betaMatrix[row,] * scaleCols
       } else {
-        betaRow <- beta_mat[row,]
+        betaRow <- beta_mat[row,] * scaleCols
       }
       betaRow <- pmin(pmax(betaRow, -large), large)
       nf <- normalizationFactors[row,]
@@ -1314,31 +1321,29 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
       alpha <- alpha_hat[row]
       objectiveFn <- function(p) {
         mu_row <- as.numeric(nf * 2^(x %*% p))
-        prior <- sum(dnorm(p,0,sqrt(1/lambda),log=TRUE))
+        prior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
         logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
         -1 * (logLike + prior)
       }
       o <- optim(betaRow, objectiveFn, method="Nelder-Mead")
-
-      if (length(lambda) > 1) {
-        ridge <- diag(lambda)
+      if (length(lambdaLogScale) > 1) {
+        ridge <- diag(lambdaLogScaleColScale)
       } else {
-        ridge <- as.matrix(lambda,ncol=1)
+        ridge <- as.matrix(lambdaLogScaleColScale,ncol=1)
       }
-      
       # if we converged, change betaConv to TRUE
       if (o$convergence == 0) {
         betaConv[row] <- TRUE
       }
       # with or without convergence, store the estimate from optim
-      betaMatrix[row,] <- o$par
+      betaMatrix[row,] <- o$par / scaleCols
       # calculate the standard errors
-      mu_row <- as.numeric(nf * exp(x %*% (log(2)*o$par)))
+      mu_row <- as.numeric(nf * 2^(x %*% o$par))
       w <- diag((mu_row^-1 + alpha)^-1)
       xtwx <- t(x) %*% w %*% x
       xtwxRidgeInv <- solve(xtwx + ridge)
       sigma <- xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv
-      betaSE[row,] <- log2(exp(1))*sqrt(diag(sigma))
+      betaSE[row,] <- log2(exp(1)) * sqrt(diag(sigma)) / scaleCols
       # store the new mu vector
       mu[row,] <- mu_row
       logLike[row] <- sum(dnbinom(k, mu=mu_row, size=1/alpha, log=TRUE))
