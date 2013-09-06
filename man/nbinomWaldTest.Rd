@@ -53,14 +53,14 @@
   likelihood estimates for GLM coefficients are calculated;
   a zero-mean normal prior distribution is assumed; the
   variance of the prior distribution for each non-intercept
-  coefficient is calculated as the square of the adjusted
-  median absolute deviation (see \code{\link{mad}}) of the
-  maximum likelihood estimates over the genes; the final
-  coefficients are then maximum a posteriori estimates
-  (using Tikhonov/ridge regularization) using this prior.
-  The use of a prior has little effect on genes with high
-  counts and helps to moderate the large spread in
-  coefficients for genes with low counts.
+  coefficient is calculated as the mean squared maximum
+  likelihood estimates over the genes which do not contain
+  zeros for some condition; the final coefficients are then
+  maximum a posteriori estimates (using Tikhonov/ridge
+  regularization) using this prior. The use of a prior has
+  little effect on genes with high counts and helps to
+  moderate the large spread in coefficients for genes with
+  low counts.
 
   For calculating Wald test p-values, the coefficients are
   scaled by their standard errors and then compared to a
