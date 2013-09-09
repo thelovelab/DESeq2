@@ -57,9 +57,8 @@
 #'
 #' @import Biobase GenomicRanges IRanges
 #' @importFrom locfit locfit
-#' @importFrom genefilter rowVars
-#' @importFrom genefilter filtered_p
-#' @importFrom RColorBrewer brewer.pal
+#' @importFrom genefilter rowVars filtered_p
+#' 
 #' @useDynLib DESeq2
 #'
 #' @seealso \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}

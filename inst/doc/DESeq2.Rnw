@@ -119,7 +119,7 @@ variables with plus signs between them (it will be coerced into an
 representing the base mean of counts. The design can be changed later, 
 however then all differential analysis steps should be repeated, 
 as the design formula is used to estimate the dispersions and 
-to estimate the log fold changes of the model.
+to estimate the $\log_2$ fold changes of the model.
 
 The constructor function below shows the generation of a
 \Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}. 
@@ -223,13 +223,13 @@ data package \Biocannopkg{pasilla}.
 
 The standard differential expression analysis steps are wrapped
 into a single function, \Rfunction{DESeq}. The individual functions
-are still available, described in Section \ref{sec:steps}. The
+are still available, described in Section~\ref{sec:steps}. The
 results are accessed using the function \Rfunction{results}, which
 extracts a results table for a single variable (by default the
 last variable in the design formula, and if this is a factor, the last
 level of this variable). Note that the \Rfunction{results} function
 performs independent filtering by default using the \Biocpkg{genefilter}
-package, discussed in Section \ref{sec:autoFilt}.
+package, discussed in Section~\ref{sec:autoFilt}.
 
 <<subset>>=
 dds <- dds[1:1000,]
@@ -245,7 +245,7 @@ head(res)
 Extracting results of other variables is discussed in section 
 \ref{sec:multifactor}. All the values calculated by the \Biocpkg{DESeq2} 
 package are stored in the \Rclass{DESeqDataSet} object, and access 
-to these values is discussed in Section \ref{sec:access}.
+to these values is discussed in Section~\ref{sec:access}.
 
 \subsection{Exploring and exporting results}
 
@@ -277,12 +277,31 @@ the function \Rfunction{mcols} on the results object.
 mcols(res, use.names=TRUE)
 @
 
-The variable \Robject{condition} and the factor level \Robject{treated} have
-been combined into ``condition\_treated\_vs\_untreated''.  For a particular gene, a
+The variable \Robject{condition} and the factor level \Robject{treated} 
+are combined as ``condition\_treated\_vs\_untreated''.  For a particular gene, a
 $\log_2$ fold change of $-1$ for \Robject{condition\_treated\_vs\_untreated} here means that
 the treatment induces a change of $2^{-1} = 0.5$ times the counts.  If the variable
 of interest is not a factor, the $\log_2$ fold change can be interpreted as the
 amount of doubling observed on average for every unit of change.
+
+The results columns for certain genes can be set to \Robject{NA} 
+for the following reasons:
+
+  \begin{enumerate} 
+  \item If within a row, all samples have zero
+    counts, this is recorded in \texttt{mcols(dds)\$allZero} and
+    $\log_2$ fold change  estimates, p-value and adjusted p-value
+    will all be set to \texttt{NA}.
+  \item If a row contains a sample with an extreme count
+    then the p-value and adjusted p-value are set to \texttt{NA}.
+    These outlier counts are detected by Cook's distance and customization
+    of this outlier filtering is described in Section~\ref{sec:replaceCooks},
+    along with a method for replacing outlier counts and refitting.
+  \item If a row is filtered by automatic independent filtering,
+    then only the adjusted p-value is set to \texttt{NA}.
+    Description and customization of independent filtering is decribed 
+    in Section~\ref{sec:autoFilt}.
+  \end{enumerate}
 
 \subsubsection{Exporting results}
 
@@ -400,7 +419,7 @@ $$ \log_2(q_{ij}) = x_{j.} \beta_i $$
 
 where $q_{ij}$ is a parameter proportional to the expected 
 true concentration of fragments for gene $i$ and sample $j$
-(see Section \ref{sec:glm}), $x_{j.}$ is the $j$-th row of the design 
+(see Section~\ref{sec:glm}), $x_{j.}$ is the $j$-th row of the design 
 matrix $X$, which has a $1$ for the intercept and a $1$ for the sample-specific
 beta, and $\beta_i$ is the vector of coefficients for gene $i$.
 Without priors, this design matrix would lead to a non-unique solution,
@@ -564,7 +583,7 @@ heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
 
 \subsubsection{Principal component plot of the samples}
 
-Related to the distance matrix of Section \ref{sec:dists} is the PCA
+Related to the distance matrix of Section~\ref{sec:dists} is the PCA
 plot of the samples, which we obtain as follows (Figure \ref{DESeq2-figPCA}).
 
 <<figPCA, fig=TRUE, width=5, height=5>>=
@@ -599,12 +618,12 @@ used to test if combinations of variables are different than zero.
 The simplest use case for contrasts is the case of a factor with three 
 levels, say A,B and C, where A is the base level.
 While the standard \Biocpkg{DESeq2} workflow generates p-values for the null
-hypotheses that the log fold change of B vs A is zero, and that
-the log fold change of C vs A is zero, a contrast
-is needed to compare if the log fold change of C vs B is zero.
+hypotheses that the $\log_2$ fold change of B vs A is zero, and that
+the $\log_2$ fold change of C vs A is zero, a contrast
+is needed to compare if the $\log_2$ fold change of C vs B is zero.
 
 Here we show how to make all three pairwise comparisons using the
-parathyroid dataset which was built in Section \ref{sec:sumExpInput}.
+parathyroid dataset which was built in Section~\ref{sec:sumExpInput}.
 The three levels of the factor \Robject{treatment} are: Control,
 DPN and OHT. The samples are also split according to the patient
 from which the cell cultures were derived, so we include this
@@ -632,8 +651,8 @@ Using the \Robject{contrast} argument of the \Rfunction{results} function,
 we can specify a test of OHT vs DPN. The contrast argument takes a character 
 vector of length three, containing the name of the factor, 
 the name of the numerator level, and the name of the denominator level,
-where we test the log fold change of numerator vs denominator.
-Here we extract the results for the log fold change of 
+where we test the $\log_2$ fold change of numerator vs denominator.
+Here we extract the results for the $\log_2$ fold change of 
 OHT vs DPN for the treatment factor.
 
 <<contrastsChar>>=
@@ -655,10 +674,100 @@ mcols(resCtrst)
 @ 
 
 The formula that is used to generate the contrasts can be
-found in Section \ref{sec:ctrstTheory}.
+found in Section~\ref{sec:ctrstTheory}.
+
+\subsection{Dealing with count outliers} \label{sec:replaceCooks}
+
+RNA-Seq data can sometimes contain very large counts which can be 
+described as outliers (i.e. produced by rare technical artifacts, 
+and not related to the biological properties of the sample).
+\Biocpkg{DESeq2} calculates, for every gene and for every sample,
+a diagnostic test for outliers called Cook's distance.
+Cook's distance is a measure of how much a single sample 
+is influencing the fitted coefficients for a gene, 
+where large values might indicate a count outlier. 
+\Biocpkg{DESeq2} automatically flags genes with Cook's distance
+above a cutoff, setting the p-value and adjusted p-value to \Robject{NA}.
+
+The default cutoff depends on the sample size and number of parameters
+to be estimated: the $.75$ quantile of the $F(p,m-p)$ distribution 
+(with $p$ the number of parameters including the intercept and 
+$m$ number of samples).
+The cutoff can be modified using the \Robject{cooksCutoff} argument to
+the \Rfunction{results} function.
+The functionality can be disabled by setting \Robject{cooksCutoff} to \Robject{FALSE}
+or \Robject{Inf}. If the removal of a sample would mean that a coefficient
+cannot be fitted (e.g. if there is only one sample for a given group), then the 
+Cook's distance for this sample is not counted towards the flagging.
+The Cook's distances are stored as a matrix available in
+\Robject{assays(dds)[["cooks"]]}. These values are the same as 
+those produced by the \Rfunction{cooks.distance} function of the \Rpackage{stats}
+package, except using the fitted dispersion and taking into account the size factors.
+
+With many degrees of freedom (many more samples than number of parameters to 
+be estimated), it might be undesirable to remove entire genes from the analysis
+which contain a count outlier. An alternate strategy is to replace the 
+outlier counts with the trimmed mean over all samples, adjusted by the
+size factor for that sample. Replacing the value with the trimmed mean 
+will not lead to false positives, as it replaces
+the outlier value with the value predicted by the null hypothesis.
+The \Rfunction{DESeq} function (or \Rfunction{nbinomWaldTest} and 
+\Rfunction{nbinomLRT}) calculates Cook's distance for every gene and
+sample. After an initial fit has been performed, the following code 
+can be used to replace count outliers by the trimmed mean, 
+and then a new fit can be performed.
+
+<<calculateTrimmedMeans>>=
+ddsClean <- dds
+p <- ncol(attr(ddsClean,"modelMatrix"))
+m <- ncol(ddsClean)
+cooksCutoff <- qf(.75, p, m - p)
+idx <- which(assays(ddsClean)[["cooks"]] > cooksCutoff)
+trimBaseMean <- apply(counts(ddsClean,normalized=TRUE),1,mean,trim=.2)
+@ 
+
+Next we build a matrix of counts based on the trimmed mean and the
+size factors. Then we can replace only those values which fall
+above the cutoff on Cook's distance:
+
+<<replaceCooksOutlier>>=
+nullCounts <- as.integer(outer(trimBaseMean,
+                               sizeFactors(ddsClean), "*"))
+counts(ddsClean)[idx] <- nullCounts[idx]
+@ 
+
+Finally we rerun all the steps of \Rfunction{DESeq}.
+
+<<refitAfterReplace>>=
+ddsClean <- DESeq(ddsClean)
+tab <- table(initial = results(dds)$padj < .1,
+             cleaned = results(ddsClean)$padj < .1)
+addmargins(tab)
+@ 
+
+The new tests result in similar numbers of genes with adjusted p-value
+less than 0.1, although slightly modified due to a new distribution
+of dispersion estimates. The p-values from before and after the 
+count outlier replacement are plotted in Figure~\ref{DESeq2-cooksNewPvalues}
+
+<<cooksNewPvalues, fig=TRUE>>=
+plot(results(dds)$pvalue, results(ddsClean)$pvalue, cex=.3,
+     xlab="initial p-values", ylab="outlier replaced p-values")
+abline(0,1)
+@ 
+
+\incfig{DESeq2-cooksNewPvalues}{.5\textwidth}{Re-analysis following replacement of count outliers.}{
+  The p-values following replacement of count outliers are slightly modified
+  due to changes to the distribution of dispersion estimates, however they closely
+  follow the p-values of the initial fit.
+}
 
 \subsection{Likelihood ratio test}
 
+One reason to use the likelihood ratio test is in order to test the 
+null hypothesis that $\log_2$ fold changes for multiple levels of a factor, 
+or for multiple variables, such as all interactions between two variables,
+are equal to zero.
 The likelihood ratio test can also be specified using the \Robject{test}
 argument to \Rfunction{DESeq}, which substitutes \Rfunction{nbinomWaldTest} with
 \Rfunction{nbinomLRT}.  In this case, the
@@ -668,15 +777,10 @@ interest. The degrees of freedom for the test is obtained from the number
 of parameters in the two models. The Wald test and the likelihood ratio test
 share many of the same genes with adjusted p-value < .1 for this experiment.
 
-One reason to use the likelihood ratio test is in order to test the 
-null hypothesis that log fold changes for multiple levels of a factor, 
-or for multiple variables, such as all interactions between two variables,
-are equal to zero.
-
 As we already have an object \Robject{dds} with dispersions calculated 
 for the design formula \texttt{~ type + condition}, 
 we only need to run the function \Rfunction{nbinomLRT}, with a reduced formula
-including only the type of sequencing, in order to test the log fold change
+including only the type of sequencing, in order to test the $\log_2$ fold change
 attributable to the condition:
 
 <<likelihoodRatioTest>>=
@@ -762,7 +866,7 @@ of adjusted p-values lower than a significance level \Robject{alpha}
 (we use the standard variable name for significance level, 
 though it is unrelated to the dispersion parameter $\alpha$). 
 The theory behind independent filtering is discussed in greater detail
-in Section \ref{sec:indepfilt}. The adjusted p-values for the genes
+in Section~\ref{sec:indepfilt}. The adjusted p-values for the genes
 which do not pass the filter threshold are set to \Robject{NA}.
 
 The independent filtering is performed using the \Rfunction{filtered\_p} function 
@@ -823,7 +927,7 @@ bias might vary across samples coming from different labs or
 processed at different times. We use the terms ``normalization factors''
 for a gene $\times$ sample matrix, and ``size factors'' for a
 single number per sample.  Incorporating normalization factors,
-the mean parameter $\mu_{ij}$ from Section \ref{sec:glm} becomes:
+the mean parameter $\mu_{ij}$ from Section~\ref{sec:glm} becomes:
 
 $$ \mu_{ij} = NF_{ij} q_{ij} $$
 
@@ -838,7 +942,7 @@ normalizationFactors(dds) <- normFactors
 @
 
 These steps then replace \Rfunction{estimateSizeFactors} in the steps
-described in Section \ref{sec:steps}. Normalization factors, if present,
+described in Section~\ref{sec:steps}. Normalization factors, if present,
 will always be used in the place of size factors.
 
 The methods provided by the \Biocpkg{cqn} or \Biocpkg{EDASeq} packages
@@ -882,7 +986,7 @@ adjusted profile likelihood, as first implemented for RNA-Seq data in
 \Biocpkg{edgeR} \cite{CR,edgeR_GLM}.  For further details on
 dispersion estimation and inference, please see the manual pages for
 the functions \Rfunction{DESeq} and \Rfunction{estimateDispersions}.
-For access to the calculated values see Section \ref{sec:access}
+For access to the calculated values see Section~\ref{sec:access}
 
 \subsection{Changes compared to the  \Biocpkg{DESeq} package}
 
@@ -916,22 +1020,10 @@ parameter, extreme counts in individual samples might not fit
 well to the negative binomial. For this reason, we perform automatic 
 detection of count outliers. We use Cook's distance, which is
 a measure of how much the fitted coefficients would change if an individual
-sample were removed.\cite{Cook1977Detection}
-The Cook's distances are stored as a matrix available in
-\Robject{assays(dds)[["cooks"]]}. These values are the same as 
-those produced by the \Rfunction{cooks.distance} function of the \Rpackage{stats}
-package, except using the fitted dispersion and taking into account the size factors.
-
-By default, if the Cook's distance for a sample is larger than the $.75$
-quantile of the $F(p,m-p)$ distribution (with $p$ the number of parameters including
-the intercept and $m$ number of samples), then the gene is flagged in 
-\Robject{mcols(dds)\$cooksOutlier}, and the p-value of the row is set to \Robject{NA}.
-The cutoff can be modified using the \Robject{cooksCutoff} argument to
-\Rfunction{nbinomWaldTest} or \Rfunction{nbinomLRT}.
-The functionality can be disabled by setting \Robject{cooksCutoff} to \Robject{Inf}
-or \Robject{FALSE}. If the removal of a sample would mean that a coefficient
-cannot be fitted (e.g. if there is only one sample for a given group), then the 
-Cook's distance for this sample is not counted towards the flagging.
+sample were removed\cite{Cook1977Detection}. A column 
+\Robject{mcols(dds)\$maxCooks} provides the maximum value of 
+Cook's distance for each gene. This can be plotted over the test
+statistic to justify its use as a filtering criterion.
 
 <<cooksPlot, fig=TRUE>>=
 W <- mcols(dds)$WaldStatistic_condition_treated_vs_untreated
@@ -987,7 +1079,7 @@ A good choice for a filtering criterion is one that
 \end{enumerate}
 
 The benefit from filtering relies on property \ref{it:corr}, and we will explore
-it further in Section \ref{sec:whyitworks}. Its statistical validity relies on
+it further in Section~\ref{sec:whyitworks}. Its statistical validity relies on
 property \ref{it:indp} -- which is simple to formally prove for many combinations
 of filter criteria with test statistics-- and \ref{it:joint}, which is less
 easy to theoretically imply from first principles, but rarely a problem in practice.
@@ -1140,7 +1232,7 @@ abline(a=0, slope, col="red3", lwd=2)
   lines: here, this results in \Sexpr{length(whichBH)} genes.
   \emph{Right:} Schweder and Spj\o{}tvoll plot, as described in the text.
   For both of these plots, the $p$-values \Robject{resFilt\$pvalues}
-  from Section \ref{sec:filtbycount} were used as a starting
+  from Section~\ref{sec:filtbycount} were used as a starting
   point. Analogously, one can produce these types of plots for any set of $p$-values,
   for instance those from the previous sections.}
 \label{figmulttest}
@@ -1148,41 +1240,22 @@ abline(a=0, slope, col="red3", lwd=2)
 
 \section{Frequently asked questions}
 
-\begin{itemize} \itemsep1em
-  
-\item Why are some p-values set to \texttt{NA}?
-  
-  \vspace{1em}
+\subsection{Why are some p-values set to \texttt{NA}?}
   
   At various steps in the \Biocpkg{DESeq2} pipeline, certain rows
   will have p-values set to \texttt{NA}:
   
-  \begin{enumerate} 
-  \item If within a row, all samples have zero
-    counts, this is recorded in \texttt{mcols(dds)\$allZero} and
-    $\log_2$ fold change  estimates, p-value and adjusted p-value
-    will all be set to \texttt{NA}.
-  \item If a row contains a sample with outlying Cook's distance
-    (see Section \ref{sec:cooks}), 
-    then the p-value and adjusted p-value are set to \texttt{NA}.
-  \item If a row is filtered by automatic independent
-    filtering (see Section \ref{sec:autoFilt}),
-    then the adjusted p-value is set to \texttt{NA}.
-  \end{enumerate}
   
-\item How do I use the variance stabilized / rlog transformed data for
-  differential testing?
   
-  \vspace{1em}
+\subsection{How do I use the variance stabilized or rlog 
+  transformed data for differential testing?}
   
   The variance stabilizing and rlog transformations are provided for
   applications other than differential testing, for example clustering
   of samples or other machine learning applications. For differential
   testing we recommend the \Rfunction{DESeq} function applied to raw
-  counts as outlined in Section \ref{sec:de}.
+  counts as outlined in Section~\ref{sec:de}.
       
-\end{itemize}
-
 \section{Session Info}
 
 <<sessInfo, results=tex, echo=FALSE>>=

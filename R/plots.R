@@ -163,6 +163,9 @@ plotMA = function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
 #'
 #' @note See the vignette for an example of variance stabilization and PCA plots.
 #'
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom lattice xyplot draw.key
+#' 
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet(betaSD=1)

@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based
     on the negative binomial distribution
-Version: 1.1.36
+Version: 1.1.37
 Author: Michael Love (MPIMG Berlin), Simon Anders, Wolfgang Huber (EMBL
     Heidelberg)
 Maintainer: Michael Love <michaelisaiahlove@gmail.com>
@@ -13,9 +13,9 @@ License: GPL (>= 3)
 biocViews: HighThroughputSequencing, ChIPseq, RNAseq, SAGE,
     DifferentialExpression
 Imports:
+    Biobase,
     GenomicRanges,
     IRanges,
-    Biobase,
     locfit,
     genefilter,
     methods,
@@ -24,10 +24,9 @@ Imports:
 Depends:
     GenomicRanges,
     IRanges,
-    Biobase,
-    lattice,
     Rcpp (>= 0.10.1),
-    RcppArmadillo (>= 0.3.4.4)
+    RcppArmadillo (>= 0.3.4.4),
+    Biobase
 Suggests:
     RUnit,
     BiocGenerics,
