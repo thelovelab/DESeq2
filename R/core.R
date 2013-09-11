@@ -55,7 +55,7 @@
 #'
 #' @references Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #'
-#' @import Biobase GenomicRanges IRanges
+#' @import BiocGenerics GenomicRanges IRanges
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars filtered_p
 #' 
@@ -258,7 +258,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans)
 #' dds <- makeExampleDESeqDataSet()
 #' dds <- estimateSizeFactors(dds)
 #' dds <- estimateDispersionsGeneEst(dds)
-#' mcols(dds)$dispFit <- rep(median(mcols(dds)$dispGeneEst,na.rm=TRUE),nrow(dds))
+#' dds <- estimateDispersionsFit(dds)
 #' dds <- estimateDispersionsMAP(dds)
 #' plotDispEsts(dds)
 #'

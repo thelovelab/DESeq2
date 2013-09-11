@@ -68,7 +68,7 @@
 }
 \examples{
 countData <- matrix(1:4,ncol=2)
-colData <- DataFrame(condition=factor(c("a","b")))
+colData <- data.frame(condition=factor(c("a","b")))
 dds <- DESeqDataSetFromMatrix(countData, colData, formula(~ condition))
 }
 \references{

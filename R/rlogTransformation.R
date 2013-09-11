@@ -75,6 +75,7 @@
 #' rld <- rlogTransformation(dds, blind=FALSE)
 #'
 #' # apply the parameters to a new sample
+#' 
 #' ddsNew <- makeExampleDESeqDataSet(m=1)
 #' mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
 #' betaPriorVar <- attr(rld,"betaPriorVar")

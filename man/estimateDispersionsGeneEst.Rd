@@ -73,7 +73,7 @@
 dds <- makeExampleDESeqDataSet()
 dds <- estimateSizeFactors(dds)
 dds <- estimateDispersionsGeneEst(dds)
-mcols(dds)$dispFit <- rep(median(mcols(dds)$dispGeneEst,na.rm=TRUE),nrow(dds))
+dds <- estimateDispersionsFit(dds)
 dds <- estimateDispersionsMAP(dds)
 plotDispEsts(dds)
 }

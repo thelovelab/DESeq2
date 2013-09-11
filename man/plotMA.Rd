@@ -1,13 +1,14 @@
+\docType{methods}
 \name{plotMA}
 \alias{plotMA}
+\alias{plotMA,DESeqDataSet-method}
 \title{MA-plot from base means and log fold changes}
 \usage{
-  plotMA(object, lfcColname, pvalues, pvalCutoff = 0.1,
-    ylim, linecol = "#ff000080",
-    pointcol = c("black", "red"),
-    xlab = "mean of normalized counts",
-    ylab = expression(log[2] ~ fold ~ change), log = "x",
-    cex = 0.45, ...)
+  \S4method{plotMA}{DESeqDataSet}(object, lfcColname,
+    pvalues, pvalCutoff=.1, ylim, linecol = "#ff000080",
+    pointcol = c("black","red"), xlab = "mean of normalized counts",
+    ylab = expression(log[2]~fold~change), log =
+    "x", cex=0.45, ...)
 }
 \arguments{
   \item{object}{a DESeqDataSet or a DataFrame produced by

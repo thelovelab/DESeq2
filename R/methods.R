@@ -13,6 +13,7 @@
 #' @name counts
 #' @rdname counts
 #' @aliases counts counts,DESeqDataSet-method counts<-,DESeqDataSet,matrix-method
+#'
 #' @param object a \code{DESeqDataSet} object.
 #' @param normalized logical indicating whether or not to divide the counts by
 #' the size factors or normalization factors before returning

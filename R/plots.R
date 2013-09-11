@@ -1,15 +1,19 @@
-# convenience function for adding alpha transparency to named colors
-col2useful <- function(col,alpha) {
-  x <- col2rgb(col)/255
-  rgb(x[1],x[2],x[3],alpha)
-}
-
-
 #' Plot dispersion estimates
 #'
 #' A simple helper function that plots the per-gene dispersion
 #' estimates together with the fitted mean-dispersion relationship.
 #'
+#' @usage
+#' \S4method{plotDispEsts}{DESeqDataSet}(object, ymin,
+#'   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
+#'   legend=TRUE, xlab = "mean of normalized counts",
+#'   ylab = "dispersion", log = "xy", cex = 0.45, ...)
+#'
+#' @docType methods
+#' @name plotDispEsts
+#' @rdname plotDispEsts
+#' @aliases plotDispEsts plotDispEsts,DESeqDataSet-method
+#' 
 #' @param object a DESeqDataSet
 #' @param ymin the lower bound for points on the plot, points beyond this
 #'    are drawn as triangles at ymin
@@ -33,7 +37,7 @@ col2useful <- function(col,alpha) {
 #' plotDispEsts(dds)
 #' 
 #' @export
-plotDispEsts = function( object, ymin,
+plotDispEsts.DESeqDataSet <- function( object, ymin,
   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
   legend=TRUE, xlab = "mean of normalized counts",
   ylab = "dispersion", log = "xy", cex = 0.45, ... )
@@ -66,6 +70,10 @@ plotDispEsts = function( object, ymin,
   }
 }
 
+#' @rdname plotDispEsts
+#' @export
+setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDataSet)
+
 
 #' MA-plot from base means and log fold changes
 #'
@@ -73,6 +81,17 @@ plotDispEsts = function( object, ymin,
 #' scatter plot of log2 fold changes (on the y-axis) versus the mean of
 #' normalized counts (on the x-axis).
 #'
+#' @usage
+#' \S4method{plotMA}{DESeqDataSet}(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
+#'   linecol = "#ff000080", pointcol = c("black","red"),
+#'   xlab = "mean of normalized counts",
+#'   ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...)
+#'
+#' @docType methods
+#' @name plotMA
+#' @rdname plotMA
+#' @aliases plotMA plotMA,DESeqDataSet-method
+#' 
 #' @param object a DESeqDataSet or a DataFrame produced by the
 #' results function
 #' @param lfcColname the name of the column for log fold changes, if
@@ -99,7 +118,7 @@ plotDispEsts = function( object, ymin,
 #' plotMA(dds)
 #' 
 #' @export
-plotMA = function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
+plotMA.DESeqDataSet <- function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
   linecol = "#ff000080", pointcol = c("black","red"),
   xlab = "mean of normalized counts",
   ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...) {
@@ -125,7 +144,7 @@ plotMA = function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
       res <- results(object)
       pvalues <- res$padj
     }
-        x <- mcols(object)
+    x <- mcols(object)
   } else if (class(object) == "DataFrame") {
     if (missing(pvalues)) {
       pvalues <- object$padj
@@ -147,7 +166,9 @@ plotMA = function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
   abline(h=0, lwd=4, col=linecol)
 }
 
-
+#' @rdname plotMA
+#' @export
+setMethod("plotMA", signature(object="DESeqDataSet"), plotMA.DESeqDataSet)
 
 #' Sample PCA plot from variance-stabilized data
 #' 
@@ -194,4 +215,11 @@ plotPCA = function(x, intgroup="condition", ntop=500)
       rect = list(col = colours),
       text = list(levels(fac)),
       rep = FALSE)))
+}
+
+
+# convenience function for adding alpha transparency to named colors
+col2useful <- function(col,alpha) {
+  x <- col2rgb(col)/255
+  rgb(x[1],x[2],x[3],alpha)
 }

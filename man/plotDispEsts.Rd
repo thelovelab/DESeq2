@@ -1,11 +1,14 @@
+\docType{methods}
 \name{plotDispEsts}
 \alias{plotDispEsts}
+\alias{plotDispEsts,DESeqDataSet-method}
 \title{Plot dispersion estimates}
 \usage{
-  plotDispEsts(object, ymin, genecol = "black",
-    fitcol = "red", finalcol = "dodgerblue", legend = TRUE,
-    xlab = "mean of normalized counts",
-    ylab = "dispersion", log = "xy", cex = 0.45, ...)
+  \S4method{plotDispEsts}{DESeqDataSet}(object, ymin,
+    genecol = "black", fitcol = "red", finalcol =
+    "dodgerblue", legend=TRUE, xlab = "mean of normalized counts",
+    ylab = "dispersion", log = "xy", cex = 0.45,
+    ...)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
