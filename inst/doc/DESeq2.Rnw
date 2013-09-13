@@ -279,13 +279,12 @@ mcols(res, use.names=TRUE)
 
 The variable \Robject{condition} and the factor level \Robject{treated} 
 are combined as ``condition\_treated\_vs\_untreated''.  For a particular gene, a
-$\log_2$ fold change of $-1$ for \Robject{condition\_treated\_vs\_untreated} here means that
-the treatment induces a change of $2^{-1} = 0.5$ times the counts.  If the variable
-of interest is not a factor, the $\log_2$ fold change can be interpreted as the
-amount of doubling observed on average for every unit of change.
+$\log_2$ fold change of $-1$ for \Robject{condition\_treated\_vs\_untreated} means 
+that the treatment induces a change in observed expression level of $2^{-1} = 0.5$ compared to the untreated condition.
+If the variable of interest is continuous-valued, then the reported $\log_2$ fold change is per unit of change of that variable.
 
-The results columns for certain genes can be set to \Robject{NA} 
-for the following reasons:
+The results for particular genes can be set to \texttt{NA}, 
+for either one of the following reasons:
 
   \begin{enumerate} 
   \item If within a row, all samples have zero
@@ -294,7 +293,7 @@ for the following reasons:
     will all be set to \texttt{NA}.
   \item If a row contains a sample with an extreme count
     then the p-value and adjusted p-value are set to \texttt{NA}.
-    These outlier counts are detected by Cook's distance and customization
+    These outlier counts are detected by Cook's distance. Customization
     of this outlier filtering is described in Section~\ref{sec:replaceCooks},
     along with a method for replacing outlier counts and refitting.
   \item If a row is filtered by automatic independent filtering,
@@ -678,24 +677,28 @@ found in Section~\ref{sec:ctrstTheory}.
 
 \subsection{Dealing with count outliers} \label{sec:replaceCooks}
 
-RNA-Seq data can sometimes contain very large counts which can be 
-described as outliers (i.e. produced by rare technical artifacts, 
-and not related to the biological properties of the sample).
-\Biocpkg{DESeq2} calculates, for every gene and for every sample,
-a diagnostic test for outliers called Cook's distance.
+RNA-Seq data sometimes contain isolated instances of very large counts that are apparently
+unrelated to the experimental or study design, and which may be 
+considered outliers. There are many reasons why outliers can arise, including rare
+technical or experimental artifacts, read mapping problems in the case of genetically
+differing samples, and genuine, but rare biological events. In many cases, users appear
+primarily interested in genes that show a consistent behaviour, and this is the reason why
+by default, genes that are affected by such outliers are set aside by \Biocpkg{DESeq2}. 
+The function calculates, for every gene and for every sample,
+a diagnostic test for outliers called \emph{Cook's distance}.
 Cook's distance is a measure of how much a single sample 
-is influencing the fitted coefficients for a gene, 
-where large values might indicate a count outlier. 
+is influencing the fitted coefficients for a gene, and a
+large value of Cook's distance is intended to indicate an outlier count. 
 \Biocpkg{DESeq2} automatically flags genes with Cook's distance
-above a cutoff, setting the p-value and adjusted p-value to \Robject{NA}.
+above a cutoff and sets their p-values and adjusted p-values to \Robject{NA}.
 
 The default cutoff depends on the sample size and number of parameters
-to be estimated: the $.75$ quantile of the $F(p,m-p)$ distribution 
+to be estimated. The default is to use the $75\%$ quantile of the $F(p,m-p)$ distribution 
 (with $p$ the number of parameters including the intercept and 
 $m$ number of samples).
-The cutoff can be modified using the \Robject{cooksCutoff} argument to
+The default can be modified using the \Robject{cooksCutoff} argument to
 the \Rfunction{results} function.
-The functionality can be disabled by setting \Robject{cooksCutoff} to \Robject{FALSE}
+The outlier removal functionality can be disabled by setting \Robject{cooksCutoff} to \Robject{FALSE}
 or \Robject{Inf}. If the removal of a sample would mean that a coefficient
 cannot be fitted (e.g. if there is only one sample for a given group), then the 
 Cook's distance for this sample is not counted towards the flagging.
@@ -704,18 +707,19 @@ The Cook's distances are stored as a matrix available in
 those produced by the \Rfunction{cooks.distance} function of the \Rpackage{stats}
 package, except using the fitted dispersion and taking into account the size factors.
 
-With many degrees of freedom (many more samples than number of parameters to 
-be estimated), it might be undesirable to remove entire genes from the analysis
-which contain a count outlier. An alternate strategy is to replace the 
+With many degrees of freedom --i.\,e., many more samples than number of parameters to 
+be estimated-- it might be undesirable to remove entire genes from the analysis
+just because their data include a single count outlier. An alternate strategy is to replace the 
 outlier counts with the trimmed mean over all samples, adjusted by the
-size factor for that sample. Replacing the value with the trimmed mean 
-will not lead to false positives, as it replaces
-the outlier value with the value predicted by the null hypothesis.
+size factor for that sample. This approach is conservative,
+it will not lead to false positives, as it replaces
+the outlier value with the value predicted by the null hypothesis. It can be implemented
+as follows.
+
 The \Rfunction{DESeq} function (or \Rfunction{nbinomWaldTest} and 
 \Rfunction{nbinomLRT}) calculates Cook's distance for every gene and
 sample. After an initial fit has been performed, the following code 
-can be used to replace count outliers by the trimmed mean, 
-and then a new fit can be performed.
+replaces count outliers by the trimmed mean and performs a new fit.
 
 <<calculateTrimmedMeans>>=
 ddsClean <- dds
@@ -735,6 +739,7 @@ nullCounts <- as.integer(outer(trimBaseMean,
                                sizeFactors(ddsClean), "*"))
 counts(ddsClean)[idx] <- nullCounts[idx]
 @ 
+\fixme{I think it would be good to wrap the above two chunks into a simple convenience function.}
 
 Finally we rerun all the steps of \Rfunction{DESeq}.
 
