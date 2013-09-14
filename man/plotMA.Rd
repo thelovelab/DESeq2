@@ -6,7 +6,8 @@
 \usage{
   \S4method{plotMA}{DESeqDataSet}(object, lfcColname,
     pvalues, pvalCutoff=.1, ylim, linecol = "#ff000080",
-    pointcol = c("black","red"), xlab = "mean of normalized counts",
+    pointcol = c("black","red"), xlab =
+    "mean of normalized counts",
     ylab = expression(log[2]~fold~change), log =
     "x", cex=0.45, ...)
 }

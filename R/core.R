@@ -55,7 +55,7 @@
 #'
 #' @references Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #'
-#' @import BiocGenerics GenomicRanges IRanges
+#' @import BiocGenerics GenomicRanges Rcpp RcppArmadillo methods
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars filtered_p
 #' 
@@ -1138,6 +1138,7 @@ getBaseMeansAndVariances <- function(object) {
                                   description = c("the base mean over all rows",
                                     "the base variance over all rows",
                                     "all counts in a row are zero"))
+  
   mcols(object) <- cbind(mcols(object),meanVarZero)
   return(object)
 }

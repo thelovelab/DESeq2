@@ -6,7 +6,8 @@
 \usage{
   \S4method{plotDispEsts}{DESeqDataSet}(object, ymin,
     genecol = "black", fitcol = "red", finalcol =
-    "dodgerblue", legend=TRUE, xlab = "mean of normalized counts",
+    "dodgerblue", legend=TRUE, xlab =
+    "mean of normalized counts",
     ylab = "dispersion", log = "xy", cex = 0.45,
     ...)
 }

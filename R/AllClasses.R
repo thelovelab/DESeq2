@@ -142,6 +142,7 @@ DESeqDataSet <- function(se, design) {
   } else {
     mcols(mcols(dds)) <- cbind(mcols(mcols(dds)), mcolsRows)
   }
+  
   return(dds)
 }
 
