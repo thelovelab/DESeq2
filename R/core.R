@@ -55,7 +55,7 @@
 #'
 #' @references Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #'
-#' @import BiocGenerics GenomicRanges Rcpp RcppArmadillo methods
+#' @import BiocGenerics GenomicRanges IRanges Rcpp RcppArmadillo methods
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars filtered_p
 #' 

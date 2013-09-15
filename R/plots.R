@@ -6,8 +6,7 @@
 #' @usage
 #' \S4method{plotDispEsts}{DESeqDataSet}(object, ymin,
 #'   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
-#'   legend=TRUE, xlab = "mean of normalized counts",
-#'   ylab = "dispersion", log = "xy", cex = 0.45, ...)
+#'   legend=TRUE, xlab, ylab, log = "xy", cex = 0.45, ...)
 #'
 #' @docType methods
 #' @name plotDispEsts
@@ -39,9 +38,11 @@
 #' @export
 plotDispEsts.DESeqDataSet <- function( object, ymin,
   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
-  legend=TRUE, xlab = "mean of normalized counts",
-  ylab = "dispersion", log = "xy", cex = 0.45, ... )
-{ 
+  legend=TRUE, xlab, ylab, log = "xy", cex = 0.45, ... )
+{
+  if (missing(xlab)) xlab <- "mean of normalized counts"
+  if (missing(ylab)) ylab <- "dispersion"
+  
   px = mcols(object)$baseMean
   sel = (px>0)
   px = px[sel]
@@ -84,8 +85,7 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' @usage
 #' \S4method{plotMA}{DESeqDataSet}(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
 #'   linecol = "#ff000080", pointcol = c("black","red"),
-#'   xlab = "mean of normalized counts",
-#'   ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...)
+#'   xlab, ylab, log = "x", cex=0.45, ...)
 #'
 #' @docType methods
 #' @name plotMA
@@ -118,10 +118,14 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' plotMA(dds)
 #' 
 #' @export
-plotMA.DESeqDataSet <- function(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
-  linecol = "#ff000080", pointcol = c("black","red"),
-  xlab = "mean of normalized counts",
-  ylab = expression(log[2]~fold~change), log = "x", cex=0.45, ...) {
+plotMA.DESeqDataSet <- function(object, lfcColname, pvalues,
+  pvalCutoff=.1, ylim, linecol = "#ff000080",
+  pointcol = c("black","red"), xlab, ylab, log = "x",
+  cex=0.45, ...) {
+  
+  if (missing(xlab)) xlab <- "mean of normalized counts"
+  if (missing(ylab)) ylab <- expression(log[2]~fold~change)
+  
   if (!missing(pvalues)) {
     if (length(pvalues) != nrow(object)) {
       stop("length of pvalues should be equal to the number of rows of object")
