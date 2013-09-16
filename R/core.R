@@ -1113,6 +1113,67 @@ removeResults <- function(object) {
 }
 
 
+#' Replace outliers with trimmed mean
+#'
+#' The \code{\link{DESeq}} function calculates a diagnostic measure called
+#' Cook's distance for every gene and every sample. The \code{\link{results}}
+#' function then sets the p-values to \code{NA} for genes which contain
+#' an outlying count as defined by a Cook's distance above a threshold.
+#' With many degrees of freedom, i.e. many more samples than number of parameters to 
+#' be estimated-- it might be undesirable to remove entire genes from the analysis
+#' just because their data include a single count outlier.
+#' An alternate strategy is to replace the outlier counts
+#' with the trimmed mean over all samples, adjusted by the size factor or normalization
+#' factor for that sample. The following simple function performs this replacement
+#' for the user. For more information on Cook's distance, please see the two
+#' sections of the vignette: 'Dealing with count outliers' and 'Count outlier detection'.
+#' 
+#' @param dds a DESeqDataSet object, which has already been processed by
+#' either DESeq, nbinomWaldTest or nbinomLRT, and therefore contains a matrix
+#' 'cooks' contained in assays(dds). These are the Cook's distances which will
+#' be used to define outlier counts.
+#' @param trim the fraction (0 to 0.5) of observations to be trimmed from
+#' each end of the normalized counts for a gene before the mean is computed
+#' @param cooksCutoff the threshold for defining an outlier to be replaced.
+#' Defaults to the .75 quantile of the F(p, m - p) distribution, where p is
+#' the number of parameters and m is the number of samples.
+#'
+#' @seealso \code{\link{DESeq}}
+#' 
+#' @examples
+#'
+#' dds <- makeExampleDESeqDataSet(n=100)
+#' dds <- DESeq(dds)
+#' ddsReplace <- replaceOutliersWithTrimmedMean(dds)
+#'
+#' @export
+replaceOutliersWithTrimmedMean <- function(dds,trim=.2,cooksCutoff) {
+  if (is.null(attr(dds,"modelMatrix")) | !("cooks" %in% names(assays(dds)))) {
+    stop("first run DESeq, nbinomWaldTest, or nbinomLRT to identify outliers")
+  }
+  p <- ncol(attr(dds,"modelMatrix"))
+  m <- ncol(dds)
+  if (missing(cooksCutoff)) {
+    cooksCutoff <- qf(.75, p, m - p)
+  }
+  idx <- which(assays(dds)[["cooks"]] > cooksCutoff)
+  trimBaseMean <- apply(counts(dds,normalized=TRUE),1,mean,trim=trim)
+  # Next we build a matrix of counts based on the trimmed mean and the
+  # size factors. Then we can replace only those values which fall
+  # above the cutoff on Cook's distance
+  if (!is.null(normalizationFactors(dds))) {
+    nullCounts <- as.integer(matrix(rep(trimBaseMean,ncol(dds)),ncol=dds) * 
+                             normalizationFactors(dds))
+
+  } else {
+    nullCounts <- as.integer(outer(trimBaseMean,
+                                   sizeFactors(dds), "*"))
+  }
+  counts(dds)[idx] <- nullCounts[idx]
+  dds
+}
+
+
 
 ###########################################################
 # unexported functons 

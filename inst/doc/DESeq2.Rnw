@@ -718,28 +718,12 @@ as follows.
 
 The \Rfunction{DESeq} function (or \Rfunction{nbinomWaldTest} and 
 \Rfunction{nbinomLRT}) calculates Cook's distance for every gene and
-sample. After an initial fit has been performed, the following code 
-replaces count outliers by the trimmed mean and performs a new fit.
-
-<<calculateTrimmedMeans>>=
-ddsClean <- dds
-p <- ncol(attr(ddsClean,"modelMatrix"))
-m <- ncol(ddsClean)
-cooksCutoff <- qf(.75, p, m - p)
-idx <- which(assays(ddsClean)[["cooks"]] > cooksCutoff)
-trimBaseMean <- apply(counts(ddsClean,normalized=TRUE),1,mean,trim=.2)
-@ 
-
-Next we build a matrix of counts based on the trimmed mean and the
-size factors. Then we can replace only those values which fall
-above the cutoff on Cook's distance:
+sample. After an initial fit has been performed, the following function 
+replaces count outliers by the trimmed mean.
 
 <<replaceCooksOutlier>>=
-nullCounts <- as.integer(outer(trimBaseMean,
-                               sizeFactors(ddsClean), "*"))
-counts(ddsClean)[idx] <- nullCounts[idx]
+ddsClean <- replaceOutliersWithTrimmedMean(dds)
 @ 
-\fixme{I think it would be good to wrap the above two chunks into a simple convenience function.}
 
 Finally we rerun all the steps of \Rfunction{DESeq}.
 
