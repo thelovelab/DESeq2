@@ -713,9 +713,7 @@ just because their data include a single count outlier. An alternate strategy is
 outlier counts with the trimmed mean over all samples, adjusted by the
 size factor for that sample. This approach is conservative,
 it will not lead to false positives, as it replaces
-the outlier value with the value predicted by the null hypothesis. It can be implemented
-as follows.
-
+the outlier value with the value predicted by the null hypothesis.
 The \Rfunction{DESeq} function (or \Rfunction{nbinomWaldTest} and 
 \Rfunction{nbinomLRT}) calculates Cook's distance for every gene and
 sample. After an initial fit has been performed, the following function 
