@@ -304,7 +304,15 @@ for either one of the following reasons:
 
 \subsubsection{Exporting results}
 
-The results can be exported using the base \R{} functions \Rfunction{write.csv}
+An HTML report of the results with plots and sortable/filterable columns
+can be exported using the \Biocpkg{ReportingTools} package (version higher than 2.1.16)
+on a \Rclass{DESeqDataSet} which has been processed by the \Rfunction{DESeq} function.
+For a code example, see the ``RNA-seq differential expression'' vignette at
+the \Biocpkg{ReportingTools} page, or the manual page for the 
+\Rfunction{publish} method for the \Rclass{DESeqDataSet} class.
+
+A plain-text file of the results can be exported 
+using the base \R{} functions \Rfunction{write.csv}
 or \Rfunction{write.delim}, and a descriptive file name indicating the variable
 which was tested.
 
