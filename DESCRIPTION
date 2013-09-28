@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based
     on the negative binomial distribution
-Version: 1.1.43
+Version: 1.1.44
 Author: Michael Love (MPIMG Berlin), Simon Anders, Wolfgang Huber (EMBL
     Heidelberg)
 Maintainer: Michael Love <michaelisaiahlove@gmail.com>

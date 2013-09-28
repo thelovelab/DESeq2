@@ -104,7 +104,7 @@ a \Rclass{SummarizedExperiment} can be found in the data package
 \Biocannopkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
 4 human cell cultures \cite{Haglund2012Evidence}.
 
-<<loadSumExp>>=
+<<loadSumExp,results=hide>>=
 library("parathyroidSE")
 data("parathyroidGenesSE")
 se <- parathyroidGenesSE
@@ -231,11 +231,7 @@ level of this variable). Note that the \Rfunction{results} function
 performs independent filtering by default using the \Biocpkg{genefilter}
 package, discussed in Section~\ref{sec:autoFilt}.
 
-<<subset>>=
-dds <- dds[1:1000,]
-@ 
-
-<<deseq>>=
+<<deseq,cache=TRUE>>=
 dds <- DESeq(dds)
 res <- results(dds)
 res <- res[order(res$padj),]
@@ -257,15 +253,15 @@ By default, the last variable in the design formula is chosen, and points
 will be colored red if the adjusted p-value is less than 0.1.  Points which fall out of
 the window are plotted as open triangles.
 
-<<MA, fig=TRUE>>=
+<<MA, fig=TRUE, width=6, height=4.718>>=
 plotMA(dds)
 @
 
-\incfig{DESeq2-MA}{.5\textwidth}{MA-plot.}{
+\incfig{DESeq2-MA}{.55\textwidth}{MA-plot.}{
   This plot shows the $\log_2$ fold changes from the treatment over
   the mean of normalized counts, i.e. the average of counts normalized by
   size factor. The \Biocpkg{DESeq2} package incorporates a prior on $\log_2$
-  fold changes, resulting in moderated estimates from genes with very low counts,
+  fold changes, resulting in moderated estimates from genes with low counts,
   as can be seen by the narrowing of spread of points on the left side of the plot.}
 
 \subsubsection{More information on results columns}
@@ -336,7 +332,7 @@ We can account for the different types of sequencing, and get a clearer picture
 of the differences attributable to the treatment.  As \Robject{condition} is the
 variable of interest, we put it at the end of the formula. Here we
 
-<<replaceDesign>>=
+<<replaceDesign,cache=TRUE>>=
 design(dds) <- formula(~ type + condition)
 dds <- DESeq(dds)
 @
@@ -364,8 +360,8 @@ head(resType)
 mcols(resType)
 @
 
+%---------------------------------------------------
 \section{Data transformations and visualization}
-
 %---------------------------------------------------
 \subsection{Count data transformations}
 %---------------------------------------------------
@@ -407,7 +403,7 @@ or if not present, they will be estimated using the current
 design formula. This setting should be used for transforming data for 
 downstream analysis.
 
-<<defvsd>>=
+<<defvsd,cache=TRUE>>=
 rld <- rlogTransformation(dds, blind=TRUE)
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 @
@@ -637,7 +633,7 @@ from which the cell cultures were derived, so we include this
 in the design formula. 
 
 <<paraSetup>>=
-ddsCtrst <- ddsPara[1:1000,colData(ddsPara)$time == "48h"]
+ddsCtrst <- ddsPara[, colData(ddsPara)$time == "48h"]
 as.data.frame(colData(ddsCtrst)[,c("patient","treatment")])
 design(ddsCtrst) <- ~ patient + treatment
 @ 
@@ -646,7 +642,7 @@ First we run \Rfunction{DESeq} and show how to extract one of the
 two comparisons of the treatment factor with the base level: 
 the comparison of DPN vs Control or the comparison of OHT vs Control.
 
-<<paraDE>>=
+<<paraDE,cache=TRUE>>=
 ddsCtrst <- DESeq(ddsCtrst)
 resultsNames(ddsCtrst)
 resPara <- results(ddsCtrst,"treatment_OHT_vs_Control")
@@ -733,7 +729,7 @@ ddsClean <- replaceOutliersWithTrimmedMean(dds)
 
 Finally we rerun all the steps of \Rfunction{DESeq}.
 
-<<refitAfterReplace>>=
+<<refitaAfterReplace,cache=TRUE>>=
 ddsClean <- DESeq(ddsClean)
 tab <- table(initial = results(dds)$padj < .1,
              cleaned = results(ddsClean)$padj < .1)
