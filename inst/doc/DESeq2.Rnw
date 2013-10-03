@@ -238,6 +238,13 @@ res <- res[order(res$padj),]
 head(res)
 @
 
+<<deseqNoPrior,cache=TRUE,echo=FALSE>>=
+# this chunk is used to demonstrate the shrinkage
+# of log fold changes 
+# note: betaPrior can also be used as an argument to DESeq()
+ddsNoPrior <- nbinomWaldTest(dds,betaPrior=FALSE)
+@ 
+
 Extracting results of other variables is discussed in section 
 \ref{sec:multifactor}. All the values calculated by the \Biocpkg{DESeq2} 
 package are stored in the \Rclass{DESeqDataSet} object, and access 
@@ -253,16 +260,31 @@ By default, the last variable in the design formula is chosen, and points
 will be colored red if the adjusted p-value is less than 0.1.  Points which fall out of
 the window are plotted as open triangles.
 
-<<MA, fig=TRUE, width=6, height=4.718>>=
-plotMA(dds)
+<<MA, fig=TRUE, width=4.5, height=4.5>>=
+plotMA(dds,ylim=c(-2,2),main="DESeq2")
 @
 
-\incfig{DESeq2-MA}{.55\textwidth}{MA-plot.}{
-  This plot shows the $\log_2$ fold changes from the treatment over
+<<MANoPrior, echo=FALSE, fig=TRUE, width=4.5, height=4.5>>=
+plotMA(ddsNoPrior, ylim=c(-2,2),main=expression(unshrunken~log[2]~fold~changes))
+@
+
+\begin{figure}
+\centering
+\includegraphics[width=.45\textwidth]{DESeq2-MANoPrior}
+\includegraphics[width=.45\textwidth]{DESeq2-MA}
+\caption{
+  \textbf{MA-plot.} 
+  These plots show the $\log_2$ fold changes from the treatment over
   the mean of normalized counts, i.e. the average of counts normalized by
-  size factor. The \Biocpkg{DESeq2} package incorporates a prior on $\log_2$
-  fold changes, resulting in moderated estimates from genes with low counts,
-  as can be seen by the narrowing of spread of points on the left side of the plot.}
+  size factors. The left plot shows the ``unshrunken'' $\log_2$ fold changes, 
+  while the right plot, produced by the code above, shows the shrinkage 
+  of $\log_2$ fold changes resulting from the incorporation of zero-centered
+  normal prior. The shrinkage is greater for the $\log_2$ fold change
+  estimates from genes with low counts and high dispersion, 
+  as can be seen by the narrowing of spread of leftmost points 
+  in the right plot.}
+\label{DESeq2-MA}
+\end{figure}
 
 \subsubsection{More information on results columns}
 
