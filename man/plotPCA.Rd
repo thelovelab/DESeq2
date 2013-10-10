@@ -5,9 +5,10 @@
   plotPCA(x, intgroup = "condition", ntop = 500)
 }
 \arguments{
-  \item{x}{a SummarizedExperiment, with transformed data in
-  \code{assay(x)}, produced by
-  \code{\link{varianceStabilizingTransformation}}}
+  \item{x}{a SummarizedExperiment, with data in
+  \code{assay(x)}, produced for example by either
+  \code{\link{varianceStabilizingTransformation}} or
+  \code{\link{rlogTransformation}}}
 
   \item{intgroup}{a character vector of names in
   \code{colData(x)} to use for grouping}

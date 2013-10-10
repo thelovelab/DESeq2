@@ -180,8 +180,9 @@ setMethod("plotMA", signature(object="DESeqDataSet"), plotMA.DESeqDataSet)
 #' 
 #' This plot helps to check for batch effects and the like.
 #' 
-#' @param x a SummarizedExperiment, with transformed data in \code{assay(x)},
-#' produced by \code{\link{varianceStabilizingTransformation}}
+#' @param x a SummarizedExperiment, with data in \code{assay(x)},
+#' produced for example by either \code{\link{varianceStabilizingTransformation}}
+#' or \code{\link{rlogTransformation}}
 #' @param intgroup a character vector of names in \code{colData(x)} to use for grouping
 #' @param ntop number of top genes to use for principal components, selected by highest
 #'    row variance
