@@ -94,8 +94,8 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' @rdname plotMA
 #' @aliases plotMA plotMA,DESeqDataSet-method
 #' 
-#' @param object a DESeqDataSet or a DataFrame produced by the
-#' results function
+#' @param object a DESeqDataSet processed by \code{\link{DESeq}}, or the
+#' individual functions \code{\link{nbinomWaldTest}} or \code{\link{ nbinomLRT}}
 #' @param lfcColname the name of the column for log fold changes, if
 #'    not provided this will default to the last variable in the design formula
 #' @param pvalues a vector of the p-values or adjusted p-values to use in coloring
@@ -134,30 +134,24 @@ plotMA.DESeqDataSet <- function(object, lfcColname, pvalues,
     }
   }
   stopifnot(length(pointcol) == 2)
-  if (class(object) == "DESeqDataSet") {
-    if (!"results" %in% mcols(mcols(object))$type) {
-      stop("first run DESeq() in order to produce an MA-plot")
-    }
-    # if not specified, try the last variable of the design formula,
-    # the last level of this variable, and the Wald test adjusted p-values
-    if (missing(lfcColname)) {
-      lfcColname <- lastCoefName(object)
-    }
-    if (length(lfcColname) != 1 | !is.character(lfcColname)) {
-      stop("the argument 'lfcColname' should be a character vector of length 1")
-    }
-    if (missing(pvalues)) {
-      res <- results(object)
-      pvalues <- res$padj
-    }
-    x <- mcols(object)
-  } else if (class(object) == "DataFrame") {
-    if (missing(pvalues)) {
-      pvalues <- object$padj
-    }
-    lfcColname <- "log2FoldChange"
-    x <- object
-  }    
+
+  if (!"results" %in% mcols(mcols(object))$type) {
+    stop("first run DESeq() in order to produce an MA-plot")
+  }
+  # if not specified, try the last variable of the design formula,
+  # the last level of this variable, and the Wald test adjusted p-values
+  if (missing(lfcColname)) {
+    lfcColname <- lastCoefName(object)
+  }
+  if (length(lfcColname) != 1 | !is.character(lfcColname)) {
+    stop("the argument 'lfcColname' should be a character vector of length 1")
+  }
+  if (missing(pvalues)) {
+    res <- results(object)
+    pvalues <- res$padj
+  }
+  x <- mcols(object)
+  
   stopifnot( length(cex) == 1 )
   col <- ifelse(is.na(pvalues) | pvalues > pvalCutoff, pointcol[1], pointcol[2])
   
