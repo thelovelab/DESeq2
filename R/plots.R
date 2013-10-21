@@ -95,9 +95,10 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' @aliases plotMA plotMA,DESeqDataSet-method
 #' 
 #' @param object a DESeqDataSet processed by \code{\link{DESeq}}, or the
-#' individual functions \code{\link{nbinomWaldTest}} or \code{\link{ nbinomLRT}}
+#' individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}
 #' @param lfcColname the name of the column for log fold changes, if
-#'    not provided this will default to the last variable in the design formula
+#'    not provided this will default to the last variable in the design formula.
+#'    for options for this argument, check resultsNames(object).
 #' @param pvalues a vector of the p-values or adjusted p-values to use in coloring
 #'    the points. If not provided, defaults to the 'padj' column of results(object)
 #' @param pvalCutoff the cutoff for drawing red or black points
@@ -147,7 +148,7 @@ plotMA.DESeqDataSet <- function(object, lfcColname, pvalues,
     stop("the argument 'lfcColname' should be a character vector of length 1")
   }
   if (missing(pvalues)) {
-    res <- results(object)
+    res <- results(object,name=lfcColname)
     pvalues <- res$padj
   }
   x <- mcols(object)

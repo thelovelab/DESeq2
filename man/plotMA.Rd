@@ -10,12 +10,14 @@
     cex=0.45, ...)
 }
 \arguments{
-  \item{object}{a DESeqDataSet or a DataFrame produced by
-  the results function}
+  \item{object}{a DESeqDataSet processed by
+  \code{\link{DESeq}}, or the individual functions
+  \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}}
 
   \item{lfcColname}{the name of the column for log fold
   changes, if not provided this will default to the last
-  variable in the design formula}
+  variable in the design formula.  for options for this
+  argument, check resultsNames(object).}
 
   \item{pvalues}{a vector of the p-values or adjusted
   p-values to use in coloring the points. If not provided,

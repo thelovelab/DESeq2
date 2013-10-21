@@ -10,8 +10,6 @@
 BiocStyle::latex()
 @
 
-\usepackage{cite}
-
 \usepackage{Sweave}
 \SweaveOpts{keep.source=TRUE,eps=FALSE,pdf=FALSE,png=TRUE,include=FALSE,width=4,height=4.5,resolution=150}
 \setkeys{Gin}{width=0.5\textwidth}
@@ -1279,7 +1277,6 @@ toLatex(sessionInfo())
 options(prompt="> ", continue="+ ")
 @ 
 
-\bibliographystyle{unsrt}
 \bibliography{library}
 
 \end{document}
