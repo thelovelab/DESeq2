@@ -284,7 +284,7 @@ plotMA(ddsNoPrior, ylim=c(-2,2),main=expression(unshrunken~log[2]~fold~changes))
 \label{DESeq2-MA}
 \end{figure}
 
-\subsubsection{More information on results columns}
+\subsubsection{More information on results columns} \label{sec:moreInfo}
 
 Information about which variables and tests were used can be found by calling
 the function \Rfunction{mcols} on the results object.
@@ -1253,10 +1253,7 @@ abline(a=0, slope, col="red3", lwd=2)
 
 \subsection{Why are some p-values set to \texttt{NA}?}
   
-  At various steps in the \Biocpkg{DESeq2} pipeline, certain rows
-  will have p-values set to \texttt{NA}:
-  
-  
+See the details in Section~\ref{sec:moreInfo}.  
   
 \subsection{How do I use the variance stabilized or rlog 
   transformed data for differential testing?}

@@ -58,7 +58,11 @@
 #' \eqn{\log_2(q_{ij}) = x_{j.} \beta_i}{log2(q_ij) = x_j. * beta_i},
 #' see formula at \code{\link{DESeq}}.
 #' for \code{rlogData}, a \code{matrix} of the same dimension as the
-#' count data, containing the transformed values.  
+#' count data, containing the transformed values. To avoid returning
+#' matrices with NA values where there were zeros for all rows of
+#' the unnormalized counts, rlogTransformation returns instead all
+#' zeros (essentially adding a pseudocount of one, only to those rows 
+#' in which all samples have zero).
 #'
 #' @seealso \code{\link{plotPCA}}, \code{\link{varianceStabilizingTransformation}}
 #' @examples
@@ -165,7 +169,7 @@ rlogData <- function(object, samplesVector, betaPriorVar, intercept) {
       nf <- matrix(rep(sf,each=nrow(object)),ncol=ncol(object))
     }
     # if the intercept is not finite, these rows
-    # are all zero. here we put a small value instead
+    # were all zero. here we put a small value instead
     intercept <- as.numeric(intercept)
     infiniteIntercept <- !is.finite(intercept)
     intercept[infiniteIntercept] <- -10
@@ -199,16 +203,19 @@ rlogData <- function(object, samplesVector, betaPriorVar, intercept) {
                        betaTol=1e-4, useOptim=FALSE,
                        useQR=TRUE)
   normalizedDataNZ <- t(modelMatrix %*% t(fit$betaMatrix))
-  normalizedData <- buildMatrixWithNARows(normalizedDataNZ, mcols(object)$allZero)
-  # add back in the intercept
+
+  normalizedData <- buildMatrixWithZeroRows(normalizedDataNZ, mcols(object)$allZero)
+
+  # add back in the intercept, if finite
   if (!missing(intercept)) {
-    normalizedData <- normalizedData + intercept 
+    normalizedData <- normalizedData + ifelse(infiniteIntercept, 0, intercept)
   }
   colnames(normalizedData) <- colnames(object)
   attr(normalizedData,"betaPriorVar") <- betaPriorVar
   if ("Intercept" %in% modelMatrixNames) {
     fittedInterceptNZ <- fit$betaMatrix[,which(modelMatrixNames == "Intercept"),drop=FALSE]
     fittedIntercept <- buildMatrixWithNARows(fittedInterceptNZ, mcols(object)$allZero)
+    fittedIntercept[is.na(fittedIntercept)] <- -Inf
     attr(normalizedData,"intercept") <- fittedIntercept
   }
   normalizedData

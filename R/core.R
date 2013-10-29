@@ -1009,6 +1009,9 @@ results <- function(object, name, contrast, cooksCutoff,
                     independentFiltering=TRUE,
                     alpha=0.1, filter, theta=seq(0, 0.95, by=0.05),
                     pAdjustMethod="BH") {
+  if (!"results" %in% mcols(mcols(object))$type) {
+    stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
+  }
   if (missing(name)) {
     name <- lastCoefName(object)
   }
@@ -1017,9 +1020,6 @@ results <- function(object, name, contrast, cooksCutoff,
   stopifnot(length(pAdjustMethod)==1)
   if (length(name) != 1 | !is.character(name)) {
     stop("the argument 'name' should be a character vector of length 1")
-  }
-  if (!"results" %in% mcols(mcols(object))$type) {
-    stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
   }
   
   # determine test type from the names of mcols(object)
@@ -1055,12 +1055,16 @@ results <- function(object, name, contrast, cooksCutoff,
   # calculate Cook's cutoff
   m <- nrow(attr(object,"modelMatrix"))
   p <- ncol(attr(object,"modelMatrix"))
-  if (missing(cooksCutoff)) {
-    cooksCutoff <- qf(.75, p, m - p)
-  }
-  stopifnot(length(cooksCutoff)==1)
-  if (is.logical(cooksCutoff) & cooksCutoff) {
-    cooksCutoff <- qf(.75, p, m - p)
+
+  # only if more samples than parameters:
+  if (m > p) {
+    if (missing(cooksCutoff)) {
+      cooksCutoff <- qf(.75, p, m - p)
+    }
+    stopifnot(length(cooksCutoff)==1)
+    if (is.logical(cooksCutoff) & cooksCutoff) {
+      cooksCutoff <- qf(.75, p, m - p)
+    }
   }
 
   # apply cutoff based on maximum Cook's distance
@@ -1519,12 +1523,19 @@ buildDataFrameWithNARows <- function(resultsList, NArows) {
 
 # convenience function for building larger matrices
 # by filling in NA rows
-buildMatrixWithNARows <- function(m, NArows) {
-  mFull <- matrix(NA, ncol=ncol(m), nrow=length(NArows))
-  mFull[!NArows,] <- m
+buildMatrixWithNARows <- function(m, NARows) {
+  mFull <- matrix(NA, ncol=ncol(m), nrow=length(NARows))
+  mFull[!NARows,] <- m
   mFull
 }
 
+# convenience function for building larger matrices
+# by filling in 0 rows
+buildMatrixWithZeroRows <- function(m, zeroRows) {
+  mFull <- matrix(0, ncol=ncol(m), nrow=length(zeroRows))
+  mFull[!zeroRows,] <- m
+  mFull
+}
 
 # convenience function for breaking up matrices
 # by column and preserving column names
@@ -1723,27 +1734,26 @@ cleanContrast <- function(object, contrast) {
     if (contrast[2] == contrast[3]) {
       stop(paste(contrast[2],"and",contrast[3],"should be different level names"))
     }
-    contrastFactor <- make.names(contrast[1])
+    contrastFactor <- contrast[1]
     if (!contrastFactor %in% names(colData(object))) {
       stop(paste(contrastFactor,"should be the name of a factor in the colData of the DESeqDataSet"))
     }
-    contrastNumLevel <- make.names(contrast[2])
-    contrastDenomLevel <- make.names(contrast[3])
-    contrastBaseLevel <- make.names(levels(colData(object)[,contrastFactor])[1])
+    contrastNumLevel <- contrast[2]
+    contrastDenomLevel <- contrast[3]
+    contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
     # use make.names() so the column names are
     # the same as created by DataFrame in mcols(object).
-    contrastNumColumn <- paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel)
-    contrastDenomColumn <- paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel)
+    contrastNumColumn <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel))
+    contrastDenomColumn <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel))
     resNames <- resultsNames(object)
 
-    # a brief detour...
-    # check in case the desired contrast is already
+    # first, check in case the desired contrast is already
     # available in mcols(object), and then we can either
     # take it directly or multiply the log fold
     # changes and stat by -1
     if ( contrastDenomLevel == contrastBaseLevel ) {
       # the results can be pulled directly from mcols(object)
-      name <- paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel)
+      name <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel))
       if (!name %in% resNames) {
         stop(paste("as",contrastDenomLevel,"is the base level, was expecting",name,"to be present in 'resultsNames(object)'"))
       }
@@ -1760,8 +1770,8 @@ cleanContrast <- function(object, contrast) {
     } else if ( contrastNumLevel == contrastBaseLevel ) {
       # fetch the results for denom vs num 
       # and mutiply the log fold change and stat by -1
-      cleanName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
-      swapName <- paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel)
+      cleanName <- make.names(paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel))
+      swapName <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel))
       if (!swapName %in% resNames) {
         stop(paste("as",contrastNumLevel,"is the base level, was expecting",swapName,"to be present in 'resultsNames(object)'"))
       }
@@ -1786,7 +1796,7 @@ cleanContrast <- function(object, contrast) {
       return(res)
     }
 
-    # ...back to the normal contrast case
+    # now, back to the normal contrast case
     if ( ! (contrastNumColumn %in% resNames &
             contrastDenomColumn %in% resNames) ) {
       # each contrast factor + level name should be once in results names
@@ -1808,7 +1818,7 @@ cleanContrast <- function(object, contrast) {
     contrastNumeric[resNames == contrastNumColumn] <- 1
     contrastNumeric[resNames == contrastDenomColumn] <- -1
     contrast <- contrastNumeric
-    contrastName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
+    contrastName <- make.names(paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel))
   }
 
   contrastResults <- getContrast(object, contrast, useT=FALSE, df)

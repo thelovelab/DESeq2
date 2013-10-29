@@ -40,7 +40,12 @@
   x_{j.} \beta_i}{log2(q_ij) = x_j. * beta_i}, see formula
   at \code{\link{DESeq}}. for \code{rlogData}, a
   \code{matrix} of the same dimension as the count data,
-  containing the transformed values.
+  containing the transformed values. To avoid returning
+  matrices with NA values where there were zeros for all
+  rows of the unnormalized counts, rlogTransformation
+  returns instead all zeros (essentially adding a
+  pseudocount of one, only to those rows in which all
+  samples have zero).
 }
 \description{
   This function uses Tikhonov/ridge regularization, as in
