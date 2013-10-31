@@ -536,9 +536,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                       dispOutlier = dispOutlier,
                       dispMAP = dispMAP)
 
-  if (any(!resultsList$dispConv)) {
-    if (!quiet) message(paste(sum(!resultsList$dispConv),"rows did not converge in dispersion, labelled in mcols(object)$dispConv. Use larger maxit argument with estimateDispersions"))
-  }
+  numnonconv = sum(!resultsList$dispConv)
+  if ((numnonconv>0) && !quiet) 
+    message(sprintf("%d row%s did not converge in dispersion, labelled in 'mcols(object)$dispConv'. Try using a larger value for the 'maxit' argument of 'estimateDispersions'.\n", numnonconv, if(numnonconv>1) "s" else ""))
   
   dispDataFrame <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
   mcols(dispDataFrame) <- DataFrame(type=rep("intermediate",ncol(dispDataFrame)),
