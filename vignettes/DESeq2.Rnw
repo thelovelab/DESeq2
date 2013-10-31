@@ -10,6 +10,10 @@
 BiocStyle::latex()
 @
 
+<<loadDESeq2, echo=FALSE>>=
+library("DESeq2")
+@ 
+
 \usepackage{Sweave}
 \SweaveOpts{keep.source=TRUE,eps=FALSE,pdf=FALSE,png=TRUE,include=FALSE,width=4,height=4.5,resolution=150}
 \setkeys{Gin}{width=0.5\textwidth}
@@ -43,8 +47,12 @@ BiocStyle::latex()
   incorporate data-driven prior distributions \footnote{Other \Bioconductor{} packages 
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{baySeq} and \Biocpkg{DSS}.}. 
   This vignette explains the use of the package and demonstrates typical work flows.
-%-- The GB paper is really dated. Let's comment this out until the new ms exists:
-%For an exposition of the statistical method, please see our paper \cite{Anders:2010:GB}.
+  %-- The GB paper is really dated. Let's comment this out until the new ms exists:
+  %For an exposition of the statistical method, please see our paper \cite{Anders:2010:GB}.
+  
+  \vspace{1em}
+  
+  \textbf{DESeq2 version:} \Sexpr{sessionInfo()[["otherPkgs"]][["DESeq2"]][["Version"]]}
 \end{abstract}
 
 <<options, results=hide, echo=FALSE>>=
