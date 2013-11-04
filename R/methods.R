@@ -446,7 +446,7 @@ estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","loc
     mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results"))]
   }
   stopifnot(length(maxit)==1)
-  fitType <- match.arg(fitType)
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
   
   # if trying to call differential expression for a model
   # with as many samples as columns 

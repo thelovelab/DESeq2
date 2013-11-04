@@ -4,9 +4,11 @@
 \alias{resultsNames}
 \title{Extract results from a DESeq analysis}
 \usage{
-  results(object, name, contrast, cooksCutoff,
-    independentFiltering = TRUE, alpha = 0.1, filter,
-    theta = seq(0, 0.95, by = 0.05), pAdjustMethod = "BH")
+  results(object, name, contrast, lfcThreshold = 0,
+    altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
+    cooksCutoff, independentFiltering = TRUE, alpha = 0.1,
+    filter, theta = seq(0, 0.95, by = 0.05),
+    pAdjustMethod = "BH")
 
   resultsNames(object)
 
@@ -28,7 +30,39 @@
   contrast vector with one element for each element in
   \code{resultsNames(object)}, i.e. columns of the model
   matrix. The DESeqDataSet must be one produced using the
-  Wald test steps in order to use contrasts.}
+  Wald test steps in order to use contrasts. If used, the
+  \code{name} argument is ignored.}
+
+  \item{lfcThreshold}{a non-negative value, which specifies
+  the test which should be applied to the log2 fold
+  changes. The standard is a test that the log2 fold
+  changes are not equal to zero. However, log2 fold changes
+  greater or less than \code{lfcThreshold} can also be
+  tested. Specify the alternative hypothesis using the
+  \code{altHypothesis} argument. If \code{lfcThreshold} is
+  specified, the results are Wald tests, and LRT p-values
+  will be overwritten.}
+
+  \item{altHypothesis}{character which specifies the
+  alternative hypothesis, i.e. those values of log2 fold
+  change which the user is interested in finding. The
+  complement of this set of values is the null hypothesis
+  which will be tested. If the log2 fold change specified
+  by \code{name} or by \code{contrast} is written as \eqn{
+  \beta }{ beta }, then the possible values for
+  \code{altHypothesis} represent the following alternate
+  hypotheses: \itemize{ \item greaterAbs - \eqn{|\beta| >
+  \textrm{lfcThreshold} }{ |beta| > lfcThreshold }, and
+  p-values are two-tailed \item lessAbs - \eqn{ |\beta| <
+  \textrm{lfcThreshold} }{ |beta| < lfcThreshold }, and
+  p-values are the maximum of the upper and lower tests.
+  \item greater - \eqn{ \beta > \textrm{lfcThreshold} }{
+  beta > lfcThreshold } \item less - \eqn{ \beta <
+  -\textrm{lfcThreshold} }{ beta < -lfcThreshold } } Note:
+  for \code{altHypothesis="lessAbs"}, a value less than
+  1/(1 + baseMean) for base mean less than 5 is added to
+  the standard error, to stabilize the ratio lfc/lfcSE when
+  numerator and denominator tend to zero.}
 
   \item{cooksCutoff}{theshold on Cook's distance, such that
   if one or more samples for a row have a distance higher,
@@ -57,8 +91,10 @@
   p-values, see \code{?p.adjust}}
 }
 \value{
-  For \code{results}: a DataFrame of results columns with
-  metadata columns of coefficient and test information
+  For \code{results}: a DataFrame of results columns:
+  \code{log2FoldChange}, \code{lfcSE}, \code{stat},
+  \code{pvalue} and \code{padj}. also includes metadata
+  columns of variable information
 
   For \code{resultsNames}: the names of the columns
   available as results, usually a combination of the

@@ -954,7 +954,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' 
 #' Results can be removed from an object by calling \code{removeResults}
 #'
-#' @references Richard Bourgon, Robert Gentleman, Wolfgang Huber: Independent filtering increases detection power for high-throughput experiments. PNAS (2010), \url{http://dx.doi.org/10.1073/pnas.0914005107}
+#' @references Richard Bourgon, Robert Gentleman, Wolfgang Huber: Independent
+#' filtering increases detection power for high-throughput experiments.
+#' PNAS (2010), \url{http://dx.doi.org/10.1073/pnas.0914005107}
 #' 
 #' @param object a DESeqDataSet, on which one
 #' of the following functions has already been called:
@@ -966,7 +968,30 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' denominator level), or a numeric contrast vector with one element
 #' for each element in \code{resultsNames(object)}, i.e. columns of the model matrix.
 #' The DESeqDataSet must be one produced using the Wald test steps
-#' in order to use contrasts.
+#' in order to use contrasts. If used, the \code{name} argument is ignored.
+#' @param lfcThreshold a non-negative value, which specifies the test which should
+#' be applied to the log2 fold changes. The standard is a test that the log2 fold
+#' changes are not equal to zero. However, log2 fold changes greater or less than
+#' \code{lfcThreshold} can also be tested. Specify the alternative hypothesis
+#' using the \code{altHypothesis} argument. If \code{lfcThreshold} is specified,
+#' the results are Wald tests, and LRT p-values will be overwritten.
+#' @param altHypothesis character which specifies the alternative hypothesis,
+#' i.e. those values of log2 fold change which the user is interested in
+#' finding. The complement of this set of values is the null hypothesis which
+#' will be tested. If the log2 fold change specified by \code{name}
+#' or by \code{contrast} is written as \eqn{ \beta }{ beta }, then the possible values for
+#' \code{altHypothesis} represent the following alternate hypotheses:
+#' \itemize{
+#' \item greaterAbs - \eqn{|\beta| > \textrm{lfcThreshold} }{ |beta| > lfcThreshold },
+#' and p-values are two-tailed
+#' \item lessAbs - \eqn{ |\beta| < \textrm{lfcThreshold} }{ |beta| < lfcThreshold },
+#' and p-values are the maximum of the upper and lower tests.
+#' \item greater - \eqn{ \beta > \textrm{lfcThreshold} }{ beta > lfcThreshold }
+#' \item less - \eqn{ \beta < -\textrm{lfcThreshold} }{ beta < -lfcThreshold }
+#' }
+#' Note: for \code{altHypothesis="lessAbs"}, a value less than 1/(1 + baseMean)
+#' for base mean less than 5 is added to the standard error, to stabilize the
+#' ratio lfc/lfcSE when numerator and denominator tend to zero.
 #' @param cooksCutoff theshold on Cook's distance, such that if one or more
 #' samples for a row have a distance higher, the p-value for the row is
 #' set to NA.
@@ -985,8 +1010,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' from independent filtering
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #'
-#' @return For \code{results}: a DataFrame of results columns with metadata
-#' columns of coefficient and test information
+#' @return For \code{results}: a DataFrame of results columns:
+#' \code{log2FoldChange}, \code{lfcSE}, \code{stat},
+#' \code{pvalue} and \code{padj}.
+#' also includes metadata columns of variable information
 #'
 #' For \code{resultsNames}: the names of the columns available as results,
 #' usually a combination of the variable name and a level
@@ -1005,7 +1032,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' @rdname results
 #' @aliases results resultsNames removeResults
 #' @export
-results <- function(object, name, contrast, cooksCutoff,
+results <- function(object, name, contrast,
+                    lfcThreshold=0,
+                    altHypothesis=c("greaterAbs","lessAbs","greater","less"),
+                    cooksCutoff,
                     independentFiltering=TRUE,
                     alpha=0.1, filter, theta=seq(0, 0.95, by=0.05),
                     pAdjustMethod="BH") {
@@ -1015,11 +1045,18 @@ results <- function(object, name, contrast, cooksCutoff,
   if (missing(name)) {
     name <- lastCoefName(object)
   }
+  altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
+  stopifnot(lfcThreshold >= 0)
+  stopifnot(length(lfcThreshold)==1)
+  stopifnot(length(altHypothesis)==1)
   stopifnot(length(alpha)==1)
   stopifnot(length(theta) > 1)
   stopifnot(length(pAdjustMethod)==1)
   if (length(name) != 1 | !is.character(name)) {
     stop("the argument 'name' should be a character vector of length 1")
+  }
+  if (lfcThreshold == 0 & altHypothesis == "lessAbs") {
+      stop("you cannot test for genes with absolute log fold change < 0")
   }
   
   # determine test type from the names of mcols(object)
@@ -1052,6 +1089,43 @@ results <- function(object, name, contrast, cooksCutoff,
   }
   rownames(res) <- rownames(object)
 
+  # only if we need to generate new p-values
+  if ( !(lfcThreshold == 0 & altHypothesis == "greaterAbs") ) {
+      if (test == "LRT") {
+          warning("tests of log fold change above or below a theshold are Wald tests. LRT p-values are overwritten")
+      }
+      if (altHypothesis == "greaterAbs") {
+          newPvalue <- 2 * pnorm(abs(res$log2FoldChange),
+                                 mean = lfcThreshold,
+                                 sd = res$lfcSE,
+                                 lower.tail = FALSE)
+      } else if (altHypothesis == "lessAbs") {
+          # add epsilon to the std error to take care of lfc and lfcSE => 0
+          # always < 1 and goes to 0 at base mean of 5 reads
+          epsilon <- pmax(1/(res$baseMean + 1) - 1/6, 0)
+          pvalueAbove <- pnorm(res$log2FoldChange,
+                               mean = lfcThreshold,
+                               sd = res$lfcSE + epsilon,
+                               lower.tail = TRUE)
+          pvalueBelow <- pnorm(res$log2FoldChange,
+                               mean = -lfcThreshold,
+                               sd = res$lfcSE + epsilon,
+                               lower.tail = FALSE)
+          newPvalue <- pmax(pvalueAbove, pvalueBelow)
+      } else if (altHypothesis == "greater") {
+          newPvalue <- pnorm(res$log2FoldChange,
+                             mean = lfcThreshold,
+                             sd = res$lfcSE,
+                             lower.tail = FALSE)
+      } else if (altHypothesis == "less") {
+          newPvalue <- pnorm(res$log2FoldChange,
+                             mean = -lfcThreshold,
+                             sd = res$lfcSE,
+                             lower.tail = TRUE)
+      }
+      res$pvalue <- newPvalue
+  }
+  
   # calculate Cook's cutoff
   m <- nrow(attr(object,"modelMatrix"))
   p <- ncol(attr(object,"modelMatrix"))

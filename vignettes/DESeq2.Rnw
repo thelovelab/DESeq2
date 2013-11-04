@@ -267,11 +267,13 @@ will be colored red if the adjusted p-value is less than 0.1.  Points which fall
 the window are plotted as open triangles.
 
 <<MA, fig=TRUE, width=4.5, height=4.5>>=
-plotMA(dds,ylim=c(-2,2),main="DESeq2")
+plotMA(dds, main="DESeq2", ylim=c(-2,2))
 @
 
 <<MANoPrior, echo=FALSE, fig=TRUE, width=4.5, height=4.5>>=
-plotMA(ddsNoPrior, ylim=c(-2,2),main=expression(unshrunken~log[2]~fold~changes))
+plotMA(ddsNoPrior, 
+       main=expression(unshrunken~log[2]~fold~changes), 
+       ylim=c(-2,2))
 @
 
 \begin{figure}
@@ -661,7 +663,8 @@ from which the cell cultures were derived, so we include this
 in the design formula. 
 
 <<paraSetup>>=
-ddsCtrst <- ddsPara[, colData(ddsPara)$time == "48h"]
+# test only the top 1000 genes
+ddsCtrst <- ddsPara[1:1000, colData(ddsPara)$time == "48h"]
 as.data.frame(colData(ddsCtrst)[,c("patient","treatment")])
 design(ddsCtrst) <- ~ patient + treatment
 @ 
@@ -923,6 +926,46 @@ rv <- rowVars(counts(dds,normalized=TRUE))
 resFiltByVar <- results(dds, filter=rv)
 table(rowMean=(res$padj < .1), rowVar=(resFiltByVar$padj < .1))
 @ 
+
+\subsection{Tests of $\log_2$ fold change above a threshold}
+
+If small $\log_2$ fold changes are not interesting for the 
+experiment being analyzed or the biological question, it is
+also possible to provide thresholds for constructing
+Wald tests of significance. Two arguments to the \Rfunction{results}
+function allow for these threshold-based Wald tests: \Robject{lfcThreshold},
+which takes a numeric of the non-negative threshold value, 
+and \Robject{altHypothesis} which can take one of four values.
+Details on the alternative hypotheses can be found 
+in the manual page for \Rfunction{results}.
+The four possible values of \Robject{altHypothesis} are demonstrated
+in the following code and visually by MA-plots in Figure~\ref{DESeq2-lfcThresh}. 
+Note that the alternative hypothesis is specified by the user, 
+i.e. those genes which the user is interested in finding, and the test 
+provides p-values for the null hypothesis, the complement of the set 
+defined by the alternative. The \Robject{"greaterAbs"} test is two-tailed, 
+and the \Robject{"lessAbs"} test is the maximum of p-values from
+the upper and lower tests.
+
+<<lfcThresh, fig=TRUE>>=
+par(mfrow=c(2,2),mar=c(2,2,1,1))
+a <- 0.5
+yl <- c(-2.5,2.5)
+plotMA(dds, ylim=yl, lfcThreshold=a, altHypothesis="greaterAbs")
+abline(h=c(-a,a),col="dodgerblue",lwd=2)
+plotMA(dds, ylim=yl, lfcThreshold=a, altHypothesis="lessAbs")
+abline(h=c(-a,a),col="dodgerblue",lwd=2)
+plotMA(dds, ylim=yl, lfcThreshold=a, altHypothesis="greater")
+abline(h=a,col="dodgerblue",lwd=2)
+plotMA(dds, ylim=yl, lfcThreshold=a, altHypothesis="less")
+abline(h=-a,col="dodgerblue",lwd=2)
+@ 
+
+\incfig{DESeq2-lfcThresh}{.5\textwidth}{MA-plots of tests of $\log_2$ fold
+  change with respect to a threshold value.}{
+  Going left to right across rows, the tests are for \Robject{altHypothesis = "greaterAbs"},
+  \Robject{"lessAbs"}, \Robject{"greater"}, and \Robject{"less"}.
+}
 
 \subsection{Access to all calculated values}\label{sec:access}
 

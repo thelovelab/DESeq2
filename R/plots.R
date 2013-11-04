@@ -82,12 +82,20 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #'
 #' A simple helper function that makes a so-called "MA-plot", i.e. a
 #' scatter plot of log2 fold changes (on the y-axis) versus the mean of
-#' normalized counts (on the x-axis).
+#' normalized counts (on the x-axis). Note: it takes a \code{DESeqDataSet}
+#' object as its first argument.
+#'
+#' The function is practically 2 lines of code: building a
+#' dataframe and passing this to the plotMA method
+#' for \code{data.frame} from the geneplotter package.
+#' The code of this function can be seen with:
+#' \code{getMethod("plotMA","DESeqDataSet")}
+#' If users wish to modify the graphical parameters of the plot,
+#' it is recommended to build the dataframe in the
+#' same manner.
 #'
 #' @usage
-#' \S4method{plotMA}{DESeqDataSet}(object, lfcColname, pvalues, pvalCutoff=.1, ylim,
-#'   linecol = "#ff000080", pointcol = c("black","red"),
-#'   xlab, ylab, log = "x", cex=0.45, ...)
+#' \S4method{plotMA}{DESeqDataSet}(object, alpha, main, ylim, ...)
 #'
 #' @docType methods
 #' @name plotMA
@@ -96,75 +104,33 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' 
 #' @param object a DESeqDataSet processed by \code{\link{DESeq}}, or the
 #' individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}
-#' @param lfcColname the name of the column for log fold changes, if
-#'    not provided this will default to the last variable in the design formula.
-#'    for options for this argument, check resultsNames(object).
-#' @param pvalues a vector of the p-values or adjusted p-values to use in coloring
-#'    the points. If not provided, defaults to the 'padj' column of results(object)
-#' @param pvalCutoff the cutoff for drawing red or black points
-#' @param ylim the limits for the y axis (chosen automatically if not specified)
-#' @param linecol the color of the horizontal line
-#' @param pointcol a vector of length two of the colors for the not significant and
-#' significant points, respectively
-#' @param xlab the label for the x axis
-#' @param ylab the label for the y axis
-#' @param log log, defaults to "x", the y-axis is already in log scale
-#' @param cex the size of the points
-#' @param ... further arguments to \code{plot}
+#' @param alpha the significance level for thresholding adjusted p-values
+#' @param main optional title for the plot
+#' @param ylim optional y limits
+#' @param ... further arguments passed to \code{\link{results}}
 #'
-#' @author Wolfgang Huber
+#' @author Michael Love
 #'
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet()
 #' dds <- DESeq(dds)
 #' plotMA(dds)
+#'
+#' @importFrom geneplotter plotMA
 #' 
 #' @export
-plotMA.DESeqDataSet <- function(object, lfcColname, pvalues,
-  pvalCutoff=.1, ylim, linecol = "#ff000080",
-  pointcol = c("black","red"), xlab, ylab, log = "x",
-  cex=0.45, ...) {
-  
-  if (missing(xlab)) xlab <- "mean of normalized counts"
-  if (missing(ylab)) ylab <- expression(log[2]~fold~change)
-  
-  if (!missing(pvalues)) {
-    if (length(pvalues) != nrow(object)) {
-      stop("length of pvalues should be equal to the number of rows of object")
-    }
-  }
-  stopifnot(length(pointcol) == 2)
+plotMA.DESeqDataSet <- function(object, alpha=.1, main="", ylim, ...) {
+    res <- results(object, ...)
+    df <- data.frame(mean = res$baseMean,
+                     lfc = res$log2FoldChange,
+                     isDE = ifelse(is.na(res$padj), FALSE, res$padj < alpha))
 
-  if (!"results" %in% mcols(mcols(object))$type) {
-    stop("first run DESeq() in order to produce an MA-plot")
-  }
-  # if not specified, try the last variable of the design formula,
-  # the last level of this variable, and the Wald test adjusted p-values
-  if (missing(lfcColname)) {
-    lfcColname <- lastCoefName(object)
-  }
-  if (length(lfcColname) != 1 | !is.character(lfcColname)) {
-    stop("the argument 'lfcColname' should be a character vector of length 1")
-  }
-  if (missing(pvalues)) {
-    res <- results(object,name=lfcColname)
-    pvalues <- res$padj
-  }
-  x <- mcols(object)
-  
-  stopifnot( length(cex) == 1 )
-  col <- ifelse(is.na(pvalues) | pvalues > pvalCutoff, pointcol[1], pointcol[2])
-  
-  col = col[x$baseMean > 0]
-  x = x[x$baseMean > 0,]
-  py = x[,lfcColname]
-  if (missing(ylim))
-    ylim = c(-1,1) * quantile(abs(py[is.finite(py)]), probs=0.99) * 1.1
-  plot(x$baseMean, pmax(ylim[1], pmin(ylim[2], py)),
-       log=log, pch=ifelse(py<ylim[1], 6, ifelse(py>ylim[2], 2, 20)),
-       cex=cex, col=col, xlab=xlab, ylab=ylab, ylim=ylim, ...)
-  abline(h=0, lwd=4, col=linecol)
+    if (missing(ylim)) {
+        plotMA(df, main=main)
+    } else {
+        plotMA(df, main=main, ylim=ylim)
+    }
 }
 
 #' @rdname plotMA
