@@ -728,7 +728,7 @@ large value of Cook's distance is intended to indicate an outlier count.
 above a cutoff and sets their p-values and adjusted p-values to \Robject{NA}.
 
 The default cutoff depends on the sample size and number of parameters
-to be estimated. The default is to use the $75\%$ quantile of the $F(p,m-p)$ distribution 
+to be estimated. The default is to use the $99\%$ quantile of the $F(p,m-p)$ distribution 
 (with $p$ the number of parameters including the intercept and 
 $m$ number of samples).
 The default can be modified using the \Robject{cooksCutoff} argument to
@@ -1096,7 +1096,7 @@ plot(rank(W[idx]), maxCooks[idx], xlab="rank of Wald statistic",
      ylim=c(0,5), cex=.4, col=rgb(0,0,0,.3))
 m <- ncol(dds)
 p <- 3
-abline(h=qf(.75, p, m - p))
+abline(h=qf(.99, p, m - p))
 @ 
 
 \incfig{DESeq2-cooksPlot}{.5\textwidth}{Cook's distance.}{
