@@ -17,7 +17,7 @@
   before the mean is computed}
 
   \item{cooksCutoff}{the threshold for defining an outlier
-  to be replaced. Defaults to the .75 quantile of the F(p,
+  to be replaced. Defaults to the .99 quantile of the F(p,
   m - p) distribution, where p is the number of parameters
   and m is the number of samples.}
 }

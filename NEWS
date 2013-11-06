@@ -1,3 +1,12 @@
+CHANGES IN VERSION 1.3.6
+------------------------
+
+    o Reduced the amount of filtering from Cook's cutoff:
+      maximum no longer includes samples from experimental groups 
+      with only 2 samples, the default F quantile is raised to 0.99,
+      and a robust estimate of dispersion is used to calculate
+      Cook's distance instead of the fitted dispersion.
+
 CHANGES IN VERSION 1.3.5
 ------------------------
 

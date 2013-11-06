@@ -67,12 +67,13 @@
   \item{cooksCutoff}{theshold on Cook's distance, such that
   if one or more samples for a row have a distance higher,
   the p-value for the row is set to NA. The default cutoff
-  is the .75 quantile of the F(p, m-p) distribution, where
+  is the .99 quantile of the F(p, m-p) distribution, where
   p is the number of coefficients being fitted and m is the
   number of samples. Set to Inf or FALSE to disable the
   resetting of p-values to NA. Note: this test excludes the
   Cook's distance of samples whose removal would result in
-  rank deficient design matrix.}
+  rank deficient design matrix and samples belonging to
+  experimental groups with only 2 samples.}
 
   \item{independentFiltering}{logical, whether independent
   filtering should be applied automatically}

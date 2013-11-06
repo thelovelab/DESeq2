@@ -695,14 +695,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   m <- nrow(fit$modelMatrix)
   p <- ncol(fit$modelMatrix)
 
-  # calculate Cook's distance'
+  # calculate Cook's distance
   cooks <- calculateCooksDistance(objectNZ, H, p)
-  looFullRank <- leaveOneOutFullRank(fit$modelMatrix)
-  if (m > p) {
-    maxCooks <- apply(cooks[,looFullRank,drop=FALSE], 1, max)
-  } else {
-    maxCooks <- rep(NA, nrow(objectNZ))
-  }
+
+  # record maximum Cook's
+  maxCooks <- recordMaxCooks(design(object), colData(object), fit$modelMatrix, cooks, nrow(objectNZ))
 
   # store Cook's distance for each sample
   assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
@@ -851,12 +848,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
   
   # calculate Cook's distance
   cooks <- calculateCooksDistance(objectNZ, H, p)
-  looFullRank <- leaveOneOutFullRank(fullModelMatrix)
-  if (m > p) {
-    maxCooks <- apply(cooks[,looFullRank,drop=FALSE], 1, max)
-  } else {
-    maxCooks <- rep(NA, nrow(objectNZ))
-  }
+
+  # record maximum of Cook's
+  maxCooks <- recordMaxCooks(design(object), colData(object), fullModelMatrix, cooks, nrow(objectNZ))
 
   # store Cook's distance for each sample
   assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
@@ -995,11 +989,12 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' @param cooksCutoff theshold on Cook's distance, such that if one or more
 #' samples for a row have a distance higher, the p-value for the row is
 #' set to NA.
-#' The default cutoff is the .75 quantile of the F(p, m-p) distribution,
+#' The default cutoff is the .99 quantile of the F(p, m-p) distribution,
 #' where p is the number of coefficients being fitted and m is the number of samples.
 #' Set to Inf or FALSE to disable the resetting of p-values to NA.
 #' Note: this test excludes the Cook's distance of samples whose removal
-#' would result in rank deficient design matrix.
+#' would result in rank deficient design matrix and samples belonging to experimental
+#' groups with only 2 samples.
 #' @param independentFiltering logical, whether independent filtering should be
 #' applied automatically
 #' @param alpha the significance cutoff used for optimizing the independent
@@ -1132,17 +1127,19 @@ results <- function(object, name, contrast,
 
   # only if more samples than parameters:
   if (m > p) {
+    defaultCutoff <- qf(.99, p, m - p)
     if (missing(cooksCutoff)) {
-      cooksCutoff <- qf(.75, p, m - p)
+      cooksCutoff <- defaultCutoff
     }
     stopifnot(length(cooksCutoff)==1)
     if (is.logical(cooksCutoff) & cooksCutoff) {
-      cooksCutoff <- qf(.75, p, m - p)
+      cooksCutoff <- defaultCutoff
     }
   }
 
   # apply cutoff based on maximum Cook's distance
-  if ((m > p) & (is.numeric(cooksCutoff) | cooksCutoff)) {
+  performCooksCutoff <- (is.numeric(cooksCutoff) | cooksCutoff) 
+  if ((m > p) & performCooksCutoff) {
     cooksOutlier <- mcols(object)$maxCooks > cooksCutoff
     res$pvalue[cooksOutlier] <- NA
   }
@@ -1213,7 +1210,7 @@ removeResults <- function(object) {
 #' @param trim the fraction (0 to 0.5) of observations to be trimmed from
 #' each end of the normalized counts for a gene before the mean is computed
 #' @param cooksCutoff the threshold for defining an outlier to be replaced.
-#' Defaults to the .75 quantile of the F(p, m - p) distribution, where p is
+#' Defaults to the .99 quantile of the F(p, m - p) distribution, where p is
 #' the number of parameters and m is the number of samples.
 #'
 #' @seealso \code{\link{DESeq}}
@@ -1232,7 +1229,7 @@ replaceOutliersWithTrimmedMean <- function(dds,trim=.2,cooksCutoff) {
   p <- ncol(attr(dds,"modelMatrix"))
   m <- ncol(dds)
   if (missing(cooksCutoff)) {
-    cooksCutoff <- qf(.75, p, m - p)
+    cooksCutoff <- qf(.99, p, m - p)
   }
   idx <- which(assays(dds)[["cooks"]] > cooksCutoff)
   trimBaseMean <- apply(counts(dds,normalized=TRUE),1,mean,trim=trim)
@@ -1677,21 +1674,73 @@ renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
   data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
 }
 
+# calculate a robust method of moments dispersion
+# using the squared MAD and the row mean
+# the idea is to get a sense of the dispersion
+# excluding individual outlier counts which would raise the estimate
+robustMethodOfMomentsDisp <- function(counts) {
+  v <- apply(counts,1,mad)^2
+  m <- rowMeans(counts)
+  alpha <- pmax(v - m, 0) / m^2
+  alpha <- ifelse(alpha > 0, alpha, min(alpha))
+}
+
 calculateCooksDistance <- function(object, H, p) {
-  if (!is.null(mcols(object)$dispFit)) {
-    dispersions <- mcols(object)$dispFit
-  } else {
-    message("in calculating Cook's distance: using dispersions(object) rather than fitted dispersions")
-    dispersions <- dispersions(object)
-  }
+  dispersions <- robustMethodOfMomentsDisp(counts(object,normalized=TRUE))
   V <- assays(object)[["mu"]] + dispersions * assays(object)[["mu"]]^2
   PearsonResSq <- (counts(object) - assays(object)[["mu"]])^2 / V
   cooks <- PearsonResSq / p  * H / (1 - H)^2
   cooks
 }
 
+# this function breaks out the logic for calculating the max Cook's distance:
+# the samples over which max Cook's distance is calculated:
+#
+# if all the variables in the design are factors, then those samples with 3 or more replicates per cell
+# if one or more are not factor, then those samples such that the matrix is full rank after removing the row
+#
+# if m == p or there are no samples over which to calculate max Cook's, then give NA
+recordMaxCooks <- function(design, colData, modelMatrix, cooks, numRow) {
+    if (allFactors(design, colData)) {
+        samplesForCooks <- moreThanNInCell(modelMatrix, n=2)
+    } else {
+        samplesForCooks <- leaveOneOutFullRank(modelMatrix)
+    }
+    p <- ncol(modelMatrix)
+    m <- nrow(modelMatrix)
+    if ((m > p) & any(samplesForCooks)) {
+        maxCooks <- apply(cooks[,samplesForCooks,drop=FALSE], 1, max)
+    } else {
+        maxCooks <- rep(NA, numRow)
+    }
+}
+
+# for each sample in the model matrix
+# are there more than n replicates in the same cell
+# so for a 2 x 3 comparison, the returned vector for n=2 is:
+# FALSE, FALSE, TRUE, TRUE, TRUE
+moreThanNInCell <- function(modelMatrix, n=2) {
+    numEqual <- sapply(seq_len(nrow(modelMatrix)), function(i) {
+        modelMatrixDiff <- t(t(modelMatrix[-i,]) - modelMatrix[i,])
+        sum(apply(modelMatrixDiff, 1, function(row) all(row == 0)))
+    })
+    numEqual >= n
+ }
+
+# are all the variables in the design matrix factors?
+allFactors <- function(design, colData) {
+    designVars <- all.vars(formula(design))
+    designVarsClass <- sapply(designVars, function(v) class(colData[[v]]))
+    all(designVarsClass == "factor")
+}
+
+# returns TRUE or FALSE if removing row would leave matrix full rank
 leaveOneOutFullRank <- function(modelMatrix) {
   sapply(seq_len(nrow(modelMatrix)), function(i) qr(modelMatrix[-i,])$rank) == ncol(modelMatrix)
+}
+
+propMaxOfTotal <- function(counts, pseudocount=8) {
+    (apply(counts, 1, max) + pseudocount)/(rowSums(counts) + pseudocount*ncol(counts))
 }
 
 pAdjustWithIndependentFiltering <- function(p, filterstat, alpha=0.1, method = "BH", plot=FALSE ){
@@ -1703,8 +1752,7 @@ pAdjustWithIndependentFiltering <- function(p, filterstat, alpha=0.1, method = "
   j <- which.max(rej)
   rv <- padj[, j, drop=TRUE]
   attr(rv, "filterthreshold") = cutoffs[j]
-  rv 
-
+  rv
 }
 
 # an unexported diagnostic function
