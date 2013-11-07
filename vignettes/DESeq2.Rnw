@@ -753,6 +753,8 @@ The \Rfunction{DESeq} function (or \Rfunction{nbinomWaldTest} and
 \Rfunction{nbinomLRT}) calculates Cook's distance for every gene and
 sample. After an initial fit has been performed, the following function 
 replaces count outliers by the trimmed mean.
+Here we demonstrate with the \Robject{pasilla} dataset,
+although there are not many extra degrees of freedom for this dataset.
 
 <<replaceCooksOutlier>>=
 ddsClean <- replaceOutliersWithTrimmedMean(dds)
@@ -766,23 +768,6 @@ tab <- table(initial = results(dds)$padj < .1,
              cleaned = results(ddsClean)$padj < .1)
 addmargins(tab)
 @ 
-
-The new tests result in similar numbers of genes with adjusted p-value
-less than 0.1, although slightly modified due to a new distribution
-of dispersion estimates. The p-values from before and after the 
-count outlier replacement are plotted in Figure~\ref{DESeq2-cooksNewPvalues}
-
-<<cooksNewPvalues, fig=TRUE>>=
-plot(results(dds)$pvalue, results(ddsClean)$pvalue, cex=.3,
-     xlab="initial p-values", ylab="outlier replaced p-values")
-abline(0,1)
-@ 
-
-\incfig{DESeq2-cooksNewPvalues}{.5\textwidth}{Re-analysis following replacement of count outliers.}{
-  The p-values following replacement of count outliers are slightly modified
-  due to changes to the distribution of dispersion estimates, however they closely
-  follow the p-values of the initial fit.
-}
 
 \subsection{Likelihood ratio test}
 
