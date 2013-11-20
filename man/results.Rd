@@ -54,15 +54,13 @@
   hypotheses: \itemize{ \item greaterAbs - \eqn{|\beta| >
   \textrm{lfcThreshold} }{ |beta| > lfcThreshold }, and
   p-values are two-tailed \item lessAbs - \eqn{ |\beta| <
-  \textrm{lfcThreshold} }{ |beta| < lfcThreshold }, and
+  \textrm{lfcThreshold} }{ |beta| < lfcThreshold }, NOTE:
+  this requires that \code{betaPrior=FALSE} has been
+  specified in the previous \code{\link{DESeq}} call.
   p-values are the maximum of the upper and lower tests.
   \item greater - \eqn{ \beta > \textrm{lfcThreshold} }{
   beta > lfcThreshold } \item less - \eqn{ \beta <
-  -\textrm{lfcThreshold} }{ beta < -lfcThreshold } } Note:
-  for \code{altHypothesis="lessAbs"}, a value less than
-  1/(1 + baseMean) for base mean less than 5 is added to
-  the standard error, to stabilize the ratio lfc/lfcSE when
-  numerator and denominator tend to zero.}
+  -\textrm{lfcThreshold} }{ beta < -lfcThreshold } }}
 
   \item{cooksCutoff}{theshold on Cook's distance, such that
   if one or more samples for a row have a distance higher,

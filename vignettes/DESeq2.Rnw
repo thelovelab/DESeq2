@@ -912,38 +912,65 @@ resFiltByVar <- results(dds, filter=rv)
 table(rowMean=(res$padj < .1), rowVar=(resFiltByVar$padj < .1))
 @ 
 
-\subsection{Tests of $\log_2$ fold change above a threshold}
+\subsection{Tests of $\log_2$ fold change above or below a threshold}
 
-If small $\log_2$ fold changes are not interesting for the 
-experiment being analyzed or the biological question, it is
-also possible to provide thresholds for constructing
+It is also possible to provide thresholds for constructing
 Wald tests of significance. Two arguments to the \Rfunction{results}
-function allow for these threshold-based Wald tests: \Robject{lfcThreshold},
-which takes a numeric of the non-negative threshold value, 
-and \Robject{altHypothesis} which can take one of four values.
-Details on the alternative hypotheses can be found 
-in the manual page for \Rfunction{results}.
-The four possible values of \Robject{altHypothesis} are demonstrated
-in the following code and visually by MA-plots in Figure~\ref{DESeq2-lfcThresh}. 
-Note that the alternative hypothesis is specified by the user, 
+function allow for threshold-based Wald tests: \Robject{lfcThreshold},
+which takes a numeric of a non-negative threshold value, 
+and \Robject{altHypothesis}, which specifies the kind of test.
+Note that the \textit{alternative hypothesis} is specified by the user, 
 i.e. those genes which the user is interested in finding, and the test 
 provides p-values for the null hypothesis, the complement of the set 
-defined by the alternative. The \Robject{"greaterAbs"} test is two-tailed, 
-and the \Robject{"lessAbs"} test is the maximum of p-values from
-the upper and lower tests.
+defined by the alternative. The \Robject{altHypothesis} argument can take one 
+of the following four values, where $\beta$ is the $\log_2$ fold change
+specified by the \Robject{name} argument:
+
+\begin{itemize}
+ \item \Robject{greaterAbs} - $|\beta| > \textrm{lfcThreshold}$ - tests are two-tailed
+ \item \Robject{lessAbs} - $|\beta| < \textrm{lfcThreshold}$ - p-values are the maximum of the upper and lower tests
+ \item \Robject{greater} - $\beta > \textrm{lfcThreshold} $
+ \item \Robject{less} - $\beta < -\textrm{lfcThreshold} $
+\end{itemize}
+
+The test \Robject{altHypothesis="lessAbs"} requires that the user have run
+\Rfunction{DESeq} with the argument \Robject{betaPrior=FALSE}. 
+To understand the reason for this requirement, consider that during
+hypothesis testing, the null hypothesis is favored unless the 
+data provide strong evidence to reject the null.
+For this test, including a zero-centered prior on log fold change would favor 
+the alternative hypothesis, shrinking log fold changes toward zero.
+Removing the prior on log fold changes for tests 
+of small log fold change allows for detection of only those 
+genes where the data alone provides evidence against the null.
+
+The four possible values of \Robject{altHypothesis} are demonstrated
+in the following code and visually by MA-plots in Figure~\ref{DESeq2-lfcThresh}. 
+First we run \Rfunction{DESeq} and specify \Robject{betaPrior=FALSE} in order 
+to demonstrate \Robject{altHypothesis="lessAbs"}.
+
+<<ddsNoPriorNotRun, eval=FALSE>>=
+ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
+@
+
+In order to produce results tables for the following tests, the same arguments
+(except \Robject{ylim}) would be provided to the \Rfunction{results} function. 
 
 <<lfcThresh, fig=TRUE>>=
 par(mfrow=c(2,2),mar=c(2,2,1,1))
-a <- 0.5
 yl <- c(-2.5,2.5)
-plotMA(dds, ylim=yl, lfcThreshold=a, altHypothesis="greaterAbs")
-abline(h=c(-a,a),col="dodgerblue",lwd=2)
-plotMA(dds, ylim=yl, lfcThreshold=a, altHypothesis="lessAbs")
-abline(h=c(-a,a),col="dodgerblue",lwd=2)
-plotMA(dds, ylim=yl, lfcThreshold=a, altHypothesis="greater")
-abline(h=a,col="dodgerblue",lwd=2)
-plotMA(dds, ylim=yl, lfcThreshold=a, altHypothesis="less")
-abline(h=-a,col="dodgerblue",lwd=2)
+
+plotMA(dds, ylim=yl, lfcThreshold=.5, altHypothesis="greaterAbs")
+abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+
+plotMA(ddsNoPrior, ylim=yl, lfcThreshold=.5, altHypothesis="lessAbs")
+abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+
+plotMA(dds, ylim=yl, lfcThreshold=.5, altHypothesis="greater")
+abline(h=.5,col="dodgerblue",lwd=2)
+
+plotMA(dds, ylim=yl, lfcThreshold=.5, altHypothesis="less")
+abline(h=-.5,col="dodgerblue",lwd=2)
 @ 
 
 \incfig{DESeq2-lfcThresh}{.5\textwidth}{MA-plots of tests of $\log_2$ fold
