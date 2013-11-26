@@ -150,6 +150,7 @@ information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formul
 
 <<loadPasilla>>=
 library("pasilla")
+library("Biobase")
 data("pasillaGenes")
 countData <- counts(pasillaGenes)
 colData <- pData(pasillaGenes)[,c("condition","type")]
@@ -165,8 +166,6 @@ dds <- DESeqDataSetFromMatrix(countData = countData,
 colData(dds)$condition <- factor(colData(dds)$condition,
                                  levels=c("untreated","treated"))
 dds
-detach(package:pasilla)
-detach(package:DESeq)
 @
 
 \subsubsection{\textit{HTSeq} input}
@@ -177,7 +176,6 @@ example of using the python scripts, see the \Biocannopkg{pasilla} or
 \Biocannopkg{parathyroid} data package.
 
 <<htseqInput>>=
-library("pasilla")
 directory <- system.file("extdata", package="pasilla", mustWork=TRUE)
 sampleFiles <- grep("treated",list.files(directory),value=TRUE)
 sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
@@ -190,8 +188,6 @@ ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
 colData(ddsHTSeq)$condition <- factor(colData(ddsHTSeq)$condition,
                                       levels=c("untreated","treated"))
 ddsHTSeq
-detach(package:pasilla)
-detach(package:DESeq)
 @
 
 \subsubsection{Note on factor levels} \label{sec:factorLevels}
@@ -320,7 +316,7 @@ for either one of the following reasons:
   \item If a row contains a sample with an extreme count
     then the p-value and adjusted p-value are set to \texttt{NA}.
     These outlier counts are detected by Cook's distance. Customization
-    of this outlier filtering is described in Section~\ref{sec:replaceCooks},
+    of this outlier filtering is described in Section~\ref{sec:dealingCooks},
     along with a method for replacing outlier counts and refitting.
   \item If a row is filtered by automatic independent filtering,
     then only the adjusted p-value is set to \texttt{NA}.
@@ -432,6 +428,10 @@ already estimated will be used to perform transformations,
 or if not present, they will be estimated using the current
 design formula. This setting should be used for transforming data for 
 downstream analysis.
+
+The two functions return \Rclass{SummarizedExperiment} objects, as the
+data are no longer counts. The \Rfunction{assay} function is used to
+extract the matrix of normalized values.
 
 <<defvsd,cache=TRUE>>=
 rld <- rlogTransformation(dds, blind=TRUE)
@@ -710,7 +710,7 @@ mcols(resCtrst)
 The formula that is used to generate the contrasts can be
 found in Section~\ref{sec:ctrstTheory}.
 
-\subsection{Dealing with count outliers} \label{sec:replaceCooks}
+\subsection{Dealing with count outliers} \label{sec:dealingCooks}
 
 RNA-Seq data sometimes contain isolated instances of very large counts that are apparently
 unrelated to the experimental or study design, and which may be 
@@ -1087,21 +1087,22 @@ version \Biocpkg{DESeq}, are as follows:
 
 \subsection{Count outlier detection} \label{sec:cooks}
 
-\Biocpkg{DESeq2} relies on the negative binomial distribution to
-make estimates and perform statistical inference on differences.  While the 
+\Biocpkg{DESeq2} relies on the negative binomial distribution to make
+estimates and perform statistical inference on differences.  While the
 negative binomial is versatile in having a mean and dispersion
-parameter, extreme counts in individual samples might not fit 
-well to the negative binomial. For this reason, we perform automatic 
-detection of count outliers. We use Cook's distance, which is
-a measure of how much the fitted coefficients would change if an individual
-sample were removed\cite{Cook1977Detection}. A column 
-\Robject{mcols(dds)\$maxCooks} provides the maximum value of 
-Cook's distance for each gene. This can be plotted over the test
-statistic to justify its use as a filtering criterion.
+parameter, extreme counts in individual samples might not fit well to
+the negative binomial. For this reason, we perform automatic detection
+of count outliers. We use Cook's distance, which is a measure of how
+much the fitted coefficients would change if an individual sample were
+removed \cite{Cook1977Detection}. For more on the implementation of 
+Cook's distance see Section~\ref{sec:dealingCooks} and the manual page
+for the \Rfunction{results} function. Below we plot the maximum value of
+Cook's distance for each row over the rank of the test statistic 
+to justify its use as a filtering criterion.
 
 <<cooksPlot, fig=TRUE>>=
 W <- mcols(dds)$WaldStatistic_condition_treated_vs_untreated
-maxCooks <- mcols(dds)$maxCooks
+maxCooks <- apply(assays(dds)[["cooks"]],1,max)
 idx <- !is.na(W)
 plot(rank(W[idx]), maxCooks[idx], xlab="rank of Wald statistic", 
      ylab="maximum Cook's distance per gene",
@@ -1170,6 +1171,7 @@ over the normalized mean counts.
 plot(res$baseMean+1, -log10(res$pvalue),
      log="x", xlab="mean of normalized counts",
      ylab=expression(-log[10](pvalue)),
+     ylim=c(0,30),
      cex=.4, col=rgb(0,0,0,.3))
 @
 
@@ -1313,6 +1315,36 @@ abline(a=0, slope, col="red3", lwd=2)
 \end{figure}
 
 \section{Frequently asked questions}
+
+\subsection{How should I email a question?}
+
+We welcome emails with questions about our software, and want to
+ensure that we eliminate issues if and when they appear. We have a few
+requests to optimize the process:
+
+\begin{itemize}
+\item all emails and follow-up questions should take place over the
+  Bioconductor list, which serves as a repository of information
+  and helps saves the developers' time in responding to similar
+  questions. The subject line should contain ``DESeq2'' and a few
+  words describing the problem. 
+\item first search the Bioconductor list,
+  \url{http://bioconductor.org/help/mailing-list/}, 
+  for past threads which might have answered your question.
+\item if you have a question about the behavior of a function,
+  read the sections of the manual page for this function by typing a
+  question mark and the function name, e.g. \Robject{?results}.
+  We spend a lot of time documenting individual functions
+  and the exact steps that the software is performing.
+\item include all of your R code, especially the creation of 
+  the \Rclass{DESeqDataSet} and the design formula.
+  Include complete warning or error messages, and conclude your
+  message with the full output of \Robject{sessionInfo()}.
+\item if possible, include the output of \Robject{as.data.frame(colData(dds))}, 
+  so that we can have a sense of the experimental setup. If this contains
+  confidential information, you can replace the levels of those
+  factors using \Rfunction{levels()}.
+\end{itemize}
 
 \subsection{Why are some p-values set to \texttt{NA}?}
   
