@@ -71,6 +71,10 @@
   proposed by Wu, et al. (2012) and is also implemented in
   the DSS package.
 
+  In DESeq2, the dispersion estimation procedure described
+  above replaces the different methods of dispersion from
+  the previous version of the DESeq package.
+
   \code{estimateDispersions} checks for the case of an
   analysis with as many samples as the number of
   coefficients to fit, and will temporarily substitute a

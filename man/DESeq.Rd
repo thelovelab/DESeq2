@@ -14,10 +14,11 @@
   \code{\link{DESeqDataSetFromHTSeqCount}}.}
 
   \item{test}{either "Wald" or "LRT", which will then use
-  either Wald tests if coefficients are equal to zero
-  (\code{\link{nbinomWaldTest}}), or the likelihood ratio
+  either Wald significance tests (defined by
+  \code{\link{nbinomWaldTest}}), or the likelihood ratio
   test on the difference in deviance between a full and
-  reduced model formula (\code{\link{nbinomLRT}})}
+  reduced model formula (defined by
+  \code{\link{nbinomLRT}})}
 
   \item{fitType}{either "parametric", "local", or "mean"
   for the type of fitting of dispersions to the mean
@@ -30,27 +31,39 @@
   description. Only used for the Wald test.}
 
   \item{full}{the full model formula, this should be the
-  formula in \code{design(object)}}
+  formula in \code{design(object)}, only used by the
+  likelihood ratio test}
 
   \item{reduced}{a reduced formula to compare against, e.g.
-  the full model with a term or terms of interest removed}
+  the full model with a term or terms of interest removed,
+  only used by the likelihood ratio test}
 
   \item{quiet}{whether to print messages at each step}
 }
 \value{
   a \code{\link{DESeqDataSet}} object with results stored
-  as metadata columns.  The results can be accessed by
-  calling the \code{\link{results}} function.  By default
+  as metadata columns. These results should accessed by
+  calling the \code{\link{results}} function. By default
   this will return the log2 fold changes and p-values for
   the last variable in the design formula.  See
   \code{\link{results}} for how to access results for other
   variables.
 }
 \description{
-  This function performs a default analysis by calling, in
-  order, the functions: \code{\link{estimateSizeFactors}},
-  \code{\link{estimateDispersions}},
-  \code{\link{nbinomWaldTest}}.
+  This function performs a default analysis through the
+  following steps: 1. estimation of size factors :
+  \code{\link{estimateSizeFactors}}, 2. estimation of
+  dispersion: \code{\link{estimateDispersions}}, 3.
+  negative binomial GLM fitting and Wald statistics:
+  \code{\link{nbinomWaldTest}}. For complete details on
+  each step, see the manual pages of the respective
+  functions. After the \code{DESeq} function returns a
+  DESeqDataSet object, results tables (log2 fold changes
+  and p-values) can be generated using the
+  \code{\link{results}} function. See the manual page for
+  \code{\link{results}} for information on independent
+  filtering and p-value adjustment for multiple test
+  correction.
 }
 \details{
   The differential expression analysis uses a generalized
@@ -70,13 +83,30 @@
   proportional to the expected true concentration of
   fragments for sample j. The coefficients
   \eqn{\beta_i}{beta_i} give the log2 fold changes for gene
-  i for each column of the model matrix \eqn{X}{X}.  The
+  i for each column of the model matrix \eqn{X}{X}. The
   sample-specific size factors can be replaced by
   gene-specific normalization factors for each sample using
   \code{\link{normalizationFactors}}.  For details on the
   fitting of the log2 fold changes and calculation of
   p-values see \code{\link{nbinomWaldTest}} (or
   \code{\link{nbinomLRT}} if using \code{test="LRT"}).
+
+  Experiments without replicates do not allow for
+  estimation of the dispersion of counts around the
+  expected value for each group, which is critical for
+  differential expression analysis. If an experimental
+  design is supplied which does not contain the necessary
+  degrees of freedom for differential analysis,
+  \code{DESeq} will provide a message to the user and
+  follow the strategy outlined in Anders and Huber (2010)
+  under the section 'Working without replicates', wherein
+  all the samples are considered as replicates of a single
+  group for the estimation of dispersion. As noted in the
+  reference above: "Some overestimation of the variance may
+  be expected, which will make that approach conservative."
+  Furthermore, "while one may not want to draw strong
+  conclusions from such an analysis, it may still be useful
+  for exploration and hypothesis generation."
 }
 \examples{
 dds <- makeExampleDESeqDataSet(betaSD=1)

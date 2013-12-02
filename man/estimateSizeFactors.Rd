@@ -29,9 +29,12 @@
   Estimate the size factors for a DESeqDataSet
 }
 \details{
-  This function estimates the size factors and stores the
-  information which can be accessed using
-  \code{\link{sizeFactors}}
+  This function estimates the size factors using the
+  "median ratio method" described by Equation 5 in Ander
+  and Huber (2010). The estimated size factors can be
+  accessed using \code{\link{sizeFactors}}. Alternative
+  library size estimators can also be supplied using
+  \code{\link{sizeFactors}}.
 
   Typically, the function is called with the idiom:
 
@@ -60,6 +63,12 @@ sizeFactors(dds)
 }
 \author{
   Simon Anders
+}
+\references{
+  \itemize{ \item Simon Anders, Wolfgang Huber:
+  Differential expression analysis for sequence count data.
+  Genome Biology 11 (2010) R106,
+  \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106} }
 }
 \seealso{
   \code{\link{estimateSizeFactorsForMatrix}}

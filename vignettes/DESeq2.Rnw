@@ -1,30 +1,26 @@
 %\VignetteIndexEntry{Analyzing RNA-Seq data with the "DESeq2" package}
 %\VignettePackage{DESeq2}
+%\VignetteEngine{knitr::knitr}
 
 % To compile this document
-% library('cacheSweave'); rm(list=ls()); Sweave('DESeq2.Rnw', driver=cacheSweaveDriver())
+% library('knitr'); rm(list=ls()); knit('DESeq2.Rnw')
 
 \documentclass[12pt]{article}
 
-<<style, eval=TRUE, echo=FALSE, results=tex>>=
+<<knitr, echo=FALSE, results="hide">>=
+library("knitr")
+opts_chunk$set(tidy=FALSE,dev="png",fig.show="hide",
+               fig.width=4,fig.height=4.5,
+               message=FALSE)
+@ 
+
+<<style, eval=TRUE, echo=FALSE, results="asis">>=
 BiocStyle::latex()
 @
 
 <<loadDESeq2, echo=FALSE>>=
 library("DESeq2")
-@ 
-
-\usepackage{Sweave}
-\SweaveOpts{keep.source=TRUE,eps=FALSE,pdf=FALSE,png=TRUE,include=FALSE,width=4,height=4.5,resolution=150}
-\setkeys{Gin}{width=0.5\textwidth}
-
-% use a vertical rule for R output instead of prompts for R input
-\usepackage{fancyvrb}
-\definecolor{darkgray}{gray}{0.2}
-\DefineVerbatimEnvironment{Sinput}{Verbatim}{xleftmargin=1em,formatcom={\color{darkgray}}}
-\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=1em,frame=leftline,framerule=.6pt,rulecolor=\color{darkgray},framesep=1em,formatcom={\color{darkgray}}}
-\fvset{listparameters={\setlength{\topsep}{0pt}}}
-\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+@
 
 \author{Michael Love$^{1*}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Max Planck Institute for Molecular Genetics, Berlin, Germany;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} \\ \small{\texttt{$^*$michaelisaiahlove (at) gmail.com}}}
 
@@ -55,7 +51,7 @@ library("DESeq2")
   \textbf{DESeq2 version:} \Sexpr{sessionInfo()[["otherPkgs"]][["DESeq2"]][["Version"]]}
 \end{abstract}
 
-<<options, results=hide, echo=FALSE>>=
+<<options, results="hide", echo=FALSE>>=
 options(digits=3, width=80, prompt=" ", continue=" ")
 @
 
@@ -110,7 +106,7 @@ a \Rclass{SummarizedExperiment} can be found in the data package
 \Biocannopkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
 4 human cell cultures \cite{Haglund2012Evidence}.
 
-<<loadSumExp,results=hide>>=
+<<loadSumExp,results="hide">>=
 library("parathyroidSE")
 data("parathyroidGenesSE")
 se <- parathyroidGenesSE
@@ -262,11 +258,11 @@ By default, the last variable in the design formula is chosen, and points
 will be colored red if the adjusted p-value is less than 0.1.  Points which fall out of
 the window are plotted as open triangles.
 
-<<MA, fig=TRUE, width=4.5, height=4.5>>=
+<<MA, fig.width=4.5, fig.height=4.5>>=
 plotMA(dds, main="DESeq2", ylim=c(-2,2))
 @
 
-<<MANoPrior, echo=FALSE, fig=TRUE, width=4.5, height=4.5>>=
+<<MANoPrior, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
 plotMA(ddsNoPrior, 
        main=expression(unshrunken~log[2]~fold~changes), 
        ylim=c(-2,2))
@@ -274,8 +270,8 @@ plotMA(ddsNoPrior,
 
 \begin{figure}
 \centering
-\includegraphics[width=.45\textwidth]{DESeq2-MANoPrior}
-\includegraphics[width=.45\textwidth]{DESeq2-MA}
+\includegraphics[width=.45\textwidth]{figure/MANoPrior}
+\includegraphics[width=.45\textwidth]{figure/MA}
 \caption{
   \textbf{MA-plot.} 
   These plots show the $\log_2$ fold changes from the treatment over
@@ -287,7 +283,7 @@ plotMA(ddsNoPrior,
   estimates from genes with low counts and high dispersion, 
   as can be seen by the narrowing of spread of leftmost points 
   in the right plot.}
-\label{DESeq2-MA}
+\label{MA}
 \end{figure}
 
 \subsubsection{More information on results columns} \label{sec:moreInfo}
@@ -446,7 +442,7 @@ the original count data to the $\log_2$ scale by fitting a model with a
 term for each sample and a prior distribution on the coefficients
 which is estimated from the data. This is very similar to the regularization
 used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in
-Figure \ref{DESeq2-MA}. The resulting data contains elements defined as:
+Figure \ref{MA}. The resulting data contains elements defined as:
 
 $$ \log_2(q_{ij}) = x_{j.} \beta_i $$
 
@@ -471,11 +467,11 @@ alongside this vignette. If a local fit is used (option \Robject{fitType="locfit
 to \Rfunction{estimateDispersions}) a numerical integration is used instead.
 
 The resulting variance stabilizing transformation is shown in
-Figure \ref{DESeq2-vsd1}.  The code that produces the figure is hidden from
+Figure \ref{figure/vsd1}.  The code that produces the figure is hidden from
 this vignette for the sake of brevity, but can be seen in the
 \texttt{.Rnw} or \texttt{.R} source file.
 
-\incfig{DESeq2-vsd1}{.49\textwidth}{VST and log2.}{
+\incfig{figure/vsd1}{.49\textwidth}{VST and log2.}{
   Graphs of the variance stabilizing transformation for
   sample 1, in blue, and of the transformation $f(n) = \log_2(n/s_1)$, in
   black. $n$ are the counts and $s_1$ is the size factor for the first sample.
@@ -485,7 +481,7 @@ this vignette for the sake of brevity, but can be seen in the
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=\textwidth]{DESeq2-vsd2}
+\includegraphics[width=\textwidth]{figure/vsd2}
 \caption{Per-gene standard deviation (taken across samples), against
   the rank of the mean, for the shifted logarithm
   $\log_2(n+1)$ (left), the regularized log transformation (center)
@@ -493,7 +489,7 @@ this vignette for the sake of brevity, but can be seen in the
 \label{figvsd2}
 \end{figure}
 
-<<vsd1, fig=TRUE, echo=FALSE, width=4.5, height=4.5>>=
+<<vsd1, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
 px     <- counts(dds)[,1] / sizeFactors(dds)[1]
 ord    <- order(px)
 ord    <- ord[px[ord] < 150]
@@ -519,7 +515,7 @@ count range, and the regularized log to a lesser extent, while for
 the variance stabilized data the standard deviation is roughly constant
 along the whole dynamic range.
 
-<<vsd2, fig=TRUE, width=8, height=3, results=hide>>=
+<<vsd2, fig.width=8, fig.height=3, results="hide">>=
 library("vsn")
 par(mfrow=c(1,3))
 notAllZero <- (rowSums(counts(dds))>0)
@@ -558,19 +554,19 @@ select <- order(rowMeans(counts(dds,normalized=TRUE)),decreasing=TRUE)[1:30]
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
 @
 
-<<figHeatmap2a, fig=TRUE, width=7, height=10>>=
+<<figHeatmap2a, fig.width=7, fig.height=10>>=
 heatmap.2(counts(dds,normalized=TRUE)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
           dendrogram="none", trace="none", margin=c(10,6))
 @
 
-<<figHeatmap2b, fig=TRUE, width=7, height=10>>=
+<<figHeatmap2b, fig.width=7, fig.height=10>>=
 heatmap.2(assay(rld)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
           dendrogram="none", trace="none", margin=c(10, 6))
 @
 
-<<figHeatmap2c, fig=TRUE, width=7, height=10>>=
+<<figHeatmap2c, fig.width=7, fig.height=10>>=
 heatmap.2(assay(vsd)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
           dendrogram="none", trace="none", margin=c(10, 6))
@@ -578,9 +574,9 @@ heatmap.2(assay(vsd)[select,], col = hmcol,
 
 \begin{figure}
 \centering
-\includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2a}
-\includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2b}
-\includegraphics[width=.32\textwidth]{DESeq2-figHeatmap2c}
+\includegraphics[width=.32\textwidth]{figure/figHeatmap2a}
+\includegraphics[width=.32\textwidth]{figure/figHeatmap2b}
+\includegraphics[width=.32\textwidth]{figure/figHeatmap2c}
 \caption{Heatmaps showing the expression data of the \Sexpr{length(select)}
   most highly expressed genes. The data is of raw counts (left),
   from regularized log transformation (center) and from variance
@@ -588,7 +584,7 @@ heatmap.2(assay(vsd)[select,], col = hmcol,
 \label{figHeatmap2}
 \end{figure}
 
-\incfig{DESeq2-figHeatmapSamples}{.6\textwidth}{Sample-to-sample distances.}{
+\incfig{figure/figHeatmapSamples}{.6\textwidth}{Sample-to-sample distances.}{
   Heatmap showing the Euclidean distances between the samples
   as calculated from the regularized log transformation.
 }
@@ -605,9 +601,9 @@ distsRL <- dist(t(assay(rld)))
 @
 
 A heatmap of this distance matrix gives us an overview over similarities
-and dissimilarities between samples (Figure \ref{DESeq2-figHeatmapSamples}):
+and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples}):
 
-<<figHeatmapSamples, fig=TRUE, width=7, height=7>>=
+<<figHeatmapSamples, fig.width=7, fig.height=7>>=
 mat <- as.matrix(distsRL)
 rownames(mat) <- colnames(mat) <- with(colData(dds),
                                        paste(condition, type, sep=" : "))
@@ -617,13 +613,13 @@ heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
 \subsubsection{Principal component plot of the samples}
 
 Related to the distance matrix of Section~\ref{sec:dists} is the PCA
-plot of the samples, which we obtain as follows (Figure \ref{DESeq2-figPCA}).
+plot of the samples, which we obtain as follows (Figure \ref{figure/figPCA}).
 
-<<figPCA, fig=TRUE, width=5, height=5>>=
+<<figPCA, fig.width=5, fig.height=5>>=
 print(plotPCA(rld, intgroup=c("condition", "type")))
 @
 
-\incfig{DESeq2-figPCA}{.5\textwidth}{PCA plot.}{
+\incfig{figure/figPCA}{.5\textwidth}{PCA plot.}{
   PCA plot. The \Sexpr{ncol(rld)} samples shown in the 2D
   plane spanned by their first two principal components. This type of
   plot is useful for visualizing the overall effect of experimental
@@ -701,7 +697,7 @@ i.e. columns of the model matrix. Note that the following
 contrast is the same as specified by the character vector in the 
 previous code chunk.
 
-<<contrastsNum>>= 
+<<contrastsNum>>=
 resCtrst <- results(ddsCtrst, contrast=c(0,0,0,0,-1,1))
 head(resCtrst,2)
 mcols(resCtrst)
@@ -762,7 +758,7 @@ ddsClean <- replaceOutliersWithTrimmedMean(dds)
 
 Finally we rerun all the steps of \Rfunction{DESeq}.
 
-<<refitaAfterReplace,cache=TRUE>>=
+<<refitAfterReplace,cache=TRUE>>=
 ddsClean <- DESeq(ddsClean)
 tab <- table(initial = results(dds)$padj < .1,
              cleaned = results(ddsClean)$padj < .1)
@@ -802,7 +798,7 @@ addmargins(tab)
 \subsection{Dispersion plot and fitting alternatives}
 
 Plotting the dispersion estimates is a useful diagnostic. The dispersion
-plot in Figure \ref{DESeq2-dispFit} is typical, with the final estimates shrunk
+plot in Figure \ref{figure/dispFit} is typical, with the final estimates shrunk
 from the gene-wise estimates towards the fitted estimates. Some gene-wise
 estimates are flagged as outliers and not shrunk towards the fitted value,
 (this outlier detection is described in the man page for \Rfunction{estimateDispersionsMAP}).
@@ -810,11 +806,11 @@ The amount of shrinkage can be more or less than seen here, depending
 on the sample size, the number of coefficients, the row mean
 and the variability of the gene-wise estimates.
 
-<<dispFit, fig=TRUE>>=
+<<dispFit>>=
 plotDispEsts(dds)
 @
 
-\incfig{DESeq2-dispFit}{.5\textwidth}{Dispersion plot.}{
+\incfig{figure/dispFit}{.5\textwidth}{Dispersion plot.}{
   The dispersion estimate plot shows the gene-wise estimates (black),
   the fitted values (red), and the final maximum \textit{a posteriori}
   estimates used in testing (blue).
@@ -883,15 +879,15 @@ The filter threshold value and the number of rejections at each quantile
 of the filter statistic are available as attributes of the object 
 returned by \Rfunction{results}. For example, we can easily visualize
 the optimization by plotting the \Robject{filterNumRej} attribute of 
-the results object, as seen in Figure \ref{DESeq2-filtByMean}.
+the results object, as seen in Figure \ref{figure/filtByMean}.
 
-<<filtByMean, fig=TRUE>>=
+<<filtByMean>>=
 attr(res,"filterThreshold")
 plot(attr(res,"filterNumRej"),type="b",
      ylab="number of rejections")
 @
 
-\incfig{DESeq2-filtByMean}{.5\textwidth}{Independent filtering.}{
+\incfig{figure/filtByMean}{.5\textwidth}{Independent filtering.}{
   The \Rfunction{results} function maximizes the 
   number of rejections (adjusted p-value less than a 
   significance level), over theta, the quantiles 
@@ -945,7 +941,7 @@ of small log fold change allows for detection of only those
 genes where the data alone provides evidence against the null.
 
 The four possible values of \Robject{altHypothesis} are demonstrated
-in the following code and visually by MA-plots in Figure~\ref{DESeq2-lfcThresh}. 
+in the following code and visually by MA-plots in Figure~\ref{figure/lfcThresh}. 
 First we run \Rfunction{DESeq} and specify \Robject{betaPrior=FALSE} in order 
 to demonstrate \Robject{altHypothesis="lessAbs"}.
 
@@ -956,7 +952,7 @@ ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
 In order to produce results tables for the following tests, the same arguments
 (except \Robject{ylim}) would be provided to the \Rfunction{results} function. 
 
-<<lfcThresh, fig=TRUE>>=
+<<lfcThresh>>=
 par(mfrow=c(2,2),mar=c(2,2,1,1))
 yl <- c(-2.5,2.5)
 
@@ -973,7 +969,7 @@ plotMA(dds, ylim=yl, lfcThreshold=.5, altHypothesis="less")
 abline(h=-.5,col="dodgerblue",lwd=2)
 @ 
 
-\incfig{DESeq2-lfcThresh}{.5\textwidth}{MA-plots of tests of $\log_2$ fold
+\incfig{figure/lfcThresh}{.5\textwidth}{MA-plots of tests of $\log_2$ fold
   change with respect to a threshold value.}{
   Going left to right across rows, the tests are for \Robject{altHypothesis = "greaterAbs"},
   \Robject{"lessAbs"}, \Robject{"greater"}, and \Robject{"less"}.
@@ -1100,7 +1096,7 @@ for the \Rfunction{results} function. Below we plot the maximum value of
 Cook's distance for each row over the rank of the test statistic 
 to justify its use as a filtering criterion.
 
-<<cooksPlot, fig=TRUE>>=
+<<cooksPlot>>=
 W <- mcols(dds)$WaldStatistic_condition_treated_vs_untreated
 maxCooks <- apply(assays(dds)[["cooks"]],1,max)
 idx <- !is.na(W)
@@ -1112,7 +1108,7 @@ p <- 3
 abline(h=qf(.99, p, m - p))
 @ 
 
-\incfig{DESeq2-cooksPlot}{.5\textwidth}{Cook's distance.}{
+\incfig{figure/cooksPlot}{.5\textwidth}{Cook's distance.}{
   Plot of the maximum Cook's distance per gene over the rank of
   the Wald statistics for the condition. The two regions with small Cook's 
   distances are genes with a single count in one sample. The horizontal 
@@ -1161,13 +1157,13 @@ easy to theoretically imply from first principles, but rarely a problem in pract
 We refer to \cite{Bourgon:2010:PNAS} for further discussion of this topic.
 
 A simple filtering criterion readily available in the results object is the
-mean of normalized counts irrespective of biological condition (Figure \ref{DESeq2-indFilt}). 
+mean of normalized counts irrespective of biological condition (Figure \ref{figure/indFilt}). 
 Genes with very low counts are not likely to 
 see significant differences typically due to high
 dispersion. For example, we can plot the $-\log_{10}$ p-values from all genes
 over the normalized mean counts.
 
-<<indFilt, fig=TRUE>>=
+<<indFilt>>=
 plot(res$baseMean+1, -log10(res$pvalue),
      log="x", xlab="mean of normalized counts",
      ylab=expression(-log[10](pvalue)),
@@ -1175,7 +1171,7 @@ plot(res$baseMean+1, -log10(res$pvalue),
      cex=.4, col=rgb(0,0,0,.3))
 @
 
-\incfig{DESeq2-indFilt}{.5\textwidth}{Mean counts as a filter statistic.}{
+\incfig{figure/indFilt}{.5\textwidth}{Mean counts as a filter statistic.}{
   The mean of normalized counts provides an independent statistic for
   filtering the tests. It is independent because the information about the
   variables in the design formula is not used. By filtering out genes which fall
@@ -1186,18 +1182,18 @@ plot(res$baseMean+1, -log10(res$pvalue),
 \subsubsection{Why does it work?}\label{sec:whyitworks}
 %--------------------------------------------------
 
-Consider the $p$ value histogram in Figure \ref{DESeq2-fighistindepfilt}.
+Consider the $p$ value histogram in Figure \ref{figure/fighistindepfilt}.
 It shows how the filtering ameliorates the multiple testing problem
 -- and thus the severity of a multiple testing adjustment -- by
 removing a background set of hypotheses whose $p$ values are distributed
 more or less uniformly in $[0,1]$.
-<<histindepfilt, width=7, height=5>>=
+<<histindepfilt, fig.width=7, fig.height=5>>=
 use <- res$baseMean > attr(res,"filterThreshold")
 table(use)
 h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
 h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
 colori <- c(`do not pass`="khaki", `pass`="powderblue")
-<<fighistindepfilt, fig=TRUE>>=
+<<fighistindepfilt>>=
 barplot(height = rbind(h1$counts, h2$counts), beside = FALSE,
         col = colori, space = 0, main = "", ylab="frequency")
 text(x = c(0, length(h1$counts)), y = 0, label = paste(c(0,1)),
@@ -1205,7 +1201,7 @@ text(x = c(0, length(h1$counts)), y = 0, label = paste(c(0,1)),
 legend("topright", fill=rev(colori), legend=rev(names(colori)))
 @
 
-\incfig{DESeq2-fighistindepfilt}{.5\textwidth}{Histogram of p-values}{
+\incfig{figure/fighistindepfilt}{.5\textwidth}{Histogram of p-values}{
   for all tests (\Robject{res\$pvalue}).
   The area shaded in blue indicates the subset of those that pass the filtering,
   the area in khaki those that do not pass.
@@ -1224,12 +1220,12 @@ resFilt <- res[use & !is.na(res$pvalue),]
 orderInPlot <- order(resFilt$pvalue)
 showInPlot <- (resFilt$pvalue[orderInPlot] <= 0.08)
 alpha <- 0.1
-<<sortedP, fig=TRUE, width=4.5, height=4.5>>=
+<<sortedP, fig.width=4.5, fig.height=4.5>>=
 plot(seq(along=which(showInPlot)), resFilt$pvalue[orderInPlot][showInPlot],
      pch=".", xlab = expression(rank(p[i])), ylab=expression(p[i]))
 abline(a=0, b=alpha/length(resFilt$pvalue), col="red3", lwd=2)
 @
-<<doBH, echo=FALSE, results=hide>>=
+<<doBH, echo=FALSE, results="hide">>=
 whichBH <- which(resFilt$pvalue[orderInPlot] <= alpha*seq(along=resFilt$pvalue)/length(resFilt$pvalue))
 ## Test some assertions:
 ## - whichBH is a contiguous set of integers from 1 to length(whichBH)
@@ -1278,13 +1274,13 @@ $\frac{m_0}{m}$ can be estimated by fitting a line to the left-hand portion of
 the plot, and then noting its height on the right. Such a fit is shown by the
 red line in the right panel of Figure \ref{figmulttest}.
 %
-<<SchwSpjot, echo=FALSE, results=hide>>=
+<<SchwSpjot, echo=FALSE, results="hide">>=
 j  <- round(length(resFilt$pvalue)*c(1, .66))
 px <- (1-resFilt$pvalue[orderInPlot[j]])
 py <- ((length(resFilt$pvalue)-1):0)[j]
 slope <- diff(py)/diff(px)
 @
-<<SchwederSpjotvoll, fig=TRUE, width=4.5, height=4.5>>=
+<<SchwederSpjotvoll, fig.width=4.5, fig.height=4.5>>=
 plot(1-resFilt$pvalue[orderInPlot],
      (length(resFilt$pvalue)-1):0, pch=".",
      xlab=expression(1-p[i]), ylab=expression(N(p[i])))
@@ -1293,8 +1289,8 @@ abline(a=0, slope, col="red3", lwd=2)
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=.49\textwidth]{DESeq2-sortedP}
-\includegraphics[width=.49\textwidth]{DESeq2-SchwederSpjotvoll}
+\includegraphics[width=.49\textwidth]{figure/sortedP}
+\includegraphics[width=.49\textwidth]{figure/SchwederSpjotvoll}
 \caption{\emph{Left:} illustration of the Benjamini-Hochberg multiple testing
   adjustment procedure \cite{BH:1995}.  The black line shows the
   $p$-values ($y$-axis) versus their rank ($x$-axis), starting with
@@ -1359,9 +1355,36 @@ See the details in Section~\ref{sec:moreInfo}.
   testing we recommend the \Rfunction{DESeq} function applied to raw
   counts as outlined in Section~\ref{sec:de}.
       
+\subsection{Can I perform a \Rfunction{DESeq} analysis without replicates?}
+
+If a \Rclass{DESeqDataSet} is provided with an experimental design without replicates,
+a warning message is printed, and the samples are treated as replicates
+for estimation of dispersion. More details can be found in the 
+manual page for \Rfunction{DESeq}.
+
+\subsection{How can I include a continuous covariate in the design formula?}
+
+Continuous covariates can be easily included in the design formula 
+in the same manner as factorial covariates. Continuous covariates 
+might make sense in certain experiments, where 
+a constant fold change might be expected for each unit
+of the covariate.
+However, in many cases, more meaningful results can be obtained by
+cutting continuous covariates into a factor defined over a 
+small number of bins (e.g. 3-5).
+In this way, the average effect of each group is controlled for, 
+regardless of the trend over the continuous covarites. 
+In R, \Rclass{numeric} vectors can be converted into \Rclass{factors} 
+using the function \Rfunction{cut}.
+
+\subsection{What are the exact steps performed by \Rfunction{DESeq}?}
+
+See the manual page for \Rfunction{DESeq}, which links to the 
+subfunctions which are called in order, where complete details are listed.
+
 \section{Session Info}
 
-<<sessInfo, results=tex, echo=FALSE>>=
+<<sessInfo, results="asis", echo=FALSE>>=
 toLatex(sessionInfo())
 @
 

@@ -297,9 +297,12 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' 
 #' Estimate the size factors for a DESeqDataSet
 #' 
-#' This function estimates the size factors and stores the information
-#' which can be accessed using \code{\link{sizeFactors}}
-#'
+#' This function estimates the size factors using the
+#' "median ratio method" described by Equation 5 in Ander and Huber (2010).
+#' The estimated size factors can be accessed using \code{\link{sizeFactors}}.
+#' Alternative library size estimators can also be supplied
+#' using \code{\link{sizeFactors}}.
+#' 
 #' Typically, the function is called with the idiom:
 #'
 #' \code{dds <- estimateSizeFactors(dds)}
@@ -333,6 +336,10 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' in.
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactorsForMatrix}}
+#'
+#' @references \itemize{
+#'   \item Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+#' }
 #' 
 #' @examples
 #' 
@@ -381,6 +388,9 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #' The log normal prior on the dispersion parameter has been proposed
 #' by Wu, et al. (2012) and is also implemented in the DSS package.
 #'
+#' In DESeq2, the dispersion estimation procedure described above replaces the
+#' different methods of dispersion from the previous version of the DESeq package.
+#' 
 #' \code{estimateDispersions} checks for the case of an analysis
 #' with as many samples as the number of coefficients to fit,
 #' and will temporarily substitute a design formula \code{~ 1} for the
