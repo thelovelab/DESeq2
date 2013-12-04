@@ -69,9 +69,9 @@
   the \code{\link{varianceStabilizingTransformation}}) as
   the blind dispersion estimation would otherwise shrink
   large, true log fold changes. The prior variance is
-  calculated as follows: a matrix is constructed as log2 of
-  normalized counts plus a pseudocount of 0.5, the log2 of
-  the row means of normalized counts is then subtracted,
+  calculated as follows: a matrix is constructed of the
+  logarithm of the counts plus a pseudocount of 0.5, the
+  row means of these log counts are then subtracted,
   leaving an estimate of the log fold changes per sample.
   The prior variance is set to the variance of all log fold
   change estimates. A second and final GLM fit is then
