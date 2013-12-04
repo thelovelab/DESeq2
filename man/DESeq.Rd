@@ -50,10 +50,10 @@
   variables.
 }
 \description{
-  This function performs a default analysis through the
-  following steps: 1. estimation of size factors :
-  \code{\link{estimateSizeFactors}}, 2. estimation of
-  dispersion: \code{\link{estimateDispersions}}, 3.
+  This function performs a default analysis through steps
+  (1) estimation of size factors:
+  \code{\link{estimateSizeFactors}}, (2) estimation of
+  dispersion: \code{\link{estimateDispersions}}, and (3)
   negative binomial GLM fitting and Wald statistics:
   \code{\link{nbinomWaldTest}}. For complete details on
   each step, see the manual pages of the respective

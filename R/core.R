@@ -1,9 +1,9 @@
 #' Differential expression analysis based on the negative binomial distribution
 #'
-#' This function performs a default analysis through the following steps:
-#' 1. estimation of size factors : \code{\link{estimateSizeFactors}},
-#' 2. estimation of dispersion: \code{\link{estimateDispersions}},
-#' 3. negative binomial GLM fitting and Wald statistics: \code{\link{nbinomWaldTest}}.
+#' This function performs a default analysis through steps
+#' (1) estimation of size factors: \code{\link{estimateSizeFactors}},
+#' (2) estimation of dispersion: \code{\link{estimateDispersions}}, and
+#' (3) negative binomial GLM fitting and Wald statistics: \code{\link{nbinomWaldTest}}.
 #' For complete details on each step, see the manual pages of the respective
 #' functions. After the \code{DESeq} function returns a DESeqDataSet object,
 #' results tables (log2 fold changes and p-values) can be generated
@@ -617,6 +617,13 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #  betaPriorVar gives the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
+#' @param modelMatrixType either "standard" or "expanded", which describe
+#' how the model matrix, X of the formula in \code{\link{DESeq}}, is
+#' formed. "standard" is as created by \code{model.matrix} using the
+#' design formula. "expanded" includes an indicator variable for each
+#' level of factors with 3 or more levels, in order to ensure symmetric
+#' behavior of the prior on log2 fold changes. betaPrior must be set
+#' to TRUE in order for expanded model matrices to be fit.
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -633,7 +640,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
 #' reported on a log2 scale.
 #'
-#' @seealso \code{\link{nbinomLRT}}
+#' @seealso \code{\link{DESeq}}, \code{\link{nbinomLRT}}
 #'
 #' @examples
 #'
@@ -644,13 +651,18 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, 
+nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
+                           modelMatrixType=c("standard","expanded"),
                            maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df, useQR=TRUE) {
-  stopifnot(length(maxit)==1)
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
-  }  
+  }
+  modelMatrixType <- match.arg(modelMatrixType, choices=c("standard","expanded"))
+  if (modelMatrixType == "expanded" & !betaPrior) {
+    stop("expanded model matrices require a beta prior")
+  }
+  stopifnot(length(maxit)==1)
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
@@ -662,19 +674,35 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   objectNZ <- object[!mcols(object)$allZero,]
   
   if (!betaPrior) {
+    # fit the negative binomial GLM without a prior
+    # (in actuality a very wide prior with standard deviation 1e3 on log2 fold changes)
     fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR)
     H <- fit$hat_diagonals
-    # record the wide prior which was used in fitting
+    modelMatrix <- fit$modelMatrix
+    modelMatrixNames <- fit$modelMatrixNames
+    # record the wide prior variance which was used in fitting
     betaPriorVar <- rep(1e6, ncol(fit$modelMatrix))
   }
 
-  # calculate the prior variance (on the log2 scale)
   if (betaPrior) {
-    # we need the MLE betas to fit the prior variance
-    # and for the hat matrix diagonals in order to
-    # calculate Cook's distance
-    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useQR=useQR)
+
+    # first, fit the negative binomial GLM without a prior,
+    # used to construct the prior variances
+    # and for the hat matrix diagonals for calculating Cook's distance
+    if (modelMatrixType == "standard") {
+      fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useQR=useQR)
+      modelMatrix <- fit$modelMatrix
+      modelMatrixNames <- fit$modelMatrixNames
+    } else {
+      # expanded model matrices: want to make sure the prior
+      # doesn't change from re-leveling
+      modelMatrix <- makeReleveledModelMatrix(object)
+      modelMatrixNames <- colnames(modelMatrix)
+      fit <- fitNbinomGLMs(objectNZ, modelMatrix=modelMatrix,
+                           maxit=maxit, useQR=useQR, renameCols=FALSE)
+    }
     H <- fit$hat_diagonals
+   
     if (missing(betaPriorVar)) {
       # estimate the variance of the prior on betas
       if (nrow(fit$betaMatrix) > 1) {
@@ -693,21 +721,41 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
         betaPriorVar <- (fit$betaMatrix)^2
       }
       # except for intercept which we set to wide prior
-      if ("Intercept" %in% fit$modelMatrixNames) {
-        betaPriorVar[which(fit$modelMatrixNames == "Intercept")] <- 1e6
+      if ("Intercept" %in% modelMatrixNames) {
+        betaPriorVar[which(modelMatrixNames == "Intercept")] <- 1e6
+      }
+      if (modelMatrixType == "expanded") {
+        # bring over beta priors from the GLM fit without prior.
+        # for factors: prior variance of each level are the average of the
+        # prior variances for the levels present in the previous GLM fit
+        betaPriorExpanded <- averagePriorsOverLevels(object, betaPriorVar, modelMatrixNames)
+        betaPriorVar <- betaPriorExpanded        
       }
     } else {
       # else we are provided the prior variance:
       # check if the lambda is the correct length
       # given the design formula
-      p <- ncol(fit$modelMatrix)
+      if (modelMatrixType == "expanded") {
+        modelMatrix <- makeExpandedModelMatrix(object)
+      }
+      p <- ncol(modelMatrix)
       if (length(betaPriorVar) != p) {
-        stop(paste("betaPriorVar should have length",p))
+        stop(paste("betaPriorVar should have length",p,"to match:",paste(colnames(modelMatrix),collapse=", ")))
       }
     }
+    
+    # refit the negative binomial GLM with a prior on betas
     lambda <- 1/betaPriorVar
-    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
-                         useQR=useQR)
+
+    if (modelMatrixType == "standard") {
+      fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
+                           useQR=useQR)
+    } else {
+      modelMatrix <- makeExpandedModelMatrix(object)
+      modelMatrixNames <- colnames(modelMatrix)
+      fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
+                           useQR=useQR, modelMatrix=modelMatrix)
+    }
   }
 
   # store mu in case the user did not call estimateDispersionsGeneEst
@@ -719,10 +767,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   # the results function (necessary for setting max Cook's distance)
   attr(object,"betaPrior") <- betaPrior
   attr(object,"betaPriorVar") <- betaPriorVar
-  attr(object,"modelMatrix") <- fit$modelMatrix
+  attr(object,"modelMatrix") <- modelMatrix
+  attr(object,"modelMatrixType") <- modelMatrixType
 
-  m <- nrow(fit$modelMatrix)
-  p <- ncol(fit$modelMatrix)
+  m <- nrow(modelMatrix)
+  p <- ncol(modelMatrix)
 
   # calculate Cook's distance
   cooks <- calculateCooksDistance(objectNZ, H, p)
@@ -732,8 +781,6 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
 
   # store Cook's distance for each sample
   assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
-
-  modelMatrixNames <- fit$modelMatrixNames
   
   # add betas, standard errors and Wald p-values to the object
   betaMatrix <- fit$betaMatrix
@@ -820,7 +867,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
 #' reported on a log2 scale.
 #' 
-#' @seealso \code{\link{nbinomWaldTest}}
+#' @seealso \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}
 #'
 #' @examples
 #'
@@ -865,7 +912,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
   reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
                                 useOptim=useOptim, useQR=useQR)
 
+  attr(object, "betaPrior") <- FALSE
   attr(object,"modelMatrix") <- fullModelMatrix
+  attr(object,"modelMatrixType") <- "standard"
   
   p <- ncol(fullModelMatrix)
   m <- nrow(fullModelMatrix)
@@ -1383,63 +1432,6 @@ matrixToList <- function(m) {
   l
 }
 
-# convenience function to guess the name of the last coefficient
-# in the model matrix, unless specified this will be used for
-# plots and accessor functions
-lastCoefName <- function(object) {
-  resNms <- resultsNames(object)
-  resNms[length(resNms)]
-}
-
-
-# functions to get coef, coefSE, pvalues and padj from mcols(object)
-getCoef <- function(object,name) {
-  if (missing(name)) {
-    name <- lastCoefName(object)
-  }
-  mcols(object)[name]
-}
-getCoefSE <- function(object,name) {
-  if (missing(name)) {
-    name <- lastCoefName(object)
-  }
-  mcols(object)[paste0("SE_",name)]
-}
-getStat <- function(object,test="Wald",name) {
-  if (missing(name)) {
-    name <- lastCoefName(object)
-  }
-  if (test == "Wald") {
-    return(mcols(object)[paste0("WaldStatistic_",name)])
-  } else if (test == "LRT") {
-    return(mcols(object)["LRTStatistic"])
-  } else {
-    stop("unknown test")
-  }
-}
-getPvalue <- function(object,test="Wald",name) {
-  if (missing(name)) {
-    name <- lastCoefName(object)
-  }
-  if (test == "Wald") {
-    return(mcols(object)[paste0("WaldPvalue_",name)])
-  } else if (test == "LRT") {
-    return(mcols(object)["LRTPvalue"])
-  } else {
-    stop("unknown test")
-  }
-}
-
-# convenience function to make more descriptive names
-# for factor variables
-renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
-  designVars <- all.vars(formula(design))
-  designVarsClass <- sapply(designVars, function(v) class(data[[v]]))
-  factorVars <- designVars[designVarsClass == "factor"]
-  colNamesFrom <- do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1])))
-  colNamesTo <- do.call(c,lapply(factorVars, function(v) paste0(v,"_",levels(data[[v]])[-1],"_vs_",levels(data[[v]])[1])))
-  data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
-}
 
 # calculate a robust method of moments dispersion
 # using the squared MAD and the row mean
@@ -1452,6 +1444,7 @@ robustMethodOfMomentsDisp <- function(counts) {
   alpha <- ifelse(alpha > 0, alpha, min(alpha))
 }
 
+
 calculateCooksDistance <- function(object, H, p) {
   dispersions <- robustMethodOfMomentsDisp(counts(object,normalized=TRUE))
   V <- assays(object)[["mu"]] + dispersions * assays(object)[["mu"]]^2
@@ -1459,6 +1452,7 @@ calculateCooksDistance <- function(object, H, p) {
   cooks <- PearsonResSq / p  * H / (1 - H)^2
   cooks
 }
+
 
 # this function breaks out the logic for calculating the max Cook's distance:
 # the samples over which max Cook's distance is calculated:
@@ -1515,6 +1509,7 @@ propMaxOfTotal <- function(counts, pseudocount=8) {
 # an unexported diagnostic function
 # to retrieve the covariance matrix
 # for the GLM coefficients of a single row
+# only for standard model matrices
 covarianceMatrix <- function(object, rowNumber) {
   # convert coefficients to log scale
   coefColumns <- names(mcols(object))[grep("log2 fold change",mcols(mcols(object))$description)]

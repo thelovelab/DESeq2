@@ -3,6 +3,7 @@
 \title{Wald test for the GLM coefficients}
 \usage{
   nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar,
+    modelMatrixType = c("standard", "expanded"),
     maxit = 100, useOptim = TRUE, quiet = FALSE,
     useT = FALSE, df, useQR = TRUE)
 }
@@ -17,6 +18,16 @@
   number of model terms including the intercept. which if
   missing is estimated from the rows which do not have any
   zeros}
+
+  \item{modelMatrixType}{either "standard" or "expanded",
+  which describe how the model matrix, X of the formula in
+  \code{\link{DESeq}}, is formed. "standard" is as created
+  by \code{model.matrix} using the design formula.
+  "expanded" includes an indicator variable for each level
+  of factors with 3 or more levels, in order to ensure
+  symmetric behavior of the prior on log2 fold changes.
+  betaPrior must be set to TRUE in order for expanded model
+  matrices to be fit.}
 
   \item{maxit}{the maximum number of iterations to allow
   for convergence of the coefficient vector}
@@ -81,6 +92,6 @@ dds <- nbinomWaldTest(dds)
 res <- results(dds)
 }
 \seealso{
-  \code{\link{nbinomLRT}}
+  \code{\link{DESeq}}, \code{\link{nbinomLRT}}
 }
 

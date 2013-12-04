@@ -132,7 +132,7 @@ results <- function(object, name, contrast,
                     altHypothesis=c("greaterAbs","lessAbs","greater","less"),
                     cooksCutoff,
                     independentFiltering=TRUE,
-                    alpha=0.1, filter, theta=seq(0, 0.95, by=0.05),
+                    alpha=0.1, filter, theta,
                     pAdjustMethod="BH") {
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
@@ -140,12 +140,22 @@ results <- function(object, name, contrast,
   if (missing(name)) {
     name <- lastCoefName(object)
   }
+  isExpanded <- attr(object, "modelMatrixType") == "expanded"
+  if (isExpanded & missing(contrast)) {
+    warning("\n
+note: an expanded model matrix was used in fitting, either through
+use of the modelMatrixType argument or by default, because 1 or
+more factors in the design formula contained 3 or more levels.
+
+recommendation: the 'contrast' argument should be used to extract
+log2 fold changes of levels against each other, otherwise the log2
+fold changes are compared to the intercept.\n")
+  }
   altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
   stopifnot(lfcThreshold >= 0)
   stopifnot(length(lfcThreshold)==1)
   stopifnot(length(altHypothesis)==1)
   stopifnot(length(alpha)==1)
-  stopifnot(length(theta) > 1)
   stopifnot(length(pAdjustMethod)==1)
   if (length(name) != 1 | !is.character(name)) {
     stop("the argument 'name' should be a character vector of length 1")
@@ -169,7 +179,8 @@ results <- function(object, name, contrast,
     if (test != "Wald") {
       stop("using contrasts requires that the Wald test was performed")
     }
-    res <- cleanContrast(object, contrast)
+    # pass down whether the model matrix type was "expanded"
+    res <- cleanContrast(object, contrast, expanded=isExpanded)
   } else {
     # if not performing a contrast
     # pull relevant columns from mcols(object)
@@ -236,6 +247,8 @@ results <- function(object, name, contrast,
     if (is.logical(cooksCutoff) & cooksCutoff) {
       cooksCutoff <- defaultCutoff
     }
+  } else {
+    cooksCutoff <- FALSE
   }
   
   # apply cutoff based on maximum Cook's distance
@@ -250,6 +263,12 @@ results <- function(object, name, contrast,
     if (missing(filter)) {
       filter <- res$baseMean
     }
+    if (missing(theta)) {
+      lowerQuantile <- mean(filter == 0)
+      if (lowerQuantile < .95) upperQuantile <- .95 else upperQuantile <- 1
+      theta <- seq(lowerQuantile, upperQuantile, length=20)
+    }
+    stopifnot(length(theta) > 1)
     stopifnot(length(filter) == nrow(object))
     filtPadj <- filtered_p(filter=filter, test=res$pvalue,
                            theta=theta, method=pAdjustMethod) 
@@ -287,7 +306,6 @@ removeResults <- function(object) {
   }
   return(object)
 }
-
 
 ###########################################################
 # unexported functons 
@@ -329,8 +347,12 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   if (missing(contrast)) {
     stop("must provide a contrast")
   }
-  modelFormula <- design(object)
-  modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
+
+  if (is.null(attr(object,"modelMatrix"))) {
+    stop("was expecting a model matrix stored as an attribute of the DESeqDataSet")
+  }
+  modelMatrix <- attr(object, "modelMatrix")
+  
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
   if (!is.null(normalizationFactors(objectNZ))) {
@@ -373,8 +395,15 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   contrastResults
 }
 
-cleanContrast <- function(object, contrast) {
+cleanContrast <- function(object, contrast, expanded=FALSE) {
+  # get the names of columns in the beta matrix
   resNames <- resultsNames(object)
+  
+  if (!is.numeric(contrast) & !is.character(contrast)) {
+    stop("contrast vector should be either a numeric vector or character vector,
+see the argument description in ?results")
+  }
+  
   # check contrast validity
   if (is.numeric(contrast)) {
     if (length(contrast) != length(resNames) )
@@ -393,72 +422,92 @@ cleanContrast <- function(object, contrast) {
     }
     contrastNumLevel <- contrast[2]
     contrastDenomLevel <- contrast[3]
-    contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
-    # use make.names() so the column names are
-    # the same as created by DataFrame in mcols(object).
-    contrastNumColumn <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel))
-    contrastDenomColumn <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel))
-    resNames <- resultsNames(object)
-    
-    # first, check in case the desired contrast is already
-    # available in mcols(object), and then we can either
-    # take it directly or multiply the log fold
-    # changes and stat by -1
-    if ( contrastDenomLevel == contrastBaseLevel ) {
-      # the results can be pulled directly from mcols(object)
-      name <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel))
-      if (!name %in% resNames) {
-        stop(paste("as",contrastDenomLevel,"is the base level, was expecting",name,"to be present in 'resultsNames(object)'"))
+
+    # more checks, and potentially return results already
+    # if numerator or denominator is the base level
+    # first for standard model matrices
+    if (!expanded) {
+
+      # then we have a base level for the factor
+      contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
+      
+      # use make.names() so the column names are
+      # the same as created by DataFrame in mcols(object).
+      contrastNumColumn <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel))
+      contrastDenomColumn <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel))
+      resNames <- resultsNames(object)
+      
+      # check in case the desired contrast is already
+      # available in mcols(object), and then we can either
+      # take it directly or multiply the log fold
+      # changes and stat by -1
+      if ( contrastDenomLevel == contrastBaseLevel ) {
+        # the results can be pulled directly from mcols(object)
+        name <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel))
+        if (!name %in% resNames) {
+          stop(paste("as",contrastDenomLevel,"is the base level, was expecting",name,"to be present in 'resultsNames(object)'"))
+        }
+        test <- "Wald"
+        log2FoldChange <- getCoef(object, name)
+        lfcSE <- getCoefSE(object, name)
+        stat <- getStat(object, test, name)
+        pvalue <- getPvalue(object, test, name)
+        res <- cbind(mcols(object)["baseMean"],
+                     log2FoldChange,lfcSE,stat,
+                     pvalue)
+        names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
+        return(res)
+      } else if ( contrastNumLevel == contrastBaseLevel ) {
+        # fetch the results for denom vs num 
+        # and mutiply the log fold change and stat by -1
+        cleanName <- make.names(paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel))
+        swapName <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel))
+        if (!swapName %in% resNames) {
+          stop(paste("as",contrastNumLevel,"is the base level, was expecting",swapName,"to be present in 'resultsNames(object)'"))
+        }
+        test <- "Wald"
+        log2FoldChange <- getCoef(object, swapName)
+        lfcSE <- getCoefSE(object, swapName)
+        stat <- getStat(object, test, swapName)
+        pvalue <- getPvalue(object, test, swapName)
+        res <- cbind(mcols(object)["baseMean"],
+                     log2FoldChange,lfcSE,stat,
+                     pvalue)
+        names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
+        res$log2FoldChange <- -1 * res$log2FoldChange
+        res$stat <- -1 * res$stat
+        # also need to swap the name in the mcols
+        contrastDescriptions <- paste(c("log2 fold change (MAP):",
+                                        "standard error:",
+                                        "Wald statistic:",
+                                        "Wald test p-value:"),
+                                      cleanName)
+        mcols(res)$description[mcols(res)$type == "results"] <- contrastDescriptions
+        return(res)
       }
-      test <- "Wald"
-      log2FoldChange <- getCoef(object, name)
-      lfcSE <- getCoefSE(object, name)
-      stat <- getStat(object, test, name)
-      pvalue <- getPvalue(object, test, name)
-      res <- cbind(mcols(object)["baseMean"],
-                   log2FoldChange,lfcSE,stat,
-                   pvalue)
-      names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
-      return(res)
-    } else if ( contrastNumLevel == contrastBaseLevel ) {
-      # fetch the results for denom vs num 
-      # and mutiply the log fold change and stat by -1
-      cleanName <- make.names(paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel))
-      swapName <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel))
-      if (!swapName %in% resNames) {
-        stop(paste("as",contrastNumLevel,"is the base level, was expecting",swapName,"to be present in 'resultsNames(object)'"))
-      }
-      test <- "Wald"
-      log2FoldChange <- getCoef(object, swapName)
-      lfcSE <- getCoefSE(object, swapName)
-      stat <- getStat(object, test, swapName)
-      pvalue <- getPvalue(object, test, swapName)
-      res <- cbind(mcols(object)["baseMean"],
-                   log2FoldChange,lfcSE,stat,
-                   pvalue)
-      names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
-      res$log2FoldChange <- -1 * res$log2FoldChange
-      res$stat <- -1 * res$stat
-      # also need to swap the name in the mcols
-      contrastDescriptions <- paste(c("log2 fold change (MAP):",
-                                      "standard error:",
-                                      "Wald statistic:",
-                                      "Wald test p-value:"),
-                                    cleanName)
-      mcols(res)$description[mcols(res)$type == "results"] <- contrastDescriptions
-      return(res)
-    }
     
-    # now, back to the normal contrast case
-    if ( ! (contrastNumColumn %in% resNames &
+      # check for the case where neither are present
+      # as comparisons against base level
+      if ( ! (contrastNumColumn %in% resNames &
               contrastDenomColumn %in% resNames) ) {
-      # each contrast factor + level name should be once in results names
-      stop(paste(contrastNumLevel,"and",contrastDenomLevel,"should be levels of",contrastFactor,"such that",contrastNumColumn,"and",contrastDenomColumn,"are contained in 'resultsNames(object)'"))
+        stop(paste(contrastNumLevel,"and",contrastDenomLevel,"should be levels of",contrastFactor,
+                   "such that",contrastNumColumn,"and",contrastDenomColumn,
+                   "are contained in 'resultsNames(object)'"))
+      }
+      # then we proceed below with translation to a numeric contrast
+      
+    } else {
+      
+      # else in the expanded case, we first check validity
+      contrastNumColumn <- make.names(paste0(contrastFactor, contrastNumLevel))
+      contrastDenomColumn <- make.names(paste0(contrastFactor, contrastDenomLevel))
+      if ( ! (contrastNumColumn %in% resNames & contrastDenomColumn %in% resNames) ) {
+        stop(paste("both",contrastNumLevel,"and",contrastDenomLevel,"are expected to be in
+resultsNames(object), prefixed by",contrastFactor))
+      }
     }
-  } else {
-    stop("contrast vector should be either a numeric vector or character vector, see the argument description in ?results")
   }
-  
+
   # make name for numeric contrast
   if (is.numeric(contrast)) {
     signMap <- c("","","+")
@@ -486,3 +535,63 @@ cleanContrast <- function(object, contrast) {
                contrastResults)
   res
 }
+
+
+# convenience function to guess the name of the last coefficient
+# in the model matrix, unless specified this will be used for
+# plots and accessor functions
+lastCoefName <- function(object) {
+  resNms <- resultsNames(object)
+  resNms[length(resNms)]
+}
+
+
+# functions to get coef, coefSE, pvalues and padj from mcols(object)
+getCoef <- function(object,name) {
+  if (missing(name)) {
+    name <- lastCoefName(object)
+  }
+  mcols(object)[name]
+}
+getCoefSE <- function(object,name) {
+  if (missing(name)) {
+    name <- lastCoefName(object)
+  }
+  mcols(object)[paste0("SE_",name)]
+}
+getStat <- function(object,test="Wald",name) {
+  if (missing(name)) {
+    name <- lastCoefName(object)
+  }
+  if (test == "Wald") {
+    return(mcols(object)[paste0("WaldStatistic_",name)])
+  } else if (test == "LRT") {
+    return(mcols(object)["LRTStatistic"])
+  } else {
+    stop("unknown test")
+  }
+}
+getPvalue <- function(object,test="Wald",name) {
+  if (missing(name)) {
+    name <- lastCoefName(object)
+  }
+  if (test == "Wald") {
+    return(mcols(object)[paste0("WaldPvalue_",name)])
+  } else if (test == "LRT") {
+    return(mcols(object)["LRTPvalue"])
+  } else {
+    stop("unknown test")
+  }
+}
+
+# convenience function to make more descriptive names
+# for factor variables
+renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
+  designVars <- all.vars(formula(design))
+  designVarsClass <- sapply(designVars, function(v) class(data[[v]]))
+  factorVars <- designVars[designVarsClass == "factor"]
+  colNamesFrom <- do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1])))
+  colNamesTo <- do.call(c,lapply(factorVars, function(v) paste0(v,"_",levels(data[[v]])[-1],"_vs_",levels(data[[v]])[1])))
+  data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
+}
+

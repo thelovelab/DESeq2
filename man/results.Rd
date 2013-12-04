@@ -7,8 +7,7 @@
   results(object, name, contrast, lfcThreshold = 0,
     altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
     cooksCutoff, independentFiltering = TRUE, alpha = 0.1,
-    filter, theta = seq(0, 0.95, by = 0.05),
-    pAdjustMethod = "BH")
+    filter, theta, pAdjustMethod = "BH")
 
   resultsNames(object)
 

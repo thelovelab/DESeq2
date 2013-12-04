@@ -55,6 +55,6 @@ dds <- nbinomLRT(dds, reduced = ~ 1)
 res <- results(dds)
 }
 \seealso{
-  \code{\link{nbinomWaldTest}}
+  \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}
 }
 
