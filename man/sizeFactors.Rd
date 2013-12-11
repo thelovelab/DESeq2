@@ -6,9 +6,11 @@
 \title{Accessor functions for the 'sizeFactors' information in a DESeqDataSet
 object.}
 \usage{
-  \S4method{sizeFactors}{DESeqDataSet}(object)
+\S4method{sizeFactors}{DESeqDataSet}(object)
 
-  \S4method{sizeFactors}{DESeqDataSet,numeric}(object)<-value
+\S4method{sizeFactors}{DESeqDataSet,numeric}(object)<-value
+
+\S4method{sizeFactors}{DESeqDataSet}(object)
 }
 \arguments{
   \item{object}{a \code{DESeqDataSet} object.}
@@ -17,13 +19,13 @@ object.}
   column in the count data.}
 }
 \description{
-  The sizeFactors vector assigns to each column of the
-  count matrix a value, the size factor, such that count
-  values in the columns can be brought to a common scale by
-  dividing by the corresponding size factor.  See
-  \code{\link{DESeq}} for a description of the use of size
-  factors. If gene-specific normalization is desired for
-  each sample, use \code{\link{normalizationFactors}}.
+The sizeFactors vector assigns to each column of the count
+matrix a value, the size factor, such that count values in
+the columns can be brought to a common scale by dividing by
+the corresponding size factor.  See \code{\link{DESeq}} for
+a description of the use of size factors. If gene-specific
+normalization is desired for each sample, use
+\code{\link{normalizationFactors}}.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
@@ -31,9 +33,9 @@ dds <- estimateSizeFactors( dds )
 sizeFactors(dds)
 }
 \author{
-  Simon Anders
+Simon Anders
 }
 \seealso{
-  \code{\link{estimateSizeFactors}}
+\code{\link{estimateSizeFactors}}
 }
 

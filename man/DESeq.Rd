@@ -2,10 +2,9 @@
 \alias{DESeq}
 \title{Differential expression analysis based on the negative binomial distribution}
 \usage{
-  DESeq(object, test = c("Wald", "LRT"),
-    fitType = c("parametric", "local", "mean"),
-    betaPrior = TRUE, full = design(object), reduced,
-    quiet = FALSE)
+DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
+  "mean"), betaPrior = TRUE, full = design(object), reduced,
+  quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet object, see the constructor
@@ -41,72 +40,69 @@
   \item{quiet}{whether to print messages at each step}
 }
 \value{
-  a \code{\link{DESeqDataSet}} object with results stored
-  as metadata columns. These results should accessed by
-  calling the \code{\link{results}} function. By default
-  this will return the log2 fold changes and p-values for
-  the last variable in the design formula.  See
-  \code{\link{results}} for how to access results for other
-  variables.
+a \code{\link{DESeqDataSet}} object with results stored as
+metadata columns. These results should accessed by calling
+the \code{\link{results}} function. By default this will
+return the log2 fold changes and p-values for the last
+variable in the design formula.  See \code{\link{results}}
+for how to access results for other variables.
 }
 \description{
-  This function performs a default analysis through steps
-  (1) estimation of size factors:
-  \code{\link{estimateSizeFactors}}, (2) estimation of
-  dispersion: \code{\link{estimateDispersions}}, and (3)
-  negative binomial GLM fitting and Wald statistics:
-  \code{\link{nbinomWaldTest}}. For complete details on
-  each step, see the manual pages of the respective
-  functions. After the \code{DESeq} function returns a
-  DESeqDataSet object, results tables (log2 fold changes
-  and p-values) can be generated using the
-  \code{\link{results}} function. See the manual page for
-  \code{\link{results}} for information on independent
-  filtering and p-value adjustment for multiple test
-  correction.
+This function performs a default analysis through steps (1)
+estimation of size factors:
+\code{\link{estimateSizeFactors}}, (2) estimation of
+dispersion: \code{\link{estimateDispersions}}, and (3)
+negative binomial GLM fitting and Wald statistics:
+\code{\link{nbinomWaldTest}}. For complete details on each
+step, see the manual pages of the respective functions.
+After the \code{DESeq} function returns a DESeqDataSet
+object, results tables (log2 fold changes and p-values) can
+be generated using the \code{\link{results}} function. See
+the manual page for \code{\link{results}} for information
+on independent filtering and p-value adjustment for
+multiple test correction.
 }
 \details{
-  The differential expression analysis uses a generalized
-  linear model of the form:
+The differential expression analysis uses a generalized
+linear model of the form:
 
-  \deqn{ K_{ij} \sim \textrm{NB}( \mu_{ij}, \alpha_i) }{
-  K_ij ~ NB(mu_ij, alpha_i) } \deqn{ \mu_{ij} = s_j q_{ij}
-  }{ mu_ij = s_j * q_ij } \deqn{ \log_2(q_{ij}) = x_{j.}
-  \beta_i }{ log2(q_ij) = x_j. * beta_i }
+\deqn{ K_{ij} \sim \textrm{NB}( \mu_{ij}, \alpha_i) }{ K_ij
+~ NB(mu_ij, alpha_i) } \deqn{ \mu_{ij} = s_j q_{ij} }{
+mu_ij = s_j * q_ij } \deqn{ \log_2(q_{ij}) = x_{j.} \beta_i
+}{ log2(q_ij) = x_j. * beta_i }
 
-  where counts \eqn{K_{ij}}{K_ij} for gene i, sample j are
-  modeled using a negative binomial distribution with
-  fitted mean \eqn{\mu_{ij}}{mu_ij} and a gene-specific
-  dispersion parameter \eqn{\alpha_i}{alpha_i}. The fitted
-  mean is composed of a sample-specific size factor
-  \eqn{s_j}{s_j} and a parameter \eqn{q_{ij}}{q_ij}
-  proportional to the expected true concentration of
-  fragments for sample j. The coefficients
-  \eqn{\beta_i}{beta_i} give the log2 fold changes for gene
-  i for each column of the model matrix \eqn{X}{X}. The
-  sample-specific size factors can be replaced by
-  gene-specific normalization factors for each sample using
-  \code{\link{normalizationFactors}}.  For details on the
-  fitting of the log2 fold changes and calculation of
-  p-values see \code{\link{nbinomWaldTest}} (or
-  \code{\link{nbinomLRT}} if using \code{test="LRT"}).
+where counts \eqn{K_{ij}}{K_ij} for gene i, sample j are
+modeled using a negative binomial distribution with fitted
+mean \eqn{\mu_{ij}}{mu_ij} and a gene-specific dispersion
+parameter \eqn{\alpha_i}{alpha_i}. The fitted mean is
+composed of a sample-specific size factor \eqn{s_j}{s_j}
+and a parameter \eqn{q_{ij}}{q_ij} proportional to the
+expected true concentration of fragments for sample j. The
+coefficients \eqn{\beta_i}{beta_i} give the log2 fold
+changes for gene i for each column of the model matrix
+\eqn{X}{X}. The sample-specific size factors can be
+replaced by gene-specific normalization factors for each
+sample using \code{\link{normalizationFactors}}.  For
+details on the fitting of the log2 fold changes and
+calculation of p-values see \code{\link{nbinomWaldTest}}
+(or \code{\link{nbinomLRT}} if using \code{test="LRT"}).
 
-  Experiments without replicates do not allow for
-  estimation of the dispersion of counts around the
-  expected value for each group, which is critical for
-  differential expression analysis. If an experimental
-  design is supplied which does not contain the necessary
-  degrees of freedom for differential analysis,
-  \code{DESeq} will provide a message to the user and
-  follow the strategy outlined in Anders and Huber (2010)
-  under the section 'Working without replicates', wherein
-  all the samples are considered as replicates of a single
-  group for the estimation of dispersion. As noted in the
-  reference above: "Some overestimation of the variance may
-  be expected, which will make that approach conservative."
-  Furthermore, "while one may not want to draw strong
-  conclusions from such an analysis, it may still be useful
-  for exploration and hypothesis generation."
+Experiments without replicates do not allow for estimation
+of the dispersion of counts around the expected value for
+each group, which is critical for differential expression
+analysis. If an experimental design is supplied which does
+not contain the necessary degrees of freedom for
+differential analysis, \code{DESeq} will provide a message
+to the user and follow the strategy outlined in Anders and
+Huber (2010) under the section 'Working without
+replicates', wherein all the samples are considered as
+replicates of a single group for the estimation of
+dispersion. As noted in the reference above: "Some
+overestimation of the variance may be expected, which will
+make that approach conservative." Furthermore, "while one
+may not want to draw strong conclusions from such an
+analysis, it may still be useful for exploration and
+hypothesis generation."
 }
 \examples{
 dds <- makeExampleDESeqDataSet(betaSD=1)
@@ -116,15 +112,14 @@ ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)
 resLRT <- results(ddsLRT)
 }
 \author{
-  Michael Love
+Michael Love
 }
 \references{
-  Simon Anders, Wolfgang Huber: Differential expression
-  analysis for sequence count data. Genome Biology 11
-  (2010) R106,
-  \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+Simon Anders, Wolfgang Huber: Differential expression
+analysis for sequence count data. Genome Biology 11 (2010)
+R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 }
 \seealso{
-  \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
+\code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
 }
 

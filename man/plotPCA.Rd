@@ -2,7 +2,7 @@
 \alias{plotPCA}
 \title{Sample PCA plot from variance-stabilized data}
 \usage{
-  plotPCA(x, intgroup = "condition", ntop = 500)
+plotPCA(x, intgroup = "condition", ntop = 500)
 }
 \arguments{
   \item{x}{a SummarizedExperiment, with data in
@@ -17,11 +17,11 @@
   components, selected by highest row variance}
 }
 \description{
-  This plot helps to check for batch effects and the like.
+This plot helps to check for batch effects and the like.
 }
 \note{
-  See the vignette for an example of variance stabilization
-  and PCA plots.
+See the vignette for an example of variance stabilization
+and PCA plots.
 }
 \examples{
 dds <- makeExampleDESeqDataSet(betaSD=1)
@@ -32,6 +32,6 @@ vsd <- varianceStabilizingTransformation(dds)
 plotPCA(vsd)
 }
 \author{
-  Wolfgang Huber
+Wolfgang Huber
 }
 

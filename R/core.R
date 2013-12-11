@@ -268,6 +268,8 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans)
 #' stop when increase in log posterior is less than dispTol
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #' @param quiet whether to print messages at each step
+#' @param modelMatrixType either "standard" or "expanded", in case of the later
+#' a model matrix is provided which will not change from releveling
 #'
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
@@ -287,7 +289,8 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans)
 #'
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
-                                       dispTol=1e-6, maxit=100, quiet=FALSE) {
+                                       dispTol=1e-6, maxit=100, quiet=FALSE,
+                                       modelMatrixType="standard") {
   if ("dispGeneEst" %in% names(mcols(object))) {
     if (!quiet) message("you had estimated gene-wise dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  == "dispGeneEst"]
@@ -314,8 +317,13 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # and for the initial starting point for line search
   alpha_hat <- pmax(minDisp, (bv - xim*bm)/bm^2)
 
-  # fitNbinomGLMs returns mu and modelMatrix
-  fit <- fitNbinomGLMs(objectNZ, alpha_hat=alpha_hat)
+  if (modelMatrixType == "standard") {
+    # fitNbinomGLMs returns mu and modelMatrix
+    fit <- fitNbinomGLMs(objectNZ, alpha_hat=alpha_hat)
+  } else {
+    mm <- makeReleveledModelMatrix(object)
+    fit <- fitNbinomGLMs(objectNZ, alpha_hat=alpha_hat, modelMatrix=mm)
+  }
   
   # use of kappa_0 in backtracking search
   # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
@@ -601,10 +609,14 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' moderate the large spread in coefficients for genes with low counts.
 #'
 #' For calculating Wald test p-values, the coefficients are scaled by their
-#' standard errors and then compared to a normal distribution.  From
+#' standard errors and then compared to a normal distribution. From
 #' examination of Wald statistics for real datasets, the effect of the
 #' prior on dispersion estimates results in a Wald statistic
 #' distribution which is approximately normal.
+#'
+#' When interaction terms are present, the prior on log fold changes
+#' (betaPrior) will only be used on the interaction terms, unless the beta
+#' prior variance is specified through the betaPriorVar argument.
 #' 
 #' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
@@ -651,14 +663,15 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
-                           modelMatrixType=c("standard","expanded"),
+nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType,
                            maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df, useQR=TRUE) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
-  modelMatrixType <- match.arg(modelMatrixType, choices=c("standard","expanded"))
+  # TODO: here goes logic regarding the number of levels of factors
+  if (missing(modelMatrixType)) modelMatrixType <- "standard"
+  stopifnot(is.logical(betaPrior))
   if (modelMatrixType == "expanded" & !betaPrior) {
     stop("expanded model matrices require a beta prior")
   }
@@ -672,6 +685,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   }
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
+
+  # if there are interaction terms present in the design
+  # then we should only use the prior on the interaction terms
+  interactionPresent <- any(attr(terms.formula(design(object)),"order") > 1)
+  priorOnlyInteraction <- interactionPresent & betaPrior & missing(betaPriorVar)
   
   if (!betaPrior) {
     # fit the negative binomial GLM without a prior
@@ -685,7 +703,6 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   }
 
   if (betaPrior) {
-
     # first, fit the negative binomial GLM without a prior,
     # used to construct the prior variances
     # and for the hat matrix diagonals for calculating Cook's distance
@@ -701,12 +718,18 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
       fit <- fitNbinomGLMs(objectNZ, modelMatrix=modelMatrix,
                            maxit=maxit, useQR=useQR, renameCols=FALSE)
     }
-    H <- fit$hat_diagonals
-   
+    H <- fit$hat_diagonal
+    betaMatrix <- fit$betaMatrix
+    colnames(betaMatrix) <- modelMatrixNames
+    
     if (missing(betaPriorVar)) {
       # estimate the variance of the prior on betas
+      # if expanded, first calculate LFC for all possible contrasts
+      if (modelMatrixType == "expanded") {
+        betaMatrix <- addAllContrasts(object, betaMatrix)
+      } 
       if (nrow(fit$betaMatrix) > 1) {
-        betaPriorVar <- apply(fit$betaMatrix, 2, function(x) {
+        betaPriorVar <- apply(betaMatrix, 2, function(x) {
           # infinite betas are halted when |beta| > 10
           # so this test removes them
           useSmall <- abs(x) < 8
@@ -718,18 +741,25 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
           }
         }) 
       } else {
-        betaPriorVar <- (fit$betaMatrix)^2
+        betaPriorVar <- (betaMatrix)^2
       }
+      names(betaPriorVar) <- colnames(betaMatrix)
       # except for intercept which we set to wide prior
       if ("Intercept" %in% modelMatrixNames) {
-        betaPriorVar[which(modelMatrixNames == "Intercept")] <- 1e6
+        betaPriorVar[which(names(betaPriorVar) == "Intercept")] <- 1e6
+      }
+      # find the names of betaPriorVar which correspond
+      # to non-intercept terms and set these to a wide prior
+      if (priorOnlyInteraction) {
+        nonInteractionCols <- getNonInteractionColumnIndices(object, modelMatrix)
+        betaPriorVar[nonInteractionCols] <- 1e6
       }
       if (modelMatrixType == "expanded") {
         # bring over beta priors from the GLM fit without prior.
         # for factors: prior variance of each level are the average of the
         # prior variances for the levels present in the previous GLM fit
-        betaPriorExpanded <- averagePriorsOverLevels(object, betaPriorVar, modelMatrixNames)
-        betaPriorVar <- betaPriorExpanded        
+        betaPriorExpanded <- averagePriorsOverLevels(object, betaPriorVar)
+        betaPriorVar <- betaPriorExpanded
       }
     } else {
       # else we are provided the prior variance:
@@ -750,6 +780,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
     if (modelMatrixType == "standard") {
       fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
                            useQR=useQR)
+      modelMatrix <- fit$modelMatrix
+      modelMatrixNames <- fit$modelMatrixNames
     } else {
       modelMatrix <- makeExpandedModelMatrix(object)
       modelMatrixNames <- colnames(modelMatrix)

@@ -4,10 +4,13 @@
 \alias{plotDispEsts,DESeqDataSet-method}
 \title{Plot dispersion estimates}
 \usage{
-  \S4method{plotDispEsts}{DESeqDataSet}(object, ymin,
-    genecol = "black", fitcol = "red", finalcol =
-    "dodgerblue", legend=TRUE, xlab, ylab, log = "xy", cex
-    = 0.45, ...)
+\S4method{plotDispEsts}{DESeqDataSet}(object, ymin,
+  genecol = "black", fitcol = "red", finalcol = "dodgerblue",
+  legend=TRUE, xlab, ylab, log = "xy", cex = 0.45, ...)
+
+\S4method{plotDispEsts}{DESeqDataSet}(object, ymin, genecol = "black",
+  fitcol = "red", finalcol = "dodgerblue", legend = TRUE, xlab, ylab,
+  log = "xy", cex = 0.45, ...)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -36,9 +39,9 @@
   \item{...}{further arguments to \code{plot}}
 }
 \description{
-  A simple helper function that plots the per-gene
-  dispersion estimates together with the fitted
-  mean-dispersion relationship.
+A simple helper function that plots the per-gene dispersion
+estimates together with the fitted mean-dispersion
+relationship.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
@@ -47,6 +50,6 @@ dds <- estimateDispersions(dds)
 plotDispEsts(dds)
 }
 \author{
-  Simon Anders
+Simon Anders
 }
 

@@ -4,7 +4,10 @@
 \alias{estimateSizeFactors,DESeqDataSet-method}
 \title{Estimate the size factors for a DESeqDataSet}
 \usage{
-  \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans)
+\S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans)
+
+\S4method{estimateSizeFactors}{DESeqDataSet}(object, locfunc = median,
+  geoMeans)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -22,36 +25,36 @@
   calculation}
 }
 \value{
-  The DESeqDataSet passed as parameters, with the size
-  factors filled in.
+The DESeqDataSet passed as parameters, with the size
+factors filled in.
 }
 \description{
-  Estimate the size factors for a DESeqDataSet
+Estimate the size factors for a DESeqDataSet
 }
 \details{
-  This function estimates the size factors using the
-  "median ratio method" described by Equation 5 in Ander
-  and Huber (2010). The estimated size factors can be
-  accessed using \code{\link{sizeFactors}}. Alternative
-  library size estimators can also be supplied using
-  \code{\link{sizeFactors}}.
+This function estimates the size factors using the "median
+ratio method" described by Equation 5 in Ander and Huber
+(2010). The estimated size factors can be accessed using
+\code{\link{sizeFactors}}. Alternative library size
+estimators can also be supplied using
+\code{\link{sizeFactors}}.
 
-  Typically, the function is called with the idiom:
+Typically, the function is called with the idiom:
 
-  \code{dds <- estimateSizeFactors(dds)}
+\code{dds <- estimateSizeFactors(dds)}
 
-  See \code{\link{DESeq}} for a description of the use of
-  size factors in the GLM. You need to call this function
-  after \code{\link{DESeqDataSet}} unless you have manually
-  specified \code{\link{sizeFactors}}. Alternatively,
-  gene-specific normalization factors for each sample can
-  be provided using \code{\link{normalizationFactors}}
-  which will always preempt \code{\link{sizeFactors}} in
-  calculations.
+See \code{\link{DESeq}} for a description of the use of
+size factors in the GLM. You need to call this function
+after \code{\link{DESeqDataSet}} unless you have manually
+specified \code{\link{sizeFactors}}. Alternatively,
+gene-specific normalization factors for each sample can be
+provided using \code{\link{normalizationFactors}} which
+will always preempt \code{\link{sizeFactors}} in
+calculations.
 
-  Internally, the function calls
-  \code{\link{estimateSizeFactorsForMatrix}}, which
-  provides more details on the calculation.
+Internally, the function calls
+\code{\link{estimateSizeFactorsForMatrix}}, which provides
+more details on the calculation.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
@@ -62,15 +65,15 @@ dds <- estimateSizeFactors(dds,geoMeans=geoMeans)
 sizeFactors(dds)
 }
 \author{
-  Simon Anders
+Simon Anders
 }
 \references{
-  \itemize{ \item Simon Anders, Wolfgang Huber:
-  Differential expression analysis for sequence count data.
-  Genome Biology 11 (2010) R106,
-  \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106} }
+\itemize{ \item Simon Anders, Wolfgang Huber: Differential
+expression analysis for sequence count data. Genome Biology
+11 (2010) R106,
+\url{http://dx.doi.org/10.1186/gb-2010-11-10-r106} }
 }
 \seealso{
-  \code{\link{estimateSizeFactorsForMatrix}}
+\code{\link{estimateSizeFactorsForMatrix}}
 }
 

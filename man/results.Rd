@@ -4,14 +4,14 @@
 \alias{resultsNames}
 \title{Extract results from a DESeq analysis}
 \usage{
-  results(object, name, contrast, lfcThreshold = 0,
-    altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
-    cooksCutoff, independentFiltering = TRUE, alpha = 0.1,
-    filter, theta, pAdjustMethod = "BH")
+results(object, name, contrast, lfcThreshold = 0,
+  altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"), cooksCutoff,
+  independentFiltering = TRUE, alpha = 0.1, filter, theta,
+  pAdjustMethod = "BH")
 
-  resultsNames(object)
+resultsNames(object)
 
-  removeResults(object)
+removeResults(object)
 }
 \arguments{
   \item{object}{a DESeqDataSet, on which one of the
@@ -89,78 +89,76 @@
   p-values, see \code{?p.adjust}}
 }
 \value{
-  For \code{results}: a DataFrame of results columns:
-  \code{log2FoldChange}, \code{lfcSE}, \code{stat},
-  \code{pvalue} and \code{padj}. also includes metadata
-  columns of variable information
+For \code{results}: a DataFrame of results columns:
+\code{log2FoldChange}, \code{lfcSE}, \code{stat},
+\code{pvalue} and \code{padj}. also includes metadata
+columns of variable information
 
-  For \code{resultsNames}: the names of the columns
-  available as results, usually a combination of the
-  variable name and a level
+For \code{resultsNames}: the names of the columns available
+as results, usually a combination of the variable name and
+a level
 
-  For \code{removeResults}: the original object with
-  results metadata columns removed
+For \code{removeResults}: the original object with results
+metadata columns removed
 }
 \description{
-  \code{results} extracts results from a DESeq analysis
-  giving base means across samples, log2 fold changes,
-  standard errors, test statistics, p-values and adjusted
-  p-values. \code{resultsNames} finds available names for
-  results; \code{removeResults} returns a
-  \code{DESeqDataSet} object with results columns removed.
+\code{results} extracts results from a DESeq analysis
+giving base means across samples, log2 fold changes,
+standard errors, test statistics, p-values and adjusted
+p-values. \code{resultsNames} finds available names for
+results; \code{removeResults} returns a \code{DESeqDataSet}
+object with results columns removed.
 }
 \details{
-  Multiple results can be returned for an analysis with
-  multifactor design, so \code{results} takes an argument
-  \code{name} as well as the argument \code{contrast}
-  explained below.
+Multiple results can be returned for an analysis with
+multifactor design, so \code{results} takes an argument
+\code{name} as well as the argument \code{contrast}
+explained below.
 
-  The available names can be checked using
-  \code{resultsNames}; these are combined variable names
-  and factor levels, potentially with minor changes made by
-  the \code{make.names} function on column names (e.g.
-  dashes into periods).
+The available names can be checked using
+\code{resultsNames}; these are combined variable names and
+factor levels, potentially with minor changes made by the
+\code{make.names} function on column names (e.g. dashes
+into periods).
 
-  By default, results for the last variable will be
-  returned. Information on the variable represented and the
-  test used for p-values (Wald test or likelihood ratio
-  test) is stored in the metadata columns, accessible by
-  calling \code{mcol} on the \code{DataFrame} returned by
-  \code{results}.
+By default, results for the last variable will be returned.
+Information on the variable represented and the test used
+for p-values (Wald test or likelihood ratio test) is stored
+in the metadata columns, accessible by calling \code{mcol}
+on the \code{DataFrame} returned by \code{results}.
 
-  By default, independent filtering is performed to select
-  a set of genes which will result in the most genes with
-  adjusted p-values less than a threshold, alpha. The
-  adjusted p-values for the genes which do not pass the
-  filter threshold are set to \code{NA}. By default, the
-  mean of normalized counts is used to perform this
-  filtering, though other statistics can be provided.
-  Several arguments from the \code{filtered_p} function of
-  genefilter are provided to control or turn off the
-  independent filtering behavior.
+By default, independent filtering is performed to select a
+set of genes which will result in the most genes with
+adjusted p-values less than a threshold, alpha. The
+adjusted p-values for the genes which do not pass the
+filter threshold are set to \code{NA}. By default, the mean
+of normalized counts is used to perform this filtering,
+though other statistics can be provided. Several arguments
+from the \code{filtered_p} function of genefilter are
+provided to control or turn off the independent filtering
+behavior.
 
-  A contrast can be performed by specifying the variable
-  and factor levels which should be compared, or by
-  specifying the numeric contrast vector. The test
-  statistic is then:
+A contrast can be performed by specifying the variable and
+factor levels which should be compared, or by specifying
+the numeric contrast vector. The test statistic is then:
 
-  \deqn{ c^t \beta / \sqrt{c^t \Sigma c } }{ c' beta /
-  sqrt( c' Sigma c ) }
+\deqn{ c^t \beta / \sqrt{c^t \Sigma c } }{ c' beta / sqrt(
+c' Sigma c ) }
 
-  For analyses using the likelihood ratio test (using
-  \code{\link{nbinomLRT}}), the p-values are determined
-  solely by the difference in deviance between the full and
-  reduced model formula. In this case, the \code{name}
-  argument only specifies which coefficient should be used
-  for reporting the log2 fold changes.
+For analyses using the likelihood ratio test (using
+\code{\link{nbinomLRT}}), the p-values are determined
+solely by the difference in deviance between the full and
+reduced model formula. In this case, the \code{name}
+argument only specifies which coefficient should be used
+for reporting the log2 fold changes.
 
-  Cook's distance for each sample are accessible as a
-  matrix "cooks" stored in the assays() list. This measure
-  is useful for identifying rows where the observed counts
-  might not fit to a negative binomial distribution.
+Cook's distance for each sample are accessible as a matrix
+"cooks" stored in the assays() list. This measure is useful
+for identifying rows where the observed counts might not
+fit to a negative binomial distribution.
 
-  Results can be removed from an object by calling
-  \code{removeResults}
+Results can be removed from an object by calling
+\code{removeResults}
 }
 \examples{
 example("DESeq")
@@ -169,12 +167,12 @@ resultsNames(dds)
 dds <- removeResults(dds)
 }
 \references{
-  Richard Bourgon, Robert Gentleman, Wolfgang Huber:
-  Independent filtering increases detection power for
-  high-throughput experiments. PNAS (2010),
-  \url{http://dx.doi.org/10.1073/pnas.0914005107}
+Richard Bourgon, Robert Gentleman, Wolfgang Huber:
+Independent filtering increases detection power for
+high-throughput experiments. PNAS (2010),
+\url{http://dx.doi.org/10.1073/pnas.0914005107}
 }
 \seealso{
-  \code{\link{DESeq}}
+\code{\link{DESeq}}
 }
 

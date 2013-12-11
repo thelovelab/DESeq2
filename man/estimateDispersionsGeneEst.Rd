@@ -4,17 +4,15 @@
 \alias{estimateDispersionsMAP}
 \title{Low-level functions to fit dispersion estimates}
 \usage{
-  estimateDispersionsGeneEst(object, minDisp = 1e-08,
-    kappa_0 = 1, dispTol = 1e-06, maxit = 100,
-    quiet = FALSE)
+estimateDispersionsGeneEst(object, minDisp = 1e-08, kappa_0 = 1,
+  dispTol = 1e-06, maxit = 100, quiet = FALSE,
+  modelMatrixType = "standard")
 
-  estimateDispersionsFit(object,
-    fitType = c("parametric", "local", "mean"),
-    minDisp = 1e-08, quiet = FALSE)
+estimateDispersionsFit(object, fitType = c("parametric", "local", "mean"),
+  minDisp = 1e-08, quiet = FALSE)
 
-  estimateDispersionsMAP(object, outlierSD = 2,
-    dispPriorVar, minDisp = 1e-08, kappa_0 = 1,
-    dispTol = 1e-06, maxit = 100, quiet = FALSE)
+estimateDispersionsMAP(object, outlierSD = 2, dispPriorVar, minDisp = 1e-08,
+  kappa_0 = 1, dispTol = 1e-06, maxit = 100, quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -53,21 +51,24 @@
   iterations to allow for convergence}
 
   \item{quiet}{whether to print messages at each step}
+
+  \item{modelMatrixType}{either "standard" or "expanded",
+  in case of the later a model matrix is provided which
+  will not change from releveling}
 }
 \value{
-  a DESeqDataSet with gene-wise, fitted, or final MAP
-  dispersion estimates in the metadata columns of the
-  object.
+a DESeqDataSet with gene-wise, fitted, or final MAP
+dispersion estimates in the metadata columns of the object.
 }
 \description{
-  Normal users should instead use
-  \code{\link{estimateDispersions}}. These low-level
-  functions are called by
-  \code{\link{estimateDispersions}}, but are exported and
-  documented for non-standard usage. For instance, it is
-  possible to replace fitted values with a custom fit and
-  continue with the maximum a posteriori dispersion
-  estimation, as demonstrated in the examples below.
+Normal users should instead use
+\code{\link{estimateDispersions}}. These low-level
+functions are called by \code{\link{estimateDispersions}},
+but are exported and documented for non-standard usage. For
+instance, it is possible to replace fitted values with a
+custom fit and continue with the maximum a posteriori
+dispersion estimation, as demonstrated in the examples
+below.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
@@ -78,6 +79,6 @@ dds <- estimateDispersionsMAP(dds)
 plotDispEsts(dds)
 }
 \seealso{
-  \code{\link{estimateDispersions}}
+\code{\link{estimateDispersions}}
 }
 

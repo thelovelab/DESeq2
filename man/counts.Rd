@@ -5,9 +5,11 @@
 \alias{counts<-,DESeqDataSet,matrix-method}
 \title{Accessors for the 'counts' slot of a DESeqDataSet object.}
 \usage{
-  \S4method{counts}{DESeqDataSet}(object,normalized=FALSE)
+\S4method{counts}{DESeqDataSet}(object,normalized=FALSE)
 
-  \S4method{counts}{DESeqDataSet,matrix}(object)<-value
+\S4method{counts}{DESeqDataSet,matrix}(object)<-value
+
+\S4method{counts}{DESeqDataSet}(object, normalized = FALSE)
 }
 \arguments{
   \item{object}{a \code{DESeqDataSet} object.}
@@ -20,20 +22,20 @@
   \item{value}{an integer matrix}
 }
 \description{
-  The counts slot holds the count data as a matrix of
-  non-negative integer count values, one row for each
-  observational unit (gene or the like), and one column for
-  each sample.
+The counts slot holds the count data as a matrix of
+non-negative integer count values, one row for each
+observational unit (gene or the like), and one column for
+each sample.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
 head(counts(dds))
 }
 \author{
-  Simon Anders
+Simon Anders
 }
 \seealso{
-  \code{\link{sizeFactors}},
-  \code{\link{normalizationFactors}}
+\code{\link{sizeFactors}},
+\code{\link{normalizationFactors}}
 }
 

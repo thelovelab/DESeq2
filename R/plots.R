@@ -34,8 +34,6 @@
 #' dds <- estimateSizeFactors(dds)
 #' dds <- estimateDispersions(dds)
 #' plotDispEsts(dds)
-#' 
-#' @export
 plotDispEsts.DESeqDataSet <- function( object, ymin,
   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
   legend=TRUE, xlab, ylab, log = "xy", cex = 0.45, ... )
@@ -118,8 +116,6 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' plotMA(dds)
 #'
 #' @importFrom geneplotter plotMA
-#' 
-#' @export
 plotMA.DESeqDataSet <- function(object, alpha=.1, main="", ylim, ...) {
     res <- results(object, ...)
     df <- data.frame(mean = res$baseMean,

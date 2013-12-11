@@ -5,9 +5,11 @@
 \alias{design<-,DESeqDataSet,formula-method}
 \title{Accessors for the 'design' slot of a DESeqDataSet object.}
 \usage{
-  \S4method{design}{DESeqDataSet}(object)
+\S4method{design}{DESeqDataSet}(object)
 
-  \S4method{design}{DESeqDataSet,formula}(object)<-value
+\S4method{design}{DESeqDataSet,formula}(object)<-value
+
+\S4method{design}{DESeqDataSet}(object)
 }
 \arguments{
   \item{object}{a \code{DESeqDataSet} object}
@@ -16,7 +18,7 @@
   dispersion and fitting negative binomial GLMs}
 }
 \description{
-  Accessors for the 'design' slot of a DESeqDataSet object.
+Accessors for the 'design' slot of a DESeqDataSet object.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()

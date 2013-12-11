@@ -38,21 +38,47 @@ makeExpandedModelMatrix <- function(object) {
   mm
 }
 
-averagePriorsOverLevels <- function(object, betaPriorVar, modelMatrixNames) { 
+averagePriorsOverLevels <- function(object, betaPriorVar) { 
   expandedModelMatrix <- makeExpandedModelMatrix(object)
   expandedNames <- colnames(expandedModelMatrix)
   betaPriorIn <- betaPriorVar
   betaPriorOut <- numeric(length(expandedNames))
-  betaPriorOut[match(modelMatrixNames,expandedNames)] <- betaPriorIn
+  bpiNms <- names(betaPriorIn)
+  idx <- which(bpiNms %in% expandedNames)
+  betaPriorOut[match(bpiNms[idx],expandedNames)] <- betaPriorIn[idx]
+  designFactors <- getDesignFactors(object)
+  coldata <- colData(object)
+  for (f in designFactors) {
+    lvls <- levels(coldata[[f]])
+    mmColnames <- make.names(paste0(f,c(lvls,"Cntrst")))
+    meanPriorVar <- mean(betaPriorIn[names(betaPriorIn) %in% mmColnames])
+    betaPriorOut[expandedNames %in% mmColnames] <- meanPriorVar
+  }
+  betaPriorOut
+}
+
+addAllContrasts <- function(object, betaMatrix) { 
   designFactors <- getDesignFactors(object)
   coldata <- colData(object)
   for (f in designFactors) {
     lvls <- levels(coldata[[f]])
     mmColnames <- make.names(paste0(f,lvls))
-    meanPriorVar <- mean(betaPriorIn[modelMatrixNames %in% mmColnames])
-    betaPriorOut[expandedNames %in% mmColnames] <- meanPriorVar
+    M <- betaMatrix[,colnames(betaMatrix) %in% mmColnames]
+    n <- ncol(M)
+    if (n > 1) {
+      if (n == 2) {
+        is <- 2
+        js <- 1
+      } else {
+        is <- do.call(c,sapply(seq_len(n-1)+1, function(k) seq(from=k,to=n)))
+        js <- rep(seq_len(n-1),rev(seq_len(n-1)))
+      }
+      contrastCols <- mapply(function(i,j) M[,i] - M[,j], i=is, j=js)
+      colnames(contrastCols) <- rep(make.names(paste0(f,"Cntrst")),ncol(contrastCols))
+      betaMatrix <- cbind(betaMatrix, contrastCols)
+    }
   }
-  betaPriorOut
+  betaMatrix
 }
 
     

@@ -1,3 +1,15 @@
+CHANGES IN VERSION 1.3.12
+
+    o Added expanded model matrices, which allow for priors on 
+      log2 fold changes for factors with 3 or more levels, resulting 
+      in shrinkage that is independent of the choice of base level.
+      This is controlled in nbinomWaldTest by setting 
+      modelMatrixType="expanded".
+
+    o Added a check in nbinomWaldTest which ensures that priors
+      are only used on interactions terms, in the case that 
+      interaction terms are present in the design formula.
+
 CHANGES IN VERSION 1.3.6
 ------------------------
 

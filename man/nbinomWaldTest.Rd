@@ -2,10 +2,9 @@
 \alias{nbinomWaldTest}
 \title{Wald test for the GLM coefficients}
 \usage{
-  nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar,
-    modelMatrixType = c("standard", "expanded"),
-    maxit = 100, useOptim = TRUE, quiet = FALSE,
-    useT = FALSE, df, useQR = TRUE)
+nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
+  maxit = 100, useOptim = TRUE, quiet = FALSE, useT = FALSE, df,
+  useQR = TRUE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -48,41 +47,41 @@
   design matrix X while fitting the GLM}
 }
 \value{
-  a DESeqDataSet with results columns accessible with the
-  \code{\link{results}} function.  The coefficients and
-  standard errors are reported on a log2 scale.
+a DESeqDataSet with results columns accessible with the
+\code{\link{results}} function.  The coefficients and
+standard errors are reported on a log2 scale.
 }
 \description{
-  This function tests for significance of coefficients in a
-  negative binomial GLM, using previously calculated
-  \code{\link{sizeFactors}} (or
-  \code{\link{normalizationFactors}}) and dispersion
-  estimates.  See \code{\link{DESeq}} for the GLM formula.
+This function tests for significance of coefficients in a
+negative binomial GLM, using previously calculated
+\code{\link{sizeFactors}} (or
+\code{\link{normalizationFactors}}) and dispersion
+estimates.  See \code{\link{DESeq}} for the GLM formula.
 }
 \details{
-  The fitting proceeds as follows: standard maximum
-  likelihood estimates for GLM coefficients are calculated;
-  a zero-mean normal prior distribution is assumed; the
-  variance of the prior distribution for each non-intercept
-  coefficient is calculated as the mean squared maximum
-  likelihood estimates over the genes which do not contain
-  zeros for some condition; the final coefficients are then
-  maximum a posteriori estimates (using Tikhonov/ridge
-  regularization) using this prior. The use of a prior has
-  little effect on genes with high counts and helps to
-  moderate the large spread in coefficients for genes with
-  low counts.
+The fitting proceeds as follows: standard maximum
+likelihood estimates for GLM coefficients are calculated; a
+zero-mean normal prior distribution is assumed; the
+variance of the prior distribution for each non-intercept
+coefficient is calculated as the mean squared maximum
+likelihood estimates over the genes which do not contain
+zeros for some condition; the final coefficients are then
+maximum a posteriori estimates (using Tikhonov/ridge
+regularization) using this prior. The use of a prior has
+little effect on genes with high counts and helps to
+moderate the large spread in coefficients for genes with
+low counts.
 
-  For calculating Wald test p-values, the coefficients are
-  scaled by their standard errors and then compared to a
-  normal distribution.  From examination of Wald statistics
-  for real datasets, the effect of the prior on dispersion
-  estimates results in a Wald statistic distribution which
-  is approximately normal.
+For calculating Wald test p-values, the coefficients are
+scaled by their standard errors and then compared to a
+normal distribution.  From examination of Wald statistics
+for real datasets, the effect of the prior on dispersion
+estimates results in a Wald statistic distribution which is
+approximately normal.
 
-  The Wald test can be replaced with the
-  \code{\link{nbinomLRT}} for an alternative test of
-  significance.
+The Wald test can be replaced with the
+\code{\link{nbinomLRT}} for an alternative test of
+significance.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
@@ -92,6 +91,6 @@ dds <- nbinomWaldTest(dds)
 res <- results(dds)
 }
 \seealso{
-  \code{\link{DESeq}}, \code{\link{nbinomLRT}}
+\code{\link{DESeq}}, \code{\link{nbinomLRT}}
 }
 

@@ -4,8 +4,10 @@
 \alias{estimateDispersions,DESeqDataSet-method}
 \title{Estimate the dispersions for a DESeqDataSet}
 \usage{
-  \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100,
-    quiet=FALSE)
+\S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100, quiet=FALSE)
+
+\S4method{estimateDispersions}{DESeqDataSet}(object, fitType = c("parametric",
+  "local", "mean"), maxit = 100, quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -33,63 +35,62 @@
   \item{quiet}{whether to print messages at each step}
 }
 \value{
-  The DESeqDataSet passed as parameters, with the
-  dispersion information filled in as metadata columns,
-  accessible via \code{mcols}, or the final dispersions
-  accessible via \code{\link{dispersions}}.
+The DESeqDataSet passed as parameters, with the dispersion
+information filled in as metadata columns, accessible via
+\code{mcols}, or the final dispersions accessible via
+\code{\link{dispersions}}.
 }
 \description{
-  This function obtains dispersion estimates for negative
-  binomial distributed data.
+This function obtains dispersion estimates for negative
+binomial distributed data.
 }
 \details{
-  Typically the function is called with the idiom:
+Typically the function is called with the idiom:
 
-  \code{dds <- estimateDispersions(dds)}
+\code{dds <- estimateDispersions(dds)}
 
-  The fitting proceeds as follows: for each gene, an
-  estimate of the dispersion is found which maximizes the
-  Cox Reid-adjusted profile likelihood (the methods of Cox
-  Reid-adjusted profile likelihood maximization for
-  estimation of dispersion in RNA-Seq data were developed
-  by McCarthy, et al. (2012), first implemented in the
-  edgeR package in 2010); a dispersion-mean relationship is
-  fit to the maximum likelihood estimates; a normal prior
-  is determined for the log dispersion estimates centered
-  on the predicted value from the fit with variance equal
-  to the difference between the observed variance of the
-  log dispersion estimates and the expected sampling
-  variance; finally maximum a posteriori dispersion
-  estimates are returned. This final dispersion parameter
-  is used in subsequent tests. The final dispersion
-  estimates can be accessed from an object using
-  \code{\link{dispersions}}. The fitted dispersion-mean
-  relationship is also used in
-  \code{\link{varianceStabilizingTransformation}}.
+The fitting proceeds as follows: for each gene, an estimate
+of the dispersion is found which maximizes the Cox
+Reid-adjusted profile likelihood (the methods of Cox
+Reid-adjusted profile likelihood maximization for
+estimation of dispersion in RNA-Seq data were developed by
+McCarthy, et al. (2012), first implemented in the edgeR
+package in 2010); a dispersion-mean relationship is fit to
+the maximum likelihood estimates; a normal prior is
+determined for the log dispersion estimates centered on the
+predicted value from the fit with variance equal to the
+difference between the observed variance of the log
+dispersion estimates and the expected sampling variance;
+finally maximum a posteriori dispersion estimates are
+returned. This final dispersion parameter is used in
+subsequent tests. The final dispersion estimates can be
+accessed from an object using \code{\link{dispersions}}.
+The fitted dispersion-mean relationship is also used in
+\code{\link{varianceStabilizingTransformation}}.
 
-  The log normal prior on the dispersion parameter has been
-  proposed by Wu, et al. (2012) and is also implemented in
-  the DSS package.
+The log normal prior on the dispersion parameter has been
+proposed by Wu, et al. (2012) and is also implemented in
+the DSS package.
 
-  In DESeq2, the dispersion estimation procedure described
-  above replaces the different methods of dispersion from
-  the previous version of the DESeq package.
+In DESeq2, the dispersion estimation procedure described
+above replaces the different methods of dispersion from the
+previous version of the DESeq package.
 
-  \code{estimateDispersions} checks for the case of an
-  analysis with as many samples as the number of
-  coefficients to fit, and will temporarily substitute a
-  design formula \code{~ 1} for the purposes of dispersion
-  estimation.  This treats the samples as replicates for
-  the purpose of dispersion estimation. As mentioned in the
-  DESeq paper: "While one may not want to draw strong
-  conclusions from such an analysis, it may still be useful
-  for exploration and hypothesis generation."
+\code{estimateDispersions} checks for the case of an
+analysis with as many samples as the number of coefficients
+to fit, and will temporarily substitute a design formula
+\code{~ 1} for the purposes of dispersion estimation.  This
+treats the samples as replicates for the purpose of
+dispersion estimation. As mentioned in the DESeq paper:
+"While one may not want to draw strong conclusions from
+such an analysis, it may still be useful for exploration
+and hypothesis generation."
 
-  The lower-level functions called by
-  \code{estimateDispersions} are:
-  \code{\link{estimateDispersionsGeneEst}},
-  \code{\link{estimateDispersionsFit}}, and
-  \code{\link{estimateDispersionsMAP}}.
+The lower-level functions called by
+\code{estimateDispersions} are:
+\code{\link{estimateDispersionsGeneEst}},
+\code{\link{estimateDispersionsFit}}, and
+\code{\link{estimateDispersionsMAP}}.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
@@ -98,18 +99,17 @@ dds <- estimateDispersions(dds)
 head(dispersions(dds))
 }
 \references{
-  \itemize{ \item Simon Anders, Wolfgang Huber:
-  Differential expression analysis for sequence count data.
-  Genome Biology 11 (2010) R106,
-  \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106} \item
-  McCarthy, DJ, Chen, Y, Smyth, GK: Differential expression
-  analysis of multifactor RNA-Seq experiments with respect
-  to biological variation. Nucleic Acids Research 40
-  (2012), 4288-4297,
-  \url{http://dx.doi.org/10.1093/nar/gks042} \item Wu, H.,
-  Wang, C. & Wu, Z. A new shrinkage estimator for
-  dispersion improves differential expression detection in
-  RNA-seq data. Biostatistics (2012).
-  \url{http://dx.doi.org/10.1093/biostatistics/kxs033} }
+\itemize{ \item Simon Anders, Wolfgang Huber: Differential
+expression analysis for sequence count data. Genome Biology
+11 (2010) R106,
+\url{http://dx.doi.org/10.1186/gb-2010-11-10-r106} \item
+McCarthy, DJ, Chen, Y, Smyth, GK: Differential expression
+analysis of multifactor RNA-Seq experiments with respect to
+biological variation. Nucleic Acids Research 40 (2012),
+4288-4297, \url{http://dx.doi.org/10.1093/nar/gks042} \item
+Wu, H., Wang, C. & Wu, Z. A new shrinkage estimator for
+dispersion improves differential expression detection in
+RNA-seq data. Biostatistics (2012).
+\url{http://dx.doi.org/10.1093/biostatistics/kxs033} }
 }
 

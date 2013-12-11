@@ -3,9 +3,9 @@
 \alias{varianceStabilizingTransformation}
 \title{Apply a variance stabilizing transformation (VST) to the count data}
 \usage{
-  varianceStabilizingTransformation(object, blind = TRUE)
+varianceStabilizingTransformation(object, blind = TRUE)
 
-  getVarianceStabilizedData(object)
+getVarianceStabilizedData(object)
 }
 \arguments{
   \item{object}{a DESeqDataSet, with \code{design(object)
@@ -22,80 +22,78 @@
   use of the design information should be made.}
 }
 \value{
-  for \code{varianceStabilizingTransformation}, a
-  \code{SummarizedExperiment}. for
-  \code{getVarianceStabilizedData}, a \code{matrix} of the
-  same dimension as the count data, containing the
-  transformed values.
+for \code{varianceStabilizingTransformation}, a
+\code{SummarizedExperiment}. for
+\code{getVarianceStabilizedData}, a \code{matrix} of the
+same dimension as the count data, containing the
+transformed values.
 }
 \description{
-  This function calculates a variance stabilizing
-  transformation (VST) from the fitted dispersion-mean
-  relation(s) and then transforms the count data
-  (normalized by division by the size factors or
-  normalization factors), yielding a matrix of values which
-  are now approximately homoskedastic (having constant
-  variance along the range of mean values). The
-  \code{\link{rlogTransformation}} is less sensitive to
-  size factors, which can be an issue when size factors
-  vary widely. This transformation is useful when checking
-  for outliers or as input for machine learning techniques
-  such as clustering or linear discriminant analysis.
+This function calculates a variance stabilizing
+transformation (VST) from the fitted dispersion-mean
+relation(s) and then transforms the count data (normalized
+by division by the size factors or normalization factors),
+yielding a matrix of values which are now approximately
+homoskedastic (having constant variance along the range of
+mean values). The \code{\link{rlogTransformation}} is less
+sensitive to size factors, which can be an issue when size
+factors vary widely. This transformation is useful when
+checking for outliers or as input for machine learning
+techniques such as clustering or linear discriminant
+analysis.
 }
 \details{
-  For each sample (i.e., column of \code{counts(dds)}), the
-  full variance function is calculated from the raw
-  variance (by scaling according to the size factor and
-  adding the shot noise). We recommend a blind estimation
-  of the variance function, i.e., one ignoring conditions.
-  This is performed by default, and can be modified using
-  the 'blind' argument.
+For each sample (i.e., column of \code{counts(dds)}), the
+full variance function is calculated from the raw variance
+(by scaling according to the size factor and adding the
+shot noise). We recommend a blind estimation of the
+variance function, i.e., one ignoring conditions. This is
+performed by default, and can be modified using the 'blind'
+argument.
 
-  A typical workflow is shown in Section \emph{Variance
-  stabilizing transformation} in the package vignette.
+A typical workflow is shown in Section \emph{Variance
+stabilizing transformation} in the package vignette.
 
-  If \code{\link{estimateDispersions}} was called with
-  \code{fitType="parametric"}, a closed-form expression for
-  the variance stabilizing transformation is used on the
-  normalized count data. The expression can be found in the
-  file \file{vst.pdf} which is distributed with the
-  vignette.
+If \code{\link{estimateDispersions}} was called with
+\code{fitType="parametric"}, a closed-form expression for
+the variance stabilizing transformation is used on the
+normalized count data. The expression can be found in the
+file \file{vst.pdf} which is distributed with the vignette.
 
-  If \code{\link{estimateDispersions}} was called with
-  \code{fitType="local"}, the reciprocal of the square root
-  of the variance of the normalized counts, as derived from
-  the dispersion fit, is then numerically integrated, and
-  the integral (approximated by a spline function) is
-  evaluated for each count value in the column, yielding a
-  transformed value.
+If \code{\link{estimateDispersions}} was called with
+\code{fitType="local"}, the reciprocal of the square root
+of the variance of the normalized counts, as derived from
+the dispersion fit, is then numerically integrated, and the
+integral (approximated by a spline function) is evaluated
+for each count value in the column, yielding a transformed
+value.
 
-  In both cases, the transformation is scaled such that for
-  large counts, it becomes asymptotically (for large
-  values) equal to the logarithm to base 2.
+In both cases, the transformation is scaled such that for
+large counts, it becomes asymptotically (for large values)
+equal to the logarithm to base 2.
 
-  The variance stabilizing transformation from a previous
-  dataset can be "frozen" and reapplied to new samples. See
-  the "Data quality assessment" section of the vignette for
-  strategies to see if new samples are sufficiently similar
-  to previous datasets. The "freezing" is accomplished by
-  saving the dispersion function accessible with
-  \code{\link{dispersionFunction}}, assigning this to the
-  \code{DESeqDataSet} with the new samples, and running
-  varianceStabilizingTransformation with 'blind' set to
-  FALSE (see example below). Then the dispersion function
-  from the previous dataset will be used to transform the
-  new sample(s). See \code{\link{estimateSizeFactors}} for
-  details on how to "freeze" size factor estimation.
+The variance stabilizing transformation from a previous
+dataset can be "frozen" and reapplied to new samples. See
+the "Data quality assessment" section of the vignette for
+strategies to see if new samples are sufficiently similar
+to previous datasets. The "freezing" is accomplished by
+saving the dispersion function accessible with
+\code{\link{dispersionFunction}}, assigning this to the
+\code{DESeqDataSet} with the new samples, and running
+varianceStabilizingTransformation with 'blind' set to FALSE
+(see example below). Then the dispersion function from the
+previous dataset will be used to transform the new
+sample(s). See \code{\link{estimateSizeFactors}} for
+details on how to "freeze" size factor estimation.
 
-  Limitations: In order to preserve normalization, the same
-  transformation has to be used for all samples. This
-  results in the variance stabilizition to be only
-  approximate. The more the size factors differ, the more
-  residual dependence of the variance on the mean you will
-  find in the transformed data. As shown in the vignette,
-  you can use the function \code{meanSdPlot} from the
-  package \pkg{vsn} to see whether this is a problem for
-  your data.
+Limitations: In order to preserve normalization, the same
+transformation has to be used for all samples. This results
+in the variance stabilizition to be only approximate. The
+more the size factors differ, the more residual dependence
+of the variance on the mean you will find in the
+transformed data. As shown in the vignette, you can use the
+function \code{meanSdPlot} from the package \pkg{vsn} to
+see whether this is a problem for your data.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
@@ -117,9 +115,9 @@ dispersionFunction(ddsNew) <- dispersionFunction(dds)
 vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
 }
 \author{
-  Simon Anders
+Simon Anders
 }
 \seealso{
-  \code{\link{plotPCA}}, \code{\link{rlogTransformation}}
+\code{\link{plotPCA}}, \code{\link{rlogTransformation}}
 }
 

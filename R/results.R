@@ -137,12 +137,16 @@ results <- function(object, name, contrast,
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
   }
-  if (missing(name)) {
-    name <- lastCoefName(object)
-  }
   isExpanded <- attr(object, "modelMatrixType") == "expanded"
   if (isExpanded & missing(contrast)) {
-    warning("\n
+    if (missing(name)) {
+      designVars <- all.vars(formula(design(object)))
+      lastVarName <- designVars[length(designVars)]
+      lastVar <- colData(object)[[lastVarName]]
+      nlvls <- nlevels(lastVar)
+      contrast <- c(lastVar, levels(lastVar)[nlvls], levels(lastVar)[1])
+    } else {     
+      message("\n
 note: an expanded model matrix was used in fitting, either through
 use of the modelMatrixType argument or by default, because 1 or
 more factors in the design formula contained 3 or more levels.
@@ -150,6 +154,10 @@ more factors in the design formula contained 3 or more levels.
 recommendation: the 'contrast' argument should be used to extract
 log2 fold changes of levels against each other, otherwise the log2
 fold changes are compared to the intercept.\n")
+    }
+  }
+  if (missing(name)) {
+    name <- lastCoefName(object)
   }
   altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
   stopifnot(lfcThreshold >= 0)
@@ -460,7 +468,7 @@ see the argument description in ?results")
       } else if ( contrastNumLevel == contrastBaseLevel ) {
         # fetch the results for denom vs num 
         # and mutiply the log fold change and stat by -1
-        cleanName <- make.names(paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel))
+        cleanName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
         swapName <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel))
         if (!swapName %in% resNames) {
           stop(paste("as",contrastNumLevel,"is the base level, was expecting",swapName,"to be present in 'resultsNames(object)'"))
@@ -520,7 +528,7 @@ resultsNames(object), prefixed by",contrastFactor))
     contrastNumeric[resNames == contrastNumColumn] <- 1
     contrastNumeric[resNames == contrastDenomColumn] <- -1
     contrast <- contrastNumeric
-    contrastName <- make.names(paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel))
+    contrastName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
   }
   
   contrastResults <- getContrast(object, contrast, useT=FALSE, df)
@@ -595,3 +603,7 @@ renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
   data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
 }
 
+getNonInteractionColumnIndices <- function(object, modelMatrix) {
+  interactions <- which(attr(terms.formula(design(object)),"order") > 1)
+  which(attr(modelMatrix,"assign") != interactions)
+}
