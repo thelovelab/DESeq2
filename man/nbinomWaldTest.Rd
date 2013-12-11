@@ -74,10 +74,15 @@ low counts.
 
 For calculating Wald test p-values, the coefficients are
 scaled by their standard errors and then compared to a
-normal distribution.  From examination of Wald statistics
+normal distribution. From examination of Wald statistics
 for real datasets, the effect of the prior on dispersion
 estimates results in a Wald statistic distribution which is
 approximately normal.
+
+When interaction terms are present, the prior on log fold
+changes (betaPrior) will only be used on the interaction
+terms, unless the beta prior variance is specified through
+the betaPriorVar argument.
 
 The Wald test can be replaced with the
 \code{\link{nbinomLRT}} for an alternative test of
