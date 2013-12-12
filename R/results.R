@@ -138,13 +138,14 @@ results <- function(object, name, contrast,
     stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
   }
   isExpanded <- attr(object, "modelMatrixType") == "expanded"
-  if (isExpanded & missing(contrast)) {
+  termsOrder <- attr(terms.formula(design(object)),"order")
+  if (isExpanded & missing(contrast) & all(termsOrder < 2)) {
     if (missing(name)) {
       designVars <- all.vars(formula(design(object)))
       lastVarName <- designVars[length(designVars)]
       lastVar <- colData(object)[[lastVarName]]
       nlvls <- nlevels(lastVar)
-      contrast <- c(lastVar, levels(lastVar)[nlvls], levels(lastVar)[1])
+      contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
     } else {     
       message("\n
 note: an expanded model matrix was used in fitting, either through

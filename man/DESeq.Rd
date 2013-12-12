@@ -3,8 +3,7 @@
 \title{Differential expression analysis based on the negative binomial distribution}
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
-  "mean"), betaPrior = TRUE, full = design(object), reduced,
-  quiet = FALSE)
+  "mean"), betaPrior, full = design(object), reduced, quiet = FALSE)
 }
 \arguments{
   \item{object}{a DESeqDataSet object, see the constructor

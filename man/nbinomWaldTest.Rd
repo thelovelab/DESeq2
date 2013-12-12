@@ -80,9 +80,13 @@ estimates results in a Wald statistic distribution which is
 approximately normal.
 
 When interaction terms are present, the prior on log fold
-changes (betaPrior) will only be used on the interaction
-terms, unless the beta prior variance is specified through
-the betaPriorVar argument.
+changes the calculated beta prior variance will only be
+used for the interaction terms (non-interaction terms
+receive a wide prior variance of 1e6). In the case of
+interaction terms and factors with 3 or more levels present
+in the design formula, a moderately wide prior variance of
+1e3 will be used on non-interaction terms, to allow for
+convergence to the posterior.
 
 The Wald test can be replaced with the
 \code{\link{nbinomLRT}} for an alternative test of

@@ -665,16 +665,10 @@ as.data.frame(colData(ddsCtrst)[,c("patient","treatment")])
 design(ddsCtrst) <- ~ patient + treatment
 @ 
 
-First we run \Rfunction{DESeq} and show how to extract one of the
-two comparisons of the treatment factor with the base level: 
-the comparison of DPN vs Control or the comparison of OHT vs Control.
+First we run \Rfunction{DESeq}:
 
 <<paraDE,cache=TRUE>>=
 ddsCtrst <- DESeq(ddsCtrst)
-resultsNames(ddsCtrst)
-resPara <- results(ddsCtrst,"treatment_OHT_vs_Control")
-head(resPara,2)
-mcols(resPara)
 @ 
 
 Using the \Robject{contrast} argument of the \Rfunction{results} function,
@@ -698,7 +692,8 @@ contrast is the same as specified by the character vector in the
 previous code chunk.
 
 <<contrastsNum>>=
-resCtrst <- results(ddsCtrst, contrast=c(0,0,0,0,-1,1))
+resultsNames(ddsCtrst)
+resCtrst <- results(ddsCtrst, contrast=c(0,0,0,0,0,0,-1,1))
 head(resCtrst,2)
 mcols(resCtrst)
 @ 

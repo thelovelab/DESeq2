@@ -5,8 +5,7 @@
 \title{Low-level functions to fit dispersion estimates}
 \usage{
 estimateDispersionsGeneEst(object, minDisp = 1e-08, kappa_0 = 1,
-  dispTol = 1e-06, maxit = 100, quiet = FALSE,
-  modelMatrixType = "standard")
+  dispTol = 1e-06, maxit = 100, quiet = FALSE, modelMatrixType)
 
 estimateDispersionsFit(object, fitType = c("parametric", "local", "mean"),
   minDisp = 1e-08, quiet = FALSE)
@@ -52,9 +51,11 @@ estimateDispersionsMAP(object, outlierSD = 2, dispPriorVar, minDisp = 1e-08,
 
   \item{quiet}{whether to print messages at each step}
 
-  \item{modelMatrixType}{either "standard" or "expanded",
-  in case of the later a model matrix is provided which
-  will not change from releveling}
+  \item{modelMatrixType}{either "standard" or "expanded"
+  for which model matrix will be used later by
+  \code{\link{nbinomWaldTest}}. in case of "expanded" a
+  full-rank model matrix is provided inside this function
+  which will not change from releveling.}
 }
 \value{
 a DESeqDataSet with gene-wise, fitted, or final MAP
