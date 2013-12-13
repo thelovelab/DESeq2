@@ -266,7 +266,7 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
 #' @param value the matrix of normalization factors
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet()
+#' dds <- makeExampleDESeqDataSet(m=6)
 #' normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
 #'                       ncol=ncol(dds),nrow=nrow(dds))
 #' normalizationFactors(dds) <- normFactors

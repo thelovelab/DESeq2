@@ -104,7 +104,7 @@ analysis, it may still be useful for exploration and
 hypothesis generation."
 }
 \examples{
-dds <- makeExampleDESeqDataSet(betaSD=1)
+dds <- makeExampleDESeqDataSet(m=6, betaSD=1)
 dds <- DESeq(dds)
 res <- results(dds)
 ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)

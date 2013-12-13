@@ -1,4 +1,5 @@
 CHANGES IN VERSION 1.3.13
+-------------------------
 
     o Expanded model matrices used by default if factors are present
       with 3 or more levels and a log2 fold change prior is specified
@@ -6,6 +7,7 @@ CHANGES IN VERSION 1.3.13
       using the 'contrast' argument to the results() function.
 
 CHANGES IN VERSION 1.3.12
+-------------------------
 
     o Added expanded model matrices, which allow for priors on 
       log2 fold changes for factors with 3 or more levels, resulting 

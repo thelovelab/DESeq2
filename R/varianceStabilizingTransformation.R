@@ -78,7 +78,7 @@
 #'
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet()
+#' dds <- makeExampleDESeqDataSet(m=6)
 #' vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 #' par(mfrow=c(1,2))
 #' plot(rank(rowMeans(counts(dds))), genefilter::rowVars(log2(counts(dds)+1)),

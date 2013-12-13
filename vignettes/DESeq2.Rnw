@@ -22,7 +22,7 @@ BiocStyle::latex()
 library("DESeq2")
 @
 
-\author{Michael Love$^{1*}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Max Planck Institute for Molecular Genetics, Berlin, Germany;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} \\ \small{\texttt{$^*$michaelisaiahlove (at) gmail.com}}}
+\author{Michael Love$^{1*}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Department of Biostatistics, Dana Farber Cancer Institute and} \\ \small{Harvard School of Public Health, Boston, US;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} \\ \small{\texttt{$^*$michaelisaiahlove (at) gmail.com}}}
 
 \title{Differential analysis of count data -- the DESeq2 package}
 
@@ -98,7 +98,7 @@ is \Rclass{DESeqDataSet} which extends the \Rclass{SummarizedExperiment}
 class of the \Biocpkg{GenomicRanges} package. 
 This facilitates preparation steps and also downstream exploration of results. 
 For counting aligned reads in genes, the \Rfunction{summarizeOverlaps} function of
-\Biocpkg{GenomicRanges}/\Biocpkg{Rsamtools} with \Robject{mode="Union"} is
+\Biocpkg{GenomicAlignments} with \Robject{mode="Union"} is
 encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Biocpkg{easyRNASeq}
 is another \Bioconductor{} package which can prepare \Rclass{SummarizedExperiment}
 objects as input for \Biocpkg{DESeq2}). An example of the steps to produce
@@ -106,7 +106,7 @@ a \Rclass{SummarizedExperiment} can be found in the data package
 \Biocannopkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
 4 human cell cultures \cite{Haglund2012Evidence}.
 
-<<loadSumExp,results="hide">>=
+<<loadSumExp,results="hide",cache=TRUE>>=
 library("parathyroidSE")
 data("parathyroidGenesSE")
 se <- parathyroidGenesSE
@@ -121,7 +121,9 @@ variables with plus signs between them (it will be coerced into an
 representing the base mean of counts. The design can be changed later, 
 however then all differential analysis steps should be repeated, 
 as the design formula is used to estimate the dispersions and 
-to estimate the $\log_2$ fold changes of the model.
+to estimate the $\log_2$ fold changes of the model. A summary of various
+design formulae for different experiments is presented later in 
+Section~\ref{sec:recDesign}.
 
 The constructor function below shows the generation of a
 \Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}. 
@@ -129,7 +131,7 @@ Note: In order to benefit from the default settings of the package,
 you should put the variable of interest at the end
 of the formula and make sure the control level is the first level.  
 
-<<sumExpInput>>=
+<<sumExpInput, cache=TRUE>>=
 library("DESeq2")
 ddsPara <- DESeqDataSet(se = se, design = ~ patient + treatment)
 colData(ddsPara)$treatment <- factor(colData(ddsPara)$treatment,
@@ -171,7 +173,7 @@ function \Rfunction{DESeqDataSetFromHTSeqCount}.  For an
 example of using the python scripts, see the \Biocannopkg{pasilla} or
 \Biocannopkg{parathyroid} data package.
 
-<<htseqInput>>=
+<<htseqInput, cache=TRUE>>=
 directory <- system.file("extdata", package="pasilla", mustWork=TRUE)
 sampleFiles <- grep("treated",list.files(directory),value=TRUE)
 sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
@@ -204,8 +206,8 @@ colData(dds)$condition <- relevel(colData(dds)$condition, "control")
 The reason for the importance of the specifying the base level is that 
 the function \Rfunction{model.matrix} is used by the \Biocpkg{DESeq2}
 package to build model matrices, and these matrices will be used to compare
-all other levels to the base level. See \ref{sec:contrasts} for examples
-on how to compare factor levels to other levels than the base level.
+against the base level. See \ref{sec:contrasts} for examples on how 
+to compare factor levels to other levels than the base level.
 
 \subsubsection{About the pasilla dataset}
 
@@ -342,7 +344,7 @@ write.csv(as.data.frame(res),
 \subsection{Multi-factor designs} \label{sec:multifactor}
 
 Experiments with more than one factor influencing the counts can be analyzed
-using model formulae with additional variables.  The data in the \Biocannopkg{pasilla}
+using model formulae with additional variables. The data in the \Biocannopkg{pasilla}
 package have a condition of interest (the column \Robject{condition}), as well as
 the type of sequencing which was performed (the column \Robject{type}).
 
@@ -377,10 +379,57 @@ e.g. changing \texttt{-} (a dash) to \texttt{.} (a period). The function
 
 <<multiTypeResults>>=
 resultsNames(dds)
-resType <- results(dds, "type_single.read_vs_paired.end")
+resType <- results(dds, name="type_single.read_vs_paired.end")
 head(resType)
 mcols(resType)
 @
+
+%---------------------------------------------------
+\subsection{Recommended design formulae for various experiments} \label{sec:recDesign}
+%---------------------------------------------------
+
+\begin{center}
+  \begin{table}[!h] \footnotesize
+    \begin{tabular}{ p{2in} | p{1.5in} | p{3in}}
+    Differences of interest & Design & Notes \\ \hline \hline
+    $\ge 3$ level factor 'condition': compare levels against another &
+    \Robject{\textasciitilde condition}, or \newline
+    \Robject{\textasciitilde group + condition} etc. & 
+    \Robject{results(dds, contrast = c("condition", "C", "B"))},
+    see \ref{sec:contrasts} \\ \hline
+    
+    $\ge 3$ level factor 'condition': compare significance of all levels &
+    \Robject{\textasciitilde  condition}, or \newline
+    \Robject{\textasciitilde group + condition} etc. & 
+    \Robject{DESeq(dds, test="LRT", reduced = \textasciitilde 1)} or 
+    \Robject{DESeq(dds, test="LRT", reduced = \textasciitilde group)},
+    see \ref{sec:LRT} \\ \hline
+    
+    $2$ level factor 'condition' but 'group' has $\ge 3$ levels &
+    \Robject{\textasciitilde group + condition} & 
+    default \Robject{DESeq} call  \\ \hline
+    
+    Interactions between 'group' and 'treatment' &
+    \Robject{\textasciitilde group + treatment + group:treatment} & 
+    default \Robject{DESeq} call, 
+    \Robject{resultsNames(dds)} to see available interactions and
+    \Robject{results(dds,name="group1.treatmentA")}
+     \\ \hline
+    
+    Time series: changes due to treatment after time 0 &
+    \Robject{\textasciitilde  time + treatment + time:treatment} &
+    default \Robject{DESeq} call for examining individual 
+    time-treatment interactions;
+    or a likelihood ratio test for any differences
+    after time 0, see \ref{sec:LRT} \\ \hline
+    
+    Dual-assay, e.g.: changes in ratio of RNA-Seq
+    to CLIP-Seq reads across treatment &
+    \Robject{\textasciitilde  assay + treatment + assay:treatment} & 
+    default \Robject{DESeq} call \\
+    \end{tabular}
+  \end{table}
+\end{center}
 
 %---------------------------------------------------
 \section{Data transformations and visualization}
@@ -760,7 +809,7 @@ tab <- table(initial = results(dds)$padj < .1,
 addmargins(tab)
 @ 
 
-\subsection{Likelihood ratio test}
+\subsection{Likelihood ratio test} \label{sec:LRT}
 
 One reason to use the likelihood ratio test is in order to test the 
 null hypothesis that $\log_2$ fold changes for multiple levels of a factor, 
@@ -781,7 +830,7 @@ we only need to run the function \Rfunction{nbinomLRT}, with a reduced formula
 including only the type of sequencing, in order to test the $\log_2$ fold change
 attributable to the condition:
 
-<<likelihoodRatioTest>>=
+<<likelihoodRatioTest, cache=TRUE>>=
 ddsLRT <- nbinomLRT(dds, reduced = ~ type)
 resLRT <- results(ddsLRT)
 head(resLRT,2)

@@ -86,7 +86,7 @@
 #'
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(betaSD=1)
+#' dds <- makeExampleDESeqDataSet(m=6, betaSD=1)
 #' dds <- DESeq(dds)
 #' res <- results(dds)
 #' ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)
@@ -828,7 +828,7 @@ ratio test, i.e. DESeq with argument test='LRT'.")
       modelMatrix <- makeExpandedModelMatrix(object)
       modelMatrixNames <- colnames(modelMatrix)
       fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
-                           useQR=useQR, modelMatrix=modelMatrix)
+                           useQR=useQR, modelMatrix=modelMatrix, renameCols=FALSE)
     }
   }
 
@@ -1357,9 +1357,11 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
         mu_row <- as.numeric(nf * 2^(x %*% p))
         prior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
         logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
-        -1 * (logLike + prior)
+        softBox <- sum( ifelse(abs(p) < 30, 0, (abs(p) - 30)) )
+        # -1 times the posterior plus the soft box penalty
+        -1 * (logLike + prior) + softBox
       }
-      o <- optim(betaRow, objectiveFn, method="Nelder-Mead")
+      o <- optim(betaRow, objectiveFn, method="L-BFGS-B")
       if (length(lambdaLogScale) > 1) {
         ridge <- diag(lambdaLogScaleColScale)
       } else {

@@ -144,8 +144,10 @@ results <- function(object, name, contrast,
       designVars <- all.vars(formula(design(object)))
       lastVarName <- designVars[length(designVars)]
       lastVar <- colData(object)[[lastVarName]]
-      nlvls <- nlevels(lastVar)
-      contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
+      if (is.factor(lastVar)) {
+        nlvls <- nlevels(lastVar)
+        contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
+      }
     } else {     
       message("\n
 note: an expanded model matrix was used in fitting, either through
@@ -153,8 +155,7 @@ use of the modelMatrixType argument or by default, because 1 or
 more factors in the design formula contained 3 or more levels.
 
 recommendation: the 'contrast' argument should be used to extract
-log2 fold changes of levels against each other, otherwise the log2
-fold changes are compared to the intercept.\n")
+log2 fold changes of levels against each other.\n")
     }
   }
   if (missing(name)) {
