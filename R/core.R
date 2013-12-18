@@ -1,9 +1,11 @@
 #' Differential expression analysis based on the negative binomial distribution
 #'
-#' This function performs a default analysis through steps
-#' (1) estimation of size factors: \code{\link{estimateSizeFactors}},
-#' (2) estimation of dispersion: \code{\link{estimateDispersions}}, and
-#' (3) negative binomial GLM fitting and Wald statistics: \code{\link{nbinomWaldTest}}.
+#' This function performs a default analysis through the steps:
+#' \enumerate{
+#' \item estimation of size factors: \code{\link{estimateSizeFactors}}
+#' \item estimation of dispersion: \code{\link{estimateDispersions}}
+#' \item negative binomial GLM fitting and Wald statistics: \code{\link{nbinomWaldTest}}
+#' }
 #' For complete details on each step, see the manual pages of the respective
 #' functions. After the \code{DESeq} function returns a DESeqDataSet object,
 #' results tables (log2 fold changes and p-values) can be generated
@@ -43,6 +45,16 @@
 #' may be expected, which will make that approach conservative."
 #' Furthermore, "while one may not want to draw strong conclusions from such an analysis,
 #' it may still be useful for exploration and hypothesis generation."
+#'
+#' The argument \code{minReplicatesForReplace} is used to decide which samples
+#' are eligible for automatic replacement in the case of extreme Cook's distance.
+#' By default, \code{DESeq} will replace outliers if the Cook's distance is
+#' large for a sample which has 7 or more replicates (including itself).
+#' This replacement is performed by the \code{\link{replaceOutliersWithTrimmedMean}}
+#' function. This default behavior helps to prevent filtering genes
+#' based on Cook's distance when there are many degrees of freedom.
+#' See \code{\link{results}} for more information about filtering using
+#' Cook's distance, and the sections of the vignette.
 #' 
 #' @return a \code{\link{DESeqDataSet}} object with results stored as
 #' metadata columns. These results should accessed by calling the \code{\link{results}}
@@ -71,7 +83,12 @@
 #' the full model with a term or terms of interest removed,
 #' only used by the likelihood ratio test
 #' @param quiet whether to print messages at each step
-#'
+#' @param minReplicatesForReplace the minimum number of replicates required
+#' in order to use \code{\link{replaceOutliersWithTrimmedMean}} on a
+#' sample. If there are samples with so many replicates, the model will
+#' be refit after these replacing outliers, flagged by Cook's distance.
+#' Set to \code{Inf} in order to never replace outliers.
+#' 
 #' @author Michael Love
 #'
 #' @references Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
@@ -86,7 +103,7 @@
 #'
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(m=6, betaSD=1)
+#' dds <- makeExampleDESeqDataSet(betaSD=1)
 #' dds <- DESeq(dds)
 #' res <- results(dds)
 #' ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)
@@ -95,7 +112,8 @@
 #' @export
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
-                  full=design(object), reduced, quiet=FALSE) {
+                  full=design(object), reduced, quiet=FALSE,
+                  minReplicatesForReplace=7) {
   if (missing(test)) {
     test <- match.arg(test, choices=c("Wald","LRT"))
   }
@@ -122,6 +140,21 @@ DESeq <- function(object, test=c("Wald","LRT"),
     object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet)                             
   } else if (test == "LRT") {
     object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
+  }
+  # refit without outliers
+  if (any(nOrMoreInCell(attr(object,"modelMatrix"),minReplicatesForReplace))) {
+    if (!quiet) message(paste("-- refitting without outliers: samples with >=",
+                              minReplicatesForReplace,"replicates
+-- original counts retained in assays(dds,'originalCounts')"))
+    object <- replaceOutliersWithTrimmedMean(object,minReplicates=minReplicatesForReplace)
+    if (!quiet) message("estimating dispersions")
+    object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
+    if (!quiet) message("fitting model and testing")
+    if (test == "Wald") {
+      object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet)
+    } else if (test == "LRT") {
+      object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
+    }
   }
   object
 }
@@ -633,7 +666,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' In the case of interaction terms and factors with 3 or more
 #' levels present in the design formula, a moderately wide prior
 #' variance of 1e3 will be used on non-interaction terms, to allow for
-#' convergence to the posterior.
+#' convergence to the maximum of the posterior.
 #' 
 #' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
@@ -1062,7 +1095,8 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' An alternate strategy is to replace the outlier counts
 #' with the trimmed mean over all samples, adjusted by the size factor or normalization
 #' factor for that sample. The following simple function performs this replacement
-#' for the user. For more information on Cook's distance, please see the two
+#' for the user, for samples which have at least \code{minReplicates} number
+#' of replicates (including that sample). For more information on Cook's distance, please see the two
 #' sections of the vignette: 'Dealing with count outliers' and 'Count outlier detection'.
 #' 
 #' @param dds a DESeqDataSet object, which has already been processed by
@@ -1074,8 +1108,15 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' @param cooksCutoff the threshold for defining an outlier to be replaced.
 #' Defaults to the .99 quantile of the F(p, m - p) distribution, where p is
 #' the number of parameters and m is the number of samples.
+#' @param minReplicates the number of replicate samples necessary to consider
+#' a sample eligible for replacement. Outlier counts will not be replaced
+#' if the sample is in a cell which has less than minReplicates replicates.
+#' @param whichSamples a numeric or logical index of which samples will
+#' have outliers replaced, if missing, minReplicates is used.
 #'
 #' @seealso \code{\link{DESeq}}
+#'
+#' @return a DESeqDataSet with original counts preserved in assay("originalCounts")
 #' 
 #' @examples
 #'
@@ -1084,29 +1125,44 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' ddsReplace <- replaceOutliersWithTrimmedMean(dds)
 #'
 #' @export
-replaceOutliersWithTrimmedMean <- function(dds,trim=.2,cooksCutoff) {
+replaceOutliersWithTrimmedMean <- function(dds,trim=.2,cooksCutoff,minReplicates=7,whichSamples) {
   if (is.null(attr(dds,"modelMatrix")) | !("cooks" %in% names(assays(dds)))) {
     stop("first run DESeq, nbinomWaldTest, or nbinomLRT to identify outliers")
   }
+  if (minReplicates < 3) {
+    stop("at least 3 replicates are necessary in order to indentify a sample as a count outlier")
+  }
   p <- ncol(attr(dds,"modelMatrix"))
   m <- ncol(dds)
+  if (m <= p) {
+    assays(dds)[["originalCounts"]] <- counts(dds)
+    return(dds)
+  }
   if (missing(cooksCutoff)) {
     cooksCutoff <- qf(.99, p, m - p)
   }
   idx <- which(assays(dds)[["cooks"]] > cooksCutoff)
   trimBaseMean <- apply(counts(dds,normalized=TRUE),1,mean,trim=trim)
-  # Next we build a matrix of counts based on the trimmed mean and the
-  # size factors. Then we can replace only those values which fall
-  # above the cutoff on Cook's distance
+  # build a matrix of counts based on the trimmed mean and the size factors
   if (!is.null(normalizationFactors(dds))) {
-    nullCounts <- as.integer(matrix(rep(trimBaseMean,ncol(dds)),ncol=dds) * 
-                             normalizationFactors(dds))
-
+    replacementCounts <- as.integer(matrix(rep(trimBaseMean,ncol(dds)),ncol=dds) * 
+                                    normalizationFactors(dds))
   } else {
-    nullCounts <- as.integer(outer(trimBaseMean,
-                                   sizeFactors(dds), "*"))
+    replacementCounts <- as.integer(outer(trimBaseMean,
+                                          sizeFactors(dds), "*"))
   }
-  counts(dds)[idx] <- nullCounts[idx]
+  # replace only those values which fall above the cutoff on Cook's distance
+  newCounts <- counts(dds)
+  newCounts[idx] <- replacementCounts[idx]
+  if (missing(whichSamples)) {
+    whichSamples <- nOrMoreInCell(attr(dds,"modelMatrix"), n = minReplicates)
+  }
+  if (is.logical(whichSamples)) whichSamples <- which(whichSamples)
+  assays(dds)[["originalCounts"]] <- counts(dds)
+  if (length(whichSamples) == 0) {
+    return(dds)
+  }
+  counts(dds)[,whichSamples] <- newCounts[,whichSamples]
   dds
 }
 
@@ -1540,7 +1596,7 @@ calculateCooksDistance <- function(object, H, p) {
 # if m == p or there are no samples over which to calculate max Cook's, then give NA
 recordMaxCooks <- function(design, colData, modelMatrix, cooks, numRow) {
     if (allFactors(design, colData)) {
-        samplesForCooks <- moreThanNInCell(modelMatrix, n=2)
+        samplesForCooks <- nOrMoreInCell(modelMatrix, n=3)
     } else {
         samplesForCooks <- leaveOneOutFullRank(modelMatrix)
     }
@@ -1553,17 +1609,18 @@ recordMaxCooks <- function(design, colData, modelMatrix, cooks, numRow) {
     }
 }
 
-# for each sample in the model matrix
-# are there more than n replicates in the same cell
-# so for a 2 x 3 comparison, the returned vector for n=2 is:
+# for each sample in the model matrix,
+# are there n or more replicates in the same cell
+# (including that sample)
+# so for a 2 x 3 comparison, the returned vector for n = 3 is:
 # FALSE, FALSE, TRUE, TRUE, TRUE
-moreThanNInCell <- function(modelMatrix, n=2) {
-    numEqual <- sapply(seq_len(nrow(modelMatrix)), function(i) {
-        modelMatrixDiff <- t(t(modelMatrix[-i,]) - modelMatrix[i,])
-        sum(apply(modelMatrixDiff, 1, function(row) all(row == 0)))
-    })
-    numEqual >= n
- }
+nOrMoreInCell <- function(modelMatrix, n) {
+  numEqual <- sapply(seq_len(nrow(modelMatrix)), function(i) {
+    modelMatrixDiff <- t(t(modelMatrix) - modelMatrix[i,])
+    sum(apply(modelMatrixDiff, 1, function(row) all(row == 0)))
+  })
+  numEqual >= n
+}
 
 # are all the variables in the design matrix factors?
 allFactors <- function(design, colData) {

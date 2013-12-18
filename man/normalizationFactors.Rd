@@ -50,7 +50,7 @@ size factor normalization and should have a mean around 1,
 as is the case with size factors.
 }
 \examples{
-dds <- makeExampleDESeqDataSet(m=6)
+dds <- makeExampleDESeqDataSet()
 normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
                       ncol=ncol(dds),nrow=nrow(dds))
 normalizationFactors(dds) <- normFactors

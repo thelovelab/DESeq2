@@ -33,7 +33,6 @@ setValidity( "DESeqDataSet", function( object ) {
   TRUE
 } )
 
-
 #' DESeqDataSet object and constructors
 #'
 #' The \code{DESeqDataSet} is a subclass of \code{SummarizedExperiment},
@@ -182,3 +181,27 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory="", design, ...)
   return(dds)
 }   
 
+#' @rdname DESeqResults
+#' @export
+setClass("DESeqResults", contains="DataFrame")
+
+#' DESeqResults object and constructor
+#'
+#' This class extends the DataFrame class of the IRanges package
+#' simply to allow other packages to write methods for results
+#' objects from the DESeq2 package.
+#'
+#' @param DataFrame a DataFrame of results, standard column names are:
+#' log2FoldChange, lfcSE, stat, pvalue, padj.
+#'
+#' @return a DESeqResults object
+#'
+#' @docType class
+#'
+#' @aliases DESeqResults-class
+#' 
+#' @rdname DESeqResults
+#' @export
+DESeqResults <- function(DataFrame) {
+  new("DESeqResults", DataFrame)
+}

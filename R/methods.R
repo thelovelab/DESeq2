@@ -266,7 +266,7 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
 #' @param value the matrix of normalization factors
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(m=6)
+#' dds <- makeExampleDESeqDataSet()
 #' normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
 #'                       ncol=ncol(dds),nrow=nrow(dds))
 #' normalizationFactors(dds) <- normFactors
@@ -488,3 +488,21 @@ estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","loc
 setMethod("estimateDispersions", signature(object="DESeqDataSet"),
           estimateDispersions.DESeqDataSet)
 
+
+#' Show method for DESeqResults objects
+#'
+#' Prints out the information from the metadata columns
+#' of the results object regarding the log2 fold changes
+#' and p-values, then shows the DataFrame using the
+#' standard method.
+#' 
+#' @docType methods
+#' 
+#' @param object a DESeqResults object
+#' 
+#' @export
+setMethod("show", signature(object="DESeqResults"), function(object) {
+  cat(mcols(object)$description[ colnames(object) == "log2FoldChange"],"\n")
+  cat(mcols(object)$description[ colnames(object) == "pvalue"],"\n")
+  show(DataFrame(object))
+})

@@ -794,10 +794,11 @@ The \Rfunction{DESeq} function (or \Rfunction{nbinomWaldTest} and
 sample. After an initial fit has been performed, the following function 
 replaces count outliers by the trimmed mean.
 Here we demonstrate with the \Robject{pasilla} dataset,
-although there are not many extra degrees of freedom for this dataset.
+although we suggest 7 or more replicates in order to consider replacement
+for large Cook's distances.
 
 <<replaceCooksOutlier>>=
-ddsClean <- replaceOutliersWithTrimmedMean(dds)
+ddsClean <- replaceOutliersWithTrimmedMean(dds,minReplicates=3)
 @ 
 
 Finally we rerun all the steps of \Rfunction{DESeq}.

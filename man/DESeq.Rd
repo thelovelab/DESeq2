@@ -3,7 +3,8 @@
 \title{Differential expression analysis based on the negative binomial distribution}
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
-  "mean"), betaPrior, full = design(object), reduced, quiet = FALSE)
+  "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
+  minReplicatesForReplace = 7)
 }
 \arguments{
   \item{object}{a DESeqDataSet object, see the constructor
@@ -37,6 +38,14 @@ DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   only used by the likelihood ratio test}
 
   \item{quiet}{whether to print messages at each step}
+
+  \item{minReplicatesForReplace}{the minimum number of
+  replicates required in order to use
+  \code{\link{replaceOutliersWithTrimmedMean}} on a sample.
+  If there are samples with so many replicates, the model
+  will be refit after these replacing outliers, flagged by
+  Cook's distance. Set to \code{Inf} in order to never
+  replace outliers.}
 }
 \value{
 a \code{\link{DESeqDataSet}} object with results stored as
@@ -47,12 +56,12 @@ variable in the design formula.  See \code{\link{results}}
 for how to access results for other variables.
 }
 \description{
-This function performs a default analysis through steps (1)
-estimation of size factors:
-\code{\link{estimateSizeFactors}}, (2) estimation of
-dispersion: \code{\link{estimateDispersions}}, and (3)
+This function performs a default analysis through the
+steps: \enumerate{ \item estimation of size factors:
+\code{\link{estimateSizeFactors}} \item estimation of
+dispersion: \code{\link{estimateDispersions}} \item
 negative binomial GLM fitting and Wald statistics:
-\code{\link{nbinomWaldTest}}. For complete details on each
+\code{\link{nbinomWaldTest}} } For complete details on each
 step, see the manual pages of the respective functions.
 After the \code{DESeq} function returns a DESeqDataSet
 object, results tables (log2 fold changes and p-values) can
@@ -102,9 +111,21 @@ make that approach conservative." Furthermore, "while one
 may not want to draw strong conclusions from such an
 analysis, it may still be useful for exploration and
 hypothesis generation."
+
+The argument \code{minReplicatesForReplace} is used to
+decide which samples are eligible for automatic replacement
+in the case of extreme Cook's distance. By default,
+\code{DESeq} will replace outliers if the Cook's distance
+is large for a sample which has 7 or more replicates
+(including itself). This replacement is performed by the
+\code{\link{replaceOutliersWithTrimmedMean}} function. This
+default behavior helps to prevent filtering genes based on
+Cook's distance when there are many degrees of freedom. See
+\code{\link{results}} for more information about filtering
+using Cook's distance, and the sections of the vignette.
 }
 \examples{
-dds <- makeExampleDESeqDataSet(m=6, betaSD=1)
+dds <- makeExampleDESeqDataSet(betaSD=1)
 dds <- DESeq(dds)
 res <- results(dds)
 ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)

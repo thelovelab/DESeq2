@@ -1,3 +1,12 @@
+CHANGES IN VERSION 1.3.15
+-------------------------
+
+    o The DESeq() argument 'minReplicatesForReplace' (default 7)
+      is used to decide which samples are eligible for automatic 
+      replacement in the case of extreme Cook's distance. 
+      This default behavior helps to prevent filtering genes based on 
+      Cook's distance when there are many degrees of freedom.
+
 CHANGES IN VERSION 1.3.13
 -------------------------
 

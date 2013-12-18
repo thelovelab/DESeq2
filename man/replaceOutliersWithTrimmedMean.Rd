@@ -2,7 +2,8 @@
 \alias{replaceOutliersWithTrimmedMean}
 \title{Replace outliers with trimmed mean}
 \usage{
-replaceOutliersWithTrimmedMean(dds, trim = 0.2, cooksCutoff)
+replaceOutliersWithTrimmedMean(dds, trim = 0.2, cooksCutoff,
+  minReplicates = 7, whichSamples)
 }
 \arguments{
   \item{dds}{a DESeqDataSet object, which has already been
@@ -19,6 +20,19 @@ replaceOutliersWithTrimmedMean(dds, trim = 0.2, cooksCutoff)
   to be replaced. Defaults to the .99 quantile of the F(p,
   m - p) distribution, where p is the number of parameters
   and m is the number of samples.}
+
+  \item{minReplicates}{the number of replicate samples
+  necessary to consider a sample eligible for replacement.
+  Outlier counts will not be replaced if the sample is in a
+  cell which has less than minReplicates replicates.}
+
+  \item{whichSamples}{a numeric or logical index of which
+  samples will have outliers replaced, if missing,
+  minReplicates is used.}
+}
+\value{
+a DESeqDataSet with original counts preserved in
+assay("originalCounts")
 }
 \description{
 The \code{\link{DESeq}} function calculates a diagnostic
@@ -34,9 +48,11 @@ alternate strategy is to replace the outlier counts with
 the trimmed mean over all samples, adjusted by the size
 factor or normalization factor for that sample. The
 following simple function performs this replacement for the
-user. For more information on Cook's distance, please see
-the two sections of the vignette: 'Dealing with count
-outliers' and 'Count outlier detection'.
+user, for samples which have at least \code{minReplicates}
+number of replicates (including that sample). For more
+information on Cook's distance, please see the two sections
+of the vignette: 'Dealing with count outliers' and 'Count
+outlier detection'.
 }
 \examples{
 dds <- makeExampleDESeqDataSet(n=100)

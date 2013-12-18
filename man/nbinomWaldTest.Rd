@@ -86,7 +86,7 @@ receive a wide prior variance of 1e6). In the case of
 interaction terms and factors with 3 or more levels present
 in the design formula, a moderately wide prior variance of
 1e3 will be used on non-interaction terms, to allow for
-convergence to the posterior.
+convergence to the maximum of the posterior.
 
 The Wald test can be replaced with the
 \code{\link{nbinomLRT}} for an alternative test of

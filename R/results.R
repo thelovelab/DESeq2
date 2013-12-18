@@ -208,7 +208,8 @@ log2 fold changes of levels against each other.\n")
   # only if we need to generate new p-values
   if ( !(lfcThreshold == 0 & altHypothesis == "greaterAbs") ) {
     if (test == "LRT") {
-      warning("tests of log fold change above or below a theshold are Wald tests. Likelihood ratio test p-values are overwritten")
+      warning("tests of log fold change above or below a theshold are Wald tests.
+Likelihood ratio test p-values are overwritten")
     }
     if (altHypothesis == "greaterAbs") {
       newPvalue <- 2 * pnorm(abs(res$log2FoldChange),
@@ -285,9 +286,9 @@ log2 fold changes of levels against each other.\n")
     numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
     j <- which.max(numRej)
     res$padj <- filtPadj[, j, drop=TRUE]
-    cutoffs <- quantile(filter, theta) 
-    attr(res, "filterThreshold") <- cutoffs[j]
-    attr(res, "filterNumRej") <- data.frame(theta=theta, numRej=numRej)
+    cutoffs <- quantile(filter, theta)
+    filterThreshold <- cutoffs[j]
+    filterNumRej <- data.frame(theta=theta, numRej=numRej)
   } else {
     # regular p-value adjustment
     # which does not include those rows which were removed
@@ -298,7 +299,12 @@ log2 fold changes of levels against each other.\n")
   mcols(res)$type[names(res)=="padj"] <- "results"
   mcols(res)$description[names(res)=="padj"] <- paste(pAdjustMethod,"adjusted p-values")
   
-  res
+  deseqRes <- DESeqResults(res)
+  if (independentFiltering) {
+    attr(deseqRes, "filterThreshold") <- filterThreshold
+    attr(deseqRes, "filterNumRej") <- filterNumRej
+  }
+  deseqRes
 }
 
 #' @rdname results
