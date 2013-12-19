@@ -105,15 +105,16 @@
 #' from independent filtering
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #'
-#' @return For \code{results}: a DataFrame of results columns:
+#' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
+#' a simple subclass of DataFrame. This object contains the results columns:
 #' \code{log2FoldChange}, \code{lfcSE}, \code{stat},
-#' \code{pvalue} and \code{padj}.
-#' also includes metadata columns of variable information
+#' \code{pvalue} and \code{padj},
+#' and also includes metadata columns of variable information.
 #'
 #' For \code{resultsNames}: the names of the columns available as results,
 #' usually a combination of the variable name and a level
 #'
-#' For \code{removeResults}: the original object with results metadata columns removed
+#' For \code{removeResults}: the original \code{DESeqDataSet} with results metadata columns removed
 #'
 #' @seealso \code{\link{DESeq}}
 #'

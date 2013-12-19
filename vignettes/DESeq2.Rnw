@@ -7,6 +7,8 @@
 
 \documentclass[12pt]{article}
 
+\newcommand{\deseqtwo}{\textit{DESeq2}}
+
 <<knitr, echo=FALSE, results="hide">>=
 library("knitr")
 opts_chunk$set(tidy=FALSE,dev="png",fig.show="hide",
@@ -21,6 +23,7 @@ BiocStyle::latex()
 <<loadDESeq2, echo=FALSE>>=
 library("DESeq2")
 @
+
 
 \author{Michael Love$^{1*}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Department of Biostatistics, Dana Farber Cancer Institute and} \\ \small{Harvard School of Public Health, Boston, US;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} \\ \small{\texttt{$^*$michaelisaiahlove (at) gmail.com}}}
 
@@ -37,7 +40,7 @@ library("DESeq2")
   gene. Analogous data also arise for other assay types, including comparative ChIP-Seq,
   HiC, shRNA screening, mass spectrometry.  An important analysis question is the
   quantification and statistical inference of systematic changes between conditions, as
-  compared to within-condition variability.  The package \Biocpkg{DESeq2} provides
+  compared to within-condition variability.  The package \deseqtwo{} provides
   methods to test for differential expression by use of negative binomial generalized
   linear models; the estimates of dispersion and logarithmic fold changes 
   incorporate data-driven prior distributions \footnote{Other \Bioconductor{} packages 
@@ -65,7 +68,7 @@ options(digits=3, width=80, prompt=" ", continue=" ")
 
 Here we show the most basic steps for a differential expression analysis.
 These steps imply you have a \Rclass{SummarizedExperiment} object
-\Robject{se} with a column \Robject{condition}.
+\Robject{se} with a column \Robject{condition} in \Robject{colData(se)}.
 
 <<quick, eval=FALSE>>=
 dds <- DESeqDataSet(se = se, design = ~ condition)
@@ -77,7 +80,7 @@ res <- results(dds)
 
 \subsubsection{Why raw counts?}
 
-As input, the \Biocpkg{DESeq2} package expects count data as obtained, e.\,g.,
+As input, the \deseqtwo{} package expects count data as obtained, e.\,g.,
 from RNA-Seq or another high-throughput sequencing experiment, in the form of a
 matrix of integer values. The value in the $i$-th row and the $j$-th column of
 the matrix tells how many reads have been mapped to gene $i$ in sample $j$.
@@ -86,14 +89,14 @@ e.\,g.\ to binding regions (with ChIP-Seq) or peptide sequences (with
 quantitative mass spectrometry).
 
 The count values must be raw counts of sequencing reads. This is important
-for \Biocpkg{DESeq2}'s statistical model to hold, as only the actual
+for \deseqtwo{}'s statistical model to hold, as only the actual
 counts allow assessing the measurement precision correctly. Hence, please
 do not supply other quantities, such as (rounded) normalized counts, or
 counts of covered base pairs -- this will only lead to nonsensical results.
 
 \subsubsection{\Rclass{SummarizedExperiment} input} \label{sec:sumExpInput}
 
-The class used by the \Biocpkg{DESeq2} package to store the read counts 
+The class used by the \deseqtwo{} package to store the read counts 
 is \Rclass{DESeqDataSet} which extends the \Rclass{SummarizedExperiment} 
 class of the \Biocpkg{GenomicRanges} package. 
 This facilitates preparation steps and also downstream exploration of results. 
@@ -101,7 +104,7 @@ For counting aligned reads in genes, the \Rfunction{summarizeOverlaps} function 
 \Biocpkg{GenomicAlignments} with \Robject{mode="Union"} is
 encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Biocpkg{easyRNASeq}
 is another \Bioconductor{} package which can prepare \Rclass{SummarizedExperiment}
-objects as input for \Biocpkg{DESeq2}). An example of the steps to produce
+objects as input for \deseqtwo{}). An example of the steps to produce
 a \Rclass{SummarizedExperiment} can be found in the data package
 \Biocannopkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
 4 human cell cultures \cite{Haglund2012Evidence}.
@@ -194,20 +197,15 @@ In the three examples above, we applied the function \Rfunction{factor}
 to the column of interest in \Robject{colData}, supplying a character
 vector of levels. It is important to supply levels (otherwise the
 levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
-level as the first element, so that the $\log_2$ fold changes
-and results will be most easily interpretable. A helpful \R{} function
-for easily changing the base level is \Rfunction{relevel}. An example of 
-setting the base level with \Rfunction{relevel} is:
+level as the first element ("base level"), so that the $\log_2$ fold changes
+produced by default will be the expected comparison against the base level. 
+An \R{} function for easily changing the base level is 
+\Rfunction{relevel}. An example of setting the base level of a factor
+with \Rfunction{relevel} is:
 
 <<relevel, eval=FALSE>>=
 colData(dds)$condition <- relevel(colData(dds)$condition, "control")
 @ 
-
-The reason for the importance of the specifying the base level is that 
-the function \Rfunction{model.matrix} is used by the \Biocpkg{DESeq2}
-package to build model matrices, and these matrices will be used to compare
-against the base level. See \ref{sec:contrasts} for examples on how 
-to compare factor levels to other levels than the base level.
 
 \subsubsection{About the pasilla dataset}
 
@@ -222,9 +220,12 @@ data package \Biocannopkg{pasilla}.
 \subsection{Differential expression analysis} \label{sec:de}
 
 The standard differential expression analysis steps are wrapped
-into a single function, \Rfunction{DESeq}. The individual functions
-are still available, described in Section~\ref{sec:steps}. The
-results are accessed using the function \Rfunction{results}, which
+into a single function, \Rfunction{DESeq}. The steps of this function
+are described in Section~\ref{sec:glm} and in the manual page for
+\Robject{?DESeq}. The individual sub-functions which are called by \Rfunction{DESeq}
+are still available, described in Section~\ref{sec:steps}. 
+
+Results tables are generated using the function \Rfunction{results}, which
 extracts a results table for a single variable (by default the
 last variable in the design formula, and if this is a factor, the last
 level of this variable). Note that the \Rfunction{results} function
@@ -246,7 +247,9 @@ ddsNoPrior <- nbinomWaldTest(dds,betaPrior=FALSE)
 @ 
 
 Extracting results of other variables is discussed in section 
-\ref{sec:multifactor}. All the values calculated by the \Biocpkg{DESeq2} 
+\ref{sec:multifactor}. Extracting results for comparisons of different
+levels of a factor is discussed in the section on contrasts, 
+Section~\ref{sec:contrasts}. All the values calculated by the \deseqtwo{} 
 package are stored in the \Rclass{DESeqDataSet} object, and access 
 to these values is discussed in Section~\ref{sec:access}.
 
@@ -254,15 +257,18 @@ to these values is discussed in Section~\ref{sec:access}.
 
 \subsubsection{MA-plot}
 
-For \Biocpkg{DESeq2}, the function \Rfunction{plotMA} shows the $\log_2$
+For \deseqtwo{}, the function \Rfunction{plotMA} shows the $\log_2$
 fold changes attributable to a variable over the mean of normalized counts.
 By default, the last variable in the design formula is chosen, and points
-will be colored red if the adjusted p-value is less than 0.1.  Points which fall out of
-the window are plotted as open triangles.
+will be colored red if the adjusted p-value is less than 0.1.  
+Points which fall out of the window are plotted as open triangles.
 
 <<MA, fig.width=4.5, fig.height=4.5>>=
 plotMA(dds, main="DESeq2", ylim=c(-2,2))
 @
+
+The \Rfunction{plotMA} function can also take the object returned by
+\Rfunction{results} as its first argument.
 
 <<MANoPrior, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
 plotMA(ddsNoPrior, 
@@ -294,7 +300,7 @@ Information about which variables and tests were used can be found by calling
 the function \Rfunction{mcols} on the results object.
 
 <<metadata>>=
-mcols(res, use.names=TRUE)
+mcols(res)$description
 @
 
 The variable \Robject{condition} and the factor level \Robject{treated} 
@@ -318,7 +324,7 @@ for either one of the following reasons:
     along with a method for replacing outlier counts and refitting.
   \item If a row is filtered by automatic independent filtering,
     then only the adjusted p-value is set to \texttt{NA}.
-    Description and customization of independent filtering is decribed 
+    Description and customization of independent filtering is described 
     in Section~\ref{sec:autoFilt}.
   \end{enumerate}
 
@@ -343,10 +349,12 @@ write.csv(as.data.frame(res),
 
 \subsection{Multi-factor designs} \label{sec:multifactor}
 
-Experiments with more than one factor influencing the counts can be analyzed
-using model formulae with additional variables. The data in the \Biocannopkg{pasilla}
+Experiments with more than one factor influencing the counts can be 
+easily analyzed using model formulae including the additional variables. 
+The data in the \Biocannopkg{pasilla}
 package have a condition of interest (the column \Robject{condition}), as well as
-the type of sequencing which was performed (the column \Robject{type}).
+the type of sequencing which was performed (the column \Robject{type}), as we can 
+see below:
 
 <<multifactor>>=
 colData(dds)
@@ -354,7 +362,12 @@ colData(dds)
 
 We can account for the different types of sequencing, and get a clearer picture
 of the differences attributable to the treatment.  As \Robject{condition} is the
-variable of interest, we put it at the end of the formula. Here we
+variable of interest, we put it at the end of the formula. Then we can re-run 
+\Rfunction{DESeq}.
+
+<<saveSingleFactor,echo=FALSE>>=
+ddsSingleFactor <- dds
+@
 
 <<replaceDesign,cache=TRUE>>=
 design(dds) <- formula(~ type + condition)
@@ -371,7 +384,7 @@ head(res)
 It is also possible to retrieve the $\log_2$ fold changes, p-values and adjusted
 p-values of the \Robject{type} variable.  The function \Rfunction{results} takes an
 argument \Robject{name}, which is a combination of the variable, the level
-(numeratoFr of the fold change) and the base level 
+(numerator of the fold change) and the base level 
 (denominator of the fold change).  In addition, there might be minor
 changes made by the \Rfunction{make.names} function on column names, 
 e.g. changing \texttt{-} (a dash) to \texttt{.} (a period). The function
@@ -381,8 +394,14 @@ e.g. changing \texttt{-} (a dash) to \texttt{.} (a period). The function
 resultsNames(dds)
 resType <- results(dds, name="type_single.read_vs_paired.end")
 head(resType)
-mcols(resType)
 @
+
+If the condition of interest contains 3 or more levels, the \Robject{contrast}
+argument of \Rfunction{results} should be used to specify which $\log_2$ 
+fold changes and p-values should be returned. This is described in detail
+in Section~\ref{sec:contrasts}. The \Robject{contrast} argument
+can also be used to return the same results as using the \Robject{names} 
+argument, but provides more flexibility.
 
 %---------------------------------------------------
 \subsection{Recommended design formulae for various experiments} \label{sec:recDesign}
@@ -407,7 +426,7 @@ mcols(resType)
     
     $2$ level factor 'condition' but 'group' has $\ge 3$ levels &
     \Robject{\textasciitilde group + condition} & 
-    default \Robject{DESeq} call  \\ \hline
+    default \Robject{DESeq} call, then use \Robject{contrast} instead of \Robject{name}  \\ \hline
     
     Interactions between 'group' and 'treatment' &
     \Robject{\textasciitilde group + treatment + group:treatment} & 
@@ -431,14 +450,17 @@ mcols(resType)
   \end{table}
 \end{center}
 
+\newpage
+
 %---------------------------------------------------
 \section{Data transformations and visualization}
 %---------------------------------------------------
 \subsection{Count data transformations}
 %---------------------------------------------------
 
-For testing for differential expression we operate on raw counts
-and use discrete distributions, however for other downstream analyses -- 
+In order to test for differential expression, we operate on raw counts
+and use discrete distributions as described in the previous Section~\ref{sec:de}.
+However for other downstream analyses -- 
 e.g. for visualization or clustering -- it might be useful 
 to work with transformed versions of the count data. 
 
@@ -677,7 +699,9 @@ print(plotPCA(rld, intgroup=c("condition", "type")))
 
 \newpage
 
+%--------------------------------------------------
 \section{Variations to the standard workflow}
+%--------------------------------------------------
 
 \subsection{Wald test individual steps} \label{sec:steps}
 
@@ -692,20 +716,29 @@ dds <- nbinomWaldTest(dds)
 \subsection{Contrasts} \label{sec:contrasts}
 
 A contrast is a linear combination of factor level means, which can be
-used to test if combinations of variables are different than zero.
-The simplest use case for contrasts is the case of a factor with three 
-levels, say A,B and C, where A is the base level.
-While the standard \Biocpkg{DESeq2} workflow generates p-values for the null
-hypotheses that the $\log_2$ fold change of B vs A is zero, and that
-the $\log_2$ fold change of C vs A is zero, a contrast
-is needed to compare if the $\log_2$ fold change of C vs B is zero.
+used to test if differences between groups are actually zero.
+The simplest use case for contrasts is an experimental design 
+containing a factor with three levels, say A, B and C.
+Contrasts enable the user to generate results for all 3
+possible differences: $\log_2$ fold change of B vs A, of C vs A,
+and of C vs B (the other three possible pairs will simply have
+$-1 \times$ the $\log_2$ fold changes of these three). 
 
-Here we show how to make all three pairwise comparisons using the
-parathyroid dataset which was built in Section~\ref{sec:sumExpInput}.
+In order to fit models with ``shrunken'' $\log_2$ fold changes 
+to experimental designs with factors with three or more levels,
+\deseqtwo{} uses "expanded model matrices", described further in 
+Section~\ref{sec:expanded}. This ensures that the model results 
+are independent of the choice of base level. The expanded model matrices 
+include a coefficient for each level of the factors in addition to an intercept. 
+The \Robject{contrast} argument, as shown below, is then used rather 
+than the \Robject{name} argument of the \Rfunction{results} function.
+
+Here we show how to perform contrasrts using the parathyroid dataset 
+which was built in Section~\ref{sec:sumExpInput}.
 The three levels of the factor \Robject{treatment} are: Control,
 DPN and OHT. The samples are also split according to the patient
 from which the cell cultures were derived, so we include this
-in the design formula. 
+in the design formula.
 
 <<paraSetup>>=
 # test only the top 1000 genes
@@ -731,8 +764,11 @@ OHT vs DPN for the treatment factor.
 <<contrastsChar>>=
 resCtrst <- results(ddsCtrst, contrast=c("treatment","OHT","DPN"))
 head(resCtrst,2)
-mcols(resCtrst)
 @ 
+
+The contrast argument can be used also for designs with factors 
+with two levels, in which case it will give same results using
+the \Robject{name} argument.
 
 For advanced users, a numeric contrast vector can also be provided
 with one element for each element provided by \Rfunction{resultsNames}, 
@@ -744,7 +780,6 @@ previous code chunk.
 resultsNames(ddsCtrst)
 resCtrst <- results(ddsCtrst, contrast=c(0,0,0,0,0,0,-1,1))
 head(resCtrst,2)
-mcols(resCtrst)
 @ 
 
 The formula that is used to generate the contrasts can be
@@ -757,56 +792,71 @@ unrelated to the experimental or study design, and which may be
 considered outliers. There are many reasons why outliers can arise, including rare
 technical or experimental artifacts, read mapping problems in the case of genetically
 differing samples, and genuine, but rare biological events. In many cases, users appear
-primarily interested in genes that show a consistent behaviour, and this is the reason why
-by default, genes that are affected by such outliers are set aside by \Biocpkg{DESeq2}. 
-The function calculates, for every gene and for every sample,
-a diagnostic test for outliers called \emph{Cook's distance}.
-Cook's distance is a measure of how much a single sample 
-is influencing the fitted coefficients for a gene, and a
-large value of Cook's distance is intended to indicate an outlier count. 
-\Biocpkg{DESeq2} automatically flags genes with Cook's distance
-above a cutoff and sets their p-values and adjusted p-values to \Robject{NA}.
+primarily interested in genes that show a consistent behavior, and this is the reason why
+by default, genes that are affected by such outliers are set aside by \deseqtwo{}, or if there are sufficient samples, outlier counts are replaced for model fitting. These two behaviors are described below.
 
-The default cutoff depends on the sample size and number of parameters
-to be estimated. The default is to use the $99\%$ quantile of the $F(p,m-p)$ distribution 
-(with $p$ the number of parameters including the intercept and 
-$m$ number of samples).
-The default can be modified using the \Robject{cooksCutoff} argument to
-the \Rfunction{results} function.
-The outlier removal functionality can be disabled by setting \Robject{cooksCutoff} to \Robject{FALSE}
-or \Robject{Inf}. If the removal of a sample would mean that a coefficient
-cannot be fitted (e.g. if there is only one sample for a given group), then the 
-Cook's distance for this sample is not counted towards the flagging.
-The Cook's distances are stored as a matrix available in
-\Robject{assays(dds)[["cooks"]]}. These values are the same as 
-those produced by the \Rfunction{cooks.distance} function of the \Rpackage{stats}
-package, except using the fitted dispersion and taking into account the size factors.
+The \Rfunction{DESeq} function 
+(and \Rfunction{nbinomWaldTest}/\Rfunction{nbinomLRT} functions) 
+calculates, for every gene and for every sample,
+a diagnostic test for outliers called \emph{Cook's distance}. Cook's distance 
+is a measure of how much a single sample is influencing the fitted 
+coefficients for a gene, and a large value of Cook's distance is 
+intended to indicate an outlier count. 
+The Cook's distances are stored as a matrix available in 
+\Robject{assays(dds)[["cooks"]]}.
 
-With many degrees of freedom --i.\,e., many more samples than number of parameters to 
-be estimated-- it might be undesirable to remove entire genes from the analysis
-just because their data include a single count outlier. An alternate strategy is to replace the 
-outlier counts with the trimmed mean over all samples, adjusted by the
-size factor for that sample. This approach is conservative,
+The \Rfunction{results} function automatically flags genes which contain a 
+Cook's distance above a cutoff for samples which have 3 or more replicates. 
+The p-values and adjusted p-values for these genes are set to \Robject{NA}. 
+At least 3 replicates are required for flagging, as it is difficult to judge
+which sample might be an outlier with only 2 replicates.
+
+With many degrees of freedom -- i.\,e., many more samples than number of parameters to 
+be estimated -- it is undesirable to remove entire genes from the analysis
+just because their data include a single count outlier. When there
+are 7 or more replicates for a given sample, the \Rfunction{DESeq}
+function will automatically replace counts with large Cook's distance 
+with the trimmed mean over all samples, scaled up by the size factor or 
+normalization factor for that sample. This approach is conservative, 
 it will not lead to false positives, as it replaces
 the outlier value with the value predicted by the null hypothesis.
-The \Rfunction{DESeq} function (or \Rfunction{nbinomWaldTest} and 
-\Rfunction{nbinomLRT}) calculates Cook's distance for every gene and
-sample. After an initial fit has been performed, the following function 
-replaces count outliers by the trimmed mean.
-Here we demonstrate with the \Robject{pasilla} dataset,
-although we suggest 7 or more replicates in order to consider replacement
-for large Cook's distances.
+
+The default Cook's distance cutoff for the two behaviors described above
+depends on the sample size and number of parameters
+to be estimated. The default is to use the $99\%$ quantile of the 
+$F(p,m-p)$ distribution (with $p$ the number of parameters including the 
+intercept and $m$ number of samples).
+The default for gene flagging can be modified using the \Robject{cooksCutoff} 
+argument to the \Rfunction{results} function. The gene flagging functionality 
+can be disabled by setting \Robject{cooksCutoff} to \Robject{FALSE}
+or \Robject{Inf}. The automatic outlier replacement performed by 
+\Rfunction{DESeq} can be disabled by setting the \Robject{minReplicatesForReplace}
+argument to \Robject{Inf}.
+
+\Rfunction{DESeq} replaces outliers by calling the \Rfunction{replaceOutliers} function,
+which has more arguments for controlling the replacement behavior.
+\Rfunction{DESeq} preserves the original counts in \Robject{counts(dds)} 
+saving the replacement counts as \Robject{replaceCounts} in \Robject{assays(dds)}.
+The function \Rfunction{replaceOutliers} replaces the counts in \Robject{counts(dds)}, saving the original counts as \Robject{originalCounts} in \Robject{assays(dds)}. 
+
+Here we demonstrate the \Rfunction{replaceOutliers} function
+on the \Robject{pasilla} dataset, using the version of 
+\Robject{dds} which was analyzed with only \Robject{condition} in the design formula. 
+This is only for demonstration purposes, as we suggest 7 or more replicates 
+in order to consider replacement for large Cook's distances. 
+The single factor design is necessary for the demonstration, 
+such that there are 3 or more replicates for every sample.
 
 <<replaceCooksOutlier>>=
-ddsClean <- replaceOutliersWithTrimmedMean(dds,minReplicates=3)
+ddsReplace <- replaceOutliers(ddsSingleFactor,minReplicates=3)
 @ 
 
-Finally we rerun all the steps of \Rfunction{DESeq}.
+Finally we re-run all the steps of \Rfunction{DESeq}.
 
 <<refitAfterReplace,cache=TRUE>>=
-ddsClean <- DESeq(ddsClean)
+ddsReplace <- DESeq(ddsReplace)
 tab <- table(initial = results(dds)$padj < .1,
-             cleaned = results(ddsClean)$padj < .1)
+             replace = results(ddsReplace)$padj < .1)
 addmargins(tab)
 @ 
 
@@ -835,7 +885,6 @@ attributable to the condition:
 ddsLRT <- nbinomLRT(dds, reduced = ~ type)
 resLRT <- results(ddsLRT)
 head(resLRT,2)
-mcols(resLRT)
 tab <- table(Wald=res$padj < .1, LRT=resLRT$padj < .1)
 addmargins(tab)
 @
@@ -906,7 +955,7 @@ ddsMed <- estimateDispersionsMAP(ddsMed)
 
 \subsection{Independent filtering of results}\label{sec:autoFilt}
 
-The \Rfunction{results} function of the \Biocpkg{DESeq2} package 
+The \Rfunction{results} function of the \deseqtwo{} package 
 performs independent filtering by default using 
 the mean of normalized counts as a filter statistic. 
 A threshold on the filter statistic is found which optimizes the number
@@ -1031,6 +1080,8 @@ Descriptions of the columns are accessible by two calls to
 
 <<mcols>>=
 mcols(dds,use.names=TRUE)[1:4,1:4]
+# here using substr() only for display purposes
+substr(names(mcols(dds)),1,10) 
 mcols(mcols(dds), use.names=TRUE)[1:4,]
 @
 
@@ -1062,7 +1113,7 @@ will always be used in the place of size factors.
 
 The methods provided by the \Biocpkg{cqn} or \Biocpkg{EDASeq} packages
 can help correct for GC or length biases. They both describe in their
-vignettes how to create matrices which can be used by \Biocpkg{DESeq2}.
+vignettes how to create matrices which can be used by \deseqtwo{}.
 From the formula above, we see that normalization factors should be on
 the scale of the counts, like size factors, and unlike offsets which
 are typically on the scale of the predictors (i.e. the logarithmic scale for
@@ -1075,12 +1126,15 @@ cqnNormFactors <- exp(cqnOffset)
 EDASeqNormFactors <- exp(-1 * EDASeqOffset)
 @
 
+\newpage
 
-\section{Theory behind \Biocpkg{DESeq2}}
+%--------------------------------------------------
+\section{Theory behind \deseqtwo{}}
+%--------------------------------------------------
   
 \subsection{Generalized linear model} \label{sec:glm}
 
-The differential expression analysis in \Biocpkg{DESeq2} uses a generalized
+The differential expression analysis in \deseqtwo{} uses a generalized
 linear model of the form:
 
 $$ K_{ij} \sim \textrm{NB}(\mu_{ij}, \alpha_i) $$
@@ -1091,21 +1145,32 @@ where counts $K_{ij}$ for gene $i$, sample $j$ are modeled using
 a negative binomial distribution with fitted mean $\mu_{ij}$
 and a gene-specific dispersion parameter $\alpha_i$.
 The fitted mean is composed of a sample-specific size factor
-$s_j$\footnote{The model can be generalised to use sample- 
-\textbf{and} gene-dependent normalisation factors, see
+$s_j$\footnote{The model can be generalized to use sample- 
+\textbf{and} gene-dependent normalization factors, see
 Appendix~\ref{sec:normfactors}.} and a parameter $q_{ij}$ 
 proportional to the expected true concentration of fragments for sample $j$.
 The coefficients $\beta_i$ give the $\log_2$ fold changes for gene $i$ for each 
-column of the model matrix $X$. Dispersions are estimated using a Cox-Reid
+column of the model matrix $X$. Dispersions are estimated using
+expected mean values from the maximum likelihood estimate 
+of $\log_2$ fold changes, and optimizing the Cox-Reid
 adjusted profile likelihood, as first implemented for RNA-Seq data in
-\Biocpkg{edgeR} \cite{CR,edgeR_GLM}.  For further details on
-dispersion estimation and inference, please see the manual pages for
-the functions \Rfunction{DESeq} and \Rfunction{estimateDispersions}.
-For access to the calculated values see Section~\ref{sec:access}
+\Biocpkg{edgeR} \cite{CR,edgeR_GLM}. The steps performed by the 
+\Rfunction{DESeq} function are documented in its manual page; 
+briefly, they are:
+
+\begin{enumerate}
+\item estimation of size factors $s_j$ by \Rfunction{estimateSizeFactors}
+\item estimation of dispersion $\alpha_i$ by \Rfunction{estimateDispersions}
+\item negative binomial GLM fitting for $\beta_i$ and Wald statistics by 
+\Rfunction{nbinomWaldTest}
+\end{enumerate}
+
+For access to all the values calculated during these steps,
+see Section~\ref{sec:access}
 
 \subsection{Changes compared to the  \Biocpkg{DESeq} package}
 
-The main changes in the package \Biocpkg{DESeq2}, compared to the (older)
+The main changes in the package \deseqtwo{}, compared to the (older)
 version \Biocpkg{DESeq}, are as follows:
 
 \begin{itemize}
@@ -1128,7 +1193,7 @@ version \Biocpkg{DESeq}, are as follows:
 
 \subsection{Count outlier detection} \label{sec:cooks}
 
-\Biocpkg{DESeq2} relies on the negative binomial distribution to make
+\deseqtwo{} relies on the negative binomial distribution to make
 estimates and perform statistical inference on differences.  While the
 negative binomial is versatile in having a mean and dispersion
 parameter, extreme counts in individual samples might not fit well to
@@ -1170,10 +1235,31 @@ to form the numerator of the test statistic. The denominator is formed by multip
 the covariance matrix $\Sigma$ for the coefficients on either side by the 
 contrast vector $c$. The square root of this product is an estimate
 of the standard error for the contrast. The contrast statistic is then compared
-to a normal distribution as are the Wald statistics for the \Biocpkg{DESeq2}
+to a normal distribution as are the Wald statistics for the \deseqtwo{}
 package.
 
 $$ W = \frac{c^t \beta}{\sqrt{c^t \Sigma c}} $$
+
+\subsection{Expanded model matrices} \label{sec:expanded}
+
+As mentioned in Section~\ref{sec:contrasts}, \deseqtwo{} uses
+``expanded model matrices'' if there are factors in the design formula
+which contain three or more levels, in order to produce
+$\log_2$ fold changes which are independent of the choice of base level.
+These model matrices differ from the standard model matrices, in that
+they have an indicator column (and therefore a coefficient) for
+each level of factors in the design formula in addition to an intercept. 
+These matrices are therefore not full rank, but a coefficient vector $\beta_i$ 
+can still be found due to the zero-centered prior on non-intercept coefficients.
+The prior variance for the $\log_2$ fold changes is 
+calculated by first generating maximum likelihood
+estimates for a standard model matrix. The prior variance for each level
+of a factor is then set as the average of the mean squared maximum likelihood 
+estimates for each level and every possible contrast, such that that this 
+prior value will be base level independent. The \Robject{contrast}
+argument of the \Rfunction{results} function should be used rather than
+the \Robject{name} argument to generate contrasts of the levels against
+each other.
 
 %--------------------------------------------------
 \subsection{Independent filtering and multiple testing} \label{sec:indepfilt}
@@ -1418,7 +1504,7 @@ However, in many cases, more meaningful results can be obtained by
 cutting continuous covariates into a factor defined over a 
 small number of bins (e.g. 3-5).
 In this way, the average effect of each group is controlled for, 
-regardless of the trend over the continuous covarites. 
+regardless of the trend over the continuous covariates. 
 In R, \Rclass{numeric} vectors can be converted into \Rclass{factors} 
 using the function \Rfunction{cut}.
 

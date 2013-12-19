@@ -1,16 +1,20 @@
-\name{replaceOutliersWithTrimmedMean}
+\name{replaceOutliers}
+\alias{replaceOutliers}
 \alias{replaceOutliersWithTrimmedMean}
 \title{Replace outliers with trimmed mean}
 \usage{
+replaceOutliers(dds, trim = 0.2, cooksCutoff, minReplicates = 7,
+  whichSamples)
+
 replaceOutliersWithTrimmedMean(dds, trim = 0.2, cooksCutoff,
   minReplicates = 7, whichSamples)
 }
 \arguments{
   \item{dds}{a DESeqDataSet object, which has already been
   processed by either DESeq, nbinomWaldTest or nbinomLRT,
-  and therefore contains a matrix 'cooks' contained in
-  assays(dds). These are the Cook's distances which will be
-  used to define outlier counts.}
+  and therefore contains a matrix contained in
+  \code{assays(dds)[["cooks"]]}. These are the Cook's
+  distances which will be used to define outlier counts.}
 
   \item{trim}{the fraction (0 to 0.5) of observations to be
   trimmed from each end of the normalized counts for a gene
@@ -21,22 +25,33 @@ replaceOutliersWithTrimmedMean(dds, trim = 0.2, cooksCutoff,
   m - p) distribution, where p is the number of parameters
   and m is the number of samples.}
 
-  \item{minReplicates}{the number of replicate samples
-  necessary to consider a sample eligible for replacement.
-  Outlier counts will not be replaced if the sample is in a
-  cell which has less than minReplicates replicates.}
+  \item{minReplicates}{the minimum number of replicate
+  samples necessary to consider a sample eligible for
+  replacement (including itself). Outlier counts will not
+  be replaced if the sample is in a cell which has less
+  than minReplicates replicates.}
 
-  \item{whichSamples}{a numeric or logical index of which
-  samples will have outliers replaced, if missing,
-  minReplicates is used.}
+  \item{whichSamples}{optional, a numeric or logical index
+  to specify which samples should have outliers replaced.
+  if missing, this is determined using minReplicates.}
 }
 \value{
-a DESeqDataSet with replaced counts in the slot
-returned by \code{\link{counts}} and the original
-counts preserved in
+a DESeqDataSet with replaced counts in the slot returned by
+\code{\link{counts}} and the original counts preserved in
 \code{assays(dds)[["originalCounts"]]}
 }
 \description{
+This function replaces outlier counts flagged by extreme
+Cook's distances, as calculated by \code{\link{DESeq}},
+\code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}},
+with values predicted by the trimmed mean over all samples
+(and adjusted by size factor or normalization factor). This
+function replaces the counts in the matrix returned by
+\code{counts(dds)} and the Cook's distances in
+\code{assays(dds)[["cooks"]]}. Original counts are
+preserved in \code{assays(dds)[["originalCounts"]]}.
+}
+\details{
 The \code{\link{DESeq}} function calculates a diagnostic
 measure called Cook's distance for every gene and every
 sample. The \code{\link{results}} function then sets the
@@ -59,7 +74,7 @@ outlier detection'.
 \examples{
 dds <- makeExampleDESeqDataSet(n=100)
 dds <- DESeq(dds)
-ddsReplace <- replaceOutliersWithTrimmedMean(dds)
+ddsReplace <- replaceOutliers(dds)
 }
 \seealso{
 \code{\link{DESeq}}

@@ -41,11 +41,11 @@ DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
 
   \item{minReplicatesForReplace}{the minimum number of
   replicates required in order to use
-  \code{\link{replaceOutliersWithTrimmedMean}} on a sample.
-  If there are samples with so many replicates, the model
-  will be refit after these replacing outliers, flagged by
-  Cook's distance. Set to \code{Inf} in order to never
-  replace outliers.}
+  \code{\link{replaceOutliers}} on a sample. If there are
+  samples with so many replicates, the model will be refit
+  after these replacing outliers, flagged by Cook's
+  distance. Set to \code{Inf} in order to never replace
+  outliers.}
 }
 \value{
 a \code{\link{DESeqDataSet}} object with results stored as
@@ -118,15 +118,25 @@ in the case of extreme Cook's distance. By default,
 \code{DESeq} will replace outliers if the Cook's distance
 is large for a sample which has 7 or more replicates
 (including itself). This replacement is performed by the
-\code{\link{replaceOutliersWithTrimmedMean}} function. This
-default behavior helps to prevent filtering genes based on
-Cook's distance when there are many degrees of freedom. See
+\code{\link{replaceOutliers}} function. This default
+behavior helps to prevent filtering genes based on Cook's
+distance when there are many degrees of freedom. See
 \code{\link{results}} for more information about filtering
-using Cook's distance, and the sections of the vignette.
-Original counts are kept in the slot returned by
-\code{\link{counts}}, while replacement counts which were
-used for testing are kept in
+using Cook's distance, and the 'Dealing with outliers'
+section of the vignette. Unlike the behavior of
+\code{\link{replaceOutliers}}, here original counts are
+kept in the matrix returned by \code{\link{counts}},
+original Cook's distances are kept in
+\code{assays(dds)[["cooks"]]}, and the replacement counts
+used for fitting are kept in
 \code{assays(object)[["replaceCounts"]]}.
+
+Note that if factors are present in the design formula with
+three or more levels, then expanded model matrices will be
+used in fitting. These are described in
+\code{\link{nbinomWaldTest}} and in the vignette. The
+\code{contrast} argument of \code{\link{results}} should be
+used for generating results tables.
 }
 \examples{
 dds <- makeExampleDESeqDataSet(betaSD=1)

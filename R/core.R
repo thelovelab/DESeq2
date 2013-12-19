@@ -50,14 +50,21 @@
 #' are eligible for automatic replacement in the case of extreme Cook's distance.
 #' By default, \code{DESeq} will replace outliers if the Cook's distance is
 #' large for a sample which has 7 or more replicates (including itself).
-#' This replacement is performed by the \code{\link{replaceOutliersWithTrimmedMean}}
+#' This replacement is performed by the \code{\link{replaceOutliers}}
 #' function. This default behavior helps to prevent filtering genes
 #' based on Cook's distance when there are many degrees of freedom.
 #' See \code{\link{results}} for more information about filtering using
-#' Cook's distance, and the sections of the vignette. Original counts are
-#' kept in the slot returned by \code{\link{counts}}, while replacement
-#' counts which were used for testing are kept in
-#' \code{assays(object)[["replaceCounts"]]}.
+#' Cook's distance, and the 'Dealing with outliers' section of the vignette.
+#' Unlike the behavior of \code{\link{replaceOutliers}}, here original counts are
+#' kept in the matrix returned by \code{\link{counts}}, original Cook's
+#' distances are kept in \code{assays(dds)[["cooks"]]}, and the replacement
+#' counts used for fitting are kept in \code{assays(object)[["replaceCounts"]]}.
+#'
+#' Note that if factors are present in the design formula with three or more
+#' levels, then expanded model matrices will be used in fitting. These are
+#' described in \code{\link{nbinomWaldTest}} and in the vignette. The
+#' \code{contrast} argument of \code{\link{results}} should be used for
+#' generating results tables.
 #' 
 #' @return a \code{\link{DESeqDataSet}} object with results stored as
 #' metadata columns. These results should accessed by calling the \code{\link{results}}
@@ -87,7 +94,7 @@
 #' only used by the likelihood ratio test
 #' @param quiet whether to print messages at each step
 #' @param minReplicatesForReplace the minimum number of replicates required
-#' in order to use \code{\link{replaceOutliersWithTrimmedMean}} on a
+#' in order to use \code{\link{replaceOutliers}} on a
 #' sample. If there are samples with so many replicates, the model will
 #' be refit after these replacing outliers, flagged by Cook's distance.
 #' Set to \code{Inf} in order to never replace outliers.
@@ -148,8 +155,15 @@ DESeq <- function(object, test=c("Wald","LRT"),
   if (any(nOrMoreInCell(attr(object,"modelMatrix"),minReplicatesForReplace))) {
     if (!quiet) message(paste("-- refitting without outliers: samples with >=",
                               minReplicatesForReplace,"replicates
--- original counts retained in assays(dds,'originalCounts')"))
-    object <- replaceOutliersWithTrimmedMean(object,minReplicates=minReplicatesForReplace)
+-- original counts are preserved in counts(dds))"))
+    cooks <- assays(object)[["cooks"]]
+    object <- replaceOutliers(object,minReplicates=minReplicatesForReplace)
+    if (is.null(normalizationFactors(object))) {
+      if (!quiet) message("estimating size factors")
+      object <- estimateSizeFactors(object)
+    } else {
+      if (!quiet) message("using pre-existing normalization factors")
+    }
     if (!quiet) message("estimating dispersions")
     object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
     if (!quiet) message("fitting model and testing")
@@ -158,7 +172,10 @@ DESeq <- function(object, test=c("Wald","LRT"),
     } else if (test == "LRT") {
       object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
     }
+    # preserve original counts and Cook's distances
+    # and save the counts used for fitting as 'replaceCounts'
     assays(object)[["replaceCounts"]] <- counts(object)
+    assays(object)[["cooks"]] <- cooks
     counts(object) <- assays(object)[["originalCounts"]]
   }
   object
@@ -309,10 +326,6 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans)
 #' stop when increase in log posterior is less than dispTol
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #' @param quiet whether to print messages at each step
-#' @param modelMatrixType either "standard" or "expanded" for which
-#' model matrix will be used later by \code{\link{nbinomWaldTest}}.
-#' in case of "expanded" a full-rank model matrix is provided inside
-#' this function which will not change from releveling.
 #'
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
@@ -332,8 +345,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans)
 #'
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
-                                       dispTol=1e-6, maxit=100, quiet=FALSE,
-                                       modelMatrixType) {
+                                       dispTol=1e-6, maxit=100, quiet=FALSE) {
   if ("dispGeneEst" %in% names(mcols(object))) {
     if (!quiet) message("you had estimated gene-wise dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object))  == "dispGeneEst"]
@@ -345,14 +357,17 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   if (log(minDisp/10) <= -30) {
     stop("for computational stability, log(minDisp/10) should be above -30")
   }
-  if (missing(modelMatrixType)) {
-    betaPriorOrNotSpecified <- is.null(attr(object,"betaPrior")) || attr(object,"betaPrior")
-    if (factorPresentThreeOrMoreLevels(object) & betaPriorOrNotSpecified) {
-      modelMatrixType <- "expanded"
-    } else {
-      modelMatrixType <- "standard"
-    }
+
+  # if factor is present with 3 or more levels, estimate the
+  # expected means such that releveling will not change the
+  # exact estimates of dispersion (unless betaPrior is FALSE)
+  betaPriorOrNotSpecified <- is.null(attr(object,"betaPrior")) || attr(object,"betaPrior")
+  if (factorPresentThreeOrMoreLevels(object) & betaPriorOrNotSpecified) {
+    modelMatrixType <- "expanded"
+  } else {
+    modelMatrixType <- "standard"
   }
+  
   object <- getBaseMeansAndVariances(object)
   if (!is.null(normalizationFactors(object))) {
     xim <- mean(1/colMeans(normalizationFactors(object)))
@@ -649,11 +664,12 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' and dispersion estimates.  See \code{\link{DESeq}} for the GLM formula.
 #' 
 #' The fitting proceeds as follows: standard maximum likelihood estimates
-#' for GLM coefficients are calculated; a zero-mean normal prior distribution
+#' for GLM coefficients (synonymous with beta, log2 fold change)
+#' are calculated; a zero-mean normal prior distribution
 #' is assumed; the variance of the prior distribution for each
 #' non-intercept coefficient is calculated as the mean squared
-#' maximum likelihood estimates over the genes which do not
-#' contain zeros for some condition;
+#' maximum likelihood estimates for coefficients
+#' over the genes which do not contain zeros for some condition;
 #' the final coefficients are then maximum a posteriori estimates
 #' (using Tikhonov/ridge regularization) using this prior.
 #' The use of a prior has little effect on genes with high counts and helps to
@@ -665,6 +681,17 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' prior on dispersion estimates results in a Wald statistic
 #' distribution which is approximately normal.
 #'
+#' When factors are present in the design formula with 3 or more levels,
+#' then \code{nbinomWaldTest} will by default use expanded model matrices,
+#' as described in the \code{modelMatrixType} argument, unless this argument
+#' is used to override the default behavior.
+#' This ensures that log2 fold changes will be independent of the choice
+#' of base level. In this case, the beta prior variance for each factor
+#' is calculated as the average of the mean squared maximum likelihood
+#' estimates for each level and every possible contrast. The \code{contrast}
+#' argument of the \code{\link{results}} function should be used then
+#' to generate results tables.
+#' 
 #' When interaction terms are present, the prior on log fold changes
 #' the calculated beta prior variance will only be used for the interaction
 #' terms (non-interaction terms receive a wide prior variance of 1e6).
@@ -688,9 +715,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' how the model matrix, X of the formula in \code{\link{DESeq}}, is
 #' formed. "standard" is as created by \code{model.matrix} using the
 #' design formula. "expanded" includes an indicator variable for each
-#' level of factors with 3 or more levels, in order to ensure symmetric
-#' behavior of the prior on log2 fold changes. betaPrior must be set
-#' to TRUE in order for expanded model matrices to be fit.
+#' level of factors with 3 or more levels in addition to an intercept,
+#' in order to ensure that the log2 fold changes are independent
+#' of the choice of base level.
+#' betaPrior must be set to TRUE in order for expanded model matrices
+#' to be fit.
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -1090,6 +1119,14 @@ nbinomLRT <- function(object, full=design(object), reduced,
 
 #' Replace outliers with trimmed mean
 #'
+#' This function replaces outlier counts flagged by extreme Cook's distances,
+#' as calculated by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}
+#' or \code{\link{nbinomLRT}}, with values predicted by the trimmed mean
+#' over all samples (and adjusted by size factor or normalization factor).
+#' This function replaces the counts in the matrix returned by \code{counts(dds)}
+#' and the Cook's distances in \code{assays(dds)[["cooks"]]}. Original counts are
+#' preserved in \code{assays(dds)[["originalCounts"]]}.
+#' 
 #' The \code{\link{DESeq}} function calculates a diagnostic measure called
 #' Cook's distance for every gene and every sample. The \code{\link{results}}
 #' function then sets the p-values to \code{NA} for genes which contain
@@ -1101,26 +1138,30 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' with the trimmed mean over all samples, adjusted by the size factor or normalization
 #' factor for that sample. The following simple function performs this replacement
 #' for the user, for samples which have at least \code{minReplicates} number
-#' of replicates (including that sample). For more information on Cook's distance, please see the two
+#' of replicates (including that sample).
+#' For more information on Cook's distance, please see the two
 #' sections of the vignette: 'Dealing with count outliers' and 'Count outlier detection'.
 #' 
 #' @param dds a DESeqDataSet object, which has already been processed by
 #' either DESeq, nbinomWaldTest or nbinomLRT, and therefore contains a matrix
-#' 'cooks' contained in assays(dds). These are the Cook's distances which will
+#' contained in \code{assays(dds)[["cooks"]]}. These are the Cook's distances which will
 #' be used to define outlier counts.
 #' @param trim the fraction (0 to 0.5) of observations to be trimmed from
 #' each end of the normalized counts for a gene before the mean is computed
 #' @param cooksCutoff the threshold for defining an outlier to be replaced.
 #' Defaults to the .99 quantile of the F(p, m - p) distribution, where p is
 #' the number of parameters and m is the number of samples.
-#' @param minReplicates the number of replicate samples necessary to consider
-#' a sample eligible for replacement. Outlier counts will not be replaced
+#' @param minReplicates the minimum number of replicate samples necessary to consider
+#' a sample eligible for replacement (including itself). Outlier counts will not be replaced
 #' if the sample is in a cell which has less than minReplicates replicates.
-#' @param whichSamples a numeric or logical index of which samples will
-#' have outliers replaced, if missing, minReplicates is used.
+#' @param whichSamples optional, a numeric or logical index to specify
+#' which samples should have outliers replaced. if missing, this is determined using
+#' minReplicates.
 #'
 #' @seealso \code{\link{DESeq}}
 #'
+#' @aliases replaceOutliersWithTrimmedMean
+#' 
 #' @return a DESeqDataSet with replaced counts in the slot returned by
 #' \code{\link{counts}} and the original counts preserved in
 #' \code{assays(dds)[["originalCounts"]]}
@@ -1129,16 +1170,17 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #'
 #' dds <- makeExampleDESeqDataSet(n=100)
 #' dds <- DESeq(dds)
-#' ddsReplace <- replaceOutliersWithTrimmedMean(dds)
+#' ddsReplace <- replaceOutliers(dds)
 #'
 #' @export
-replaceOutliersWithTrimmedMean <- function(dds,trim=.2,cooksCutoff,minReplicates=7,whichSamples) {
+replaceOutliers <- function(dds,trim=.2,cooksCutoff,minReplicates=7,whichSamples) {
   if (is.null(attr(dds,"modelMatrix")) | !("cooks" %in% names(assays(dds)))) {
     stop("first run DESeq, nbinomWaldTest, or nbinomLRT to identify outliers")
   }
   if (minReplicates < 3) {
     stop("at least 3 replicates are necessary in order to indentify a sample as a count outlier")
   }
+  stopifnot(is.numeric(minReplicates) & length(minReplicates) == 1)
   p <- ncol(attr(dds,"modelMatrix"))
   m <- ncol(dds)
   if (m <= p) {
@@ -1173,6 +1215,9 @@ replaceOutliersWithTrimmedMean <- function(dds,trim=.2,cooksCutoff,minReplicates
   dds
 }
 
+#' @export
+#' @rdname replaceOutliers
+replaceOutliersWithTrimmedMean <- replaceOutliers
 
 
 ###########################################################

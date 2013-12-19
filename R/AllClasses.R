@@ -175,9 +175,9 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory="", design, ...)
                                       "too_low_aQual", "not_aligned", "alignment_not_unique" )
   tbl <- tbl[ !specialRows, ]
   dds <- DESeqDataSetFromMatrix(countData = tbl,
-                                             colData = sampleTable[,-(1:2),drop=FALSE],
-                                             design = design,
-                                             ...)
+                                colData = sampleTable[,-(1:2),drop=FALSE],
+                                design = design,
+                                ...)
   return(dds)
 }   
 

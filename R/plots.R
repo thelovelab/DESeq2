@@ -80,32 +80,35 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #'
 #' A simple helper function that makes a so-called "MA-plot", i.e. a
 #' scatter plot of log2 fold changes (on the y-axis) versus the mean of
-#' normalized counts (on the x-axis). Note: it takes a \code{DESeqDataSet}
-#' object as its first argument.
+#' normalized counts (on the x-axis).
 #'
-#' The function is practically 2 lines of code: building a
-#' dataframe and passing this to the plotMA method
+#' This function is essentially two lines of code: building a
+#' \code{data.frame} and passing this to the \code{plotMA} method
 #' for \code{data.frame} from the geneplotter package.
 #' The code of this function can be seen with:
 #' \code{getMethod("plotMA","DESeqDataSet")}
 #' If users wish to modify the graphical parameters of the plot,
-#' it is recommended to build the dataframe in the
-#' same manner.
+#' it is recommended to build the data.frame in the
+#' same manner and call \code{plotMA}
 #'
 #' @usage
+#' \S4method{plotMA}{DESeqResults}(object, alpha, main, ylim)
 #' \S4method{plotMA}{DESeqDataSet}(object, alpha, main, ylim, ...)
+#' 
 #'
 #' @docType methods
 #' @name plotMA
 #' @rdname plotMA
-#' @aliases plotMA plotMA,DESeqDataSet-method
+#' @aliases plotMA plotMA,DESeqDataSet-method plotMA,DESeqResults-method
 #' 
-#' @param object a DESeqDataSet processed by \code{\link{DESeq}}, or the
+#' @param object a \code{DESeqResults} object produced by \code{\link{results}};
+#' or a \code{DESeqDataSet} processed by \code{\link{DESeq}}, or the
 #' individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}
 #' @param alpha the significance level for thresholding adjusted p-values
 #' @param main optional title for the plot
 #' @param ylim optional y limits
-#' @param ... further arguments passed to \code{\link{results}}
+#' @param ... further arguments passed to \code{\link{results}} (if object is
+#' a \code{DESeqDataSet}
 #'
 #' @author Michael Love
 #'
@@ -114,24 +117,34 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' dds <- makeExampleDESeqDataSet()
 #' dds <- DESeq(dds)
 #' plotMA(dds)
+#' res <- results(dds)
+#' plotMA(res)
 #'
 #' @importFrom geneplotter plotMA
 plotMA.DESeqDataSet <- function(object, alpha=.1, main="", ylim, ...) {
     res <- results(object, ...)
-    df <- data.frame(mean = res$baseMean,
-                     lfc = res$log2FoldChange,
-                     isDE = ifelse(is.na(res$padj), FALSE, res$padj < alpha))
-
-    if (missing(ylim)) {
-        plotMA(df, main=main)
-    } else {
-        plotMA(df, main=main, ylim=ylim)
-    }
+    plotMA.DESeqResults(res, alpha=alpha, main=main, ylim=ylim)
 }
 
 #' @rdname plotMA
 #' @export
 setMethod("plotMA", signature(object="DESeqDataSet"), plotMA.DESeqDataSet)
+
+plotMA.DESeqResults <- function(object, alpha=.1, main="", ylim) {
+    df <- data.frame(mean = object$baseMean,
+                     lfc = object$log2FoldChange,
+                     isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
+    if (missing(ylim)) {
+      plotMA(df, main=main)
+    } else {
+      plotMA(df, main=main, ylim=ylim)
+    }  
+}
+
+#' @rdname plotMA
+#' @export
+setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
+
 
 #' Sample PCA plot from variance-stabilized data
 #' 

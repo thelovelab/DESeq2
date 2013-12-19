@@ -23,10 +23,11 @@ nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
   \code{\link{DESeq}}, is formed. "standard" is as created
   by \code{model.matrix} using the design formula.
   "expanded" includes an indicator variable for each level
-  of factors with 3 or more levels, in order to ensure
-  symmetric behavior of the prior on log2 fold changes.
-  betaPrior must be set to TRUE in order for expanded model
-  matrices to be fit.}
+  of factors with 3 or more levels in addition to an
+  intercept, in order to ensure that the log2 fold changes
+  are independent of the choice of base level. betaPrior
+  must be set to TRUE in order for expanded model matrices
+  to be fit.}
 
   \item{maxit}{the maximum number of iterations to allow
   for convergence of the coefficient vector}
@@ -60,13 +61,14 @@ estimates.  See \code{\link{DESeq}} for the GLM formula.
 }
 \details{
 The fitting proceeds as follows: standard maximum
-likelihood estimates for GLM coefficients are calculated; a
-zero-mean normal prior distribution is assumed; the
-variance of the prior distribution for each non-intercept
-coefficient is calculated as the mean squared maximum
-likelihood estimates over the genes which do not contain
-zeros for some condition; the final coefficients are then
-maximum a posteriori estimates (using Tikhonov/ridge
+likelihood estimates for GLM coefficients (synonymous with
+beta, log2 fold change) are calculated; a zero-mean normal
+prior distribution is assumed; the variance of the prior
+distribution for each non-intercept coefficient is
+calculated as the mean squared maximum likelihood estimates
+for coefficients over the genes which do not contain zeros
+for some condition; the final coefficients are then maximum
+a posteriori estimates (using Tikhonov/ridge
 regularization) using this prior. The use of a prior has
 little effect on genes with high counts and helps to
 moderate the large spread in coefficients for genes with
@@ -78,6 +80,19 @@ normal distribution. From examination of Wald statistics
 for real datasets, the effect of the prior on dispersion
 estimates results in a Wald statistic distribution which is
 approximately normal.
+
+When factors are present in the design formula with 3 or
+more levels, then \code{nbinomWaldTest} will by default use
+expanded model matrices, as described in the
+\code{modelMatrixType} argument, unless this argument is
+used to override the default behavior. This ensures that
+log2 fold changes will be independent of the choice of base
+level. In this case, the beta prior variance for each
+factor is calculated as the average of the mean squared
+maximum likelihood estimates for each level and every
+possible contrast. The \code{contrast} argument of the
+\code{\link{results}} function should be used then to
+generate results tables.
 
 When interaction terms are present, the prior on log fold
 changes the calculated beta prior variance will only be

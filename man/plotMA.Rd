@@ -2,15 +2,20 @@
 \name{plotMA}
 \alias{plotMA}
 \alias{plotMA,DESeqDataSet-method}
+\alias{plotMA,DESeqResults-method}
 \title{MA-plot from base means and log fold changes}
 \usage{
+\S4method{plotMA}{DESeqResults}(object, alpha, main, ylim)
 \S4method{plotMA}{DESeqDataSet}(object, alpha, main, ylim, ...)
 
 \S4method{plotMA}{DESeqDataSet}(object, alpha = 0.1, main = "", ylim, ...)
+
+\S4method{plotMA}{DESeqResults}(object, alpha = 0.1, main = "", ylim)
 }
 \arguments{
-  \item{object}{a DESeqDataSet processed by
-  \code{\link{DESeq}}, or the individual functions
+  \item{object}{a \code{DESeqResults} object produced by
+  \code{\link{results}}; or a \code{DESeqDataSet} processed
+  by \code{\link{DESeq}}, or the individual functions
   \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}}
 
   \item{alpha}{the significance level for thresholding
@@ -21,28 +26,30 @@
   \item{ylim}{optional y limits}
 
   \item{...}{further arguments passed to
-  \code{\link{results}}}
+  \code{\link{results}} (if object is a
+  \code{DESeqDataSet}}
 }
 \description{
 A simple helper function that makes a so-called "MA-plot",
 i.e. a scatter plot of log2 fold changes (on the y-axis)
-versus the mean of normalized counts (on the x-axis). Note:
-it takes a \code{DESeqDataSet} object as its first
-argument.
+versus the mean of normalized counts (on the x-axis).
 }
 \details{
-The function is practically 2 lines of code: building a
-dataframe and passing this to the plotMA method for
-\code{data.frame} from the geneplotter package. The code of
-this function can be seen with:
+This function is essentially two lines of code: building a
+\code{data.frame} and passing this to the \code{plotMA}
+method for \code{data.frame} from the geneplotter package.
+The code of this function can be seen with:
 \code{getMethod("plotMA","DESeqDataSet")} If users wish to
 modify the graphical parameters of the plot, it is
-recommended to build the dataframe in the same manner.
+recommended to build the data.frame in the same manner and
+call \code{plotMA}
 }
 \examples{
 dds <- makeExampleDESeqDataSet()
 dds <- DESeq(dds)
 plotMA(dds)
+res <- results(dds)
+plotMA(res)
 }
 \author{
 Michael Love
