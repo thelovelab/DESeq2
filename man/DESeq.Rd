@@ -123,6 +123,10 @@ default behavior helps to prevent filtering genes based on
 Cook's distance when there are many degrees of freedom. See
 \code{\link{results}} for more information about filtering
 using Cook's distance, and the sections of the vignette.
+Original counts are kept in the slot returned by
+\code{\link{counts}}, while replacement counts which were
+used for testing are kept in
+\code{assays(object)[["replaceCounts"]]}.
 }
 \examples{
 dds <- makeExampleDESeqDataSet(betaSD=1)

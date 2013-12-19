@@ -31,8 +31,10 @@ replaceOutliersWithTrimmedMean(dds, trim = 0.2, cooksCutoff,
   minReplicates is used.}
 }
 \value{
-a DESeqDataSet with original counts preserved in
-assay("originalCounts")
+a DESeqDataSet with replaced counts in the slot
+returned by \code{\link{counts}} and the original
+counts preserved in
+\code{assays(dds)[["originalCounts"]]}
 }
 \description{
 The \code{\link{DESeq}} function calculates a diagnostic

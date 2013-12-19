@@ -54,7 +54,10 @@
 #' function. This default behavior helps to prevent filtering genes
 #' based on Cook's distance when there are many degrees of freedom.
 #' See \code{\link{results}} for more information about filtering using
-#' Cook's distance, and the sections of the vignette.
+#' Cook's distance, and the sections of the vignette. Original counts are
+#' kept in the slot returned by \code{\link{counts}}, while replacement
+#' counts which were used for testing are kept in
+#' \code{assays(object)[["replaceCounts"]]}.
 #' 
 #' @return a \code{\link{DESeqDataSet}} object with results stored as
 #' metadata columns. These results should accessed by calling the \code{\link{results}}
@@ -155,6 +158,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
     } else if (test == "LRT") {
       object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
     }
+    assays(object)[["replaceCounts"]] <- counts(object)
+    counts(object) <- assays(object)[["originalCounts"]]
   }
   object
 }
@@ -1116,7 +1121,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #'
 #' @seealso \code{\link{DESeq}}
 #'
-#' @return a DESeqDataSet with original counts preserved in assay("originalCounts")
+#' @return a DESeqDataSet with replaced counts in the slot returned by
+#' \code{\link{counts}} and the original counts preserved in
+#' \code{assays(dds)[["originalCounts"]]}
 #' 
 #' @examples
 #'
