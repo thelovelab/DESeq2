@@ -873,7 +873,7 @@ user provides the full formula (the formula stored in \Robject{design(dds)}),
 and a reduced formula, e.g. one which does not contain the variable of
 interest. The degrees of freedom for the test is obtained from the number
 of parameters in the two models. The Wald test and the likelihood ratio test
-share many of the same genes with adjusted p-value < .1 for this experiment.
+share many of the same genes with adjusted p-value $< 0.1$ for this experiment.
 
 As we already have an object \Robject{dds} with dispersions calculated 
 for the design formula \texttt{~ type + condition}, 

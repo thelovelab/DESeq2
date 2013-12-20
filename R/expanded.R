@@ -9,6 +9,7 @@ makeExpandedModelMatrix <- function(object) {
   }
   mm0 <- model.matrix(design(object), data=coldata)
   mm <- mm0[-nrow(mm0),]
+  attr(mm,"assign") <- attr(mm0,"assign")
   colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
   colnames(mm) <- make.names(colnames(mm))
   mm

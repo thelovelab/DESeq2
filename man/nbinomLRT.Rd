@@ -2,8 +2,9 @@
 \alias{nbinomLRT}
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
-nbinomLRT(object, full = design(object), reduced, maxit = 100,
-  useOptim = TRUE, quiet = FALSE, useQR = TRUE)
+nbinomLRT(object, full = design(object), reduced, betaPrior = FALSE,
+  betaPriorVar, modelMatrixType, maxit = 100, useOptim = TRUE,
+  quiet = FALSE, useQR = TRUE)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -13,6 +14,29 @@ nbinomLRT(object, full = design(object), reduced, maxit = 100,
 
   \item{reduced}{a reduced formula to compare against, e.g.
   the full model with a term or terms of interest removed}
+
+  \item{betaPrior}{whether or not to put a zero-mean normal
+  prior on the non-intercept coefficients (Tikhonov/ridge
+  regularization). While the beta prior is used typically,
+  for the Wald test, it can also be specified for the
+  likelihood ratio test. For more details on the
+  calculation, see \code{\link{nbinomWaldTest}}.}
+
+  \item{betaPriorVar}{a vector with length equal to the
+  number of model terms including the intercept. which if
+  missing is estimated from the rows which do not have any
+  zeros}
+
+  \item{modelMatrixType}{either "standard" or "expanded",
+  which describe how the model matrix, X of the formula in
+  \code{\link{DESeq}}, is formed. "standard" is as created
+  by \code{model.matrix} using the design formula.
+  "expanded" includes an indicator variable for each level
+  of factors with 3 or more levels in addition to an
+  intercept, in order to ensure that the log2 fold changes
+  are independent of the choice of base level. betaPrior
+  must be set to TRUE in order for expanded model matrices
+  to be fit.}
 
   \item{maxit}{the maximum number of iterations to allow
   for convergence of the coefficient vector}

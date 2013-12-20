@@ -192,7 +192,7 @@ setClass("DESeqResults", contains="DataFrame")
 #' objects from the DESeq2 package.
 #'
 #' @param DataFrame a DataFrame of results, standard column names are:
-#' log2FoldChange, lfcSE, stat, pvalue, padj.
+#' baseMean, log2FoldChange, lfcSE, stat, pvalue, padj.
 #'
 #' @return a DESeqResults object
 #'

@@ -107,7 +107,7 @@
 #'
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
 #' a simple subclass of DataFrame. This object contains the results columns:
-#' \code{log2FoldChange}, \code{lfcSE}, \code{stat},
+#' \code{baseMean}, \code{log2FoldChange}, \code{lfcSE}, \code{stat},
 #' \code{pvalue} and \code{padj},
 #' and also includes metadata columns of variable information.
 #'
@@ -138,9 +138,12 @@ results <- function(object, name, contrast,
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
   }
+
+  test <- attr(object,"test")
+  
   isExpanded <- attr(object, "modelMatrixType") == "expanded"
   termsOrder <- attr(terms.formula(design(object)),"order")
-  if (isExpanded & missing(contrast) & all(termsOrder < 2)) {
+  if ((test == "Wald") & isExpanded & missing(contrast) & all(termsOrder < 2)) {
     if (missing(name)) {
       designVars <- all.vars(formula(design(object)))
       lastVarName <- designVars[length(designVars)]
@@ -175,21 +178,15 @@ log2 fold changes of levels against each other.\n")
     stop("when testing altHypothesis='lessAbs', set the argument lfcThreshold to a positive value")
   }
   
-  # determine test type from the names of mcols(object)
-  if (paste0("WaldPvalue_",name) %in% names(mcols(object))) {
-    test <- "Wald"
-  } else if ("LRTPvalue" %in% names(mcols(object))) {
-    test <- "LRT"
-  } else {
+  # check to see at least one of these are present
+  WaldResults <- paste0("WaldPvalue_",name) %in% names(mcols(object))
+  LRTResults <- "LRTPvalue" %in% names(mcols(object))
+  if (! ( WaldResults | LRTResults) ) {
     stop("cannot find appropriate results, for available names call 'resultsNames(object)'")
   }
   
   # if performing a contrast call the function cleanContrast()
   if (!missing(contrast)) {
-    # must have performed the Wald test steps
-    if (test != "Wald") {
-      stop("using contrasts requires that the Wald test was performed")
-    }
     # pass down whether the model matrix type was "expanded"
     res <- cleanContrast(object, contrast, expanded=isExpanded)
   } else {

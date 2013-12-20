@@ -91,9 +91,10 @@ removeResults(object)
 \value{
 For \code{results}: a \code{\link{DESeqResults}} object,
 which is a simple subclass of DataFrame. This object
-contains the results columns: \code{log2FoldChange},
-\code{lfcSE}, \code{stat}, \code{pvalue} and \code{padj},
-and also includes metadata columns of variable information.
+contains the results columns: \code{baseMean},
+\code{log2FoldChange}, \code{lfcSE}, \code{stat},
+\code{pvalue} and \code{padj}, and also includes metadata
+columns of variable information.
 
 For \code{resultsNames}: the names of the columns available
 as results, usually a combination of the variable name and

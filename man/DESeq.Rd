@@ -27,7 +27,9 @@ DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   \item{betaPrior}{whether or not to put a zero-mean normal
   prior on the non-intercept coefficients (Tikhonov/ridge
   regularization) See \code{\link{nbinomWaldTest}} for
-  description. Only used for the Wald test.}
+  description of the calculation of the beta prior. By
+  default, the beta prior is used only for the Wald test,
+  but can also be specified for the likelihood ratio test.}
 
   \item{full}{the full model formula, this should be the
   formula in \code{design(object)}, only used by the
@@ -129,7 +131,10 @@ kept in the matrix returned by \code{\link{counts}},
 original Cook's distances are kept in
 \code{assays(dds)[["cooks"]]}, and the replacement counts
 used for fitting are kept in
-\code{assays(object)[["replaceCounts"]]}.
+\code{assays(object)[["replaceCounts"]]}. The results can
+theoretically still be flagged based on
+\code{mcols(dds)$maxCooks}, though this is calculated from
+the outlier-replaced counts.
 
 Note that if factors are present in the design formula with
 three or more levels, then expanded model matrices will be

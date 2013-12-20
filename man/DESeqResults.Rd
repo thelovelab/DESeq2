@@ -8,7 +8,8 @@ DESeqResults(DataFrame)
 }
 \arguments{
   \item{DataFrame}{a DataFrame of results, standard column
-  names are: log2FoldChange, lfcSE, stat, pvalue, padj.}
+  names are: baseMean, log2FoldChange, lfcSE, stat, pvalue,
+  padj.}
 }
 \value{
 a DESeqResults object

@@ -59,6 +59,8 @@
 #' kept in the matrix returned by \code{\link{counts}}, original Cook's
 #' distances are kept in \code{assays(dds)[["cooks"]]}, and the replacement
 #' counts used for fitting are kept in \code{assays(object)[["replaceCounts"]]}.
+#' The results can theoretically still be flagged based on \code{mcols(dds)$maxCooks},
+#' though this is calculated from the outlier-replaced counts.
 #'
 #' Note that if factors are present in the design formula with three or more
 #' levels, then expanded model matrices will be used in fitting. These are
@@ -85,8 +87,9 @@
 #' See \code{\link{estimateDispersions}} for description.
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients (Tikhonov/ridge regularization)
-#' See \code{\link{nbinomWaldTest}} for description. Only used
-#' for the Wald test.
+#' See \code{\link{nbinomWaldTest}} for description of the calculation
+#' of the beta prior. By default, the beta prior is used only for the
+#' Wald test, but can also be specified for the likelihood ratio test.
 #' @param full the full model formula, this should be the formula in
 #' \code{design(object)}, only used by the likelihood ratio test
 #' @param reduced a reduced formula to compare against, e.g.
@@ -130,6 +133,16 @@ DESeq <- function(object, test=c("Wald","LRT"),
   if (missing(betaPrior)) {
     betaPrior <- test == "Wald"
   }
+  if (test == "LRT" & missing(reduced)) {
+    stop("provide a reduced formula for the likelihood ratio test, e.g. reduced = ~ 1")
+  }
+  if (test == "LRT") {
+    reducedNotInFull <- !all.vars(reduced) %in% all.vars(full)
+    if (any(reducedNotInFull)) {
+      stop(paste("the following variables in the reduced formula not in the full formula:",
+                 paste(all.vars(reduced)[reducedNotInFull],collapse=", ")))
+    }
+  }
   attr(object, "betaPrior") <- betaPrior
   if (!is.null(sizeFactors(object)) || !is.null(normalizationFactors(object))) {
     if (!quiet) {
@@ -149,7 +162,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
   if (test == "Wald") {
     object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet)                             
   } else if (test == "LRT") {
-    object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
+    object <- nbinomLRT(object, full=full, reduced=reduced,
+                        betaPrior=betaPrior, quiet=quiet)
   }
   # refit without outliers
   if (any(nOrMoreInCell(attr(object,"modelMatrix"),minReplicatesForReplace))) {
@@ -753,17 +767,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
-  stopifnot(is.logical(betaPrior))
-  if (missing(modelMatrixType)) {
-    if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
-      modelMatrixType <- "expanded"
-    } else {
-      modelMatrixType <- "standard"
-    }
-  }
-  if (modelMatrixType == "expanded" & !betaPrior) {
-    stop("expanded model matrices require a beta prior")
-  }
+
   stopifnot(length(maxit)==1)
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("you had results columns, replacing these")
@@ -775,6 +779,19 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
 
+  
+  # what kind of model matrix to use
+  stopifnot(is.logical(betaPrior))
+  if (missing(modelMatrixType)) {
+    if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
+      modelMatrixType <- "expanded"
+    } else {
+      modelMatrixType <- "standard"
+    }
+  }
+  if (modelMatrixType == "expanded" & !betaPrior) {
+    stop("expanded model matrices require a beta prior")
+  }
   # if there are interaction terms present in the design
   # then we should only use the prior on the interaction terms
   termsOrder <- attr(terms.formula(design(object)),"order")
@@ -786,6 +803,7 @@ ratio test, i.e. DESeq with argument test='LRT'.")
   }
   priorOnlyInteraction <- interactionPresent & betaPrior & missing(betaPriorVar)
 
+  
   if (!betaPrior) {
     # fit the negative binomial GLM without a prior
     # (in actuality a very wide prior with standard deviation 1e3 on log2 fold changes)
@@ -798,105 +816,15 @@ ratio test, i.e. DESeq with argument test='LRT'.")
   }
 
   if (betaPrior) {
-    # first, fit the negative binomial GLM without a prior,
-    # used to construct the prior variances
-    # and for the hat matrix diagonals for calculating Cook's distance
-    if (modelMatrixType == "standard") {
-      fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR)
-      modelMatrix <- fit$modelMatrix
-      modelMatrixNames <- fit$modelMatrixNames
-    } else {
-      # expanded model matrices: want to make sure the prior
-      # doesn't change from re-leveling
-      modelMatrix <- makeReleveledModelMatrix(object)
-      modelMatrixNames <- colnames(modelMatrix)
-      fit <- fitNbinomGLMs(objectNZ, modelMatrix=modelMatrix,
-                           maxit=maxit, useOptim=useOptim,
-                           useQR=useQR, renameCols=FALSE)
-    }
-    H <- fit$hat_diagonal
-    betaMatrix <- fit$betaMatrix
-    colnames(betaMatrix) <- modelMatrixNames
-    
-    if (missing(betaPriorVar)) {
-      # estimate the variance of the prior on betas
-      # if expanded, first calculate LFC for all possible contrasts
-      if (modelMatrixType == "expanded") {
-        betaMatrix <- addAllContrasts(object, betaMatrix)
-      } 
-      if (nrow(fit$betaMatrix) > 1) {
-        betaPriorVar <- apply(betaMatrix, 2, function(x) {
-          # infinite betas are halted when |beta| > 10
-          # so this test removes them
-          useSmall <- abs(x) < 8
-          # if no more betas pass test, return wide prior
-          if (sum(useSmall) == 0 ) {
-            return(1e6)
-          } else {
-            mean(x[useSmall]^2)
-          }
-        }) 
-      } else {
-        betaPriorVar <- (betaMatrix)^2
-      }
-      names(betaPriorVar) <- colnames(betaMatrix)
-
-      # find the names of betaPriorVar which correspond
-      # to non-interaction terms and set these to a wide prior
-      if (priorOnlyInteraction) {
-        nonInteractionCols <- getNonInteractionColumnIndices(object, modelMatrix)
-        if (modelMatrixType == "standard") widePrior <- 1e6 else widePrior <- 1e3
-        betaPriorVar[nonInteractionCols] <- widePrior
-        if (modelMatrixType == "expanded") {
-          # also set a wide prior for additional contrasts which were added
-          # for calculation of the prior variance in the case of
-          # expanded model matrices
-          designFactors <- getDesignFactors(object)
-          betaPriorVar[names(betaPriorVar) %in% paste0(designFactors,"Cntrst")] <- widePrior
-        }
-      }
-      # intercept set to wide prior
-      if ("Intercept" %in% modelMatrixNames) {
-        betaPriorVar[which(names(betaPriorVar) == "Intercept")] <- 1e6
-      }
-      
-      if (modelMatrixType == "expanded") {
-        # bring over beta priors from the GLM fit without prior.
-        # for factors: prior variance of each level are the average of the
-        # prior variances for the levels present in the previous GLM fit
-        betaPriorExpanded <- averagePriorsOverLevels(object, betaPriorVar)
-        betaPriorVar <- betaPriorExpanded
-      }
-    } else {
-      # else we are provided the prior variance:
-      # check if the lambda is the correct length
-      # given the design formula
-      if (modelMatrixType == "expanded") {
-        modelMatrix <- makeExpandedModelMatrix(object)
-      }
-      p <- ncol(modelMatrix)
-      if (length(betaPriorVar) != p) {
-        stop(paste("betaPriorVar should have length",p,"to match:",paste(colnames(modelMatrix),collapse=", ")))
-      }
-    }
-    
-    # refit the negative binomial GLM with a prior on betas
-    if (any(betaPriorVar == 0)) {
-      stop("beta prior variances are equal to zero for some variables")
-    }
-    lambda <- 1/betaPriorVar
-
-    if (modelMatrixType == "standard") {
-      fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
-                           useQR=useQR)
-      modelMatrix <- fit$modelMatrix
-      modelMatrixNames <- fit$modelMatrixNames
-    } else {
-      modelMatrix <- makeExpandedModelMatrix(object)
-      modelMatrixNames <- colnames(modelMatrix)
-      fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
-                           useQR=useQR, modelMatrix=modelMatrix, renameCols=FALSE)
-    }
+    priorFitList <- fitGLMsWithPrior(objectNZ=objectNZ,
+                                     maxit=maxit, useOptim=useOptim, useQR=useQR,
+                                     modelMatrixType=modelMatrixType,
+                                     betaPriorVar=betaPriorVar,
+                                     priorOnlyInteraction=priorOnlyInteraction)
+    fit <- priorFitList$fit
+    H <- priorFitList$H
+    betaPriorVar <- priorFitList$betaPriorVar
+    modelMatrix <- priorFitList$modelMatrix
   }
 
   # store mu in case the user did not call estimateDispersionsGeneEst
@@ -910,7 +838,8 @@ ratio test, i.e. DESeq with argument test='LRT'.")
   attr(object,"betaPriorVar") <- betaPriorVar
   attr(object,"modelMatrix") <- modelMatrix
   attr(object,"modelMatrixType") <- modelMatrixType
-
+  attr(object,"test") <- "Wald"
+  
   m <- nrow(modelMatrix)
   p <- ncol(modelMatrix)
 
@@ -924,6 +853,7 @@ ratio test, i.e. DESeq with argument test='LRT'.")
   assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
   
   # add betas, standard errors and Wald p-values to the object
+  modelMatrixNames <- colnames(modelMatrix)
   betaMatrix <- fit$betaMatrix
   colnames(betaMatrix) <- modelMatrixNames
   betaSE <- fit$betaSE
@@ -996,6 +926,25 @@ ratio test, i.e. DESeq with argument test='LRT'.")
 #' \code{design(object)}
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model with a term or terms of interest removed
+#' @param betaPrior whether or not to put a zero-mean normal prior on
+#' the non-intercept coefficients (Tikhonov/ridge regularization).
+#' While the beta prior is used typically, for the Wald test, it can
+#' also be specified for the likelihood ratio test. For more details
+#' on the calculation, see \code{\link{nbinomWaldTest}}.
+#' @param betaPriorVar a vector with length equal to the number of
+#' model terms including the intercept.
+#  betaPriorVar gives the variance of the prior on the sample betas,
+#' which if missing is estimated from the rows which do not have any
+#' zeros
+#' @param modelMatrixType either "standard" or "expanded", which describe
+#' how the model matrix, X of the formula in \code{\link{DESeq}}, is
+#' formed. "standard" is as created by \code{model.matrix} using the
+#' design formula. "expanded" includes an indicator variable for each
+#' level of factors with 3 or more levels in addition to an intercept,
+#' in order to ensure that the log2 fold changes are independent
+#' of the choice of base level.
+#' betaPrior must be set to TRUE in order for expanded model matrices
+#' to be fit.
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -1020,13 +969,20 @@ ratio test, i.e. DESeq with argument test='LRT'.")
 #'
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
+                      betaPrior=FALSE, betaPriorVar,
+                      modelMatrixType,
                       maxit=100, useOptim=TRUE, quiet=FALSE,
                       useQR=TRUE) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
   if (missing(reduced)) {
-    stop("please provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
+    stop("provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
+  }
+  reducedNotInFull <- !all.vars(reduced) %in% all.vars(full)
+  if (any(reducedNotInFull)) {
+    stop(paste("the following variables in the reduced formula not in the full formula:",
+               paste(all.vars(reduced)[reducedNotInFull],collapse=", ")))
   }
   if (any(mcols(mcols(object))$type == "results")) {
     if (!quiet) message("you had results columns, replacing these")
@@ -1045,17 +1001,75 @@ nbinomLRT <- function(object, full=design(object), reduced,
   if (!"allZero" %in% names(mcols(object))) {
     object <- getBaseMeansAndVariances(object)
   }
+
+  
+  # what kind of model matrix to use
+  stopifnot(is.logical(betaPrior))
+  if (missing(modelMatrixType)) {
+    if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
+      modelMatrixType <- "expanded"
+    } else {
+      modelMatrixType <- "standard"
+    }
+  }
+  if (modelMatrixType == "expanded" & !betaPrior) {
+    stop("expanded model matrices require a beta prior")
+  }
+  # if there are interaction terms present in the design
+  # then we should only use the prior on the interaction terms
+  termsOrder <- attr(terms.formula(design(object)),"order")
+  interactionPresent <- any(termsOrder > 1)
+  if (any(termsOrder > 2) & modelMatrixType == "expanded") {
+    stop("interactions higher than 2nd order and usage of expanded model matrices
+has not been implemented. we recommend instead using a likelihood
+ratio test, i.e. DESeq with argument test='LRT'.")
+  }
+  priorOnlyInteraction <- interactionPresent & betaPrior & missing(betaPriorVar)
+
+  
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
-  
-  fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit,
-                             useOptim=useOptim, useQR=useQR)
-  reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
-                                useOptim=useOptim, useQR=useQR)
 
-  attr(object, "betaPrior") <- FALSE
-  attr(object,"modelMatrix") <- fullModelMatrix
-  attr(object,"modelMatrixType") <- "standard"
+  if (!betaPrior) {
+    fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit,
+                               useOptim=useOptim, useQR=useQR)
+    modelMatrix <- fullModel$modelMatrix
+    reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
+                                  useOptim=useOptim, useQR=useQR)
+    betaPriorVar <- rep(1e6, ncol(modelMatrix))
+  } else {
+    priorFull <- fitGLMsWithPrior(objectNZ=objectNZ,
+                                  maxit=maxit, useOptim=useOptim, useQR=useQR,
+                                  modelMatrixType=modelMatrixType,
+                                  betaPriorVar=betaPriorVar,
+                                  priorOnlyInteraction=priorOnlyInteraction)
+    fullModel <- priorFull$fit
+    modelMatrix <- fullModel$modelMatrix
+    betaPriorVar <- priorFull$betaPriorVar
+    # form a reduced model matrix:
+    # first find the dropped terms
+    # then remove columns from the full model matrix which are
+    # assigned to these terms
+    fullModelTerms <- attr(terms(full),"term.labels")
+    reducedModelTerms <- attr(terms(reduced),"term.labels")
+    droppedTerms <- which(!fullModelTerms %in% reducedModelTerms)
+    fullAssign <- attr(modelMatrix,"assign")
+    idx <- !fullAssign %in% droppedTerms
+    # now subsetting the relevant columns
+    reducedModelMatrix <- modelMatrix[,idx,drop=FALSE]
+    reducedBetaPriorVar <- betaPriorVar[idx]
+    reducedLambda <- 1/reducedBetaPriorVar
+    reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reducedModelMatrix,
+                                  lambda=reducedLambda,
+                                  maxit=maxit, useOptim=useOptim, useQR=useQR)
+  }
+  
+  attr(object,"betaPrior") <- betaPrior
+  attr(object,"betaPriorVar") <- betaPriorVar
+  attr(object,"modelMatrix") <- modelMatrix
+  attr(object,"reducedModelMatrix") <- reducedModel$modelMatrix
+  attr(object,"modelMatrixType") <- modelMatrixType
+  attr(object,"test") <- "LRT"
   
   p <- ncol(fullModelMatrix)
   m <- nrow(fullModelMatrix)
@@ -1347,6 +1361,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   }
   
   modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
+  colnames(modelMatrix) <- modelMatrixNames
   
   if (!is.null(normalizationFactors(object))) {
     normalizationFactors <- normalizationFactors(object)
@@ -1387,7 +1402,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
       res <- list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
                   betaSE = betaSE, mu = mu, betaIter = betaIter,
                   deviance = deviance,
-                  modelMatrix=modelMatrix, modelMatrixNames = modelMatrixNames,
+                  modelMatrix=modelMatrix, 
                   nterms=1, hat_diagonals=hat_diagonals)
       return(res)
   }
@@ -1497,7 +1512,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
        betaSE = betaSE, mu = mu, betaIter = betaRes$iter,
        deviance = betaRes$deviance,
-       modelMatrix=modelMatrix, modelMatrixNames = modelMatrixNames,
+       modelMatrix=modelMatrix, 
        nterms=ncol(modelMatrix), hat_diagonals=betaRes$hat_diagonals)
 }
 
@@ -1725,4 +1740,127 @@ factorPresentThreeOrMoreLevels <- function(object) {
   designFactors <- getDesignFactors(object)
   threeOrMore <- sapply(designFactors,function(v) nlevels(colData(object)[[v]]) >= 3)
   any(threeOrMore)
+}
+
+
+# this function takes a matrix of MLE betas
+# and estimates the beta prior variance from these.
+# it is called within fitGLMsWithPrior()
+estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
+                                 modelMatrixType, priorOnlyInteraction) {
+  # estimate the variance of the prior on betas
+  # if expanded, first calculate LFC for all possible contrasts
+  if (modelMatrixType == "expanded") {
+    betaMatrix <- addAllContrasts(object, betaMatrix)
+  } 
+  if (nrow(betaMatrix) > 1) {
+    betaPriorVar <- apply(betaMatrix, 2, function(x) {
+      # infinite betas are halted when |beta| > 10
+      # so this test removes them
+      useSmall <- abs(x) < 8
+      # if no more betas pass test, return wide prior
+      if (sum(useSmall) == 0 ) {
+        return(1e6)
+      } else {
+        mean(x[useSmall]^2)
+      }
+    }) 
+  } else {
+    betaPriorVar <- (betaMatrix)^2
+  }
+  names(betaPriorVar) <- colnames(betaMatrix)
+
+  # find the names of betaPriorVar which correspond
+  # to non-interaction terms and set these to a wide prior
+  if (priorOnlyInteraction) {
+    nonInteractionCols <- getNonInteractionColumnIndices(object, modelMatrix)
+    if (modelMatrixType == "standard") widePrior <- 1e6 else widePrior <- 1e3
+    betaPriorVar[nonInteractionCols] <- widePrior
+    if (modelMatrixType == "expanded") {
+      # also set a wide prior for additional contrasts which were added
+      # for calculation of the prior variance in the case of
+      # expanded model matrices
+      designFactors <- getDesignFactors(object)
+      betaPriorVar[names(betaPriorVar) %in% paste0(designFactors,"Cntrst")] <- widePrior
+    }
+  }
+  # intercept set to wide prior
+  if ("Intercept" %in% colnames(modelMatrix)) {
+    betaPriorVar[which(names(betaPriorVar) == "Intercept")] <- 1e6
+  }
+  
+  if (modelMatrixType == "expanded") {
+    # bring over beta priors from the GLM fit without prior.
+    # for factors: prior variance of each level are the average of the
+    # prior variances for the levels present in the previous GLM fit
+    betaPriorExpanded <- averagePriorsOverLevels(object, betaPriorVar)
+    betaPriorVar <- betaPriorExpanded
+  }
+  
+  betaPriorVar
+}
+
+
+# this function calls fitNbinomGLMs() twice:
+# 1 - without the beta prior, in order to calculate the
+#     beta prior variance and hat matrix
+# 2 - again but with the prior in order to get beta matrix and standard errors
+fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
+                             modelMatrixType, betaPriorVar,
+                             priorOnlyInteraction) {
+  # first, fit the negative binomial GLM without a prior,
+  # used to construct the prior variances
+  # and for the hat matrix diagonals for calculating Cook's distance
+  if (modelMatrixType == "standard") {
+    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR)
+    modelMatrix <- fit$modelMatrix
+  } else {
+    # expanded model matrices: want to make sure the prior
+    # doesn't change from re-leveling
+    modelMatrix <- makeReleveledModelMatrix(objectNZ)
+    fit <- fitNbinomGLMs(objectNZ, modelMatrix=modelMatrix,
+                         maxit=maxit, useOptim=useOptim,
+                         useQR=useQR, renameCols=FALSE)
+  }
+  H <- fit$hat_diagonal
+  betaMatrix <- fit$betaMatrix
+  colnames(betaMatrix) <- colnames(modelMatrix)
+  
+  if (missing(betaPriorVar)) {
+    betaPriorVar <- estimateBetaPriorVar(object=objectNZ, betaMatrix=betaMatrix,
+                                         modelMatrix=modelMatrix,
+                                         modelMatrixType=modelMatrixType,
+                                         priorOnlyInteraction=priorOnlyInteraction)
+  } else {
+    # else we are provided the prior variance:
+    # check if the lambda is the correct length
+    # given the design formula
+    if (modelMatrixType == "expanded") {
+      modelMatrix <- makeExpandedModelMatrix(objectNZ)
+    }
+    p <- ncol(modelMatrix)
+    if (length(betaPriorVar) != p) {
+      stop(paste("betaPriorVar should have length",p,"to match:",paste(colnames(modelMatrix),collapse=", ")))
+    }
+  }
+  
+  # refit the negative binomial GLM with a prior on betas
+  if (any(betaPriorVar == 0)) {
+    stop("beta prior variances are equal to zero for some variables")
+  }
+  lambda <- 1/betaPriorVar
+
+  if (modelMatrixType == "standard") {
+    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
+                         useQR=useQR)
+    modelMatrix <- fit$modelMatrix
+  } else {
+    modelMatrix <- makeExpandedModelMatrix(objectNZ)
+    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
+                         useQR=useQR, modelMatrix=modelMatrix, renameCols=FALSE)
+  }
+
+  res <- list(fit=fit, H=H, betaPriorVar=betaPriorVar,
+              modelMatrix=modelMatrix)
+  res
 }
