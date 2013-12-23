@@ -170,12 +170,6 @@ DESeq <- function(object, test=c("Wald","LRT"),
 -- original counts are preserved in counts(dds))"))
     cooks <- assays(object)[["cooks"]]
     object <- replaceOutliers(object,minReplicates=minReplicatesForReplace)
-    if (is.null(normalizationFactors(object))) {
-      if (!quiet) message("estimating size factors")
-      object <- estimateSizeFactors(object)
-    } else {
-      if (!quiet) message("using pre-existing normalization factors")
-    }
     if (!quiet) message("estimating dispersions")
     object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
     if (!quiet) message("fitting model and testing")
@@ -1207,7 +1201,7 @@ replaceOutliers <- function(dds,trim=.2,cooksCutoff,minReplicates=7,whichSamples
   trimBaseMean <- apply(counts(dds,normalized=TRUE),1,mean,trim=trim)
   # build a matrix of counts based on the trimmed mean and the size factors
   if (!is.null(normalizationFactors(dds))) {
-    replacementCounts <- as.integer(matrix(rep(trimBaseMean,ncol(dds)),ncol=dds) * 
+    replacementCounts <- as.integer(matrix(rep(trimBaseMean,ncol(dds)),ncol=ncol(dds)) * 
                                     normalizationFactors(dds))
   } else {
     replacementCounts <- as.integer(outer(trimBaseMean,
