@@ -1045,6 +1045,7 @@ ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
 
 In order to produce results tables for the following tests, the same arguments
 (except \Robject{ylim}) would be provided to the \Rfunction{results} function. 
+\fixme{Fix \Rfunction{plotMA} so that the warnings are avoided.}
 
 <<lfcThresh>>=
 par(mfrow=c(2,2),mar=c(2,2,1,1))
