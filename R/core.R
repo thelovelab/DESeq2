@@ -163,28 +163,66 @@ DESeq <- function(object, test=c("Wald","LRT"),
     object <- nbinomLRT(object, full=full, reduced=reduced,
                         betaPrior=betaPrior, quiet=quiet)
   }
-  # refit without outliers
+  
   if (any(nOrMoreInCell(attr(object,"modelMatrix"),minReplicatesForReplace))) {
-    if (!quiet) message(paste("-- refitting without outliers: samples with >=",
-                              minReplicatesForReplace,"replicates
--- original counts are preserved in counts(dds))"))
     cooks <- assays(object)[["cooks"]]
-    object <- replaceOutliers(object,minReplicates=minReplicatesForReplace)
-    if (!quiet) message("estimating dispersions")
-    object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
-    if (!quiet) message("fitting model and testing")
-    if (test == "Wald") {
-      object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet)
-    } else if (test == "LRT") {
-      object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
+    object <- replaceOutliers(object, minReplicates=minReplicatesForReplace)
+
+    # refit without outliers, if there were any replacements
+    nrefit <- sum(mcols(object)$replace)
+    if ( nrefit > 0 ) {
+      if (!quiet) message(paste("-- refitting", nrefit,"genes
+-- outliers replaced when >=",minReplicatesForReplace,"replicates
+-- original counts are preserved in counts(dds))"))
+      
+      # refit on those rows which had replacement
+      objectSub <- object[which(mcols(object)$replace),]
+      dispFit <- mcols(objectSub)$dispFit
+      intermediateOrResults <- which(mcols(mcols(objectSub))$type %in% c("intermediate","results"))
+      mcols(objectSub) <- mcols(objectSub)[,-intermediateOrResults]
+      if (!quiet) message("estimating dispersions")
+      objectSub <- estimateDispersionsGeneEst(objectSub, quiet=quiet)
+      mcols(objectSub)$dispFit <- dispFit
+      mcols(mcols(objectSub),use.names=TRUE)["dispFit",] <- DataFrame(type="intermediate",
+                               description="fitted values of dispersion")
+      dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" )
+      objectSub <- estimateDispersionsMAP(objectSub, quiet=quiet,
+                                          dispPriorVar=dispPriorVar)
+      if (!quiet) message("fitting model and testing")
+      if (test == "Wald") {
+        betaPriorVar <- attr(object, "betaPriorVar")
+        objectSub <- nbinomWaldTest(objectSub, betaPrior=betaPrior,
+                                    betaPriorVar=betaPriorVar, quiet=quiet)
+      } else if (test == "LRT") {
+        if (betaPrior) {
+          objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet)
+        } else {
+          betaPriorVar <- attr(object, "betaPriorVar")
+          objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, betaPrior=TRUE,
+                                 betaPriorVar=betaPriorVar, quiet=quiet)
+        }
+      }
+      idx <- match(names(mcols(objectSub)), names(mcols(object)))
+      mcols(object)[which(mcols(object)$replace), idx] <- mcols(objectSub)
+
+      # continue to flag if some conditions have less than minReplicatesForReplace
+      if (all(colData(object)$replaceable)) {
+        mcols(object)$maxCooks <- NA
+      } else {
+        newCooks <- assays(object)[["cooks"]]
+        newCooks[,colData(object)$replaceable] <- 0
+        mcols(object)$maxCooks <- recordMaxCooks(design(object), colData(object),
+                                                 attr(object,"modelMatrix"), newCooks, nrow(object))
+      }    
+      
+      # preserve original counts and Cook's distances
+      # and save the counts used for fitting as 'replaceCounts'
+      assays(object)[["replaceCounts"]] <- counts(object)
+      assays(object)[["cooks"]] <- cooks
+      counts(object) <- assays(object)[["originalCounts"]]
     }
-    mcols(object)$maxCooks <- rep(NA,nrow(object))
-    # preserve original counts and Cook's distances
-    # and save the counts used for fitting as 'replaceCounts'
-    assays(object)[["replaceCounts"]] <- counts(object)
-    assays(object)[["cooks"]] <- cooks
-    counts(object) <- assays(object)[["originalCounts"]]
   }
+  
   object
 }
 
@@ -512,93 +550,43 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))  
   objectNZ <- object[!mcols(object)$allZero,]
 
-  useNotMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*10
-  if (sum(useNotMinDisp,na.rm=TRUE) == 0) {
-    warning(paste0("all genes have dispersion estimates < ",minDisp*10,
-                   ", returning disp = ",minDisp*10))
-    resultsList <- list(dispersion = minDisp*10)
-    dispDataFrame <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
-    mcols(dispDataFrame) <- DataFrame(type="intermediate",
-                                      description="final estimates of dispersion")
-    mcols(object) <- cbind(mcols(object), dispDataFrame)
-    return(object)
-  }
-  
-  # estimate the variance of the distribution of the
-  # log dispersion estimates around the fitted value
-  dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
-
-  useForPrior <- useNotMinDisp
-  if (sum(useForPrior,na.rm=TRUE) == 0) {
-    stop("no data found which is greater than minDisp, within quants, and converged in gene-wise estimates")
-  }
-
-  varLogDispEsts <- varLogDispEstsAll <- mad(dispResiduals[useForPrior],na.rm=TRUE)^2
-  
-  m <- nrow(modelMatrix)
-  p <- ncol(modelMatrix)
-
-  # if the residual degrees of freedom is between 1 and 3, the distribution
-  # of log dispersions is especially asymmetric and poorly estimated
-  # by the MAD. we then use an alternate estimator, a monte carlo
-  # approach to match the distribution
-  if (((m - p) <= 3) & (m > p)) {
-    # in order to produce identical results we set the seed, 
-    # and so we need to save and restore the .Random.seed value first
-    if (exists(".Random.seed")) {
-      oldRandomSeed <- .Random.seed
-    }
-    set.seed(2)
-    # The residuals are the observed distribution we try to match
-    obsDist <- dispResiduals[useForPrior]
-    brks <- -20:20/2
-    obsDist <- obsDist[obsDist > min(brks) & obsDist < max(brks)]
-    obsVarGrid <- seq(from=0,to=8,length=200)
-    obsDistHist <- hist(obsDist,breaks=brks,plot=FALSE)
-    klDivs <- sapply(obsVarGrid, function(x) {
-      randDist <- log(rchisq(1e4,df=(m-p))) + rnorm(1e4,0,sqrt(x)) - log(m - p)
-      randDist <- randDist[randDist > min(brks) & randDist < max(brks)]
-      randDistHist <- hist(randDist,breaks=brks,plot=FALSE)
-      z <- c(obsDistHist$density,randDistHist$density)
-      small <- min(z[z > 0])
-      kl <- sum(obsDistHist$density * (log(obsDistHist$density + small) - log(randDistHist$density + small)))
-      kl
-    })
-    lofit <- loess(klDivs ~ obsVarGrid, span=.2)
-    obsVarFineGrid <- seq(from=0,to=8,length=1000)
-    lofitFitted <- predict(lofit,obsVarFineGrid)
-    argminKL <- obsVarFineGrid[which.min(lofitFitted)]
-    expVarLogDisp <- trigamma((m - p)/2)
-    varLogDispEsts <- argminKL + expVarLogDisp
-    # finally, restore the .Random.seed if it existed beforehand
-    if (exists("oldRandomSeed")) {
-      .Random.seed <<- oldRandomSeed
-    }
-  }
-
-  attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
-
-  # estimate the expected sampling variance of the log estimates
-  # Var(log(cX)) = Var(log(X))
-  # X ~ chi-squared with m - p degrees of freedom
-  if (m > p) {
-    expVarLogDisp <- trigamma((m - p)/2)
-    attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
-    # set the variance of the prior using these two estimates
-    # with a minimum of .25
-    dispPriorVarCalc <- pmax((varLogDispEsts - expVarLogDisp), .25)
-  } else {
-    # we have m = p, so do not try to substract sampling variance
-    dispPriorVarCalc <- varLogDispEsts
-  }
-  
-
   # fill in the calculated dispersion prior variance
   if (missing(dispPriorVar)) {
-    dispPriorVar <- dispPriorVarCalc
+    useNotMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*10
+    if (sum(useNotMinDisp,na.rm=TRUE) == 0) {
+      warning(paste0("all genes have dispersion estimates < ",minDisp*10,
+                     ", returning disp = ",minDisp*10))
+      resultsList <- list(dispersion = minDisp*10)
+      dispDataFrame <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
+      mcols(dispDataFrame) <- DataFrame(type="intermediate",
+                                        description="final estimates of dispersion")
+      mcols(object) <- cbind(mcols(object), dispDataFrame)
+      attr( dispersionFunction(object), "dispPriorVar" ) <- 0.25
+      return(object)
+    }
+    resList <- estimateDispersionPriorVar(objectNZ, useNotMinDisp, modelMatrix)
+    dispPriorVar <- resList$dispPriorVar
+    varLogDispEsts <- resList$varLogDispEsts
+    expVarLogDisp <- resList$expVarLogDisp
+    attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
+    attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
   }
   stopifnot(length(dispPriorVar)==1)
   attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
+
+  # could be coming from a previous run, and need to import varLogDispEsts
+  # for the calculation of outliers
+  if (!is.null(attr(dispersionFunction(object), "varLogDispEsts"))) {
+    varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
+  } else {
+    # provided dispPriorVar, so need to calculate observed varLogDispEsts
+    # this code is copied from estimateDispPriorVar()
+    useNotMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*10
+    stopifnot(sum(useNotMinDisp,na.rm=TRUE) > 0)
+    dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
+    varLogDispEsts <- mad(dispResiduals[useNotMinDisp],na.rm=TRUE)^2
+    attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
+  }
   
   # set prior variance for fitting dispersion
   log_alpha_prior_sigmasq <- dispPriorVar
@@ -635,7 +623,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   # from all the genes, not only those from below
   dispOutlier <- log(mcols(objectNZ)$dispGeneEst) >
                  log(mcols(objectNZ)$dispFit) +
-                 outlierSD * sqrt(varLogDispEstsAll)
+                 outlierSD * sqrt(varLogDispEsts)
   dispOutlier[is.na(dispOutlier)] <- FALSE
   dispersionFinal[dispOutlier] <- mcols(objectNZ)$dispGeneEst[dispOutlier]
  
@@ -1180,7 +1168,7 @@ ratio test, i.e. DESeq with argument test='LRT'.")
 #' ddsReplace <- replaceOutliers(dds)
 #'
 #' @export
-replaceOutliers <- function(dds,trim=.2,cooksCutoff,minReplicates=7,whichSamples) {
+replaceOutliers <- function(dds, trim=.2, cooksCutoff, minReplicates=7, whichSamples) {
   if (is.null(attr(dds,"modelMatrix")) | !("cooks" %in% names(assays(dds)))) {
     stop("first run DESeq, nbinomWaldTest, or nbinomLRT to identify outliers")
   }
@@ -1198,6 +1186,8 @@ replaceOutliers <- function(dds,trim=.2,cooksCutoff,minReplicates=7,whichSamples
     cooksCutoff <- qf(.99, p, m - p)
   }
   idx <- which(assays(dds)[["cooks"]] > cooksCutoff)
+  mcols(dds)$replace <- apply(assays(dds)[["cooks"]], 1, function(row) any(row > cooksCutoff))
+  mcols(mcols(dds),use.names=TRUE)["replace",] <- DataFrame(type="results",description="had counts replaced")
   trimBaseMean <- apply(counts(dds,normalized=TRUE),1,mean,trim=trim)
   # build a matrix of counts based on the trimmed mean and the size factors
   if (!is.null(normalizationFactors(dds))) {
@@ -1213,9 +1203,12 @@ replaceOutliers <- function(dds,trim=.2,cooksCutoff,minReplicates=7,whichSamples
   if (missing(whichSamples)) {
     whichSamples <- nOrMoreInCell(attr(dds,"modelMatrix"), n = minReplicates)
   }
-  if (is.logical(whichSamples)) whichSamples <- which(whichSamples)
+  stopifnot(is.logical(whichSamples))
+  colData(dds)$replaceable <- whichSamples
+  mcols(colData(dds),use.names=TRUE)["replaceable",] <- DataFrame(type="intermediate",
+                         description="outliers can be replaced")
   assays(dds)[["originalCounts"]] <- counts(dds)
-  if (length(whichSamples) == 0) {
+  if (sum(whichSamples) == 0) {
     return(dds)
   }
   counts(dds)[,whichSamples] <- newCounts[,whichSamples]
@@ -1665,6 +1658,7 @@ recordMaxCooks <- function(design, colData, modelMatrix, cooks, numRow) {
     } else {
         maxCooks <- rep(NA, numRow)
     }
+    maxCooks
 }
 
 # for each sample in the model matrix,
@@ -1754,9 +1748,9 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
   } 
   if (nrow(betaMatrix) > 1) {
     betaPriorVar <- apply(betaMatrix, 2, function(x) {
-      # infinite betas are halted when |beta| > 10
-      # so this test removes them
-      useFinite <- abs(x) < 8
+      # this test removes genes which have betas
+      # tending to +/- infinity
+      useFinite <- abs(x) < 10
       # if no more betas pass test, return wide prior
       if (sum(useFinite) == 0 ) {
         return(1e6)
@@ -1863,4 +1857,79 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
   res <- list(fit=fit, H=H, betaPriorVar=betaPriorVar,
               modelMatrix=modelMatrix)
   res
+}
+
+# estimates the variance of the prior on log dispersions
+estimateDispersionPriorVar <- function(objectNZ, useNotMinDisp, modelMatrix) {
+  # estimate the variance of the distribution of the
+  # log dispersion estimates around the fitted value
+  dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
+
+  if (sum(useNotMinDisp,na.rm=TRUE) == 0) {
+    stop("no data found which is greater than minDisp")
+  }
+
+  varLogDispEsts <- mad(dispResiduals[useNotMinDisp],na.rm=TRUE)^2
+  
+  m <- nrow(modelMatrix)
+  p <- ncol(modelMatrix)
+
+  # if the residual degrees of freedom is between 1 and 3, the distribution
+  # of log dispersions is especially asymmetric and poorly estimated
+  # by the MAD. we then use an alternate estimator, a monte carlo
+  # approach to match the distribution
+  if (((m - p) <= 3) & (m > p)) {
+    # in order to produce identical results we set the seed, 
+    # and so we need to save and restore the .Random.seed value first
+    if (exists(".Random.seed")) {
+      oldRandomSeed <- .Random.seed
+    }
+    set.seed(2)
+    # The residuals are the observed distribution we try to match
+    obsDist <- dispResiduals[useNotMinDisp]
+    brks <- -20:20/2
+    obsDist <- obsDist[obsDist > min(brks) & obsDist < max(brks)]
+    obsVarGrid <- seq(from=0,to=8,length=200)
+    obsDistHist <- hist(obsDist,breaks=brks,plot=FALSE)
+    klDivs <- sapply(obsVarGrid, function(x) {
+      randDist <- log(rchisq(1e4,df=(m-p))) + rnorm(1e4,0,sqrt(x)) - log(m - p)
+      randDist <- randDist[randDist > min(brks) & randDist < max(brks)]
+      randDistHist <- hist(randDist,breaks=brks,plot=FALSE)
+      z <- c(obsDistHist$density,randDistHist$density)
+      small <- min(z[z > 0])
+      kl <- sum(obsDistHist$density * (log(obsDistHist$density + small) - log(randDistHist$density + small)))
+      kl
+    })
+    lofit <- loess(klDivs ~ obsVarGrid, span=.2)
+    obsVarFineGrid <- seq(from=0,to=8,length=1000)
+    lofitFitted <- predict(lofit,obsVarFineGrid)
+    argminKL <- obsVarFineGrid[which.min(lofitFitted)]
+    expVarLogDisp <- trigamma((m - p)/2)
+    dispPriorVar <- pmax(argminKL, 0.25)
+    # finally, restore the .Random.seed if it existed beforehand
+    if (exists("oldRandomSeed")) {
+      .Random.seed <<- oldRandomSeed
+    }
+    return(list(dispPriorVar=dispPriorVar,
+                varLogDispEsts=varLogDispEsts,
+                expVarLogDisp=expVarLogDisp))
+  }
+
+  # estimate the expected sampling variance of the log estimates
+  # Var(log(cX)) = Var(log(X))
+  # X ~ chi-squared with m - p degrees of freedom
+  if (m > p) {
+    expVarLogDisp <- trigamma((m - p)/2)
+    # set the variance of the prior using these two estimates
+    # with a minimum of .25
+    dispPriorVar <- pmax((varLogDispEsts - expVarLogDisp), 0.25)
+  } else {
+    # we have m = p, so do not try to substract sampling variance
+    dispPriorVar <- varLogDispEsts
+    expVarLogDisp <- 0
+  }
+
+  list(dispPriorVar=dispPriorVar,
+       varLogDispEsts=varLogDispEsts,
+       expVarLogDisp=expVarLogDisp)
 }
