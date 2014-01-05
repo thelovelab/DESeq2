@@ -1473,11 +1473,9 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
         mu_row <- as.numeric(nf * 2^(x %*% p))
         prior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
         logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
-        softBox <- sum( ifelse(abs(p) < 30, 0, (abs(p) - 30)) )
-        # -1 times the posterior plus the soft box penalty
-        -1 * (logLike + prior) + softBox
+        -1 * (logLike + prior)
       }
-      o <- optim(betaRow, objectiveFn, method="L-BFGS-B")
+      o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-30, upper=30)
       if (length(lambdaLogScale) > 1) {
         ridge <- diag(lambdaLogScaleColScale)
       } else {
