@@ -5,12 +5,12 @@
 \alias{plotMA,DESeqResults-method}
 \title{MA-plot from base means and log fold changes}
 \usage{
-\S4method{plotMA}{DESeqResults}(object, alpha, main, ylim)
+\S4method{plotMA}{DESeqResults}(object, alpha, main, ylim, ...)
 \S4method{plotMA}{DESeqDataSet}(object, alpha, main, ylim, ...)
 
 \S4method{plotMA}{DESeqDataSet}(object, alpha = 0.1, main = "", ylim, ...)
 
-\S4method{plotMA}{DESeqResults}(object, alpha = 0.1, main = "", ylim)
+\S4method{plotMA}{DESeqResults}(object, alpha = 0.1, main = "", ylim, ...)
 }
 \arguments{
   \item{object}{a \code{DESeqResults} object produced by
@@ -25,9 +25,9 @@
 
   \item{ylim}{optional y limits}
 
-  \item{...}{further arguments passed to
-  \code{\link{results}} (if object is a
-  \code{DESeqDataSet}}
+  \item{...}{further arguments passed to \code{plotMA} if
+  object is \code{DESeqResults} or to \code{\link{results}}
+  if object is \code{DESeqDataSet}}
 }
 \description{
 A simple helper function that makes a so-called "MA-plot",
