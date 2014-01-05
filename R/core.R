@@ -1735,6 +1735,14 @@ factorPresentThreeOrMoreLevels <- function(object) {
   any(threeOrMore)
 }
 
+# looking at the values of x which are large
+# in absolute value, find the zero-centered Normal distribution
+# with the matching quantile, and return the variance
+# of that Normal distribution
+matchUpperQuantileForVariance <- function(x, upperTail=.05) {
+  sdEst <- quantile(abs(x), 1 - upperTail) / qnorm(1 - upperTail/2)
+  unname(sdEst)^2
+}
 
 # this function takes a matrix of MLE betas
 # and estimates the beta prior variance from these.
@@ -1750,14 +1758,15 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
     betaPriorVar <- apply(betaMatrix, 2, function(x) {
       # infinite betas are halted when |beta| > 10
       # so this test removes them
-      useSmall <- abs(x) < 8
+      useFinite <- abs(x) < 8
       # if no more betas pass test, return wide prior
-      if (sum(useSmall) == 0 ) {
+      if (sum(useFinite) == 0 ) {
         return(1e6)
       } else {
-        mean(x[useSmall]^2)
+        # previously: mean(x[useFinite]^2)
+        matchUpperQuantileForVariance(x[useFinite])
       }
-    }) 
+    })
   } else {
     betaPriorVar <- (betaMatrix)^2
   }

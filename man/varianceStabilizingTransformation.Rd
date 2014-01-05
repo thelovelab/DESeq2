@@ -23,7 +23,8 @@ getVarianceStabilizedData(object)
 }
 \value{
 for \code{varianceStabilizingTransformation}, a
-\code{SummarizedExperiment}. for
+\code{\link{SummarizedExperiment}}. The matrix of
+transformed values are accessed by \code{assay(vsd)}. for
 \code{getVarianceStabilizedData}, a \code{matrix} of the
 same dimension as the count data, containing the
 transformed values.

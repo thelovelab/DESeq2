@@ -25,7 +25,11 @@
 #' A second and final GLM fit is then performed using this prior.
 #' It is also possible to supply the variance of the prior.
 #' See the vignette for an example of the use and a comparison with
-#' \code{varianceStabilizingTransformation}
+#' \code{varianceStabilizingTransformation}.
+#'
+#' The transformed values, rlog(K), are equal to
+#' \eqn{rlog(K_{ij}) = \log_2(q_{ij}) = x_{j.} \beta_i}{rlog(K_ij) = log2(q_ij) = x_j. * beta_i},
+#' with formula terms defined in \code{\link{DESeq}}.
 #'
 #' The parameters of the rlog transformation from a previous dataset
 #' can be "frozen" and reapplied to new samples. See the "Data quality assessment"
@@ -53,10 +57,8 @@
 #' this will enforce the intercept for the GLM, allowing for a "frozen" rlog
 #' transformation based on a previous dataset.
 #' 
-#' @return for \code{rlogTransformation},
-#' a SummarizedExperiment with assay data elements equal to
-#' \eqn{\log_2(q_{ij}) = x_{j.} \beta_i}{log2(q_ij) = x_j. * beta_i},
-#' see formula at \code{\link{DESeq}}.
+#' @return for \code{rlogTransformation}, a \code{\link{SummarizedExperiment}}.
+#' The matrix of transformed values are accessed by \code{assay(rld)}.
 #' for \code{rlogData}, a \code{matrix} of the same dimension as the
 #' count data, containing the transformed values. To avoid returning
 #' matrices with NA values where there were zeros for all rows of

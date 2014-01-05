@@ -68,7 +68,8 @@
 #' \code{meanSdPlot} from the package \pkg{vsn} to see whether this
 #' is a problem for your data.
 #'
-#' @return for \code{varianceStabilizingTransformation}, a \code{SummarizedExperiment}.
+#' @return for \code{varianceStabilizingTransformation}, a \code{\link{SummarizedExperiment}}.
+#' The matrix of transformed values are accessed by \code{assay(vsd)}.
 #' for \code{getVarianceStabilizedData}, a \code{matrix} of the same dimension as the
 #' count data, containing the transformed values.  
 #' 
