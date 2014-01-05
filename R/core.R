@@ -169,7 +169,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
     object <- replaceOutliers(object, minReplicates=minReplicatesForReplace)
 
     # refit without outliers, if there were any replacements
-    nrefit <- sum(mcols(object)$replace)
+    nrefit <- sum(mcols(object)$replace,na.rm=TRUE)
     if ( nrefit > 0 ) {
       if (!quiet) message(paste("-- refitting", nrefit,"genes
 -- outliers replaced when >=",minReplicatesForReplace,"replicates
