@@ -92,7 +92,7 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' same manner and call \code{plotMA}
 #'
 #' @usage
-#' \S4method{plotMA}{DESeqResults}(object, alpha, main, ylim)
+#' \S4method{plotMA}{DESeqResults}(object, alpha, main, ylim, ...)
 #' \S4method{plotMA}{DESeqDataSet}(object, alpha, main, ylim, ...)
 #' 
 #'
@@ -107,8 +107,9 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' @param alpha the significance level for thresholding adjusted p-values
 #' @param main optional title for the plot
 #' @param ylim optional y limits
-#' @param ... further arguments passed to \code{\link{results}} (if object is
-#' a \code{DESeqDataSet}
+#' @param ... further arguments passed to \code{plotMA} if object
+#' is \code{DESeqResults} or to \code{\link{results}} if object is
+#' \code{DESeqDataSet}
 #'
 #' @author Michael Love
 #'
@@ -130,14 +131,14 @@ plotMA.DESeqDataSet <- function(object, alpha=.1, main="", ylim, ...) {
 #' @export
 setMethod("plotMA", signature(object="DESeqDataSet"), plotMA.DESeqDataSet)
 
-plotMA.DESeqResults <- function(object, alpha=.1, main="", ylim) {
+plotMA.DESeqResults <- function(object, alpha=.1, main="", ylim, ...) {
     df <- data.frame(mean = object$baseMean,
                      lfc = object$log2FoldChange,
                      isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
     if (missing(ylim)) {
-      plotMA(df, main=main)
+      plotMA(df, main=main, ...)
     } else {
-      plotMA(df, main=main, ylim=ylim)
+      plotMA(df, main=main, ylim=ylim, ...)
     }  
 }
 
