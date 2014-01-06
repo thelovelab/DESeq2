@@ -662,9 +662,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' for GLM coefficients (synonymous with beta, log2 fold change)
 #' are calculated; a zero-mean normal prior distribution
 #' is assumed; the variance of the prior distribution for each
-#' non-intercept coefficient is calculated as the mean squared
-#' maximum likelihood estimates for coefficients
-#' over the genes which do not contain zeros for some condition;
+#' non-intercept coefficient is calculated by matching the upper
+#' quantile of the MLE coefficients with a zero-centered normal
+#' distribution;
 #' the final coefficients are then maximum a posteriori estimates
 #' (using Tikhonov/ridge regularization) using this prior.
 #' The use of a prior has little effect on genes with high counts and helps to
@@ -726,6 +726,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' @param df the degrees of freedom for the t-distribution
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
+#' @param betaPriorUpperQuantile the upper quantile to use for calculating the
+#' variance of the beta prior. by default the 0.05 upper quantile of the absolute
+#' value of the MLE betas is matched to the 0.025 upper quantile of a
+#' zero-centered normal.
+#' 
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -744,12 +749,15 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' @export
 nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType,
                            maxit=100, useOptim=TRUE, quiet=FALSE,
-                           useT=FALSE, df, useQR=TRUE) {
+                           useT=FALSE, df, useQR=TRUE, betaPriorUpperQuantile=.05) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
-
+  
   stopifnot(length(maxit)==1)
+  stopifnot(length(betaPriorUpperQuantile) == 1 &&
+            betaPriorUpperQuantile > 0 &&
+            betaPriorUpperQuantile < 1)
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
@@ -757,9 +765,9 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   if (!"allZero" %in% names(mcols(object))) {
     object <- getBaseMeansAndVariances(object)
   }
+  
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
-
   
   # what kind of model matrix to use
   stopifnot(is.logical(betaPrior))
@@ -801,7 +809,8 @@ ratio test, i.e. DESeq with argument test='LRT'.")
                                      maxit=maxit, useOptim=useOptim, useQR=useQR,
                                      modelMatrixType=modelMatrixType,
                                      betaPriorVar=betaPriorVar,
-                                     priorOnlyInteraction=priorOnlyInteraction)
+                                     priorOnlyInteraction=priorOnlyInteraction,
+                                     upperQuantile=betaPriorUpperQuantile)
     fit <- priorFitList$fit
     H <- priorFitList$H
     betaPriorVar <- priorFitList$betaPriorVar
@@ -933,6 +942,11 @@ ratio test, i.e. DESeq with argument test='LRT'.")
 #' @param quiet whether to print messages at each step
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
+#' @param betaPriorUpperQuantile only used when betaPrior=TRUE, which
+#' is not the default. the upper quantile to use for calculating the
+#' variance of the beta prior. by default the 0.05 upper quantile of the absolute
+#' value of the MLE betas is matched to the 0.025 upper quantile of a
+#' zero-centered normal.
 #'
 #' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -953,7 +967,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
                       betaPrior=FALSE, betaPriorVar,
                       modelMatrixType,
                       maxit=100, useOptim=TRUE, quiet=FALSE,
-                      useQR=TRUE) {
+                      useQR=TRUE, betaPriorUpperQuantile=.05) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
@@ -965,6 +979,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
     stop(paste("the following variables in the reduced formula not in the full formula:",
                paste(all.vars(reduced)[reducedNotInFull],collapse=", ")))
   }
+  stopifnot(length(betaPriorUpperQuantile) == 1 &&
+            betaPriorUpperQuantile > 0 &&
+            betaPriorUpperQuantile < 1)
+  
   if (any(mcols(mcols(object))$type == "results")) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
@@ -1023,7 +1041,8 @@ ratio test, i.e. DESeq with argument test='LRT'.")
                                   maxit=maxit, useOptim=useOptim, useQR=useQR,
                                   modelMatrixType=modelMatrixType,
                                   betaPriorVar=betaPriorVar,
-                                  priorOnlyInteraction=priorOnlyInteraction)
+                                  priorOnlyInteraction=priorOnlyInteraction,
+                                  upperQuantile=betaPriorUpperQuantile)
     fullModel <- priorFull$fit
     modelMatrix <- fullModel$modelMatrix
     betaPriorVar <- priorFull$betaPriorVar
@@ -1731,8 +1750,8 @@ factorPresentThreeOrMoreLevels <- function(object) {
 # in absolute value, find the zero-centered Normal distribution
 # with the matching quantile, and return the variance
 # of that Normal distribution
-matchUpperQuantileForVariance <- function(x, upperTail=.05) {
-  sdEst <- quantile(abs(x), 1 - upperTail) / qnorm(1 - upperTail/2)
+matchUpperQuantileForVariance <- function(x, upperQuantile=.05) {
+  sdEst <- quantile(abs(x), 1 - upperQuantile) / qnorm(1 - upperQuantile/2)
   unname(sdEst)^2
 }
 
@@ -1740,7 +1759,8 @@ matchUpperQuantileForVariance <- function(x, upperTail=.05) {
 # and estimates the beta prior variance from these.
 # it is called within fitGLMsWithPrior()
 estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
-                                 modelMatrixType, priorOnlyInteraction) {
+                                 modelMatrixType, priorOnlyInteraction,
+                                 upperQuantile) {
   # estimate the variance of the prior on betas
   # if expanded, first calculate LFC for all possible contrasts
   if (modelMatrixType == "expanded") {
@@ -1756,7 +1776,7 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
         return(1e6)
       } else {
         # previously: mean(x[useFinite]^2)
-        matchUpperQuantileForVariance(x[useFinite])
+        matchUpperQuantileForVariance(x[useFinite],upperQuantile=upperQuantile)
       }
     })
   } else {
@@ -1801,7 +1821,8 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
 # 2 - again but with the prior in order to get beta matrix and standard errors
 fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
                              modelMatrixType, betaPriorVar,
-                             priorOnlyInteraction) {
+                             priorOnlyInteraction,
+                             upperQuantile) {
   # first, fit the negative binomial GLM without a prior,
   # used to construct the prior variances
   # and for the hat matrix diagonals for calculating Cook's distance
@@ -1824,7 +1845,8 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
     betaPriorVar <- estimateBetaPriorVar(object=objectNZ, betaMatrix=betaMatrix,
                                          modelMatrix=modelMatrix,
                                          modelMatrixType=modelMatrixType,
-                                         priorOnlyInteraction=priorOnlyInteraction)
+                                         priorOnlyInteraction=priorOnlyInteraction,
+                                         upperQuantile=upperQuantile)
   } else {
     # else we are provided the prior variance:
     # check if the lambda is the correct length

@@ -174,10 +174,30 @@ dds
 If you have used the \textit{HTSeq} python scripts, you can use the
 function \Rfunction{DESeqDataSetFromHTSeqCount}.  For an
 example of using the python scripts, see the \Biocannopkg{pasilla} or
-\Biocannopkg{parathyroid} data package.
+\Biocannopkg{parathyroid} data package. 
+First you will want to specify a variable which points to the 
+directory in which the \textit{HTSeq} output files are located.
+
+<<htseqDirI, eval=FALSE>>=
+directory <- "/path/to/your/files/"
+@ 
+
+However, for demonstration purposes only, the following line of
+code points to the directory for the demo \textit{HTSeq} output
+files packages for the \Biocannopkg{pasilla} package.
+
+<<htseqDirII>>=
+directory <- system.file("extdata", package="pasilla", mustWork=TRUE)
+@ 
+
+We specify which files to read in using \Rfunction{list.files},
+and select those files which contain the string \Rcode{"treated"} 
+using \Rfunction{grep}. The \Rfunction{sub} function is used to 
+chop up the sample filename to obtain the condition status, or 
+you might alternatively read in a phenotypic table 
+using \Rfunction{read.table}.
 
 <<htseqInput, cache=TRUE>>=
-directory <- system.file("extdata", package="pasilla", mustWork=TRUE)
 sampleFiles <- grep("treated",list.files(directory),value=TRUE)
 sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
 sampleTable <- data.frame(sampleName = sampleFiles,

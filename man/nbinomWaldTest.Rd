@@ -4,7 +4,7 @@
 \usage{
 nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
   maxit = 100, useOptim = TRUE, quiet = FALSE, useT = FALSE, df,
-  useQR = TRUE)
+  useQR = TRUE, betaPriorUpperQuantile = 0.05)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -46,6 +46,12 @@ nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
 
   \item{useQR}{whether to use the QR decomposition on the
   design matrix X while fitting the GLM}
+
+  \item{betaPriorUpperQuantile}{the upper quantile to use
+  for calculating the variance of the beta prior. by
+  default the 0.05 upper quantile of the absolute value of
+  the MLE betas is matched to the 0.025 upper quantile of a
+  zero-centered normal.}
 }
 \value{
 a DESeqDataSet with results columns accessible with the
@@ -65,14 +71,13 @@ likelihood estimates for GLM coefficients (synonymous with
 beta, log2 fold change) are calculated; a zero-mean normal
 prior distribution is assumed; the variance of the prior
 distribution for each non-intercept coefficient is
-calculated as the mean squared maximum likelihood estimates
-for coefficients over the genes which do not contain zeros
-for some condition; the final coefficients are then maximum
-a posteriori estimates (using Tikhonov/ridge
-regularization) using this prior. The use of a prior has
-little effect on genes with high counts and helps to
-moderate the large spread in coefficients for genes with
-low counts.
+calculated by matching the upper quantile of the MLE
+coefficients with a zero-centered normal distribution; the
+final coefficients are then maximum a posteriori estimates
+(using Tikhonov/ridge regularization) using this prior. The
+use of a prior has little effect on genes with high counts
+and helps to moderate the large spread in coefficients for
+genes with low counts.
 
 For calculating Wald test p-values, the coefficients are
 scaled by their standard errors and then compared to a
