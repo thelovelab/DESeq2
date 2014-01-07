@@ -20,8 +20,9 @@
 #' The prior variance is calculated as follows: 
 #' a matrix is constructed of the logarithm of the counts plus a pseudocount of 0.5,
 #' the row means of these log counts are then subtracted, leaving an estimate of
-#' the log fold changes per sample. The prior variance is set to the variance of
-#' all log fold change estimates.
+#' the log fold changes per sample. The prior variance is then calculated as with
+#' \code{\link{nbinomWaldTest}}, by matching the upper quantiles of the observed 
+#' log fold change estimates with an upper quantile of the normal distribution.
 #' A second and final GLM fit is then performed using this prior.
 #' It is also possible to supply the variance of the prior.
 #' See the vignette for an example of the use and a comparison with
@@ -186,11 +187,13 @@ rlogData <- function(object, samplesVector, betaPriorVar, intercept) {
   objectNZ <- object[!mcols(object)$allZero,]
     
   # if a prior sigma squared not provided, estimate this
-  # by the variance of log2 counts plus a pseudocount
+  # by the matching upper quantiles of the
+  # log2 counts plus a pseudocount
   if (missing(betaPriorVar)) {
     logCounts <- log2(counts(objectNZ,normalized=TRUE) + 0.5)
     logFoldChangeMatrix <- logCounts - rowMeans(logCounts)
-    betaPriorVar <- var(as.numeric(logFoldChangeMatrix))
+    logFoldChangeVector <- as.numeric(logFoldChangeMatrix)
+    betaPriorVar <- matchUpperQuantileForVariance(logFoldChangeVector)
   }
   stopifnot(length(betaPriorVar)==1)
   

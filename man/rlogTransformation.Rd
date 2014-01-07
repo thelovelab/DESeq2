@@ -69,11 +69,14 @@ true log fold changes. The prior variance is calculated as
 follows: a matrix is constructed of the logarithm of the
 counts plus a pseudocount of 0.5, the row means of these
 log counts are then subtracted, leaving an estimate of the
-log fold changes per sample. The prior variance is set to
-the variance of all log fold change estimates. A second and
-final GLM fit is then performed using this prior. It is
-also possible to supply the variance of the prior. See the
-vignette for an example of the use and a comparison with
+log fold changes per sample. The prior variance is then
+calculated as with \code{\link{nbinomWaldTest}}, by
+matching the upper quantiles of the observed log fold
+change estimates with an upper quantile of the normal
+distribution. A second and final GLM fit is then performed
+using this prior. It is also possible to supply the
+variance of the prior. See the vignette for an example of
+the use and a comparison with
 \code{varianceStabilizingTransformation}.
 
 The transformed values, rlog(K), are equal to
