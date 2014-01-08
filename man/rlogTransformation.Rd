@@ -1,12 +1,15 @@
 \name{rlogTransformation}
 \alias{rlogData}
+\alias{rlogDataFast}
 \alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
-rlogTransformation(object, blind = TRUE, samplesVector, betaPriorVar,
-  intercept)
+rlogTransformation(object, blind = TRUE, fast = FALSE, intercept,
+  betaPriorVar, B)
 
-rlogData(object, samplesVector, betaPriorVar, intercept)
+rlogData(object, intercept, betaPriorVar)
+
+rlogDataFast(object, intercept, betaPriorVar, B, trim = 0.1)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -19,12 +22,14 @@ rlogData(object, samplesVector, betaPriorVar, intercept)
   transforming data for downstream analysis, where the full
   use of the design information should be made.}
 
-  \item{samplesVector}{a character vector or factor of the
-  sample identifiers}
-
-  \item{betaPriorVar}{a single value, the variance of the
-  prior on the sample betas, which if missing is estimated
-  from the data}
+  \item{fast}{if TRUE, an approximation to the rlog
+  transformation is made, wherein an optimal amount of
+  shrinkage of sample-wise log fold changes is calculated
+  for genes divided into 12 batched based on mean counts.
+  then shrinkage is performed by interpolating between
+  these optimal values. optimal is defined by maximizing
+  the same posterior as in the standard rlog
+  transformation.}
 
   \item{intercept}{by default, this is not provided and
   calculated automatically. if provided, this should be a
@@ -33,6 +38,20 @@ rlogData(object, samplesVector, betaPriorVar, intercept)
   dataset. this will enforce the intercept for the GLM,
   allowing for a "frozen" rlog transformation based on a
   previous dataset.}
+
+  \item{betaPriorVar}{a single value, the variance of the
+  prior on the sample betas, which if missing is estimated
+  from the data}
+
+  \item{B}{for the \code{fast} method only. by default,
+  this is not provided and calculated automatically. if
+  provided, this should be a vector as long as the number
+  of rows of object. this is the amount of shrinkage from 0
+  to 1 for each row, and takes precedence over internal
+  calculation of B using betaPriorVar.}
+
+  \item{trim}{for \code{rlogDataFast}, what proportion of
+  data to trim in estimating the row-wise base mean}
 }
 \value{
 for \code{rlogTransformation}, a
@@ -67,16 +86,16 @@ are used rather than the MAP dispersions (so similar to the
 blind dispersion estimation would otherwise shrink large,
 true log fold changes. The prior variance is calculated as
 follows: a matrix is constructed of the logarithm of the
-counts plus a pseudocount of 0.5, the row means of these
-log counts are then subtracted, leaving an estimate of the
-log fold changes per sample. The prior variance is then
-calculated as with \code{\link{nbinomWaldTest}}, by
-matching the upper quantiles of the observed log fold
-change estimates with an upper quantile of the normal
-distribution. A second and final GLM fit is then performed
-using this prior. It is also possible to supply the
-variance of the prior. See the vignette for an example of
-the use and a comparison with
+counts plus a pseudocount of 0.5, the log of the row means
+is then subtracted, leaving an estimate of the log fold
+changes per sample over the fitted value using only an
+intercept. The prior variance is then calculated as with
+\code{\link{nbinomWaldTest}}, by matching the upper
+quantiles of the observed log fold change estimates with an
+upper quantile of the normal distribution. A second and
+final GLM fit is then performed using this prior. It is
+also possible to supply the variance of the prior. See the
+vignette for an example of the use and a comparison with
 \code{varianceStabilizingTransformation}.
 
 The transformed values, rlog(K), are equal to
@@ -113,8 +132,8 @@ mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
 betaPriorVar <- attr(rld,"betaPriorVar")
 intercept <- mcols(rld)$rlogIntercept
 rldNew <- rlogTransformation(ddsNew, blind=FALSE,
-                           betaPriorVar=betaPriorVar,
-                           intercept=intercept)
+                             intercept=intercept,
+                             betaPriorVar=betaPriorVar)
 }
 \seealso{
 \code{\link{plotPCA}},

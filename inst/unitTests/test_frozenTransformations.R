@@ -21,7 +21,17 @@ test_frozenTransformations <- function() {
   betaPriorVar <- attr(rld,"betaPriorVar")
   intercept <- mcols(rld)$rlogIntercept
   rldNew <- rlogTransformation(ddsNew, blind=FALSE,
-                             betaPriorVar=betaPriorVar,
-                             intercept=intercept)
+                               betaPriorVar=betaPriorVar,
+                               intercept=intercept)
+  checkEqualsNumeric(assay(rld)[,1],assay(rldNew[,1]),tolerance=1e-3)
+
+  # rlog fast
+  rld <- rlogTransformation(dds, blind=FALSE, fast=TRUE)  
+  mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
+  B <- attr(rld,"B")
+  intercept <- mcols(rld)$rlogIntercept
+  rldNew <- rlogTransformation(ddsNew, blind=FALSE,
+                               intercept=intercept, B=B,
+                               fast=TRUE)
   checkEqualsNumeric(assay(rld)[,1],assay(rldNew[,1]),tolerance=1e-3)
 }

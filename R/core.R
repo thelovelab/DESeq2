@@ -311,6 +311,9 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' geometric means of the counts are calculated within the function.
 #' A vector of geometric means from another count matrix can be provided
 #' for a "frozen" size factor calculation
+#' @param useNonzero only use non-zero counts in estimating the geometric mean.
+#' produces less variable size factors estimates when there is zero inflation
+#' and many samples
 #' @return a vector with the estimates size factors, one element per column
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactors}}
@@ -322,10 +325,14 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
 #' 
 #' @export
-estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans)
+estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, useNonzero = FALSE )
 {
   if (missing(geoMeans)) {
-    loggeomeans <- rowMeans(log(counts))
+    if (useNonzero) {
+      loggeomeans <- apply(counts, 1, function(cnts) mean(log(cnts[cnts > 0])))
+    } else {
+      loggeomeans <- rowMeans(log(counts))
+    }
   } else {
     if (length(geoMeans) != nrow(counts)) {
       stop("geoMeans should be as long as the number of rows of counts")
@@ -335,8 +342,9 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans)
   if (all(is.infinite(loggeomeans))) {
     stop("every gene contains at least one zero, cannot compute log geometric means")
   }
-  apply( counts, 2, function(cnts)
-        exp(locfunc((log(cnts) - loggeomeans)[is.finite(loggeomeans) & (cnts > 0)])))
+  apply(counts, 2, function(cnts) {
+    exp(locfunc((log(cnts) - loggeomeans)[is.finite(loggeomeans) & cnts > 0]))
+  })
 }
 
 #' Low-level functions to fit dispersion estimates
@@ -1483,9 +1491,9 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
       alpha <- alpha_hat[row]
       objectiveFn <- function(p) {
         mu_row <- as.numeric(nf * 2^(x %*% p))
-        prior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
         logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
-        -1 * (logLike + prior)
+        logPrior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
+        -1 * (logLike + logPrior)
       }
       o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-30, upper=30)
       if (length(lambdaLogScale) > 1) {
@@ -1625,6 +1633,23 @@ buildMatrixWithZeroRows <- function(m, zeroRows) {
   mFull <- matrix(0, ncol=ncol(m), nrow=length(zeroRows))
   mFull[!zeroRows,] <- m
   mFull
+}
+
+# convenience function for building larger vectors
+# by filling in NA rows
+buildNumericWithNARows <- function(v, NARows) {
+  vFull <- numeric(length(NARows))
+  VFull <- NA
+  vFull[!NARows] <- v
+  vFull
+}
+
+# convenience function for building larger vectorss
+# by filling in 0 rows
+buildNumericWithZeroRows <- function(v, zeroRows) {
+  vFull <- numeric(length(zeroRows))
+  vFull[!zeroRows] <- v
+  vFull
 }
 
 # convenience function for breaking up matrices
