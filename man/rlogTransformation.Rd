@@ -9,7 +9,7 @@ rlogTransformation(object, blind = TRUE, fast = FALSE, intercept,
 
 rlogData(object, intercept, betaPriorVar)
 
-rlogDataFast(object, intercept, betaPriorVar, B, trim = 0.1)
+rlogDataFast(object, intercept, betaPriorVar, B)
 }
 \arguments{
   \item{object}{a DESeqDataSet}
@@ -49,9 +49,6 @@ rlogDataFast(object, intercept, betaPriorVar, B, trim = 0.1)
   of rows of object. this is the amount of shrinkage from 0
   to 1 for each row, and takes precedence over internal
   calculation of B using betaPriorVar.}
-
-  \item{trim}{for \code{rlogDataFast}, what proportion of
-  data to trim in estimating the row-wise base mean}
 }
 \value{
 for \code{rlogTransformation}, a

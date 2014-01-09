@@ -68,8 +68,6 @@
 #' if provided, this should be a vector as long as the number of rows of object.
 #' this is the amount of shrinkage from 0 to 1 for each row, and takes precedence
 #' over internal calculation of B using betaPriorVar.
-#' @param trim for \code{rlogDataFast}, what proportion of data to trim in
-#' estimating the row-wise base mean
 #' 
 #' @return for \code{rlogTransformation}, a \code{\link{SummarizedExperiment}}.
 #' The matrix of transformed values are accessed by \code{assay(rld)}.
@@ -267,7 +265,7 @@ rlogData <- function(object, intercept, betaPriorVar) {
 
 #' @rdname rlogTransformation
 #' @export
-rlogDataFast <- function(object, intercept, betaPriorVar, B, trim=0.1) {
+rlogDataFast <- function(object, intercept, betaPriorVar, B) {
   if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion with a design of formula(~ 1)")
   }
@@ -282,9 +280,9 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B, trim=0.1) {
       stop("B should be defined between 0 and 1")
     }
   }
-  trimmedRowMeans <- apply(counts(object,normalized=TRUE),1,mean,trim=trim)
   if (missing(intercept)) {
-    intercept <- log2(trimmedRowMeans + 0.5)
+    # set the intercept to log2 ( geometric mean of normalized counts )
+    intercept <- rowMeans(log2(counts(object,normalized=TRUE) + 0.5))
     interceptOut <- intercept
     interceptOut[mcols(object)$allZero] <- -Inf
   } else {
