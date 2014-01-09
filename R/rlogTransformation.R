@@ -130,11 +130,6 @@ rlogTransformation <- function(object, blind=TRUE, fast=FALSE,
     if (!all(B >= 0 & B <= 1)) {
       stop("B should be defined between 0 and 1")
     }
-    # if missing betaPriorVariance, just set a value to allow
-    # the call below, it will be ignored within rlogDataFast()
-    if (missing(betaPriorVar)) {
-      betaPriorVar <- 1
-    }
   }
   if (fast) {
     rld <- rlogDataFast(object, intercept, betaPriorVar, B)
@@ -358,7 +353,9 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
   normalizedDataNZ <- interceptNZ + lfcShrink
   normalizedData <- buildMatrixWithZeroRows(normalizedDataNZ, mcols(object)$allZero)
   colnames(normalizedData) <- colnames(object)
-  attr(normalizedData,"betaPriorVar") <- betaPriorVar
+  if (!missing(betaPriorVar)) {
+    attr(normalizedData,"betaPriorVar") <- betaPriorVar
+  }
   attr(normalizedData,"intercept") <- interceptOut
   Bout <- buildNumericWithZeroRows(optimalB, mcols(object)$allZero)
   attr(normalizedData,"B") <- Bout
