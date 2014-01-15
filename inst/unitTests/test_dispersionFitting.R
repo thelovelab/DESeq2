@@ -90,3 +90,12 @@ test_alternativeDispersions <- function() {
   mcols(ddsMed)$dispFit <- medianDisp
   ddsMed <- estimateDispersionsMAP(ddsMed)
 }
+
+test_iterativeDispersions <- function() {
+  set.seed(1)
+  dds <- makeExampleDESeqDataSet(m=50,n=100,betaSD=1,interceptMean=8)
+  dds <- estimateSizeFactors(dds)
+  dds <- estimateDispersionsGeneEst(dds, niter=5)
+  with(mcols(dds)[!mcols(dds)$allZero,],
+       checkEqualsNumeric(log(trueDisp), log(dispGeneEst),tol=0.2))
+}

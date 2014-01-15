@@ -369,11 +369,11 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
-  if (!is.null(normalizationFactors(objectNZ))) {
-    normalizationFactors <- normalizationFactors(objectNZ)
+  normalizationFactors <- if (!is.null(normalizationFactors(objectNZ))) {
+    normalizationFactors(objectNZ)
   } else { 
-    normalizationFactors <- matrix(rep(sizeFactors(objectNZ),each=nrow(objectNZ)),
-                                   ncol=ncol(objectNZ))
+    matrix(rep(sizeFactors(objectNZ),each=nrow(objectNZ)),
+           ncol=ncol(objectNZ))
   }
   alpha_hat <- dispersions(objectNZ)
   coefColumns <- names(mcols(objectNZ))[grep("log2 fold change",mcols(mcols(object))$description)]

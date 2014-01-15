@@ -5,7 +5,7 @@
 \title{Low-level functions to fit dispersion estimates}
 \usage{
 estimateDispersionsGeneEst(object, minDisp = 1e-08, kappa_0 = 1,
-  dispTol = 1e-06, maxit = 100, quiet = FALSE)
+  dispTol = 1e-06, maxit = 100, quiet = FALSE, modelMatrix, niter = 1)
 
 estimateDispersionsFit(object, fitType = c("parametric", "local", "mean"),
   minDisp = 1e-08, quiet = FALSE)
@@ -50,6 +50,12 @@ estimateDispersionsMAP(object, outlierSD = 2, dispPriorVar, minDisp = 1e-08,
   iterations to allow for convergence}
 
   \item{quiet}{whether to print messages at each step}
+
+  \item{modelMatrix}{for advanced use only, a substitute
+  model matrix for gene-wise and MAP dispersion estimation}
+
+  \item{niter}{number of times to iterate between
+  estimation of means and estimation of dispersion}
 }
 \value{
 a DESeqDataSet with gene-wise, fitted, or final MAP

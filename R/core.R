@@ -257,20 +257,20 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   dispersion <- dispMeanRel(2^(beta[,1]))
   colData <- DataFrame(sample = paste("sample",1:m,sep=""),
                        condition=factor(rep(c("A","B"),times=c(ceiling(m/2),floor(m/2)))))
-  if (m > 1) {
-    x <- model.matrix(~ colData$condition)
+  x <- if (m > 1) {
+    model.matrix(~ colData$condition)
   } else {
-    x <- cbind(rep(1,m),rep(0,m))
+    cbind(rep(1,m),rep(0,m))
   }
   mu <- 2^(t(x %*% t(beta))) * rep(sizeFactors, each=n)
   countData <- matrix(rnbinom(m*n, mu=mu, size=1/dispersion), ncol=m)
   rownames(colData) <- colData$sample
   rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
   names(rowData) <- paste0("feature",1:n)
-  if (m > 1) {
-    designFormula <- formula(~ condition)
+  designFormula <- if (m > 1) {
+    formula(~ condition)
   } else {
-    designFormula <- formula(~ 1)
+    formula(~ 1)
   }
   object <- DESeqDataSetFromMatrix(countData = countData,
                                    colData = colData,
@@ -328,10 +328,10 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, useNonzero = FALSE )
 {
   if (missing(geoMeans)) {
-    if (useNonzero) {
-      loggeomeans <- apply(counts, 1, function(cnts) mean(log(cnts[cnts > 0])))
+    loggeomeans <- if (useNonzero) {
+      apply(counts, 1, function(cnts) mean(log(cnts[cnts > 0])))
     } else {
-      loggeomeans <- rowMeans(log(counts))
+      rowMeans(log(counts))
     }
   } else {
     if (length(geoMeans) != nrow(counts)) {
@@ -379,6 +379,10 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, us
 #' stop when increase in log posterior is less than dispTol
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #' @param quiet whether to print messages at each step
+#' @param modelMatrix for advanced use only,
+#' a substitute model matrix for gene-wise and MAP dispersion estimation
+#' @param niter number of times to iterate between estimation of means and
+#' estimation of dispersion
 #'
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
@@ -398,10 +402,12 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, us
 #'
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
-                                       dispTol=1e-6, maxit=100, quiet=FALSE) {
+                                       dispTol=1e-6, maxit=100, quiet=FALSE,
+                                       modelMatrix, niter=1) {
   if ("dispGeneEst" %in% names(mcols(object))) {
     if (!quiet) message("you had estimated gene-wise dispersions, removing these")
-    mcols(object) <- mcols(object)[,!names(mcols(object))  == "dispGeneEst"]
+    removeCols <- c("dispGeneEst","dispGeneEstConv")
+    mcols(object) <- mcols(object)[,!names(mcols(object))  %in% removeCols]
   }
   stopifnot(length(minDisp) == 1)
   stopifnot(length(kappa_0) == 1)
@@ -415,17 +421,17 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # expected means such that releveling will not change the
   # exact estimates of dispersion (unless betaPrior is FALSE)
   betaPriorOrNotSpecified <- is.null(attr(object,"betaPrior")) || attr(object,"betaPrior")
-  if (factorPresentThreeOrMoreLevels(object) & betaPriorOrNotSpecified) {
-    modelMatrixType <- "expanded"
+  modelMatrixType <- if (factorPresentThreeOrMoreLevels(object) & betaPriorOrNotSpecified) {
+    "expanded"
   } else {
-    modelMatrixType <- "standard"
+    "standard"
   }
   
   object <- getBaseMeansAndVariances(object)
-  if (!is.null(normalizationFactors(object))) {
-    xim <- mean(1/colMeans(normalizationFactors(object)))
+  xim <- if (!is.null(normalizationFactors(object))) {
+    mean(1/colMeans(normalizationFactors(object)))
   } else {
-    xim <- mean(1/sizeFactors(object))
+    mean(1/sizeFactors(object))
   }
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
@@ -434,37 +440,63 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # this rough dispersion estimate (alpha_hat)
   # is for estimating beta and mu
   # and for the initial starting point for line search
-  alpha_hat <- pmax(minDisp, (bv - xim*bm)/bm^2)
+  alpha_hat <- alpha_hat_new <- alpha_init <- pmax(minDisp, (bv - xim*bm)/bm^2)
 
-  if (modelMatrixType == "standard") {
-    # fitNbinomGLMs returns mu and modelMatrix
-    fit <- fitNbinomGLMs(objectNZ, alpha_hat=alpha_hat)
+  if (missing(modelMatrix)) {
+    modelMatrix <- if (modelMatrixType == "standard") {
+      model.matrix(design(object), data=as.data.frame(colData(object)))
+    } else {
+      makeReleveledModelMatrix(object)
+    }
   } else {
-    mm <- makeReleveledModelMatrix(object)
-    fit <- fitNbinomGLMs(objectNZ, alpha_hat=alpha_hat, modelMatrix=mm)
+    message("using supplied model matrix")
   }
-  
-  # use of kappa_0 in backtracking search
-  # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
-  # use log(minDisp/10) to stop if dispersions going to -infinity
-  dispRes <- fitDisp(ySEXP = counts(objectNZ), xSEXP = fit$modelMatrix, mu_hatSEXP = fit$mu,
-                     log_alphaSEXP = log(alpha_hat), log_alpha_prior_meanSEXP = log(alpha_hat),
-                     log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
-                     kappa_0SEXP = kappa_0, tolSEXP = dispTol,
-                     maxitSEXP = maxit, use_priorSEXP = FALSE)
+  attr(object, "modelMatrix") <- modelMatrix
 
-  if (mean(dispRes$iter < maxit) < .5) {
-    warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged. Use larger maxit argument with estimateDispersions")
+  stopifnot(length(niter) == 1 & niter > 0)
+
+  # iterate between mean and dispersion estimation (niter) times
+  fitidx <- rep(TRUE,nrow(objectNZ))
+  mu <- matrix(0, nrow=nrow(objectNZ), ncol=ncol(objectNZ))
+  dispIter <- numeric(nrow(objectNZ))
+  for (iter in seq_len(niter)) {
+    fit <- fitNbinomGLMs(objectNZ[fitidx,],
+                         alpha_hat=alpha_hat[fitidx],
+                         modelMatrix=modelMatrix)
+    mu[fitidx,] <- fit$mu
+    # use of kappa_0 in backtracking search
+    # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
+    # use log(minDisp/10) to stop if dispersions going to -infinity
+    dispRes <- fitDisp(ySEXP = counts(objectNZ)[fitidx,],
+                       xSEXP = fit$modelMatrix,
+                       mu_hatSEXP = fit$mu,
+                       log_alphaSEXP = log(alpha_hat)[fitidx],
+                       log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
+                       log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
+                       kappa_0SEXP = kappa_0, tolSEXP = dispTol,
+                       maxitSEXP = maxit, use_priorSEXP = FALSE)
+    dispIter[fitidx] <- dispRes$iter
+    alpha_hat_new[fitidx] <- exp(dispRes$log_alpha)
+    # only rerun those rows which moved
+    fitidx <- abs(log(alpha_hat_new) - log(alpha_hat)) > .05
+    alpha_hat <- alpha_hat_new
+    if (sum(fitidx) == 0) break
+  }
+
+  if (mean(dispIter < maxit) < .5) {
+    warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged. Use larger 'maxit' argument with estimateDispersions")
   }
   
   # dont accept moves if the log posterior did not
   # increase by more than one millionth,
   # and set the small estimates to the minimum dispersion
-  dispGeneEst <- exp(dispRes$log_alpha)
-  noIncrease <- dispRes$last_lp < dispRes$initial_lp + abs(dispRes$initial_lp)/1e6
-  dispGeneEst[which(noIncrease)] <- alpha_hat[which(noIncrease)]
+  dispGeneEst <- alpha_hat
+  if (niter == 1) {
+    noIncrease <- dispRes$last_lp < dispRes$initial_lp + abs(dispRes$initial_lp)/1e6
+    dispGeneEst[which(noIncrease)] <- alpha_init[which(noIncrease)]
+  }
   dispGeneEst <- pmax(dispGeneEst, minDisp)
-  dispGeneEstConv <- dispRes$iter < maxit
+  dispGeneEstConv <- dispIter < maxit
   
   dispDataFrame <- buildDataFrameWithNARows(list(dispGeneEst=dispGeneEst,
                                                  dispGeneEstConv=dispGeneEstConv),
@@ -473,9 +505,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                     description=c("gene-wise estimates of dispersion",
                                       "gene-wise dispersion estimate convergence"))
   mcols(object) <- cbind(mcols(object), dispDataFrame)
-
-  assays(object)[["mu"]] <- buildMatrixWithNARows(fit$mu, mcols(object)$allZero)
-  
+  assays(object)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
   return(object)
 }
 
@@ -552,10 +582,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   stopifnot(length(maxit)==1)
   if ("dispersion" %in% names(mcols(object))) {
     if (!quiet) message("you had estimated dispersions, removing these")
-    mcols(object) <- mcols(object)[,!names(mcols(object))  %in% c("dispersion","dispIter","dispIterAccept","dispConv")]
+    removeCols <- c("dispersion","dispOutlier","dispMAP","dispIter","dispConv")
+    mcols(object) <- mcols(object)[,!names(mcols(object))  %in% removeCols]
   }
- 
-  modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))  
+
+  modelMatrix <- attr(object, "modelMatrix")
   objectNZ <- object[!mcols(object)$allZero,]
 
   # fill in the calculated dispersion prior variance
@@ -780,10 +811,10 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   # what kind of model matrix to use
   stopifnot(is.logical(betaPrior))
   if (missing(modelMatrixType)) {
-    if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
-      modelMatrixType <- "expanded"
+    modelMatrixType <- if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
+      "expanded"
     } else {
-      modelMatrixType <- "standard"
+      "standard"
     }
   }
   if (modelMatrixType == "expanded" & !betaPrior) {
@@ -886,10 +917,10 @@ ratio test, i.e. DESeq with argument test='LRT'.")
   WaldResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
   
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
-  if (betaPrior) {
-    coefInfo <- paste("log2 fold change (MAP):",modelMatrixNamesSpaces)
+  coefInfo <- if (betaPrior) {
+    paste("log2 fold change (MAP):",modelMatrixNamesSpaces)
   } else {
-    coefInfo <- paste("log2 fold change:",modelMatrixNamesSpaces)
+    paste("log2 fold change:",modelMatrixNamesSpaces)
   }
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
   statInfo <- paste("Wald statistic:",modelMatrixNamesSpaces)
@@ -1013,10 +1044,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
   # what kind of model matrix to use
   stopifnot(is.logical(betaPrior))
   if (missing(modelMatrixType)) {
-    if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
-      modelMatrixType <- "expanded"
+    modelMatrixType <- if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
+      "expanded"
     } else {
-      modelMatrixType <- "standard"
+      "standard"
     }
   }
   if (modelMatrixType == "expanded" & !betaPrior) {
@@ -1039,10 +1070,10 @@ ratio test, i.e. DESeq with argument test='LRT'.")
 
   if (!betaPrior) {
     fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit,
-                               useOptim=useOptim, useQR=useQR)
+                               useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
     modelMatrix <- fullModel$modelMatrix
     reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
-                                  useOptim=useOptim, useQR=useQR)
+                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
     betaPriorVar <- rep(1e6, ncol(modelMatrix))
   } else {
     priorFull <- fitGLMsWithPrior(objectNZ=objectNZ,
@@ -1217,12 +1248,11 @@ replaceOutliers <- function(dds, trim=.2, cooksCutoff, minReplicates=7, whichSam
   mcols(mcols(dds),use.names=TRUE)["replace",] <- DataFrame(type="results",description="had counts replaced")
   trimBaseMean <- apply(counts(dds,normalized=TRUE),1,mean,trim=trim)
   # build a matrix of counts based on the trimmed mean and the size factors
-  if (!is.null(normalizationFactors(dds))) {
-    replacementCounts <- as.integer(matrix(rep(trimBaseMean,ncol(dds)),ncol=ncol(dds)) * 
-                                    normalizationFactors(dds))
+  replacementCounts <- if (!is.null(normalizationFactors(dds))) {
+    as.integer(matrix(rep(trimBaseMean,ncol(dds)),ncol=ncol(dds)) * 
+               normalizationFactors(dds))
   } else {
-    replacementCounts <- as.integer(outer(trimBaseMean,
-                                          sizeFactors(dds), "*"))
+    as.integer(outer(trimBaseMean, sizeFactors(dds), "*"))
   }
   # replace only those values which fall above the cutoff on Cook's distance
   newCounts <- counts(dds)
@@ -1351,17 +1381,20 @@ nbinomLogLike <- function(counts, mu, disp) {
 #   count distributions
 # useQR whether to use the QR decomposition on the design matrix X
 # forceOptim whether to use optim on all rows
+# warnNonposVar whether to warn about non positive variances,
+#   for advanced users only running LRT without beta prior,
+#   this might be desirable to be ignored.
 #
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
 fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
                           renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=TRUE,
-                          useQR=TRUE, forceOptim=FALSE) {
+                          useQR=TRUE, forceOptim=FALSE, warnNonposVar=TRUE) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
   if (missing(modelMatrix)) {
-   modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
+    modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
   }
   modelMatrixNames <- colnames(modelMatrix)
 
@@ -1376,12 +1409,13 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
   colnames(modelMatrix) <- modelMatrixNames
   
-  if (!is.null(normalizationFactors(object))) {
-    normalizationFactors <- normalizationFactors(object)
+  normalizationFactors <- if (!is.null(normalizationFactors(object))) {
+    normalizationFactors(object)
   } else { 
-    normalizationFactors <- matrix(rep(sizeFactors(object),each=nrow(object)),
-                                   ncol=ncol(object))
+    matrix(rep(sizeFactors(object),each=nrow(object)),
+           ncol=ncol(object))
   }
+  
   if (missing(alpha_hat)) {
     alpha_hat <- dispersions(object)
   }
@@ -1458,16 +1492,18 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   betaMatrix <- log2(exp(1))*betaRes$beta_mat
   colnames(betaMatrix) <- modelMatrixNames
   colnames(modelMatrix) <- modelMatrixNames
-  betaSE <- log2(exp(1))*sqrt(betaRes$beta_var_mat)
+  # warn below regarding these rows with negative variance
+  betaSE <- log2(exp(1))*sqrt(pmax(betaRes$beta_var_mat,0))
   colnames(betaSE) <- paste0("SE_",modelMatrixNames)
 
   # switch based on whether we should also use optim
   # on rows which did not converge
-  if (useOptim) {
-    rowsForOptim <- which(!betaConv | !rowStable | !rowVarPositive)
+  rowsForOptim <- if (useOptim) {
+    which(!betaConv | !rowStable | !rowVarPositive)
   } else {
-    rowsForOptim <- which(!rowStable | !rowVarPositive)
+    which(!rowStable | !rowVarPositive)
   }
+  
   if (forceOptim) {
     rowsForOptim <- seq_along(betaConv)
   }
@@ -1480,10 +1516,10 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
     lambdaLogScaleColScale <- lambdaLogScale / scaleCols^2
     large <- 30
     for (row in rowsForOptim) {
-      if (rowStable[row]) {
-        betaRow <- betaMatrix[row,] * scaleCols
+      betaRow <- if (rowStable[row]) {
+        betaMatrix[row,] * scaleCols
       } else {
-        betaRow <- beta_mat[row,] * scaleCols
+        beta_mat[row,] * scaleCols
       }
       betaRow <- pmin(pmax(betaRow, -large), large)
       nf <- normalizationFactors[row,]
@@ -1496,10 +1532,10 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
         -1 * (logLike + logPrior)
       }
       o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-30, upper=30)
-      if (length(lambdaLogScale) > 1) {
-        ridge <- diag(lambdaLogScaleColScale)
+      ridge <- if (length(lambdaLogScale) > 1) {
+        diag(lambdaLogScaleColScale)
       } else {
-        ridge <- as.matrix(lambdaLogScaleColScale,ncol=1)
+        as.matrix(lambdaLogScaleColScale,ncol=1)
       }
       # if we converged, change betaConv to TRUE
       if (o$convergence == 0) {
@@ -1513,12 +1549,16 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
       xtwx <- t(x) %*% w %*% x
       xtwxRidgeInv <- solve(xtwx + ridge)
       sigma <- xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv
-      betaSE[row,] <- log2(exp(1)) * sqrt(diag(sigma)) / scaleCols
+      # warn below regarding these rows with negative variance
+      betaSE[row,] <- log2(exp(1)) * sqrt(pmax(diag(sigma),0)) / scaleCols
       # store the new mu vector
       mu[row,] <- mu_row
       logLike[row] <- sum(dnbinom(k, mu=mu_row, size=1/alpha, log=TRUE))
     }
   }
+
+  nNonposVar <- sum(rowSums(betaSE == 0) > 0)
+  if (warnNonposVar & nNonposVar > 0) warning(nNonposVar,"rows had non-positive estimates of variance for coefficients, likely due to rank deficient model matrices without betaPrior")
   
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
        betaSE = betaSE, mu = mu, betaIter = betaRes$iter,
@@ -1547,12 +1587,18 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
 # use_priorSEXP boolean variable, whether to use a prior or just calculate the MLE
 #
 # return a list with elements: log_alpha, iter, iter_accept, last_change, initial_lp, intial_dlp, last_lp, last_dlp, last_d2lp
-fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP, tolSEXP, maxitSEXP, use_priorSEXP) {
+fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP,
+                     log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP,
+                     tolSEXP, maxitSEXP, use_priorSEXP) {
   # test for any NAs in arguments
   arg.names <- names(formals(fitDisp))
-  na.test <- sapply(list(ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP, tolSEXP, maxitSEXP, use_priorSEXP), function(x) any(is.na(x)))
+  na.test <- sapply(list(ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP,
+                         log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP,
+                         tolSEXP, maxitSEXP, use_priorSEXP),
+                    function(x) any(is.na(x)))
   if (any(na.test)) {
-    stop(paste("in call to fitDisp, the following arguments contain NA:",paste(arg.names[na.test],collapse=", ")))
+    stop(paste("in call to fitDisp, the following arguments contain NA:",
+               paste(arg.names[na.test],collapse=", ")))
   }
   .Call("fitDisp", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
         log_alphaSEXP=log_alphaSEXP, log_alpha_prior_meanSEXP=log_alpha_prior_meanSEXP,
@@ -1579,15 +1625,19 @@ fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_me
 # useQRSEXP whether to use QR decomposition
 #
 # Note: at this level the betas are on the natural log scale
-fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP) {
+fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
+                     beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP) {
   if ( missing(contrastSEXP) ) {
     contrastSEXP <- c(1,rep(0,ncol(xSEXP)-1))
   }
   # test for any NAs in arguments
   arg.names <- names(formals(fitBeta))
-  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP), function(x) any(is.na(x)))
+  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
+                         beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP),
+                    function(x) any(is.na(x)))
   if (any(na.test)) {
-    stop(paste("in call to fitBeta, the following arguments contain NA:",paste(arg.names[na.test],collapse=", ")))
+    stop(paste("in call to fitBeta, the following arguments contain NA:",
+               paste(arg.names[na.test],collapse=", ")))
   }
   .Call("fitBeta", ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP,
         alpha_hatSEXP=alpha_hatSEXP, contrastSEXP=contrastSEXP,
@@ -1690,17 +1740,17 @@ calculateCooksDistance <- function(object, H, p) {
 #
 # if m == p or there are no samples over which to calculate max Cook's, then give NA
 recordMaxCooks <- function(design, colData, modelMatrix, cooks, numRow) {
-    if (allFactors(design, colData)) {
-        samplesForCooks <- nOrMoreInCell(modelMatrix, n=3)
+    samplesForCooks <- if (allFactors(design, colData)) {
+      nOrMoreInCell(modelMatrix, n=3)
     } else {
-        samplesForCooks <- leaveOneOutFullRank(modelMatrix)
+      leaveOneOutFullRank(modelMatrix)
     }
     p <- ncol(modelMatrix)
     m <- nrow(modelMatrix)
-    if ((m > p) & any(samplesForCooks)) {
-        maxCooks <- apply(cooks[,samplesForCooks,drop=FALSE], 1, max)
+    maxCooks <- if ((m > p) & any(samplesForCooks)) {
+      apply(cooks[,samplesForCooks,drop=FALSE], 1, max)
     } else {
-        maxCooks <- rep(NA, numRow)
+      rep(NA, numRow)
     }
     maxCooks
 }
@@ -1791,8 +1841,8 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
   if (modelMatrixType == "expanded") {
     betaMatrix <- addAllContrasts(object, betaMatrix)
   } 
-  if (nrow(betaMatrix) > 1) {
-    betaPriorVar <- apply(betaMatrix, 2, function(x) {
+  betaPriorVar <- if (nrow(betaMatrix) > 1) {
+    apply(betaMatrix, 2, function(x) {
       # this test removes genes which have betas
       # tending to +/- infinity
       useFinite <- abs(x) < 10
@@ -1805,7 +1855,7 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
       }
     })
   } else {
-    betaPriorVar <- (betaMatrix)^2
+    (betaMatrix)^2
   }
   names(betaPriorVar) <- colnames(betaMatrix)
 

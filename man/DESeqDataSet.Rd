@@ -6,11 +6,12 @@
 \alias{DESeqDataSetFromMatrix}
 \title{DESeqDataSet object and constructors}
 \usage{
-DESeqDataSet(se, design)
+DESeqDataSet(se, design, ignoreRank = FALSE)
 
-DESeqDataSetFromMatrix(countData, colData, design, ...)
+DESeqDataSetFromMatrix(countData, colData, design, ignoreRank = FALSE, ...)
 
-DESeqDataSetFromHTSeqCount(sampleTable, directory = "", design, ...)
+DESeqDataSetFromHTSeqCount(sampleTable, directory = "", design,
+  ignoreRank = FALSE, ...)
 }
 \arguments{
   \item{se}{a \code{SummarizedExperiment} with at least one
@@ -42,6 +43,9 @@ DESeqDataSetFromHTSeqCount(sampleTable, directory = "", design, ...)
 
   \item{directory}{for htseq-count: the directory relative
   to which the filenames are specified}
+
+  \item{ignoreRank}{for advanced use only, allows creation
+  of a DESeqDataSet which is not of full rank}
 
   \item{...}{arguments provided to
   \code{SummarizedExperiment} including rowData and
