@@ -753,7 +753,7 @@ include a coefficient for each level of the factors in addition to an intercept.
 The \Robject{contrast} argument, as shown below, is then used rather 
 than the \Robject{name} argument of the \Rfunction{results} function.
 
-Here we show how to perform contrasrts using the parathyroid dataset 
+Here we show how to perform contrasts using the parathyroid dataset 
 which was built in Section~\ref{sec:sumExpInput}.
 The three levels of the factor \Robject{treatment} are: Control,
 DPN and OHT. The samples are also split according to the patient
