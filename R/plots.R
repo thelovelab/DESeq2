@@ -182,10 +182,10 @@ plotPCA = function(x, intgroup="condition", ntop=500)
   pca = prcomp(t(assay(x)[select,]))
 
   fac = factor(apply( as.data.frame(colData(x)[, intgroup, drop=FALSE]), 1, paste, collapse=" : "))
-  if( nlevels(fac) >= 3 )
-     colours = brewer.pal(nlevels(fac), "Paired")
+  colours = if( nlevels(fac) >= 3 )
+    brewer.pal(nlevels(fac), "Paired")
   else  
-   colours = c( "lightgreen", "dodgerblue" )
+    c( "lightgreen", "dodgerblue" )
 
   xyplot(PC2 ~ PC1, groups=fac, data=as.data.frame(pca$x), pch=16, cex=2,
     aspect = "iso", col=colours,

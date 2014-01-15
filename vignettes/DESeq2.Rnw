@@ -351,8 +351,8 @@ for either one of the following reasons:
 \subsubsection{Exporting results}
 
 An HTML report of the results with plots and sortable/filterable columns
-can be exported using the \Biocpkg{ReportingTools} package (version higher than 2.1.16)
-on a \Rclass{DESeqDataSet} which has been processed by the \Rfunction{DESeq} function.
+can be exported using the \Biocpkg{ReportingTools} package
+on a \Rclass{DESeqDataSet} that has been processed by the \Rfunction{DESeq} function.
 For a code example, see the ``RNA-seq differential expression'' vignette at
 the \Biocpkg{ReportingTools} page, or the manual page for the 
 \Rfunction{publish} method for the \Rclass{DESeqDataSet} class.
