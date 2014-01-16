@@ -210,10 +210,10 @@ log2 fold changes of levels against each other.\n")
 Likelihood ratio test p-values are overwritten")
     }
     if (altHypothesis == "greaterAbs") {
-      newPvalue <- 2 * pnorm(abs(res$log2FoldChange),
-                             mean = lfcThreshold,
-                             sd = res$lfcSE,
-                             lower.tail = FALSE)
+      newPvalue <- pmin(1, 2 * pnorm(abs(res$log2FoldChange),
+                                     mean = lfcThreshold,
+                                     sd = res$lfcSE,
+                                     lower.tail = FALSE))
     } else if (altHypothesis == "lessAbs") {
       # check requirement if betaPrior was set to FALSE
       if (attr(object,"betaPrior")) {
