@@ -106,7 +106,7 @@ encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Biocpkg{easyRN
 is another \Bioconductor{} package which can prepare \Rclass{SummarizedExperiment}
 objects as input for \deseqtwo{}). An example of the steps to produce
 a \Rclass{SummarizedExperiment} can be found in the data package
-\Biocannopkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
+\Biocexptpkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
 4 human cell cultures \cite{Haglund2012Evidence}.
 
 <<loadSumExp,results="hide",cache=TRUE>>=
@@ -173,8 +173,8 @@ dds
 
 If you have used the \textit{HTSeq} python scripts, you can use the
 function \Rfunction{DESeqDataSetFromHTSeqCount}.  For an
-example of using the python scripts, see the \Biocannopkg{pasilla} or
-\Biocannopkg{parathyroid} data package. 
+example of using the python scripts, see the \Biocexptpkg{pasilla} or
+\Biocexptpkg{parathyroid} data package. 
 First you will want to specify a variable which points to the 
 directory in which the \textit{HTSeq} output files are located.
 
@@ -184,7 +184,7 @@ directory <- "/path/to/your/files/"
 
 However, for demonstration purposes only, the following line of
 code points to the directory for the demo \textit{HTSeq} output
-files packages for the \Biocannopkg{pasilla} package.
+files packages for the \Biocexptpkg{pasilla} package.
 
 <<htseqDirII>>=
 directory <- system.file("extdata", package="pasilla", mustWork=TRUE)
@@ -229,13 +229,13 @@ colData(dds)$condition <- relevel(colData(dds)$condition, "control")
 
 \subsubsection{About the pasilla dataset}
 
-We continue with the \Biocannopkg{pasilla} data constructed from the
+We continue with the \Biocexptpkg{pasilla} data constructed from the
 count matrix method above. This data set is from an experiment on
 \emph{Drosophila melanogaster} cell cultures and investigated the
 effect of RNAi knock-down of the splicing factor \emph{pasilla}
 \cite{Brooks2010}.  The detailed transcript of the production of
-the \Biocannopkg{pasilla} data is provided in the vignette of the 
-data package \Biocannopkg{pasilla}.
+the \Biocexptpkg{pasilla} data is provided in the vignette of the 
+data package \Biocexptpkg{pasilla}.
 
 \subsection{Differential expression analysis} \label{sec:de}
 
@@ -371,7 +371,7 @@ write.csv(as.data.frame(res),
 
 Experiments with more than one factor influencing the counts can be 
 easily analyzed using model formulae including the additional variables. 
-The data in the \Biocannopkg{pasilla}
+The data in the \Biocexptpkg{pasilla}
 package have a condition of interest (the column \Robject{condition}), as well as
 the type of sequencing which was performed (the column \Robject{type}), as we can 
 see below:
