@@ -652,7 +652,20 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                         maxitSEXP = maxit, use_priorSEXP = TRUE)
 
   # prepare dispersions for storage in mcols(object)
-  dispersionFinal <- dispMAP <- exp(dispResMAP$log_alpha) 
+  dispMAP <- exp(dispResMAP$log_alpha) 
+  
+  # TODO: use this when lacking convergence
+  #
+  # dispConv <- (dispResMAP$iter < maxit)
+  #
+  # dispInR <- fitDispInR(y = counts(objectNZ)[!dispConv], x = modelMatrix,
+  #                 mu = mu[!dispConv,],
+  #                 logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[!dispConv],
+  #                 logAlpahPriorSigmaSq = log_alpha_prior_sigmasq,
+  #                 usePrior=TRUE)
+  # dispMAP[!dispConv] <- dispInR
+  
+  dispersionFinal <- dispMAP
     
   # detect outliers which have gene-wise estimates
   # outlierSD * standard deviation of log gene-wise estimates
@@ -2029,4 +2042,41 @@ estimateDispersionPriorVar <- function(objectNZ, useNotMinDisp, modelMatrix) {
   list(dispPriorVar=dispPriorVar,
        varLogDispEsts=varLogDispEsts,
        expVarLogDisp=expVarLogDisp)
+}
+
+
+# backup function in case dispersion doesn't converge
+fitDispInR <- function(y = counts(objectNZ), x = modelMatrix, mu = mu,
+                       logAlphaPriorMean = log(mcols(objectNZ)$dispFit),
+                       logAlpahPriorSigmaSq = log_alpha_prior_sigmasq,
+                       usePrior=TRUE)
+{
+  disp <- numeric(nrow(y))
+
+  # function to evaluate posterior
+  logPost <- function(logAlpha) {
+    alpha <- exp(logAlpha)
+    w <- diag(1/(1/murow^2 * ( murow + alpha * murow^2 )))
+    logLike <- sum(dnbinom(yrow, mu=murow, size=1/alpha, log=TRUE))
+    coxReid <- -.5*(log(det(t(x) %*% w %*% x)))
+    logPrior <- if (usePrior) {
+      dnorm(logAlpha, logAlphaPriorMean, sqrt(logAlphaPriorSigmaSq), log=TRUE)
+    } else {
+      0
+    } 
+    (logLike + coxReid + logPrior)
+  }
+
+  # loop through rows
+  for (i in seq_len(nrow(y))) {
+    murow <- mu[i,]
+    yrow <- y[i,]
+    s <- seq(from=log(1e-8),to=log(1e5),length=100)
+    lpo <- sapply(s, logPost)
+    lofit <- loess(lpo ~ s, span=0.1)
+    sfine <- seq(from=log(1e-8),to=log(1e5),length=1000)
+    pred <- predict(lofit, newdata=data.frame(s=sfine))
+    disp[i] <- exp(sfine[which.max(pred)])
+  }
+  disp
 }

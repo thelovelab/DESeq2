@@ -47,8 +47,8 @@ test_dispersionFitting <- function() {
     w <- diag(1/(1/mu.hat^2 * ( mu.hat + alpha * mu.hat^2 )))
     logLike <- sum(dnbinom(y, mu=mu.hat, size=1/alpha, log=TRUE))
     coxReid <- -.5*(log(det(t(x) %*% w %*% x)))
-    prior <- dnorm(log.alpha, log_alpha_prior_mean, sqrt(log_alpha_prior_sigmasq), log=TRUE)
-    (logLike + coxReid + prior)
+    logPrior <- dnorm(log.alpha, log_alpha_prior_mean, sqrt(log_alpha_prior_sigmasq), log=TRUE)
+    (logLike + coxReid + logPrior)
   }
 
   dispOptim <- optim(0, function(p) -1*logPost(p), control=list(reltol=1e-16),
@@ -98,4 +98,20 @@ test_iterativeDispersions <- function() {
   dds <- estimateDispersionsGeneEst(dds, niter=5)
   with(mcols(dds)[!mcols(dds)$allZero,],
        checkEqualsNumeric(log(trueDisp), log(dispGeneEst),tol=0.2))
+}
+
+test_dispInR <- function() {
+  set.seed(1)
+  trueDisp <- c(.005,.01,.05,.1,.2,.5)
+  trueMu <- 1000
+  m <- 200
+  x <- cbind(rep(1,m),rep(0:1,each=m/2))
+  y <- matrix(rnbinom(length(trueDisp)*m, mu=trueMu, size=1/rep(trueDisp,m)),ncol=m)
+  mu <- matrix(rep(rowMeans(y),m),ncol=m)
+  disp <- fitDispInR(y = y, x = x, mu = mu,
+                     logAlphaPriorMean = NA,
+                     logAlpahPriorSigmaSq = NA,
+                     usePrior=FALSE)
+  plot(log(trueDisp), log(disp));abline(0,1)
+  checkEqualsNumeric(log(trueDisp), log(disp), tol=.5)
 }
