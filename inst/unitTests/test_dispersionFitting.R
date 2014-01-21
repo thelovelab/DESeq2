@@ -108,10 +108,10 @@ test_dispInR <- function() {
   x <- cbind(rep(1,m),rep(0:1,each=m/2))
   y <- matrix(rnbinom(length(trueDisp)*m, mu=trueMu, size=1/rep(trueDisp,m)),ncol=m)
   mu <- matrix(rep(rowMeans(y),m),ncol=m)
-  disp <- fitDispInR(y = y, x = x, mu = mu,
-                     logAlphaPriorMean = NA,
-                     logAlpahPriorSigmaSq = NA,
-                     usePrior=FALSE)
+  disp <- DESeq2:::fitDispInR(y = y, x = x, mu = mu,
+                              logAlphaPriorMean = NA,
+                              logAlphaPriorSigmaSq = NA,
+                              usePrior=FALSE)
   plot(log(trueDisp), log(disp));abline(0,1)
   checkEqualsNumeric(log(trueDisp), log(disp), tol=.5)
 }

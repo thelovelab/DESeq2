@@ -661,7 +661,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   # dispInR <- fitDispInR(y = counts(objectNZ)[!dispConv], x = modelMatrix,
   #                 mu = mu[!dispConv,],
   #                 logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[!dispConv],
-  #                 logAlpahPriorSigmaSq = log_alpha_prior_sigmasq,
+  #                 logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
   #                 usePrior=TRUE)
   # dispMAP[!dispConv] <- dispInR
   
@@ -2046,10 +2046,8 @@ estimateDispersionPriorVar <- function(objectNZ, useNotMinDisp, modelMatrix) {
 
 
 # backup function in case dispersion doesn't converge
-fitDispInR <- function(y = counts(objectNZ), x = modelMatrix, mu = mu,
-                       logAlphaPriorMean = log(mcols(objectNZ)$dispFit),
-                       logAlpahPriorSigmaSq = log_alpha_prior_sigmasq,
-                       usePrior=TRUE)
+fitDispInR <- function(y, x, mu, logAlphaPriorMean,
+                       logAlphaPriorSigmaSq, usePrior=TRUE)
 {
   disp <- numeric(nrow(y))
 
