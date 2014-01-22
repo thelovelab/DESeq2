@@ -654,16 +654,17 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   # prepare dispersions for storage in mcols(object)
   dispMAP <- exp(dispResMAP$log_alpha) 
   
-  # TODO: use this when lacking convergence
-  #
-  # dispConv <- (dispResMAP$iter < maxit)
-  #
-  # dispInR <- fitDispInR(y = counts(objectNZ)[!dispConv], x = modelMatrix,
-  #                 mu = mu[!dispConv,],
-  #                 logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[!dispConv],
-  #                 logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
-  #                 usePrior=TRUE)
-  # dispMAP[!dispConv] <- dispInR
+  # when lacking convergence from the C++ routine
+  # we use an R function to estimate dispersions.
+  # This finds the maximum of a smooth curve along a
+  # grid of posterior evaluations
+  dispConv <- (dispResMAP$iter < maxit)
+  dispInR <- fitDispInR(y = counts(objectNZ)[!dispConv,], x = modelMatrix,
+                        mu = mu[!dispConv,],
+                        logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[!dispConv],
+                        logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
+                        usePrior=TRUE)
+  dispMAP[!dispConv] <- dispInR
   
   dispersionFinal <- dispMAP
     
@@ -681,19 +682,13 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
  
   resultsList <- list(dispersion = dispersionFinal,
                       dispIter = dispResMAP$iter,
-                      dispConv = (dispResMAP$iter < maxit),
                       dispOutlier = dispOutlier,
                       dispMAP = dispMAP)
 
-  numnonconv = sum(!resultsList$dispConv)
-  if ((numnonconv>0) && !quiet) 
-    message(sprintf("%d row%s did not converge in dispersion, labelled in 'mcols(object)$dispConv'. Try using a larger value for the 'maxit' argument of 'estimateDispersions'.\n", numnonconv, if(numnonconv>1) "s" else ""))
-  
   dispDataFrame <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
   mcols(dispDataFrame) <- DataFrame(type=rep("intermediate",ncol(dispDataFrame)),
                                     description=c("final estimate of dispersion",
                                       "number of iterations",
-                                      "convergence of final estimate",
                                       "dispersion flagged as outlier",
                                       "maximum a posteriori estimate"))
 
@@ -2050,7 +2045,6 @@ fitDispInR <- function(y, x, mu, logAlphaPriorMean,
                        logAlphaPriorSigmaSq, usePrior=TRUE)
 {
   disp <- numeric(nrow(y))
-
   # function to evaluate posterior
   logPost <- function(logAlpha) {
     alpha <- exp(logAlpha)
@@ -2058,7 +2052,7 @@ fitDispInR <- function(y, x, mu, logAlphaPriorMean,
     logLike <- sum(dnbinom(yrow, mu=murow, size=1/alpha, log=TRUE))
     coxReid <- -.5*(log(det(t(x) %*% w %*% x)))
     logPrior <- if (usePrior) {
-      dnorm(logAlpha, logAlphaPriorMean, sqrt(logAlphaPriorSigmaSq), log=TRUE)
+      dnorm(logAlpha, logAlphaPriorMeanRow, sqrt(logAlphaPriorSigmaSq), log=TRUE)
     } else {
       0
     } 
@@ -2069,6 +2063,7 @@ fitDispInR <- function(y, x, mu, logAlphaPriorMean,
   for (i in seq_len(nrow(y))) {
     murow <- mu[i,]
     yrow <- y[i,]
+    logAlphaPriorMeanRow <- logAlphaPriorMean[i]
     s <- seq(from=log(1e-8),to=log(1e5),length=100)
     lpo <- sapply(s, logPost)
     lofit <- loess(lpo ~ s, span=0.1)
