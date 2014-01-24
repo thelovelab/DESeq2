@@ -8,7 +8,9 @@ makeExpandedModelMatrix <- function(object) {
     coldata[[f]][nrow(coldata)] <- "_null_level_"
   }
   mm0 <- model.matrix(design(object), data=coldata)
-  mm <- mm0[-nrow(mm0),]
+  # these can appear when interactions are present without main effect variables
+  nullLvls <- grepl("_null_level_",colnames(mm0))
+  mm <- mm0[-nrow(mm0), !nullLvls]
   attr(mm,"assign") <- attr(mm0,"assign")
   colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
   colnames(mm) <- make.names(colnames(mm))
@@ -47,6 +49,7 @@ averagePriorsOverLevels <- function(object, betaPriorVar) {
       }
     }
   }
+  stopifnot(all(betaPriorOut > 0))
   betaPriorOut
 }
 

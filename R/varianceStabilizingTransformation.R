@@ -19,7 +19,9 @@
 #' prior information on samples, for example to perform sample QA (quality assurance).
 #' blind=FALSE should be used for transforming data for downstream analysis,
 #' where the full use of the design information should be made.
-#' 
+#' If many of genes have large differences in counts due to
+#' the experimental design, it is important to set blind=FALSE for downstream
+#' analysis.
 #' @details For each sample (i.e., column of \code{counts(dds)}), the full variance function
 #' is calculated from the raw variance (by scaling according to the size factor and adding 
 #' the shot noise). We recommend a blind estimation of the variance function, i.e.,

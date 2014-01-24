@@ -168,9 +168,6 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet(betaSD=1)
-#' design(dds) <- formula(~ 1)
-#' dds <- estimateSizeFactors(dds)
-#' dds <- estimateDispersions(dds)
 #' vsd <- varianceStabilizingTransformation(dds)
 #' plotPCA(vsd)
 #'

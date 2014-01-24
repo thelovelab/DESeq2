@@ -22,6 +22,10 @@ setValidity( "DESeqDataSet", function( object ) {
     return("all variables in design formula must be columns in colData")
   }
   designVarsClass <- sapply(designVars, function(v) class(colData(object)[[v]]))
+  if (any(designVarsClass == "character")) {
+    return("variables in design formula are character vectors.
+convert these columns of colData(object) to factors before including in the design formula")
+  }
   designFactors <- designVars[designVarsClass == "factor"]
   if (any(sapply(designFactors,function(v) any(table(colData(object)[[v]]) == 0)))) {
     return("factors in design formula must have samples for each level")

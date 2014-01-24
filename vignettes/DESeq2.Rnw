@@ -380,14 +380,18 @@ see below:
 colData(dds)
 @
 
-We can account for the different types of sequencing, and get a clearer picture
-of the differences attributable to the treatment.  As \Robject{condition} is the
-variable of interest, we put it at the end of the formula. Then we can re-run 
-\Rfunction{DESeq}.
+We save the single factor analysis as a separate object, so that we can rerun
+the analysis on the \Robject{dds} object.
 
 <<saveSingleFactor,echo=FALSE>>=
 ddsSingleFactor <- dds
 @
+
+
+We can account for the different types of sequencing, and get a clearer picture
+of the differences attributable to the treatment.  As \Robject{condition} is the
+variable of interest, we put it at the end of the formula. Then we can re-run 
+\Rfunction{DESeq}.
 
 <<replaceDesign,cache=TRUE>>=
 design(dds) <- formula(~ type + condition)
@@ -412,7 +416,7 @@ e.g. changing \texttt{-} (a dash) to \texttt{.} (a period). The function
 
 <<multiTypeResults>>=
 resultsNames(dds)
-resType <- results(dds, name="type_single.read_vs_paired.end")
+resType <- results(dds, contrast=c("type","single.read","paired.end"))
 head(resType)
 @
 
@@ -431,40 +435,33 @@ argument, but provides more flexibility.
   \begin{table}[!h] \footnotesize
     \begin{tabular}{ p{2in} | p{1.5in} | p{3in}}
     Differences of interest & Design & Notes \\ \hline \hline
-    $\ge 3$ level factor 'condition': compare levels against another &
-    \Robject{\textasciitilde condition}, or \newline
-    \Robject{\textasciitilde group + condition} etc. & 
-    \Robject{results(dds, contrast = c("condition", "C", "B"))},
+    
+    Compare factor levels against another &
+    \ldots & 
+    use the contrast argument of \Rfunction{results},
     see \ref{sec:contrasts} \\ \hline
     
-    $\ge 3$ level factor 'condition': compare significance of all levels &
-    \Robject{\textasciitilde  condition}, or \newline
-    \Robject{\textasciitilde group + condition} etc. & 
-    \Robject{DESeq(dds, test="LRT", reduced = \textasciitilde 1)} or 
-    \Robject{DESeq(dds, test="LRT", reduced = \textasciitilde group)},
+    Test the significance of all levels of 'condition' &
+    \ldots & 
+    use the likelihood ratio test, removing 'condition' in the reduced formula,
     see \ref{sec:LRT} \\ \hline
-    
-    $2$ level factor 'condition' but 'group' has $\ge 3$ levels &
-    \Robject{\textasciitilde group + condition} & 
-    default \Robject{DESeq} call, then use \Robject{contrast} instead of \Robject{name}  \\ \hline
-    
-    Interactions between 'group' and 'treatment' &
-    \Robject{\textasciitilde group + treatment + group:treatment} & 
-    default \Robject{DESeq} call, 
+       
+    Interactions between 'group' and 'condition' &
+    \Robject{\textasciitilde group + condition + group:condition} & 
     \Robject{resultsNames(dds)} to see available interactions and
-    \Robject{results(dds,name="group1.treatmentA")}
+    \Robject{results(dds,name="group2.conditionB")}
      \\ \hline
     
-    Time series: changes due to treatment after time 0 &
-    \Robject{\textasciitilde  time + treatment + time:treatment} &
+    Time series: changes due to condition after time 0 &
+    \Robject{\textasciitilde  time + condition + time:condition} &
     default \Robject{DESeq} call for examining individual 
-    time-treatment interactions;
-    or a likelihood ratio test for any differences
+    time-condition interactions;
+    or a likelihood ratio test to test for all differences
     after time 0, see \ref{sec:LRT} \\ \hline
     
     Dual-assay, e.g.: changes in ratio of RNA-Seq
-    to CLIP-Seq reads across treatment &
-    \Robject{\textasciitilde  assay + treatment + assay:treatment} & 
+    to CLIP-Seq reads across condition &
+    \Robject{\textasciitilde  assay + condition + assay:condition} & 
     default \Robject{DESeq} call \\
     \end{tabular}
   \end{table}
@@ -502,19 +499,31 @@ One method incorporates priors on the sample differences,
 and the other uses the concept of variance stabilizing
 transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
 
+\subsubsection{Blind dispersion estimation}
+
 The two functions, \Rfunction{rlogTransformation} and 
 \Rfunction{varianceStabilizingTransformation}, have an argument \Robject{blind},
 for whether the transformation should be blind to the sample information specified by the 
 design formula. By setting the argument \Robject{blind} to \Robject{TRUE},
 the functions will re-estimate the dispersions using only an intercept
 (design formula $\sim 1$). This setting should be used in order to compare samples 
-in a manner unbiased by the information about experimental groups, 
-for example to perform sample QA (quality assurance) as demonstrated below. 
-By setting \Robject{blind} to \Robject{FALSE}, the dispersions 
-already estimated will be used to perform transformations, 
-or if not present, they will be estimated using the current
-design formula. This setting should be used for transforming data for 
-downstream analysis.
+in a manner wholly unbiased by the information about experimental groups, 
+for example to perform sample QA (quality assurance) as demonstrated below.
+
+However, blind dispersion estimation is not the appropriate choice if one
+expects that many or the majority of genes (rows) will have large differences
+in counts which are explanable by the experimental design, and one wishes 
+to tranform the data for downstream analysis. In this case, using blind dispersion
+estimation will lead to large estimates of dispersion, as it attributes differences
+due to experimental design as unwanted ``noise'', and shrinks the tranformed values
+towards each other.  By setting \Robject{blind} to \Robject{FALSE}, the dispersions 
+already estimated will be used to perform transformations, or if not present, 
+they will be estimated using the current design formula. Note that only the fitted
+dispersion estimates from mean-dispersion trend line is used in the transformation.
+So setting \Robject{blind} to \Robject{FALSE} is still mostly unbiased
+by the information about the samples.
+
+\subsubsection{Extracting transformed values}
 
 The two functions return \Rclass{SummarizedExperiment} objects, as the
 data are no longer counts. The \Rfunction{assay} function is used to
@@ -523,6 +532,8 @@ extract the matrix of normalized values.
 <<defvsd,cache=TRUE>>=
 rld <- rlogTransformation(dds, blind=TRUE)
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
+rlogMat <- assay(rld)
+vstMat <- assay(vsd)
 @
 
 \subsubsection{Regularized log transformation}
@@ -560,7 +571,13 @@ to \Rfunction{estimateDispersions}) a numerical integration is used instead.
 The resulting variance stabilizing transformation is shown in
 Figure \ref{figure/vsd1}.  The code that produces the figure is hidden from
 this vignette for the sake of brevity, but can be seen in the
-\texttt{.Rnw} or \texttt{.R} source file.
+\texttt{.Rnw} or \texttt{.R} source file. Note that the vertical axis in such
+plots is the square root of the variance over all samples, so including 
+the variance due to the experimental conditions. 
+While a flat curve of the square root of variance over the mean 
+may seem like the goal of such transformations, 
+this may be unreasonable in the case of datasets with many true 
+differences due to the experimental conditions.
 
 \incfig{figure/vsd1}{.49\textwidth}{VST and log2.}{
   Graphs of the variance stabilizing transformation for
@@ -576,7 +593,8 @@ this vignette for the sake of brevity, but can be seen in the
 \caption{Per-gene standard deviation (taken across samples), against
   the rank of the mean, for the shifted logarithm
   $\log_2(n+1)$ (left), the regularized log transformation (center)
-  and the variance stabilizing transformation (right).}
+  and the variance stabilizing transformation (right).
+}
 \label{figvsd2}
 \end{figure}
 
@@ -921,7 +939,7 @@ on the sample size, the number of coefficients, the row mean
 and the variability of the gene-wise estimates.
 
 <<dispFit>>=
-plotDispEsts(dds)
+plotDispEsts(ddsSingleFactor)
 @
 
 \incfig{figure/dispFit}{.5\textwidth}{Dispersion plot.}{
@@ -937,9 +955,14 @@ fails to converge. A warning will be printed that one should use
 \Rfunction{plotDispEsts} to check the quality of the fit, whether
 the curve is pulled dramatically by a few outlier points. 
 
+<<dispFitLocalSub, echo=FALSE>>=
+ddsLocal <- estimateDispersions(dds[1:1000,], fitType="local")
+@
+
 <<dispFitLocal, eval=FALSE>>=
 ddsLocal <- estimateDispersions(dds, fitType="local")
 @
+
 
 \subsubsection{Mean dispersion}
 
@@ -947,9 +970,14 @@ While RNA-Seq data tend to demonstrate a dispersion-mean dependence,
 this assumption is not appropriate for all assays.  An alternative is
 to use the mean of all gene-wise dispersion estimates.
 
+<<dispFitMeanSub, echo=FALSE>>=
+ddsMean <- estimateDispersions(dds[1:1000,], fitType="mean")
+@
+
 <<dispFitMean, eval=FALSE>>=
 ddsMean <- estimateDispersions(dds, fitType="mean")
 @
+
 
 \subsubsection{Supply a custom dispersion fit}
 
@@ -965,6 +993,14 @@ dispersions are distributed according to a log-normal prior around
 the fitted values in the column \Robject{fitDisp}.  The width of
 this prior is calculated from the data.
 
+<<dispFitCustomSub, echo=FALSE>>=
+ddsMed <- estimateDispersionsGeneEst(dds[1:1000,])
+useForMedian <- mcols(ddsMed)$dispGeneEst > 1e-7
+medianDisp <- median(mcols(ddsMed)$dispGeneEst[useForMedian],na.rm=TRUE)
+mcols(ddsMed)$dispFit <- medianDisp
+ddsMed <- estimateDispersionsMAP(ddsMed)
+@
+
 <<dispFitCustom, eval=FALSE>>=
 ddsMed <- estimateDispersionsGeneEst(dds)
 useForMedian <- mcols(ddsMed)$dispGeneEst > 1e-7
@@ -972,6 +1008,7 @@ medianDisp <- median(mcols(ddsMed)$dispGeneEst[useForMedian],na.rm=TRUE)
 mcols(ddsMed)$dispFit <- medianDisp
 ddsMed <- estimateDispersionsMAP(ddsMed)
 @
+
 
 \subsection{Independent filtering of results}\label{sec:autoFilt}
 
@@ -1065,7 +1102,6 @@ ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
 
 In order to produce results tables for the following tests, the same arguments
 (except \Robject{ylim}) would be provided to the \Rfunction{results} function. 
-\fixme{Fix \Rfunction{plotMA} so that the warnings are avoided.}
 
 <<lfcThresh>>=
 par(mfrow=c(2,2),mar=c(2,2,1,1))
@@ -1228,7 +1264,7 @@ Cook's distance for each row over the rank of the test statistic
 to justify its use as a filtering criterion.
 
 <<cooksPlot>>=
-W <- mcols(dds)$WaldStatistic_condition_treated_vs_untreated
+W <- res$stat
 maxCooks <- apply(assays(dds)[["cooks"]],1,max)
 idx <- !is.na(W)
 plot(rank(W[idx]), maxCooks[idx], xlab="rank of Wald statistic", 

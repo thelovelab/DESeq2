@@ -1,11 +1,6 @@
 CHANGES IN VERSION 1.3.24
 -------------------------
 
-    o The estimateSizeFactorsForMatrix gains an argument 'useNonzero',
-      which specifies that the log of geometric means should be 
-      calculated only using the non-zero counts in a row. This helps to
-      improve size factor estimation in the case of zero inflation and 
-      many samples.
     o rlogTransformation() gains an argument 'fast', which switches to
       an approximation of the rlog transformation when there are many 
       samples.

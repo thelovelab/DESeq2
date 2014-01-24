@@ -143,6 +143,7 @@ results <- function(object, name, contrast,
   
   isExpanded <- attr(object, "modelMatrixType") == "expanded"
   termsOrder <- attr(terms.formula(design(object)),"order")
+  # allows use of 'name' for expanded model matrices if there are interactions
   if ((test == "Wald") & isExpanded & missing(contrast) & all(termsOrder < 2)) {
     if (missing(name)) {
       designVars <- all.vars(formula(design(object)))
@@ -154,9 +155,7 @@ results <- function(object, name, contrast,
       }
     } else {     
       message("\n
-note: an expanded model matrix was used in fitting, either through
-use of the modelMatrixType argument or by default, because 1 or
-more factors in the design formula contained 3 or more levels.
+note: an expanded model matrix was used in fitting the model.
 
 recommendation: the 'contrast' argument should be used to extract
 log2 fold changes of levels against each other.\n")

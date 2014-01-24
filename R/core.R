@@ -131,15 +131,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
   if (missing(betaPrior)) {
     betaPrior <- test == "Wald"
   }
-  if (test == "LRT" & missing(reduced)) {
-    stop("provide a reduced formula for the likelihood ratio test, e.g. reduced = ~ 1")
-  }
   if (test == "LRT") {
-    reducedNotInFull <- !all.vars(reduced) %in% all.vars(full)
-    if (any(reducedNotInFull)) {
-      stop(paste("the following variables in the reduced formula not in the full formula:",
-                 paste(all.vars(reduced)[reducedNotInFull],collapse=", ")))
-    }
+    checkLRT(full, reduced)
   }
   attr(object, "betaPrior") <- betaPrior
   if (!is.null(sizeFactors(object)) || !is.null(normalizationFactors(object))) {
@@ -163,64 +156,11 @@ DESeq <- function(object, test=c("Wald","LRT"),
     object <- nbinomLRT(object, full=full, reduced=reduced,
                         betaPrior=betaPrior, quiet=quiet)
   }
-  
+
+  # if there are sufficient replicates, then pass through to refitting function
   if (any(nOrMoreInCell(attr(object,"modelMatrix"),minReplicatesForReplace))) {
-    cooks <- assays(object)[["cooks"]]
-    object <- replaceOutliers(object, minReplicates=minReplicatesForReplace)
-
-    # refit without outliers, if there were any replacements
-    nrefit <- sum(mcols(object)$replace,na.rm=TRUE)
-    if ( nrefit > 0 ) {
-      if (!quiet) message(paste("-- refitting", nrefit,"genes
--- outliers replaced when >=",minReplicatesForReplace,"replicates
--- original counts are preserved in counts(dds))"))
-      
-      # refit on those rows which had replacement
-      objectSub <- object[which(mcols(object)$replace),]
-      dispFit <- mcols(objectSub)$dispFit
-      intermediateOrResults <- which(mcols(mcols(objectSub))$type %in% c("intermediate","results"))
-      mcols(objectSub) <- mcols(objectSub)[,-intermediateOrResults]
-      if (!quiet) message("estimating dispersions")
-      objectSub <- estimateDispersionsGeneEst(objectSub, quiet=quiet)
-      mcols(objectSub)$dispFit <- dispFit
-      mcols(mcols(objectSub),use.names=TRUE)["dispFit",] <- DataFrame(type="intermediate",
-                               description="fitted values of dispersion")
-      dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" )
-      objectSub <- estimateDispersionsMAP(objectSub, quiet=quiet,
-                                          dispPriorVar=dispPriorVar)
-      if (!quiet) message("fitting model and testing")
-      if (test == "Wald") {
-        betaPriorVar <- attr(object, "betaPriorVar")
-        objectSub <- nbinomWaldTest(objectSub, betaPrior=betaPrior,
-                                    betaPriorVar=betaPriorVar, quiet=quiet)
-      } else if (test == "LRT") {
-        if (betaPrior) {
-          objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet)
-        } else {
-          betaPriorVar <- attr(object, "betaPriorVar")
-          objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, betaPrior=TRUE,
-                                 betaPriorVar=betaPriorVar, quiet=quiet)
-        }
-      }
-      idx <- match(names(mcols(objectSub)), names(mcols(object)))
-      mcols(object)[which(mcols(object)$replace), idx] <- mcols(objectSub)
-
-      # continue to flag if some conditions have less than minReplicatesForReplace
-      if (all(colData(object)$replaceable)) {
-        mcols(object)$maxCooks <- NA
-      } else {
-        newCooks <- assays(object)[["cooks"]]
-        newCooks[,colData(object)$replaceable] <- 0
-        mcols(object)$maxCooks <- recordMaxCooks(design(object), colData(object),
-                                                 attr(object,"modelMatrix"), newCooks, nrow(object))
-      }    
-      
-      # preserve original counts and Cook's distances
-      # and save the counts used for fitting as 'replaceCounts'
-      assays(object)[["replaceCounts"]] <- counts(object)
-      assays(object)[["cooks"]] <- cooks
-      counts(object) <- assays(object)[["originalCounts"]]
-    }
+    object <- refitWithoutOutliers(object, test, betaPrior, full, reduced,
+                                   quiet, minReplicatesForReplace)
   }
   
   object
@@ -311,9 +251,6 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' geometric means of the counts are calculated within the function.
 #' A vector of geometric means from another count matrix can be provided
 #' for a "frozen" size factor calculation
-#' @param useNonzero only use non-zero counts in estimating the geometric mean.
-#' produces less variable size factors estimates when there is zero inflation
-#' and many samples
 #' @return a vector with the estimates size factors, one element per column
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactors}}
@@ -325,14 +262,10 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
 #' 
 #' @export
-estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, useNonzero = FALSE )
+estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
 {
   if (missing(geoMeans)) {
-    loggeomeans <- if (useNonzero) {
-      apply(counts, 1, function(cnts) mean(log(cnts[cnts > 0])))
-    } else {
-      rowMeans(log(counts))
-    }
+    loggeomeans <- rowMeans(log(counts))
   } else {
     if (length(geoMeans) != nrow(counts)) {
       stop("geoMeans should be as long as the number of rows of counts")
@@ -406,7 +339,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        modelMatrix, niter=1) {
   if ("dispGeneEst" %in% names(mcols(object))) {
     if (!quiet) message("you had estimated gene-wise dispersions, removing these")
-    removeCols <- c("dispGeneEst","dispGeneEstConv")
+    removeCols <- c("dispGeneEst")
     mcols(object) <- mcols(object)[,!names(mcols(object))  %in% removeCols]
   }
   stopifnot(length(minDisp) == 1)
@@ -426,21 +359,6 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   } else {
     "standard"
   }
-  
-  object <- getBaseMeansAndVariances(object)
-  xim <- if (!is.null(normalizationFactors(object))) {
-    mean(1/colMeans(normalizationFactors(object)))
-  } else {
-    mean(1/sizeFactors(object))
-  }
-  # only continue on the rows with non-zero row mean
-  objectNZ <- object[!mcols(object)$allZero,]
-  bv <- mcols(objectNZ)$baseVar
-  bm <- mcols(objectNZ)$baseMean
-  # this rough dispersion estimate (alpha_hat)
-  # is for estimating beta and mu
-  # and for the initial starting point for line search
-  alpha_hat <- alpha_hat_new <- alpha_init <- pmax(minDisp, (bv - xim*bm)/bm^2)
 
   if (missing(modelMatrix)) {
     modelMatrix <- if (modelMatrixType == "standard") {
@@ -451,7 +369,34 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   } else {
     message("using supplied model matrix")
   }
-  attr(object, "modelMatrix") <- modelMatrix
+  
+  object <- getBaseMeansAndVariances(object)
+
+  # only continue on the rows with non-zero row mean
+  objectNZ <- object[!mcols(object)$allZero,]
+  
+  # this rough dispersion estimate (alpha_hat)
+  # is for estimating mu
+  # and for the initial starting point for line search
+  # first check if model matrix is full rank
+  fullRank <- qr(modelMatrix)$rank == ncol(modelMatrix)
+  alpha_hat <- if (fullRank) {
+    # if rull rank use this estimator which compares normalized counts to mu
+    roughDispEstimate(y = counts(objectNZ,normalized=TRUE),
+                      x = modelMatrix)
+  } else {
+    # if not full rank use method of moments across all samples
+    xim <- if (!is.null(normalizationFactors(object))) {
+      mean(1/colMeans(normalizationFactors(object)))
+    } else {
+      mean(1/sizeFactors(object))
+    }
+    bv <- mcols(objectNZ)$baseVar
+    bm <- mcols(objectNZ)$baseMean
+    (bv - xim*bm)/bm^2
+  }
+  
+  alpha_hat <- alpha_hat_new <- alpha_init <- pmax(minDisp, alpha_hat)
 
   stopifnot(length(niter) == 1 & niter > 0)
 
@@ -482,11 +427,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     alpha_hat <- alpha_hat_new
     if (sum(fitidx) == 0) break
   }
-
-  if (mean(dispIter < maxit) < .5) {
-    warning("in calling estimateDispersionsGeneEst, less than 50% of gene-wise estimates converged. Use larger 'maxit' argument with estimateDispersions")
-  }
-  
+ 
   # dont accept moves if the log posterior did not
   # increase by more than one millionth,
   # and set the small estimates to the minimum dispersion
@@ -495,15 +436,28 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     noIncrease <- dispRes$last_lp < dispRes$initial_lp + abs(dispRes$initial_lp)/1e6
     dispGeneEst[which(noIncrease)] <- alpha_init[which(noIncrease)]
   }
-  dispGeneEst <- pmax(dispGeneEst, minDisp)
   dispGeneEstConv <- dispIter < maxit
+ 
+  # when lacking convergence from the C++ routine
+  # we use an R function to estimate dispersions.
+  # This finds the maximum of a smooth curve along a
+  # grid of posterior evaluations
+  refitDisp <- !dispGeneEstConv & dispGeneEst > minDisp*10
+  if (sum(refitDisp) > 0) {
+    dispInR <- fitDispInR(y = counts(objectNZ)[refitDisp,,drop=FALSE],
+                          x = modelMatrix,
+                          mu = mu[refitDisp,,drop=FALSE],
+                          logAlphaPriorMean = rep(0,sum(refitDisp)),
+                          logAlphaPriorSigmaSq = 1,
+                          usePrior=FALSE)
+    dispGeneEst[refitDisp] <- dispInR
+  }
+  dispGeneEst <- pmax(dispGeneEst, minDisp)
   
-  dispDataFrame <- buildDataFrameWithNARows(list(dispGeneEst=dispGeneEst,
-                                                 dispGeneEstConv=dispGeneEstConv),
+  dispDataFrame <- buildDataFrameWithNARows(list(dispGeneEst=dispGeneEst),
                                             mcols(object)$allZero)
   mcols(dispDataFrame) <- DataFrame(type=rep("intermediate",ncol(dispDataFrame)),
-                                    description=c("gene-wise estimates of dispersion",
-                                      "gene-wise dispersion estimate convergence"))
+                                    description=c("gene-wise estimates of dispersion"))
   mcols(object) <- cbind(mcols(object), dispDataFrame)
   assays(object)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
   return(object)
@@ -518,7 +472,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit"]
   }
   objectNZ <- object[!mcols(object)$allZero,]
-  useForFit <- mcols(objectNZ)$dispGeneEstConv
+  useForFit <- mcols(objectNZ)$dispGeneEst > 100*minDisp
 
   # take the first fitType
   fitType <- fitType[1]
@@ -574,7 +528,7 @@ the position of individual points.")
 #' @export
 estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    minDisp=1e-8, kappa_0=1, dispTol=1e-6,
-                                   maxit=100, quiet=FALSE) {
+                                   maxit=100, modelMatrix, quiet=FALSE) {
   stopifnot(length(outlierSD)==1)
   stopifnot(length(minDisp)==1)
   stopifnot(length(kappa_0)==1)
@@ -586,13 +540,32 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
     mcols(object) <- mcols(object)[,!names(mcols(object))  %in% removeCols]
   }
 
-  modelMatrix <- attr(object, "modelMatrix")
+  # if factor is present with 3 or more levels, estimate the
+  # expected means such that releveling will not change the
+  # exact estimates of dispersion (unless betaPrior is FALSE)
+  betaPriorOrNotSpecified <- is.null(attr(object,"betaPrior")) || attr(object,"betaPrior")
+  modelMatrixType <- if (factorPresentThreeOrMoreLevels(object) & betaPriorOrNotSpecified) {
+    "expanded"
+  } else {
+    "standard"
+  }
+
+  if (missing(modelMatrix)) {
+    modelMatrix <- if (modelMatrixType == "standard") {
+      model.matrix(design(object), data=as.data.frame(colData(object)))
+    } else {
+      makeReleveledModelMatrix(object)
+    }
+  } else {
+    message("using supplied model matrix")
+  }
+  
   objectNZ <- object[!mcols(object)$allZero,]
 
   # fill in the calculated dispersion prior variance
   if (missing(dispPriorVar)) {
-    useNotMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*10
-    if (sum(useNotMinDisp,na.rm=TRUE) == 0) {
+    aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
+    if (sum(aboveMinDisp,na.rm=TRUE) == 0) {
       warning(paste0("all genes have dispersion estimates < ",minDisp*10,
                      ", returning disp = ",minDisp*10))
       resultsList <- list(dispersion = minDisp*10)
@@ -603,7 +576,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
       attr( dispersionFunction(object), "dispPriorVar" ) <- 0.25
       return(object)
     }
-    resList <- estimateDispersionPriorVar(objectNZ, useNotMinDisp, modelMatrix)
+    resList <- estimateDispersionPriorVar(objectNZ, aboveMinDisp, modelMatrix)
     dispPriorVar <- resList$dispPriorVar
     varLogDispEsts <- resList$varLogDispEsts
     expVarLogDisp <- resList$expVarLogDisp
@@ -620,10 +593,10 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   } else {
     # provided dispPriorVar, so need to calculate observed varLogDispEsts
     # this code is copied from estimateDispPriorVar()
-    useNotMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*10
-    stopifnot(sum(useNotMinDisp,na.rm=TRUE) > 0)
+    aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
+    stopifnot(sum(aboveMinDisp,na.rm=TRUE) > 0)
     dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
-    varLogDispEsts <- mad(dispResiduals[useNotMinDisp],na.rm=TRUE)^2
+    varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
     attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
   }
   
@@ -658,14 +631,16 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   # we use an R function to estimate dispersions.
   # This finds the maximum of a smooth curve along a
   # grid of posterior evaluations
-  dispConv <- (dispResMAP$iter < maxit)
-  dispInR <- fitDispInR(y = counts(objectNZ)[!dispConv,], x = modelMatrix,
-                        mu = mu[!dispConv,],
-                        logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[!dispConv],
-                        logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
-                        usePrior=TRUE)
-  dispMAP[!dispConv] <- dispInR
-  
+  dispConv <- dispResMAP$iter < maxit
+  refitDisp <- !dispConv
+  if (sum(refitDisp) > 0) {
+    dispInR <- fitDispInR(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
+                          mu = mu[refitDisp,,drop=FALSE],
+                          logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
+                          logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
+                          usePrior=TRUE)
+    dispMAP[refitDisp] <- dispInR
+  }
   dispersionFinal <- dispMAP
     
   # detect outliers which have gene-wise estimates
@@ -818,8 +793,13 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   
   # what kind of model matrix to use
   stopifnot(is.logical(betaPrior))
+  termsOrder <- attr(terms.formula(design(object)),"order")
+  interactionPresent <- any(termsOrder > 1)
   if (missing(modelMatrixType)) {
-    modelMatrixType <- if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
+    blindDesign <- design(object) == formula(~ 1)
+    twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
+    mmTypeTest <- betaPrior & !blindDesign & !twoLevelsInteraction
+    modelMatrixType <- if (mmTypeTest) {
       "expanded"
     } else {
       "standard"
@@ -830,12 +810,10 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   }
   # if there are interaction terms present in the design
   # then we should only use the prior on the interaction terms
-  termsOrder <- attr(terms.formula(design(object)),"order")
-  interactionPresent <- any(termsOrder > 1)
   if (any(termsOrder > 2) & modelMatrixType == "expanded") {
     stop("interactions higher than 2nd order and usage of expanded model matrices
 has not been implemented. we recommend instead using a likelihood
-ratio test, i.e. DESeq with argument test='LRT'.")
+ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   }
   priorOnlyInteraction <- interactionPresent & betaPrior & missing(betaPriorVar)
 
@@ -1018,14 +996,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
-  if (missing(reduced)) {
-    stop("provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
-  }
-  reducedNotInFull <- !all.vars(reduced) %in% all.vars(full)
-  if (any(reducedNotInFull)) {
-    stop(paste("the following variables in the reduced formula not in the full formula:",
-               paste(all.vars(reduced)[reducedNotInFull],collapse=", ")))
-  }
+
+  # run check on the formulae
+  checkLRT(full, reduced)
+  
   stopifnot(length(betaPriorUpperQuantile) == 1 &&
             betaPriorUpperQuantile > 0 &&
             betaPriorUpperQuantile < 1)
@@ -1051,8 +1025,13 @@ nbinomLRT <- function(object, full=design(object), reduced,
   
   # what kind of model matrix to use
   stopifnot(is.logical(betaPrior))
+  termsOrder <- attr(terms.formula(design(object)),"order")
+  interactionPresent <- any(termsOrder > 1)
   if (missing(modelMatrixType)) {
-    modelMatrixType <- if (factorPresentThreeOrMoreLevels(object) & betaPrior) {
+    blindDesign <- design(object) == formula(~ 1)
+    twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
+    mmTypeTest <- betaPrior & !blindDesign & !twoLevelsInteraction
+    modelMatrixType <- if (mmTypeTest) {
       "expanded"
     } else {
       "standard"
@@ -1063,12 +1042,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
   }
   # if there are interaction terms present in the design
   # then we should only use the prior on the interaction terms
-  termsOrder <- attr(terms.formula(design(object)),"order")
-  interactionPresent <- any(termsOrder > 1)
   if (any(termsOrder > 2) & modelMatrixType == "expanded") {
     stop("interactions higher than 2nd order and usage of expanded model matrices
-has not been implemented. we recommend instead using a likelihood
-ratio test, i.e. DESeq with argument test='LRT'.")
+has not been implemented")
   }
   priorOnlyInteraction <- interactionPresent & betaPrior & missing(betaPriorVar)
 
@@ -1878,7 +1854,7 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
       # for calculation of the prior variance in the case of
       # expanded model matrices
       designFactors <- getDesignFactors(object)
-      betaPriorVar[names(betaPriorVar) %in% paste0(designFactors,"Cntrst")] <- widePrior
+      betaPriorVar[which(names(betaPriorVar) %in% paste0(designFactors,"Cntrst"))] <- widePrior
     }
   }
   # intercept set to wide prior
@@ -1965,16 +1941,16 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
 }
 
 # estimates the variance of the prior on log dispersions
-estimateDispersionPriorVar <- function(objectNZ, useNotMinDisp, modelMatrix) {
+estimateDispersionPriorVar <- function(objectNZ, aboveMinDisp, modelMatrix) {
   # estimate the variance of the distribution of the
   # log dispersion estimates around the fitted value
   dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
 
-  if (sum(useNotMinDisp,na.rm=TRUE) == 0) {
+  if (sum(aboveMinDisp,na.rm=TRUE) == 0) {
     stop("no data found which is greater than minDisp")
   }
 
-  varLogDispEsts <- mad(dispResiduals[useNotMinDisp],na.rm=TRUE)^2
+  varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
   
   m <- nrow(modelMatrix)
   p <- ncol(modelMatrix)
@@ -1991,7 +1967,7 @@ estimateDispersionPriorVar <- function(objectNZ, useNotMinDisp, modelMatrix) {
     }
     set.seed(2)
     # The residuals are the observed distribution we try to match
-    obsDist <- dispResiduals[useNotMinDisp]
+    obsDist <- dispResiduals[aboveMinDisp]
     brks <- -20:20/2
     obsDist <- obsDist[obsDist > min(brks) & obsDist < max(brks)]
     obsVarGrid <- seq(from=0,to=8,length=200)
@@ -2042,8 +2018,7 @@ estimateDispersionPriorVar <- function(objectNZ, useNotMinDisp, modelMatrix) {
 
 # backup function in case dispersion doesn't converge
 fitDispInR <- function(y, x, mu, logAlphaPriorMean,
-                       logAlphaPriorSigmaSq, usePrior=TRUE)
-{
+                       logAlphaPriorSigmaSq, usePrior) {
   disp <- numeric(nrow(y))
   # function to evaluate posterior
   logPost <- function(logAlpha) {
@@ -2072,4 +2047,105 @@ fitDispInR <- function(y, x, mu, logAlphaPriorMean,
     disp[i] <- exp(sfine[which.max(pred)])
   }
   disp
+}
+
+
+# rough dispersion estimate using a statistic similar to the Pearson residuals
+roughDispEstimate <- function(y, x) {
+  # must be positive
+  mu <- pmax(.1, linearModelMu(y, x))
+  m <- nrow(x)
+  p <- ncol(x)
+  numerator <- rowSums( ((y - mu)^2 - mu) / mu^2 )
+  denominator <- max(m - p, 1)
+  numerator/denominator
+}
+
+# fast, rough estimation of means for rough dispersion estimation (above)
+linearModelMu <- function(y, x) {
+  qrx <- qr(x)
+  Q <- qr.Q(qrx)
+  Rinv <- solve(qr.R(qrx))
+  hatmatrix <- x %*% Rinv %*% t(Q)
+  t(hatmatrix %*% t(y))
+}
+
+# checks for LRT formulae, written as function to remove duplicate code
+# in DESeq() and nbinomLRT()
+checkLRT <- function(full, reduced) {
+  if (missing(reduced)) {
+    stop("provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
+  }
+  reducedNotInFull <- !all.vars(reduced) %in% all.vars(full)
+  if (any(reducedNotInFull)) {
+    stop(paste("the following variables in the reduced formula not in the full formula:",
+               paste(all.vars(reduced)[reducedNotInFull],collapse=", ")))
+  }
+}
+
+# bulky code separated from DESeq()
+refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
+                                 quiet, minReplicatesForReplace) {
+  cooks <- assays(object)[["cooks"]]
+  object <- replaceOutliers(object, minReplicates=minReplicatesForReplace)
+
+  # refit without outliers, if there were any replacements
+  nrefit <- sum(mcols(object)$replace,na.rm=TRUE)
+  if ( nrefit > 0 ) {
+    if (!quiet) message(paste("-- refitting", nrefit,"genes
+-- outliers replaced when >=",minReplicatesForReplace,"replicates
+-- original counts are preserved in counts(dds))"))
+    
+    # refit on those rows which had replacement
+    object <- getBaseMeansAndVariances(object)
+    newAllZero <- which(mcols(object)$replace & mcols(object)$allZero)
+    refitReplace <- which(mcols(object)$replace & !mcols(object)$allZero)
+    objectSub <- object[refitReplace,]
+    intermediateOrResults <- which(mcols(mcols(objectSub))$type %in% c("intermediate","results"))
+    mcols(objectSub) <- mcols(objectSub)[,-intermediateOrResults]
+    if (!quiet) message("estimating dispersions")
+    objectSub <- estimateDispersionsGeneEst(objectSub, quiet=quiet)
+    # need to redo fitted dispersion due to changes in base mean
+    mcols(objectSub)$dispFit <- dispersionFunction(objectSub)(mcols(objectSub)$baseMean)
+    mcols(mcols(objectSub),use.names=TRUE)["dispFit",] <- DataFrame(type="intermediate",
+                             description="fitted values of dispersion")
+    dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" )
+    objectSub <- estimateDispersionsMAP(objectSub, quiet=quiet,
+                                        dispPriorVar=dispPriorVar)
+    if (!quiet) message("fitting model and testing")
+    if (test == "Wald") {
+      betaPriorVar <- attr(object, "betaPriorVar")
+      objectSub <- nbinomWaldTest(objectSub, betaPrior=betaPrior,
+                                  betaPriorVar=betaPriorVar, quiet=quiet)
+    } else if (test == "LRT") {
+      if (!betaPrior) {
+        objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet)
+      } else {
+        betaPriorVar <- attr(object, "betaPriorVar")
+        objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, betaPrior=betaPrior,
+                               betaPriorVar=betaPriorVar, quiet=quiet)
+      }
+    }
+    idx <- match(names(mcols(objectSub)), names(mcols(object)))
+    mcols(object)[refitReplace, idx] <- mcols(objectSub)
+    mcols(object)[newAllZero, mcols(mcols(object))$type == "results"] <- NA
+    
+    # continue to flag if some conditions have less than minReplicatesForReplace
+    if (all(colData(object)$replaceable)) {
+      mcols(object)$maxCooks <- NA
+    } else {
+      newCooks <- assays(object)[["cooks"]]
+      newCooks[,colData(object)$replaceable] <- 0
+      mcols(object)$maxCooks <- recordMaxCooks(design(object), colData(object),
+                                               attr(object,"modelMatrix"), newCooks, nrow(object))
+    }
+    
+    # preserve original counts and Cook's distances
+    # and save the counts used for fitting as 'replaceCounts'
+    assays(object)[["replaceCounts"]] <- counts(object)
+    assays(object)[["cooks"]] <- cooks
+    counts(object) <- assays(object)[["originalCounts"]]
+  }
+  
+  object
 }

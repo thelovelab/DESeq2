@@ -19,7 +19,10 @@ getVarianceStabilizedData(object)
   information on samples, for example to perform sample QA
   (quality assurance). blind=FALSE should be used for
   transforming data for downstream analysis, where the full
-  use of the design information should be made.}
+  use of the design information should be made. If many of
+  genes have large differences in counts due to the
+  experimental design, it is important to set blind=FALSE
+  for downstream analysis.}
 }
 \value{
 for \code{varianceStabilizingTransformation}, a

@@ -2,8 +2,7 @@
 \alias{estimateSizeFactorsForMatrix}
 \title{Low-level function to estimate size factors with robust regression.}
 \usage{
-estimateSizeFactorsForMatrix(counts, locfunc = median, geoMeans,
-  useNonzero = FALSE)
+estimateSizeFactorsForMatrix(counts, locfunc = median, geoMeans)
 }
 \arguments{
   \item{counts}{a matrix or data frame of counts, i.e.,
@@ -20,10 +19,6 @@ estimateSizeFactorsForMatrix(counts, locfunc = median, geoMeans,
   function. A vector of geometric means from another count
   matrix can be provided for a "frozen" size factor
   calculation}
-
-  \item{useNonzero}{only use non-zero counts in estimating
-  the geometric mean. produces less variable size factors
-  estimates when there is zero inflation and many samples}
 }
 \value{
 a vector with the estimates size factors, one element per
