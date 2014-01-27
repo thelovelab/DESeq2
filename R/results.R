@@ -408,6 +408,9 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   contrastResults
 }
 
+# this function takes a desired contrast as specified by results(),
+# performs checks, and then either returns the already existing contrast
+# or generates the contrast by calling getContrast() using a numeric vector
 cleanContrast <- function(object, contrast, expanded=FALSE) {
   # get the names of columns in the beta matrix
   resNames <- resultsNames(object)
@@ -418,12 +421,14 @@ see the argument description in ?results")
   }
   
   # check contrast validity
+  # ...if numeric
   if (is.numeric(contrast)) {
     if (length(contrast) != length(resNames) )
       stop("numeric contrast vector should have one element for every element of 'resultsNames(object)'")
     if (all(contrast==0)) {
       stop("numeric contrast vector cannot have all elements equal to 0")
     }
+    # ...if character
   } else if (is.character(contrast)) {
     # check if the appropriate columns are in the resultsNames
     if (contrast[2] == contrast[3]) {
@@ -436,9 +441,9 @@ see the argument description in ?results")
     contrastNumLevel <- contrast[2]
     contrastDenomLevel <- contrast[3]
 
-    # more checks, and potentially return results already
-    # if numerator or denominator is the base level
-    # first for standard model matrices
+    # case 1: standard model matrices: build the appropriate contrast
+    # coefficients names are of the form  "factor_level_vs_baselevel"
+    # output: contrastNumColumn and contrastDenomColumn
     if (!expanded) {
 
       # then we have a base level for the factor
@@ -507,8 +512,10 @@ see the argument description in ?results")
                    "such that",contrastNumColumn,"and",contrastDenomColumn,
                    "are contained in 'resultsNames(object)'"))
       }
-      # then we proceed below with translation to a numeric contrast
-      
+
+      # case 2: expanded model matrices: build the appropriate contrasrt
+      # these coefficient names have the form "factorlevel"
+      # output: contrastNumColumn and contrastDenomColumn
     } else {
       
       # else in the expanded case, we first check validity
