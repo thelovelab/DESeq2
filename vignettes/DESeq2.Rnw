@@ -763,13 +763,12 @@ and of C vs B (the other three possible pairs will simply have
 $-1 \times$ the $\log_2$ fold changes of these three). 
 
 In order to fit models with ``shrunken'' $\log_2$ fold changes 
-to experimental designs with factors with three or more levels,
-\deseqtwo{} uses "expanded model matrices", described further in 
-Section~\ref{sec:expanded}. This ensures that the model results 
-are independent of the choice of base level. The expanded model matrices 
+in a manner which is independent to the choice of base level,
+\deseqtwo{} uses ``expanded model matrices'', described further in 
+Section~\ref{sec:expanded}. The expanded model matrices 
 include a coefficient for each level of the factors in addition to an intercept. 
-The \Robject{contrast} argument, as shown below, is then used rather 
-than the \Robject{name} argument of the \Rfunction{results} function.
+The \Robject{contrast} argument of \Rfunction{results} function is
+again used to extract test results of $\log_2$ fold changes of interest.
 
 Here we show how to perform contrasts using the parathyroid dataset 
 which was built in Section~\ref{sec:sumExpInput}.
@@ -1300,12 +1299,16 @@ $$ W = \frac{c^t \beta}{\sqrt{c^t \Sigma c}} $$
 \subsection{Expanded model matrices} \label{sec:expanded}
 
 As mentioned in Section~\ref{sec:contrasts}, \deseqtwo{} uses
-``expanded model matrices'' if there are factors in the design formula
-which contain three or more levels, in order to produce
-$\log_2$ fold changes which are independent of the choice of base level.
+``expanded model matrices'' with the $\log_2$ fold change prior, 
+in order to produce $\log_2$ fold change estimates and test 
+results which are independent of the choice of base level. 
 These model matrices differ from the standard model matrices, in that
 they have an indicator column (and therefore a coefficient) for
 each level of factors in the design formula in addition to an intercept. 
+Expanded model matrices are not used without the $\log_2$ fold change 
+prior or in the case of designs
+with 2 level factors and an interaction term.
+
 These matrices are therefore not full rank, but a coefficient vector $\beta_i$ 
 can still be found due to the zero-centered prior on non-intercept coefficients.
 The prior variance for the $\log_2$ fold changes is 
@@ -1314,9 +1317,10 @@ estimates for a standard model matrix. The prior variance for each level
 of a factor is then set as the average of the mean squared maximum likelihood 
 estimates for each level and every possible contrast, such that that this 
 prior value will be base level independent. The \Robject{contrast}
-argument of the \Rfunction{results} function should be used rather than
-the \Robject{name} argument to generate contrasts of the levels against
-each other.
+argument of the \Rfunction{results} function is again used in order
+to generate comparisons of interest.
+
+
 
 %--------------------------------------------------
 \subsection{Independent filtering and multiple testing} \label{sec:indepfilt}

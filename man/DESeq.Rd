@@ -133,9 +133,9 @@ original Cook's distances are kept in
 used for fitting are kept in
 \code{assays(object)[["replaceCounts"]]}.
 
-Note that if factors are present in the design formula with
-three or more levels, then expanded model matrices will be
-used in fitting. These are described in
+Note that if a log2 fold change prior is used
+(betaPrior=TRUE) then expanded model matrices will be used
+in fitting. These are described in
 \code{\link{nbinomWaldTest}} and in the vignette. The
 \code{contrast} argument of \code{\link{results}} should be
 used for generating results tables.

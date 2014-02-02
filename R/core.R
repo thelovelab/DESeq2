@@ -60,8 +60,8 @@
 #' distances are kept in \code{assays(dds)[["cooks"]]}, and the replacement
 #' counts used for fitting are kept in \code{assays(object)[["replaceCounts"]]}.
 #'
-#' Note that if factors are present in the design formula with three or more
-#' levels, then expanded model matrices will be used in fitting. These are
+#' Note that if a log2 fold change prior is used (betaPrior=TRUE)
+#' then expanded model matrices will be used in fitting. These are
 #' described in \code{\link{nbinomWaldTest}} and in the vignette. The
 #' \code{contrast} argument of \code{\link{results}} should be used for
 #' generating results tables.
@@ -698,10 +698,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' prior on dispersion estimates results in a Wald statistic
 #' distribution which is approximately normal.
 #'
-#' When factors are present in the design formula with 3 or more levels,
+#' When a log2 fold change prior is used (betaPrior=TRUE),
 #' then \code{nbinomWaldTest} will by default use expanded model matrices,
 #' as described in the \code{modelMatrixType} argument, unless this argument
-#' is used to override the default behavior.
+#' is used to override the default behavior or unless there the design
+#' contains 2 level factors and an interaction term.
 #' This ensures that log2 fold changes will be independent of the choice
 #' of base level. In this case, the beta prior variance for each factor
 #' is calculated as the average of the mean squared maximum likelihood
@@ -711,12 +712,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' 
 #' When interaction terms are present, the prior on log fold changes
 #' the calculated beta prior variance will only be used for the interaction
-#' terms (non-interaction terms receive a wide prior variance of 1e6).
-#' In the case of interaction terms and factors with 3 or more
-#' levels present in the design formula, a moderately wide prior
-#' variance of 1e3 will be used on non-interaction terms, to allow for
-#' convergence to the maximum of the posterior.
-#' 
+#' terms (non-interaction log2 fold changes receive a prior variance of 1e3).
+#'  
 #' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
 #'
@@ -732,9 +729,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' how the model matrix, X of the formula in \code{\link{DESeq}}, is
 #' formed. "standard" is as created by \code{model.matrix} using the
 #' design formula. "expanded" includes an indicator variable for each
-#' level of factors with 3 or more levels in addition to an intercept,
-#' in order to ensure that the log2 fold changes are independent
-#' of the choice of base level.
+#' level of factors in addition to an intercept.
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
 #' @param maxit the maximum number of iterations to allow for convergence of the
