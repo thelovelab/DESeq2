@@ -2087,8 +2087,8 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
   # refit without outliers, if there were any replacements
   nrefit <- sum(mcols(object)$replace,na.rm=TRUE)
   if ( nrefit > 0 ) {
-    if (!quiet) message(paste("-- refitting", nrefit,"genes
--- outliers replaced when >=",minReplicatesForReplace,"replicates
+    if (!quiet) message(paste("-- replacing outliers and refitting for", nrefit,"genes
+-- DESeq argument: minReplicatesForReplace = ",minReplicatesForReplace,"
 -- original counts are preserved in counts(dds))"))
     
     # refit on those rows which had replacement
