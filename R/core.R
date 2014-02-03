@@ -2088,7 +2088,7 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
   nrefit <- sum(mcols(object)$replace,na.rm=TRUE)
   if ( nrefit > 0 ) {
     if (!quiet) message(paste("-- replacing outliers and refitting for", nrefit,"genes
--- DESeq argument: minReplicatesForReplace = ",minReplicatesForReplace,"
+-- DESeq argument 'minReplicatesForReplace' =",minReplicatesForReplace,"
 -- original counts are preserved in counts(dds))"))
     
     # refit on those rows which had replacement
@@ -2129,17 +2129,22 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
     if (all(colData(object)$replaceable)) {
       mcols(object)$maxCooks <- NA
     } else {
-      newCooks <- assays(object)[["cooks"]]
-      newCooks[,colData(object)$replaceable] <- 0
+      replaceCooks <- assays(object)[["cooks"]]
+      replaceCooks[,colData(object)$replaceable] <- 0
       mcols(object)$maxCooks <- recordMaxCooks(design(object), colData(object),
-                                               attr(object,"modelMatrix"), newCooks, nrow(object))
+                                               attr(object,"modelMatrix"), replaceCooks, nrow(object))
     }
     
-    # preserve original counts and Cook's distances
-    # and save the counts used for fitting as 'replaceCounts'
+    # save the counts used for fitting as replaceCounts
     assays(object)[["replaceCounts"]] <- counts(object)
-    assays(object)[["cooks"]] <- cooks
+    assays(object)[["replaceCooks"]] <- assays(object)[["cooks"]]
+
+    # preserve original counts and Cook's distances
     counts(object) <- assays(object)[["originalCounts"]]
+    assays(object)[["cooks"]] <- cooks
+    
+    # no longer need this assay slot
+    assays(object)[["originalCounts"]] <- NULL
   }
   
   object
