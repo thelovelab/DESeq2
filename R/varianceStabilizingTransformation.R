@@ -9,6 +9,14 @@
 #' This transformation is useful when checking for outliers or as input for
 #' machine learning techniques such as clustering or linear discriminant analysis.
 #'
+#' Note that neither rlog transformation nor the VST are used by the
+#' differential expression estimation in \code{\link{DESeq}}, which always
+#' occurs on the raw count data, through generalized linear modeling which
+#' incorporates knowledge of the variance-mean dependence. The rlog transformation
+#' and VST are offered as separate functionality which can be used for visualization,
+#' clustering or other machine learning tasks. See the transformation section of the
+#' vignette for more details.
+#' 
 #' @aliases varianceStabilizingTransformation getVarianceStabilizedData
 #' 
 #' @param object a DESeqDataSet, with \code{design(object) <- formula(~ 1)}

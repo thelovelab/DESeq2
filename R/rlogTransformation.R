@@ -1,6 +1,6 @@
 #' Apply a 'regularized log' transformation
 #'
-#' This function uses Tikhonov/ridge regularization, as in \code{\link{nbinomWaldTest}},
+#' This function uses Tikhonov/ridge regularization
 #' to transform the data to the log2 scale in a way 
 #' which minimizes differences between samples for rows with small counts.
 #' The transformation produces a similar variance stabilizing effect as
@@ -10,6 +10,14 @@
 #' The transformation is useful when checking for outliers
 #' or as input for machine learning techniques
 #' such as clustering or linear discriminant analysis.
+#'
+#' Note that neither rlog transformation nor the VST are used by the
+#' differential expression estimation in \code{\link{DESeq}}, which always
+#' occurs on the raw count data, through generalized linear modeling which
+#' incorporates knowledge of the variance-mean dependence. The rlog transformation
+#' and VST are offered as separate functionality which can be used for visualization,
+#' clustering or other machine learning tasks. See the transformation section of the
+#' vignette for more details.
 #'
 #' The 'regularization' referred to here corresponds to the maximum a posteriori
 #' solution to the GLM with a prior on the coefficients for each sample.

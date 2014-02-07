@@ -14,9 +14,10 @@ nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
   regularization)}
 
   \item{betaPriorVar}{a vector with length equal to the
-  number of model terms including the intercept. which if
-  missing is estimated from the rows which do not have any
-  zeros}
+  number of model terms including the intercept.
+  betaPriorVar gives the variance of the prior on the
+  sample betas on the log2 scale. if missing (default) this
+  is estimated from the data}
 
   \item{modelMatrixType}{either "standard" or "expanded",
   which describe how the model matrix, X of the formula in

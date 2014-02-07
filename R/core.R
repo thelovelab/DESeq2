@@ -208,9 +208,9 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
   names(rowData) <- paste0("feature",1:n)
   designFormula <- if (m > 1) {
-    formula(~ condition)
+    as.formula("~ condition",env=new.env())
   } else {
-    formula(~ 1)
+    as.formula("~ 1",env=new.env())
   }
   object <- DESeqDataSetFromMatrix(countData = countData,
                                    colData = colData,
@@ -224,11 +224,6 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
                                  "simulated beta values",
                                  "simulated dispersion values"))
   mcols(object) <- cbind(mcols(object),trueVals)
-  # cleaning up environment from formula above
-  objNames <- ls()
-  objNames <- objNames[objNames != "object"]
-  rm(list=objNames)
-  rm("objNames")
   object
 }
 
@@ -381,7 +376,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # first check if model matrix is full rank
   fullRank <- qr(modelMatrix)$rank == ncol(modelMatrix)
   alpha_hat <- if (fullRank) {
-    # if rull rank use this estimator which compares normalized counts to mu
+    # if full rank use this estimator which compares normalized counts to mu
     roughDispEstimate(y = counts(objectNZ,normalized=TRUE),
                       x = modelMatrix)
   } else {
@@ -722,9 +717,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' the non-intercept coefficients (Tikhonov/ridge regularization)
 #' @param betaPriorVar a vector with length equal to the number of
 #' model terms including the intercept.
-#  betaPriorVar gives the variance of the prior on the sample betas,
-#' which if missing is estimated from the rows which do not have any
-#' zeros
+#' betaPriorVar gives the variance of the prior on the sample betas
+#' on the log2 scale. if missing (default) this is estimated from the data
 #' @param modelMatrixType either "standard" or "expanded", which describe
 #' how the model matrix, X of the formula in \code{\link{DESeq}}, is
 #' formed. "standard" is as created by \code{model.matrix} using the
@@ -1749,7 +1743,7 @@ nOrMoreInCell <- function(modelMatrix, n) {
 
 # are all the variables in the design matrix factors?
 allFactors <- function(design, colData) {
-    designVars <- all.vars(formula(design))
+    designVars <- all.vars(design)
     designVarsClass <- sapply(designVars, function(v) class(colData[[v]]))
     all(designVarsClass == "factor")
 }
@@ -1789,7 +1783,7 @@ covarianceMatrix <- function(object, rowNumber) {
 
 getDesignFactors <- function(object) {
   design <- design(object)
-  designVars <- all.vars(formula(design))
+  designVars <- all.vars(design)
   designVarsClass <- sapply(designVars, function(v) class(colData(object)[[v]]))
   designVars[designVarsClass == "factor"]
 }
@@ -2051,8 +2045,9 @@ roughDispEstimate <- function(y, x) {
   mu <- pmax(.1, linearModelMu(y, x))
   m <- nrow(x)
   p <- ncol(x)
-  numerator <- rowSums( ((y - mu)^2 - mu) / mu^2 )
-  denominator <- max(m - p, 1)
+  # these will be adjusted up to minDisp later
+  numerator <- pmax( rowSums( ((y - mu)^2 - mu) / mu^2 ), 0)
+  denominator <- (m - p)
   numerator/denominator
 }
 

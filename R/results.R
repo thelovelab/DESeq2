@@ -146,7 +146,7 @@ results <- function(object, name, contrast,
   # allows use of 'name' for expanded model matrices if there are interactions
   if ((test == "Wald") & isExpanded & missing(contrast) & all(termsOrder < 2)) {
     if (missing(name)) {
-      designVars <- all.vars(formula(design(object)))
+      designVars <- all.vars(design(object))
       lastVarName <- designVars[length(designVars)]
       lastVar <- colData(object)[[lastVarName]]
       if (is.factor(lastVar)) {
@@ -186,6 +186,13 @@ log2 fold changes of levels against each other.\n")
   
   # if performing a contrast call the function cleanContrast()
   if (!missing(contrast)) {
+    if (is.character(contrast) & length(contrast) != 3) {
+      stop("contrast should either be a character vector of length 3, of the form:
+contrast = c('factorName','numeratorLevel','denominatorLevel'),
+or a numeric vector the same length as resultsNames(dds).
+see the manual page of ?results for more information")
+    }
+    
     # pass down whether the model matrix type was "expanded"
     res <- cleanContrast(object, contrast, expanded=isExpanded)
   } else {
@@ -607,7 +614,7 @@ getPvalue <- function(object,test="Wald",name) {
 # convenience function to make more descriptive names
 # for factor variables
 renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
-  designVars <- all.vars(formula(design))
+  designVars <- all.vars(design)
   designVarsClass <- sapply(designVars, function(v) class(data[[v]]))
   factorVars <- designVars[designVarsClass == "factor"]
   colNamesFrom <- do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1])))

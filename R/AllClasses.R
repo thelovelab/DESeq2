@@ -9,15 +9,19 @@ setClass("DESeqDataSet",
 setValidity( "DESeqDataSet", function( object ) {
   if (! ("counts" %in% names(assays(object))))
     return( "the assays slot must contain a matrix named 'counts'" )
-  if( !is.integer( counts(object) ) )
+  if ( !is.numeric( counts(object) ) )
+    return( "the count data is not numeric" )
+  if ( any( is.na( counts(object) ) ) )
+    return( "NA values are not allowed in the count matrix" )
+  if ( !is.integer( counts(object) ) )
     return( "the count data is not in integer mode" )
-  if( any( counts(object) < 0 ) )
+  if ( any( counts(object) < 0 ) )
     return( "the count data contains negative values" )
   if ( ncol(colData(object)) < 1 ) {
     return("colData must have at least one column")
   }
   design <- design(object)
-  designVars <- all.vars(formula(design))
+  designVars <- all.vars(design)
   if (!all(designVars %in% names(colData(object)))) {
     return("all variables in design formula must be columns in colData")
   }
@@ -96,7 +100,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   }  
   mode(assay(se)) <- "integer" 
 
-  designVars <- all.vars(formula(design))
+  designVars <- all.vars(design)
   designVarsClass <- sapply(designVars, function(v) class(colData(se)[[v]]))
   if (any(designVarsClass == "character")) {
     warning("some variables in design formula are characters, converting to factors")
@@ -136,7 +140,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   } else {
     cbind(mcols(colData(se)), mcolsCols)
   }
-  dds <- new("DESeqDataSet", se, design = formula(design))
+  dds <- new("DESeqDataSet", se, design = design)
                                  
   # now we know we have at least an empty GRanges or GRangesList for rowData
   # so we can create a metadata column 'type' for the mcols

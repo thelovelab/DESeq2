@@ -47,6 +47,16 @@ techniques such as clustering or linear discriminant
 analysis.
 }
 \details{
+Note that neither rlog transformation nor the VST are used
+by the differential expression estimation in
+\code{\link{DESeq}}, which always occurs on the raw count
+data, through generalized linear modeling which
+incorporates knowledge of the variance-mean dependence. The
+rlog transformation and VST are offered as separate
+functionality which can be used for visualization,
+clustering or other machine learning tasks. See the
+transformation section of the vignette for more details.
+
 For each sample (i.e., column of \code{counts(dds)}), the
 full variance function is calculated from the raw variance
 (by scaling according to the size factor and adding the

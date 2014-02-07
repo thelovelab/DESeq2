@@ -427,46 +427,6 @@ in Section~\ref{sec:contrasts}. The \Robject{contrast} argument
 can also be used to return the same results as using the \Robject{names} 
 argument, but provides more flexibility.
 
-%---------------------------------------------------
-\subsection{Recommended design formulae for various experiments} \label{sec:recDesign}
-%---------------------------------------------------
-
-\begin{center}
-  \begin{table}[!h] \footnotesize
-    \begin{tabular}{ p{2in} | p{1.5in} | p{3in}}
-    Differences of interest & Design & Notes \\ \hline \hline
-    
-    Compare factor levels against another &
-    \ldots & 
-    use the contrast argument of \Rfunction{results},
-    see \ref{sec:contrasts} \\ \hline
-    
-    Test the significance of all levels of 'condition' &
-    \ldots & 
-    use the likelihood ratio test, removing 'condition' in the reduced formula,
-    see \ref{sec:LRT} \\ \hline
-       
-    Interactions between 'group' and 'condition' &
-    \Robject{\textasciitilde group + condition + group:condition} & 
-    \Robject{resultsNames(dds)} to see available interactions and
-    \Robject{results(dds,name="group2.conditionB")}
-     \\ \hline
-    
-    Time series: changes due to condition after time 0 &
-    \Robject{\textasciitilde  time + condition + time:condition} &
-    default \Robject{DESeq} call for examining individual 
-    time-condition interactions;
-    or a likelihood ratio test to test for all differences
-    after time 0, see \ref{sec:LRT} \\ \hline
-    
-    Dual-assay, e.g.: changes in ratio of RNA-Seq
-    to CLIP-Seq reads across condition &
-    \Robject{\textasciitilde  assay + condition + assay:condition} & 
-    default \Robject{DESeq} call \\
-    \end{tabular}
-  \end{table}
-\end{center}
-
 \newpage
 
 %---------------------------------------------------
@@ -542,7 +502,8 @@ The function \Rfunction{rlogTransformation},
 stands for \emph{regularized log}, transforming
 the original count data to the $\log_2$ scale by fitting a model with a
 term for each sample and a prior distribution on the coefficients
-which is estimated from the data. This is very similar to the regularization
+which is estimated from the data. This is the same kind of shrinkage 
+(sometimes referred to as regularization, or moderation) of log fold changes
 used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in
 Figure \ref{MA}. The resulting data contains elements defined as:
 
@@ -553,6 +514,9 @@ true concentration of fragments for gene $i$ and sample $j$
 (see Section~\ref{sec:glm}), $x_{j.}$ is the $j$-th row of the design 
 matrix $X$, which has a $1$ for the intercept and a $1$ for the sample-specific
 beta, and $\beta_i$ is the vector of coefficients for gene $i$.
+Note that, as $q_{ij}$ represents the part of the mean value $\mu_{ij}$ after the 
+size factor $s_j$ has been divided out, it is clear that the rlog transformation
+inherently accounts for differences in sequencing depth.
 Without priors, this design matrix would lead to a non-unique solution,
 however the addition of a prior on non-intercept betas allows for a 
 unique solution to be found.
