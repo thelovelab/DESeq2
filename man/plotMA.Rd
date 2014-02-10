@@ -44,6 +44,7 @@ modify the graphical parameters of the plot, it is
 recommended to build the data.frame in the same manner and
 call \code{plotMA}
 }
+\value{A \code{trellis} object.}
 \examples{
 dds <- makeExampleDESeqDataSet()
 dds <- DESeq(dds)
