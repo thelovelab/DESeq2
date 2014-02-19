@@ -111,6 +111,8 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' is \code{DESeqResults} or to \code{\link{results}} if object is
 #' \code{DESeqDataSet}
 #'
+#' @return A \code{trellis} object.
+#' 
 #' @author Michael Love
 #'
 #' @examples
@@ -158,6 +160,8 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #' @param ntop number of top genes to use for principal components, selected by highest
 #'    row variance
 #'
+#' @return A \code{trellis} object.
+#' 
 #' @author Wolfgang Huber
 #'
 #' @note See the vignette for an example of variance stabilization and PCA plots.
@@ -167,10 +171,21 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #' 
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(betaSD=1)
-#' vsd <- varianceStabilizingTransformation(dds)
-#' plotPCA(vsd)
-#'
+#' dds = makeExampleDESeqDataSet(betaSD=1)
+#' vsd = varianceStabilizingTransformation(dds)
+#' p = plotPCA(vsd)
+#' print(p)
+#' 
+#' ## Add text labels (for presentation graphics, consider additional
+#' ## layout operations that avoid overplotting, such as the FField package on CRAN)
+#' names = colData(vsd)$sample
+#' 
+#' p = update(p, panel = function(x, y, ...) {
+#'       lattice::panel.xyplot(x, y, ...);
+#'       lattice::ltext(x=x, y=y, labels=names, pos=1, offset=1, cex=0.8)
+#'     })
+#' print(p)
+#' 
 #' @export
 plotPCA = function(x, intgroup="condition", ntop=500)
 {

@@ -99,10 +99,20 @@
 #' sample. If there are samples with so many replicates, the model will
 #' be refit after these replacing outliers, flagged by Cook's distance.
 #' Set to \code{Inf} in order to never replace outliers.
+#' @param modelMatrixType either "standard" or "expanded", which describe
+#' how the model matrix, X of the GLM formula is formed.
+#' "standard" is as created by \code{model.matrix} using the
+#' design formula. "expanded" includes an indicator variable for each
+#' level of factors in addition to an intercept. for more information
+#' see the Description of \code{\link{nbinomWaldTest}}.
+#' betaPrior must be set to TRUE in order for expanded model matrices
+#' to be fit.
 #' 
 #' @author Michael Love
 #'
-#' @references Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+#' @references Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold change and dispersion for RNA-Seq data with DESeq2. bioRxiv preprint (2014) \url{http://dx.doi.org/10.1101/002832}
+#'
+#' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #'
 #' @import BiocGenerics GenomicRanges IRanges Rcpp RcppArmadillo methods
 #' @importFrom locfit locfit
@@ -124,7 +134,7 @@
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
                   full=design(object), reduced, quiet=FALSE,
-                  minReplicatesForReplace=7) {
+                  minReplicatesForReplace=7, modelMatrixType) {
   if (missing(test)) {
     test <- match.arg(test, choices=c("Wald","LRT"))
   }
@@ -151,16 +161,18 @@ DESeq <- function(object, test=c("Wald","LRT"),
   object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
   if (!quiet) message("fitting model and testing")
   if (test == "Wald") {
-    object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet)                             
+    object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
+                             modelMatrixType=modelMatrixType)
   } else if (test == "LRT") {
     object <- nbinomLRT(object, full=full, reduced=reduced,
-                        betaPrior=betaPrior, quiet=quiet)
+                        betaPrior=betaPrior, quiet=quiet,
+                        modelMatrixType=modelMatrixType)
   }
 
   # if there are sufficient replicates, then pass through to refitting function
   if (any(nOrMoreInCell(attr(object,"modelMatrix"),minReplicatesForReplace))) {
     object <- refitWithoutOutliers(object, test, betaPrior, full, reduced,
-                                   quiet, minReplicatesForReplace)
+                                   quiet, minReplicatesForReplace, modelMatrixType)
   }
   
   object
@@ -701,9 +713,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' This ensures that log2 fold changes will be independent of the choice
 #' of base level. In this case, the beta prior variance for each factor
 #' is calculated as the average of the mean squared maximum likelihood
-#' estimates for each level and every possible contrast. The \code{contrast}
-#' argument of the \code{\link{results}} function should be used then
-#' to generate results tables.
+#' estimates for each level and every possible contrast. The \code{\link{results}}
+#' function without any arguments will automatically perform a contrast of the
+#' last level of the last variable in the design formula over the first level.
+#' The \code{contrast} argument of the \code{\link{results}} function can be used
+#' to generate other comparisons.
 #' 
 #' When interaction terms are present, the prior on log fold changes
 #' the calculated beta prior variance will only be used for the interaction
@@ -2075,7 +2089,7 @@ checkLRT <- function(full, reduced) {
 
 # bulky code separated from DESeq()
 refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
-                                 quiet, minReplicatesForReplace) {
+                                 quiet, minReplicatesForReplace, modelMatrixType) {
   cooks <- assays(object)[["cooks"]]
   object <- replaceOutliers(object, minReplicates=minReplicatesForReplace)
 
@@ -2109,11 +2123,13 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
                                   betaPriorVar=betaPriorVar, quiet=quiet)
     } else if (test == "LRT") {
       if (!betaPrior) {
-        objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet)
+        objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet,
+                               modelMatrixType=modelMatrixType)
       } else {
         betaPriorVar <- attr(object, "betaPriorVar")
         objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, betaPrior=betaPrior,
-                               betaPriorVar=betaPriorVar, quiet=quiet)
+                               betaPriorVar=betaPriorVar, quiet=quiet,
+                               modelMatrixType=modelMatrixType)
       }
     }
     idx <- match(names(mcols(objectSub)), names(mcols(object)))

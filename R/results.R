@@ -56,14 +56,14 @@
 #' @param object a DESeqDataSet, on which one
 #' of the following functions has already been called:
 #' \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or \code{\link{nbinomLRT}}
-#' @param name the name of the coefficient for which to report log2 fold changes
-#' -- and for the Wald test, p-values and adjusted p-values
 #' @param contrast either a character vector with exactly three elements
 #' (name of the factor, name of the numerator level, name of the
 #' denominator level), or a numeric contrast vector with one element
 #' for each element in \code{resultsNames(object)}, i.e. columns of the model matrix.
 #' The DESeqDataSet must be one produced using the Wald test steps
 #' in order to use contrasts. If used, the \code{name} argument is ignored.
+#' @param name the name of the coefficient for which to report log2 fold changes
+#' -- and for the Wald test, p-values and adjusted p-values
 #' @param lfcThreshold a non-negative value, which specifies the test which should
 #' be applied to the log2 fold changes. The standard is a test that the log2 fold
 #' changes are not equal to zero. However, log2 fold changes greater or less than
@@ -128,7 +128,7 @@
 #' @rdname results
 #' @aliases results resultsNames removeResults
 #' @export
-results <- function(object, name, contrast,
+results <- function(object, contrast, name, 
                     lfcThreshold=0,
                     altHypothesis=c("greaterAbs","lessAbs","greater","less"),
                     cooksCutoff,
@@ -326,6 +326,7 @@ removeResults <- function(object) {
   }
   return(object)
 }
+
 
 ###########################################################
 # unexported functons 

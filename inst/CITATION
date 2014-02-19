@@ -1,16 +1,14 @@
 citEntry(entry="article",
-         title = "Differential expression analysis for sequence count data",
-         author = personList( as.person("Simon Anders"), 
-                              as.person("Wolfgang Huber")),
-         year = 2010,
-         journal = "Genome Biology",
-         volume = "11",
-         pages = "R106",
-         doi = "10.1186/gb-2010-11-10-r106",
-         url = "http://genomebiology.com/2010/11/10/R106/",
-         
+         title = "Moderated estimation of fold change and dispersion for RNA-Seq data with DESeq2",
+         author = personList( as.person("Michael I Love"),
+                              as.person("Wolfgang Huber"),
+                              as.person("Simon Anders")),
+         year = 2014,
+         journal = "bioRxiv",
+         doi = "10.1101/002832",
+         url = "http://dx.doi.org/10.1101/002832",
          textVersion = 
-         paste("Simon Anders and Wolfgang Huber (2010):", 
-               "Differential expression analysis for sequence count data.",
-                "Genome Biology 11:R106" ) )
+         paste("Michael I Love, Wolfgang Huber and Simon Anders (2014):", 
+               "Moderated estimation of fold change and dispersion for RNA-Seq data with DESeq2.",
+                "bioRxiv preprint" ) )
 

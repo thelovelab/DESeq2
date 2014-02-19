@@ -29,6 +29,9 @@
   object is \code{DESeqResults} or to \code{\link{results}}
   if object is \code{DESeqDataSet}}
 }
+\value{
+A \code{trellis} object.
+}
 \description{
 A simple helper function that makes a so-called "MA-plot",
 i.e. a scatter plot of log2 fold changes (on the y-axis)
@@ -44,7 +47,6 @@ modify the graphical parameters of the plot, it is
 recommended to build the data.frame in the same manner and
 call \code{plotMA}
 }
-\value{A \code{trellis} object.}
 \examples{
 dds <- makeExampleDESeqDataSet()
 dds <- DESeq(dds)

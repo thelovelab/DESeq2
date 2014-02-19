@@ -95,9 +95,12 @@ log2 fold changes will be independent of the choice of base
 level. In this case, the beta prior variance for each
 factor is calculated as the average of the mean squared
 maximum likelihood estimates for each level and every
-possible contrast. The \code{contrast} argument of the
-\code{\link{results}} function should be used then to
-generate results tables.
+possible contrast. The \code{\link{results}} function
+without any arguments will automatically perform a contrast
+of the last level of the last variable in the design
+formula over the first level. The \code{contrast} argument
+of the \code{\link{results}} function can be used to
+generate other comparisons.
 
 When interaction terms are present, the prior on log fold
 changes the calculated beta prior variance will only be

@@ -1,0 +1,40 @@
+\docType{methods}
+\name{coef}
+\alias{coef}
+\alias{coef,DESeqDataSet-method}
+\title{Extract a matrix of model coefficients/standard errors}
+\usage{
+\S4method{coef}{DESeqDataSet}(object, SE = FALSE)
+}
+\arguments{
+  \item{object}{a DESeqDataSet returned by
+  \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or
+  \code{\link{nbinomLRT}}.}
+
+  \item{SE}{whether to give the standard errors instead of
+  coefficients. defaults to FALSE so that the coefficients
+  are given.}
+}
+\description{
+\strong{Note:} results tables with log2 fold change,
+p-values, adjusted p-values, etc. for each gene are best
+generated using the \code{\link{results}} function. The
+\code{coef} function is designed for advanced users who
+wish to inspect all model coefficients at once.
+}
+\details{
+Estimated model coefficients or estimated standard errors
+are provided in a matrix form, number of genes by number of
+parameters, on the log2 scale. The columns correspond to
+columns of the model matrix for final GLM fitting, i.e.,
+\code{attr(dds, "modelMatrix")}.
+}
+\examples{
+example("DESeq")
+coef(dds)[1,]
+coef(dds, SE=TRUE)[1,]
+}
+\author{
+Michael Love
+}
+

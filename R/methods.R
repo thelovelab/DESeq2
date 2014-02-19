@@ -497,6 +497,10 @@ setMethod("estimateDispersions", signature(object="DESeqDataSet"),
 #' standard method.
 #' 
 #' @docType methods
+#' @name show
+#' @rdname show
+#' @aliases show show,DESeqResults-method
+#' @author Michael Love
 #' 
 #' @param object a DESeqResults object
 #' 
@@ -505,4 +509,43 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
   cat(mcols(object)$description[ colnames(object) == "log2FoldChange"],"\n")
   cat(mcols(object)$description[ colnames(object) == "pvalue"],"\n")
   show(DataFrame(object))
+})
+
+#' Extract a matrix of model coefficients/standard errors
+#'
+#' \strong{Note:} results tables with log2 fold change, p-values, adjusted p-values, etc.
+#' for each gene are best generated using the \code{\link{results}} function. The \code{coef}
+#' function is designed for advanced users who wish to inspect all model coefficients at once.
+#' 
+#' Estimated model coefficients or estimated standard errors are provided in a matrix
+#' form, number of genes by number of parameters, on the log2 scale.
+#' The columns correspond to columns of the model matrix for final GLM fitting, i.e.,
+#' \code{attr(dds, "modelMatrix")}.
+#' 
+#' @param object a DESeqDataSet returned by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}},
+#' or \code{\link{nbinomLRT}}.
+#' @param SE whether to give the standard errors instead of coefficients.
+#' defaults to FALSE so that the coefficients are given.
+#'
+#' @docType methods
+#' @name coef
+#' @rdname coef
+#' @aliases coef coef,DESeqDataSet-method 
+#' @author Michael Love
+#' @importFrom stats coef
+#'
+#' @examples
+#'
+#' example("DESeq")
+#' coef(dds)[1,]
+#' coef(dds, SE=TRUE)[1,]
+#' 
+#' @export
+setMethod("coef", signature(object="DESeqDataSet"), function(object, SE=FALSE) {
+  resNms <- resultsNames(object)
+  if (!SE) {
+    mcols(object)[resNms]
+  } else {
+    mcols(object)[paste0("SE_",resNms)]
+  }
 })

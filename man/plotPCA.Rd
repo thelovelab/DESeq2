@@ -16,6 +16,9 @@ plotPCA(x, intgroup = "condition", ntop = 500)
   \item{ntop}{number of top genes to use for principal
   components, selected by highest row variance}
 }
+\value{
+A \code{trellis} object.
+}
 \description{
 This plot helps to check for batch effects and the like.
 }
@@ -23,14 +26,14 @@ This plot helps to check for batch effects and the like.
 See the vignette for an example of variance stabilization
 and PCA plots.
 }
-\value{A \code{trellis} object.}
 \examples{
 dds = makeExampleDESeqDataSet(betaSD=1)
 vsd = varianceStabilizingTransformation(dds)
 p = plotPCA(vsd)
 print(p)
 
-## Add text labels (for presentation graphics, consider additional layout operations that avoid overplotting, such as the FField package on CRAN)
+## Add text labels (for presentation graphics, consider additional
+## layout operations that avoid overplotting, such as the FField package on CRAN)
 names = colData(vsd)$sample
 
 p = update(p, panel = function(x, y, ...) {
@@ -38,7 +41,6 @@ p = update(p, panel = function(x, y, ...) {
       lattice::ltext(x=x, y=y, labels=names, pos=1, offset=1, cex=0.8)
     })
 print(p)
-
 }
 \author{
 Wolfgang Huber

@@ -4,7 +4,7 @@
 \alias{resultsNames}
 \title{Extract results from a DESeq analysis}
 \usage{
-results(object, name, contrast, lfcThreshold = 0,
+results(object, contrast, name, lfcThreshold = 0,
   altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"), cooksCutoff,
   independentFiltering = TRUE, alpha = 0.1, filter, theta,
   pAdjustMethod = "BH")
@@ -19,10 +19,6 @@ removeResults(object)
   \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or
   \code{\link{nbinomLRT}}}
 
-  \item{name}{the name of the coefficient for which to
-  report log2 fold changes -- and for the Wald test,
-  p-values and adjusted p-values}
-
   \item{contrast}{either a character vector with exactly
   three elements (name of the factor, name of the numerator
   level, name of the denominator level), or a numeric
@@ -31,6 +27,10 @@ removeResults(object)
   matrix. The DESeqDataSet must be one produced using the
   Wald test steps in order to use contrasts. If used, the
   \code{name} argument is ignored.}
+
+  \item{name}{the name of the coefficient for which to
+  report log2 fold changes -- and for the Wald test,
+  p-values and adjusted p-values}
 
   \item{lfcThreshold}{a non-negative value, which specifies
   the test which should be applied to the log2 fold

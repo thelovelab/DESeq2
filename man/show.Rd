@@ -1,5 +1,6 @@
 \docType{methods}
-\name{show,DESeqResults-method}
+\name{show}
+\alias{show}
 \alias{show,DESeqResults-method}
 \title{Show method for DESeqResults objects}
 \usage{
@@ -13,5 +14,8 @@ Prints out the information from the metadata columns of the
 results object regarding the log2 fold changes and
 p-values, then shows the DataFrame using the standard
 method.
+}
+\author{
+Michael Love
 }
 

@@ -4,7 +4,7 @@
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
-  minReplicatesForReplace = 7)
+  minReplicatesForReplace = 7, modelMatrixType)
 }
 \arguments{
   \item{object}{a DESeqDataSet object, see the constructor
@@ -48,6 +48,16 @@ DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   after these replacing outliers, flagged by Cook's
   distance. Set to \code{Inf} in order to never replace
   outliers.}
+
+  \item{modelMatrixType}{either "standard" or "expanded",
+  which describe how the model matrix, X of the GLM formula
+  is formed. "standard" is as created by
+  \code{model.matrix} using the design formula. "expanded"
+  includes an indicator variable for each level of factors
+  in addition to an intercept. for more information see the
+  Description of \code{\link{nbinomWaldTest}}. betaPrior
+  must be set to TRUE in order for expanded model matrices
+  to be fit.}
 }
 \value{
 a \code{\link{DESeqDataSet}} object with results stored as
@@ -151,6 +161,11 @@ resLRT <- results(ddsLRT)
 Michael Love
 }
 \references{
+Michael I Love, Wolfgang Huber, Simon Anders: Moderated
+estimation of fold change and dispersion for RNA-Seq data
+with DESeq2. bioRxiv preprint (2014)
+\url{http://dx.doi.org/10.1101/002832}
+
 Simon Anders, Wolfgang Huber: Differential expression
 analysis for sequence count data. Genome Biology 11 (2010)
 R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
