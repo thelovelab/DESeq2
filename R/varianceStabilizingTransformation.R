@@ -114,12 +114,12 @@ varianceStabilizingTransformation <- function (object, blind=TRUE) {
   }
   if (blind) {
     design(object) <- ~ 1
-    object <- estimateDispersionsGeneEst(object)
-    object <- estimateDispersionsFit(object)
+    object <- estimateDispersionsGeneEst(object, quiet=TRUE)
+    object <- estimateDispersionsFit(object, quiet=TRUE)
   }
   if (is.null(attr(dispersionFunction(object),"fitType"))) {
-    object <- estimateDispersionsGeneEst(object)
-    object <- estimateDispersionsFit(object)
+    object <- estimateDispersionsGeneEst(object, quiet=TRUE)
+    object <- estimateDispersionsFit(object, quiet=TRUE)
   }
   SummarizedExperiment(
     assays = getVarianceStabilizedData(object),

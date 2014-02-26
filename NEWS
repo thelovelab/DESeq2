@@ -1,10 +1,21 @@
 CHANGES IN VERSION 1.3.34
 
     o Expanded model matrices used by default when a log2 fold change
-      prior is used (betaPrior=TRUE). Results are be extracted 
+      prior is used (betaPrior=TRUE). Results should be extracted 
       using the 'contrast' argument to the results() function.
+      Expanded model matrices produce shrinkage of log
+      fold changes that is independent of the choice of base level.
+      (This independence was already the case for 2-level factors
+      but not for designs with factors having 3 or more levels.)
+      The choice of model matrix can be controlled by the 
+      argument 'modelMatrixType' to DESeq() and nbinomWaldTest().
       Expanded model matrices are not used in the case of designs
-      with 2 level factors and an interaction term.
+      with an interaction term between factors with only 2 levels.
+
+    o The order of the arguments 'name' and 'contrast' to the results()
+      function are swapped, to indicate that 'contrast' should be used 
+      in most cases. The 'name' argument should still be used in the 
+      case of results for interaction terms, or when betaPrior=FALSE.
 
 CHANGES IN VERSION 1.3.24
 -------------------------
@@ -28,24 +39,26 @@ CHANGES IN VERSION 1.3.17
 CHANGES IN VERSION 1.3.15
 -------------------------
 
-    o The DESeq() argument 'minReplicatesForReplace' (default 7)
+    o The DESeq() function will automatically replace count outliers
+      flagged by Cook's distance when there are 7 or more replicates.
+      The DESeq() argument 'minReplicatesForReplace' (default 7)
       is used to decide which samples are eligible for automatic 
-      replacement in the case of extreme Cook's distance. 
-      This default behavior helps to prevent filtering genes based on 
-      Cook's distance when there are many degrees of freedom.
+      replacement. This default behavior helps to prevent filtering 
+      genes based on Cook's distance when there are many degrees of 
+      freedom.
+
+    o The results() function produces an object of class 'DESeqResults'
+      which is a simple subclass of 'DataFrame'. This class allows for 
+      methods to be written specifically for DESeq2 results. For example,
+      plotMA() can be called on a 'DESeqResults' object.
 
 CHANGES IN VERSION 1.3.12
 -------------------------
 
-    o Added expanded model matrices, which allow for priors on 
-      log2 fold changes for factors with 3 or more levels, resulting 
-      in shrinkage that is independent of the choice of base level.
-      This is controlled in nbinomWaldTest by setting 
-      modelMatrixType="expanded".
-
     o Added a check in nbinomWaldTest which ensures that priors
-      are only used on interactions terms, in the case that 
-      interaction terms are present in the design formula.
+      on logarithmic fold changes are only estimated for interactions 
+      terms, in the case that interaction terms are present in the 
+      design formula.
 
 CHANGES IN VERSION 1.3.6
 ------------------------
@@ -59,8 +72,8 @@ CHANGES IN VERSION 1.3.6
 CHANGES IN VERSION 1.3.5
 ------------------------
 
-    o New arguments to results(): lfcThreshold and 
-      alternativeHypothesis allow for tests of log fold changes
+    o New arguments to results(), 'lfcThreshold' and 
+      'alternativeHypothesis', allow for tests of log fold changes
       which are above or below a given threshold.
 
     o plotMA() function now passes ellipses arguments to the

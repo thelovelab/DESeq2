@@ -122,12 +122,12 @@ rlogTransformation <- function(object, blind=TRUE, fast=FALSE,
   }
   if (blind) {
     design(object) <- ~ 1
-    object <- estimateDispersionsGeneEst(object)
-    object <- estimateDispersionsFit(object)
+    object <- estimateDispersionsGeneEst(object, quiet=TRUE)
+    object <- estimateDispersionsFit(object, quiet=TRUE)
   }
   if (is.null(mcols(object)$dispFit)) {
-    object <- estimateDispersionsGeneEst(object)
-    object <- estimateDispersionsFit(object)
+    object <- estimateDispersionsGeneEst(object, quiet=TRUE)
+    object <- estimateDispersionsFit(object, quiet=TRUE)
   }
   if (!missing(intercept)) {
     if (length(intercept) != nrow(object)) {

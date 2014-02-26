@@ -3,11 +3,12 @@
 %\VignetteEngine{knitr::knitr}
 
 % To compile this document
-% library('knitr'); rm(list=ls()); knit('DESeq2.Rnw')
+% library('knitr'); rm(list=ls()); knit('DESeq2.Rnw'); options(prompt='> ')
 
 \documentclass[12pt]{article}
 
 \newcommand{\deseqtwo}{\textit{DESeq2}}
+\newcommand{\lowtilde}{\raise.17ex\hbox{$\scriptstyle\mathtt{\sim}$}}
 
 <<knitr, echo=FALSE, results="hide">>=
 library("knitr")
@@ -40,14 +41,16 @@ library("DESeq2")
   gene. Analogous data also arise for other assay types, including comparative ChIP-Seq,
   HiC, shRNA screening, mass spectrometry.  An important analysis question is the
   quantification and statistical inference of systematic changes between conditions, as
-  compared to within-condition variability.  The package \deseqtwo{} provides
+  compared to within-condition variability. The package \deseqtwo{} provides
   methods to test for differential expression by use of negative binomial generalized
   linear models; the estimates of dispersion and logarithmic fold changes 
   incorporate data-driven prior distributions \footnote{Other \Bioconductor{} packages 
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{baySeq} and \Biocpkg{DSS}.}. 
-  This vignette explains the use of the package and demonstrates typical work flows.
-  %-- The GB paper is really dated. Let's comment this out until the new ms exists:
-  %For an exposition of the statistical method, please see our paper \cite{Anders:2010:GB}.
+  This vignette explains the use of the package and demonstrates typical work flows.  
+%  Note that another vignette, ``Beginner's guide to using the DESeq2 package'', covers
+%  similar material, but at a slower pace, which might be useful if you are analyzing
+%  RNA-Seq or high-throughput sequencing data in R for the first time.
+  For an exposition of the statistical method, please see our paper \cite{Love:2014:biorxiv}.
   
   \vspace{1em}
   
@@ -171,8 +174,9 @@ dds
 
 \subsubsection{\textit{HTSeq} input}
 
-If you have used the \textit{HTSeq} python scripts, you can use the
-function \Rfunction{DESeqDataSetFromHTSeqCount}.  For an
+If you have \texttt{htseq-count} from the \textit{HTSeq} python package\footnote{available from 
+  \url{http://www-huber.embl.de/users/anders/HTSeq}, described in \cite{Anders:2014:htseq}}
+you can use the function \Rfunction{DESeqDataSetFromHTSeqCount}.  For an
 example of using the python scripts, see the \Biocexptpkg{pasilla} or
 \Biocexptpkg{parathyroid} data package. 
 First you will want to specify a variable which points to the 
@@ -264,6 +268,7 @@ head(res)
 # of log fold changes 
 # note: betaPrior can also be used as an argument to DESeq()
 ddsNoPrior <- nbinomWaldTest(dds,betaPrior=FALSE)
+resNoPrior <- results(ddsNoPrior)
 @ 
 
 Extracting results of other variables is discussed in section 
@@ -279,19 +284,18 @@ to these values is discussed in Section~\ref{sec:access}.
 
 For \deseqtwo{}, the function \Rfunction{plotMA} shows the $\log_2$
 fold changes attributable to a variable over the mean of normalized counts.
-By default, the last variable in the design formula is chosen, and points
-will be colored red if the adjusted p-value is less than 0.1.  
+Points will be colored red if the adjusted p-value is less than 0.1.  
 Points which fall out of the window are plotted as open triangles.
 
 <<MA, fig.width=4.5, fig.height=4.5>>=
-plotMA(dds, main="DESeq2", ylim=c(-2,2))
+plotMA(res, main="DESeq2", ylim=c(-2,2))
 @
 
-The \Rfunction{plotMA} function can also take the object returned by
-\Rfunction{results} as its first argument.
+The \Rfunction{plotMA} function can also take the \Robject{DESeqDataSet}
+as its first argument, in which case \Rfunction{results} will be called internally.
 
 <<MANoPrior, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
-plotMA(ddsNoPrior, 
+plotMA(resNoPrior, 
        main=expression(unshrunken~log[2]~fold~changes), 
        ylim=c(-2,2))
 @
@@ -455,7 +459,7 @@ where $n$ represents the count values and $n_0$ is a positive constant.
 In this section, we discuss two alternative
 approaches that offer more theoretical justification and a rational way
 of choosing the parameter equivalent to $n_0$ above.
-One method incorporates priors on the sample differences,
+One method incorporates priors on the sample differences \cite{Love:2014:biorxiv},
 and the other uses the concept of variance stabilizing
 transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
 
@@ -1070,16 +1074,18 @@ In order to produce results tables for the following tests, the same arguments
 par(mfrow=c(2,2),mar=c(2,2,1,1))
 yl <- c(-2.5,2.5)
 
-plotMA(dds, ylim=yl, lfcThreshold=.5, altHypothesis="greaterAbs")
-abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+resGA <- results(dds, lfcThreshold=.5, altHypothesis="greaterAbs")
+resLA <- results(ddsNoPrior, lfcThreshold=.5, altHypothesis="lessAbs")
+resG <- results(dds, lfcThreshold=.5, altHypothesis="greater")
+resL <- results(dds, lfcThreshold=.5, altHypothesis="less")
 
-plotMA(ddsNoPrior, ylim=yl, lfcThreshold=.5, altHypothesis="lessAbs")
+plotMA(resGA, ylim=yl)
 abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
-
-plotMA(dds, ylim=yl, lfcThreshold=.5, altHypothesis="greater")
+plotMA(resLA, ylim=yl)
+abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+plotMA(resG, ylim=yl)
 abline(h=.5,col="dodgerblue",lwd=2)
-
-plotMA(dds, ylim=yl, lfcThreshold=.5, altHypothesis="less")
+plotMA(resL, ylim=yl)
 abline(h=-.5,col="dodgerblue",lwd=2)
 @ 
 

@@ -161,10 +161,14 @@ resLRT <- results(ddsLRT)
 Michael Love
 }
 \references{
+DESeq2 reference:
+
 Michael I Love, Wolfgang Huber, Simon Anders: Moderated
 estimation of fold change and dispersion for RNA-Seq data
 with DESeq2. bioRxiv preprint (2014)
 \url{http://dx.doi.org/10.1101/002832}
+
+DESeq reference:
 
 Simon Anders, Wolfgang Huber: Differential expression
 analysis for sequence count data. Genome Biology 11 (2010)
