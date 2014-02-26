@@ -2,7 +2,7 @@
 \alias{plotPCA}
 \title{Sample PCA plot from variance-stabilized data}
 \usage{
-plotPCA(x, intgroup = "condition", ntop = 500, colours)
+plotPCA(x, intgroup = "condition", ntop = 500, col)
 }
 \arguments{
   \item{x}{a SummarizedExperiment, with data in
@@ -16,8 +16,7 @@ plotPCA(x, intgroup = "condition", ntop = 500, colours)
   \item{ntop}{number of top genes to use for principal
   components, selected by highest row variance}
 
-  \item{colours}{a vector of colours for each level of
-  intgroup}
+  \item{col}{a vector of colors for each level of intgroup}
 }
 \value{
 A \code{trellis} object.

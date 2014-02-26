@@ -159,7 +159,7 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #' @param intgroup a character vector of names in \code{colData(x)} to use for grouping
 #' @param ntop number of top genes to use for principal components, selected by highest
 #'    row variance
-#' @param colours a vector of colours for each level of intgroup
+#' @param col a vector of colors for each level of intgroup
 #'
 #' @return A \code{trellis} object.
 #' 
@@ -188,24 +188,24 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #' print(p)
 #' 
 #' @export
-plotPCA = function(x, intgroup="condition", ntop=500, colours)
+plotPCA = function(x, intgroup="condition", ntop=500, col)
 {
   rv = rowVars(assay(x))
   select = order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
   pca = prcomp(t(assay(x)[select,]))
 
   fac = factor(apply( as.data.frame(colData(x)[, intgroup, drop=FALSE]), 1, paste, collapse=" : "))
-  if (missing(colours)) {
-    colours = if( nlevels(fac) >= 3 )
+  if (missing(col)) {
+    col = if( nlevels(fac) >= 3 )
       brewer.pal(nlevels(fac), "Paired")
     else
       c( "lightgreen", "dodgerblue" )
   }
   
   xyplot(PC2 ~ PC1, groups=fac, data=as.data.frame(pca$x), pch=16, cex=2,
-    aspect = "iso", col=colours,
+    aspect = "iso", col=col,
     main = draw.key(key = list(
-      rect = list(col = colours),
+      rect = list(col = col),
       text = list(levels(fac)),
       rep = FALSE)))
 }
