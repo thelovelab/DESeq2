@@ -1,38 +1,22 @@
 Package: DESeq2
 Type: Package
-Title: Differential gene expression analysis based
-    on the negative binomial distribution
-Version: 1.3.43
+Title: Differential gene expression analysis based on the negative
+        binomial distribution
+Version: 1.3.44
 Author: Michael Love (HSPH Boston), Simon Anders, Wolfgang Huber (EMBL
-    Heidelberg)
+        Heidelberg)
 Maintainer: Michael Love <michaelisaiahlove@gmail.com>
 Description: Estimate variance-mean dependence in count data from
-    high-throughput sequencing assays and test for differential expression
-    based on a model using the negative binomial distribution
+        high-throughput sequencing assays and test for differential
+        expression based on a model using the negative binomial
+        distribution
 License: GPL (>= 3)
-biocViews: HighThroughputSequencing, ChIPseq, RNAseq, SAGE,
-    DifferentialExpression
 VignetteBuilder: knitr
-Imports:
-    BiocGenerics (>= 0.7.5),
-    methods,
-    locfit,
-    genefilter,
-    geneplotter,
-    RColorBrewer,
-    lattice
-Depends:
-    GenomicRanges,
-    IRanges,
-    Rcpp (>= 0.10.1),
-    RcppArmadillo (>= 0.3.4.4)
-Suggests:
-    RUnit,
-    Biobase,
-    parathyroidSE,
-    pasilla (>= 0.2.10),
-    vsn,
-    gplots,
-    BiocStyle,
-    knitr
+Imports: BiocGenerics (>= 0.7.5), methods, locfit, genefilter,
+        geneplotter, RColorBrewer, lattice
+Depends: GenomicRanges, IRanges, Rcpp (>= 0.10.1), RcppArmadillo (>=
+        0.3.4.4)
+Suggests: RUnit, Biobase, parathyroidSE, pasilla (>= 0.2.10), vsn,
+        gplots, BiocStyle, knitr
 LinkingTo: Rcpp, RcppArmadillo
+biocViews: Sequencing, ChIPSeq, RNASeq, SAGE, DifferentialExpression
