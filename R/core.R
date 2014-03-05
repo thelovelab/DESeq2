@@ -363,22 +363,8 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     stop("for computational stability, log(minDisp/10) should be above -30")
   }
 
-  # if factor is present with 3 or more levels, estimate the
-  # expected means such that releveling will not change the
-  # exact estimates of dispersion (unless betaPrior is FALSE)
-  betaPriorOrNotSpecified <- is.null(attr(object,"betaPrior")) || attr(object,"betaPrior")
-  modelMatrixType <- if (factorPresentThreeOrMoreLevels(object) & betaPriorOrNotSpecified) {
-    "expanded"
-  } else {
-    "standard"
-  }
-
   if (missing(modelMatrix)) {
-    modelMatrix <- if (modelMatrixType == "standard") {
-      model.matrix(design(object), data=as.data.frame(colData(object)))
-    } else {
-      makeReleveledModelMatrix(object)
-    }
+    modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
   } else {
     message("using supplied model matrix")
   }
@@ -553,22 +539,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
     mcols(object) <- mcols(object)[,!names(mcols(object))  %in% removeCols]
   }
 
-  # if factor is present with 3 or more levels, estimate the
-  # expected means such that releveling will not change the
-  # exact estimates of dispersion (unless betaPrior is FALSE)
-  betaPriorOrNotSpecified <- is.null(attr(object,"betaPrior")) || attr(object,"betaPrior")
-  modelMatrixType <- if (factorPresentThreeOrMoreLevels(object) & betaPriorOrNotSpecified) {
-    "expanded"
-  } else {
-    "standard"
-  }
-
   if (missing(modelMatrix)) {
-    modelMatrix <- if (modelMatrixType == "standard") {
-      model.matrix(design(object), data=as.data.frame(colData(object)))
-    } else {
-      makeReleveledModelMatrix(object)
-    }
+    modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
   } else {
     message("using supplied model matrix")
   }
@@ -1398,8 +1370,9 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
     convertNames <- convertNames[convertNames$from %in% modelMatrixNames,]
     modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
   }
-  
+
   modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
+  modelMatrixNames <- make.names(modelMatrixNames)
   colnames(modelMatrix) <- modelMatrixNames
   
   normalizationFactors <- if (!is.null(normalizationFactors(object))) {
@@ -1894,17 +1867,10 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
   # first, fit the negative binomial GLM without a prior,
   # used to construct the prior variances
   # and for the hat matrix diagonals for calculating Cook's distance
-  if (modelMatrixType == "standard") {
-    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR)
-    modelMatrix <- fit$modelMatrix
-  } else {
-    # expanded model matrices: want to make sure the prior
-    # doesn't change from re-leveling
-    modelMatrix <- makeReleveledModelMatrix(objectNZ)
-    fit <- fitNbinomGLMs(objectNZ, modelMatrix=modelMatrix,
-                         maxit=maxit, useOptim=useOptim,
-                         useQR=useQR, renameCols=FALSE)
-  }
+  fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
+                       renameCols = (modelMatrixType == "standard"))
+  modelMatrix <- fit$modelMatrix
+
   H <- fit$hat_diagonal
   betaMatrix <- fit$betaMatrix
   colnames(betaMatrix) <- colnames(modelMatrix)

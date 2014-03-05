@@ -34,5 +34,7 @@ test_contrasts <- function() {
   design(dds) <- ~ group + condition + condition:group
   dds <- nbinomWaldTest(dds)
   # check the default prior  variance on the intercept and group LFC's
-  checkEquals(attr(dds,"betaPriorVar")[1:6], c(1e6, rep(1e3, 2 + 3)))
+  checkEquals(attr(dds,"betaPriorVar")[1:6],
+              c(Intercept=1e6, groupx=1e3, groupy=1e3,
+                conditionA=1e3, conditionB=1e3, conditionC=1e3))
 }

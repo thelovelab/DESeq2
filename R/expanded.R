@@ -22,6 +22,7 @@ averagePriorsOverLevels <- function(object, betaPriorVar) {
   expandedNames <- colnames(expandedModelMatrix)
   betaPriorIn <- betaPriorVar
   betaPriorOut <- numeric(length(expandedNames))
+  names(betaPriorOut) <- expandedNames
   bpiNms <- names(betaPriorIn)
   idx <- which(bpiNms %in% expandedNames)
   betaPriorOut[match(bpiNms[idx],expandedNames)] <- betaPriorIn[idx]
@@ -49,7 +50,12 @@ averagePriorsOverLevels <- function(object, betaPriorVar) {
       }
     }
   }
-  stopifnot(all(betaPriorOut > 0))
+  if (any(is.na(betaPriorOut))) {
+    stop(paste("beta prior for",paste(names(betaPriorOut)[is.na(betaPriorOut)],collapse=","),"is NA"))
+  }
+  if (!all(betaPriorOut > 0)) {
+    stop(paste("beta prior for",paste(names(betaPriorOut)[betaPriorOut <= 0],collapse=","),"is not greater than 0"))
+  }
   betaPriorOut
 }
 
@@ -78,22 +84,4 @@ addAllContrasts <- function(object, betaMatrix) {
   betaMatrix
 }
   
-# want to make a model matrix which won't change from releveling
-# this function is only for use in calculating beta prior
-# in the case of expanded model matrices, which shouldn't change with releveling
-makeReleveledModelMatrix <- function(object) {
-  designFactors <- getDesignFactors(object)
-  coldata <- colData(object)
-  # pick an arbitrary sample for setting base levels
-  # either the sample with smallest size factor, or the first sample
-  sf <- sizeFactors(object)
-  if (!is.null(sf)) idx <- which.min(sf) else idx <- 1
-  for (v in designFactors) {
-    coldata[[v]] <- relevel(coldata[[v]], as.character(coldata[[v]][idx]))
-  }
-  mm <- model.matrix(design(object), data=coldata)
-  colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
-  colnames(mm) <- make.names(colnames(mm))
-  mm
-}
 
