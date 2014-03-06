@@ -165,6 +165,15 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, ignoreRank=FALSE
   # we expect a matrix of counts, which are non-negative integers
   countData <- as.matrix( countData )
   if (is(colData,"data.frame")) colData <- DataFrame(colData, row.names=rownames(colData))
+  # check if the rownames of colData are in different order
+  # than the colnames of the countData
+  if (all(sort(rownames(colData)) == sort(colnames(countData)))) {
+    if (all(rownames(colData) == colnames(countData))) {
+      stop(paste("rownames of the colData:
+",paste(rownames(colData),collapse=","),"
+                 are not in the same order as the colnames of the countData:
+",paste(colnames(countData),collapse=",")))
+  }
   se <- SummarizedExperiment(assays = SimpleList(counts=countData), colData = colData, ...)
   dds <- DESeqDataSet(se, design = design, ignoreRank)
   return(dds)
