@@ -451,6 +451,17 @@ estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","loc
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     stop("first call estimateSizeFactors or provide a normalizationFactor matrix before estimateDispersions")
   }
+  # size factors could have slipped in to colData from a previous run
+  if (!is.null(sizeFactors(object))) {
+    if (!is.numeric(sizeFactors(object))) {
+      stop("the sizeFactor column in colData is not numeric.
+these column could have come in during colData import")
+    }
+    if (any(is.na(sizeFactors(object)))) {
+      stop("the sizeFactor column in colData contains NA.
+these column could have come in during colData import")
+    }
+  }
   if (!is.null(dispersions(object))) {
     if (!quiet) message("you had estimated dispersions, replacing these")
     mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results"))]
