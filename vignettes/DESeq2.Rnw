@@ -54,7 +54,7 @@ library("DESeq2")
   
   \vspace{1em}
   
-  \textbf{DESeq2 version:} \Sexpr{sessionInfo()[["otherPkgs"]][["DESeq2"]][["Version"]]}
+  \textbf{DESeq2 version:} \Sexpr{packageDescription("DESeq2")$Version}
 \end{abstract}
 
 <<options, results="hide", echo=FALSE>>=
