@@ -407,13 +407,15 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     fit <- fitNbinomGLMs(objectNZ[fitidx,],
                          alpha_hat=alpha_hat[fitidx],
                          modelMatrix=modelMatrix)
-    mu[fitidx,] <- fit$mu
+    fitMu <- fit$mu
+    fitMu[fitMu < .01] <- .01
+    mu[fitidx,] <- fitMu
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
     dispRes <- fitDisp(ySEXP = counts(objectNZ)[fitidx,],
                        xSEXP = fit$modelMatrix,
-                       mu_hatSEXP = fit$mu,
+                       mu_hatSEXP = fitMu,
                        log_alphaSEXP = log(alpha_hat)[fitidx],
                        log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
                        log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
