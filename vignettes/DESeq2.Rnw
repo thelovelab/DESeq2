@@ -3,7 +3,7 @@
 %\VignetteEngine{knitr::knitr}
 
 % To compile this document
-% library('knitr'); rm(list=ls()); knit('DESeq2.Rnw'); options(prompt='> ')
+% library('knitr'); rm(list=ls()); knit('DESeq2.Rnw')
 
 \documentclass[12pt]{article}
 
@@ -1550,9 +1550,11 @@ subfunctions which are called in order, where complete details are listed.
 toLatex(sessionInfo())
 @
 
-<<resetOptions, echo=FALSE>>=
+<<resetOptions, results="hide", echo=FALSE>>=
 options(prompt="> ", continue="+ ")
 @ 
+
+
 
 \bibliography{library}
 
