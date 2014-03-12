@@ -1,0 +1,55 @@
+\name{collapseReplicates}
+\alias{collapseReplicates}
+\title{Collapse replicates in a SummarizedExperiment or DESeqDataSet}
+\usage{
+collapseReplicates(object, groupby, run, renameCols = TRUE)
+}
+\arguments{
+  \item{object}{A \code{SummarizedExperiment} or
+  \code{DESeqDataSet}}
+
+  \item{groupby}{a grouping factor, as long as the columns
+  of object}
+
+  \item{run}{optional, the names of each unique column in
+  object. if provided, a new column \code{runsCollapsed}
+  will be added to the \code{colData} which pastes together
+  the names of \code{run}}
+
+  \item{renameCols}{whether to rename the columns of the
+  returned object using the levels of the grouping factor}
+}
+\value{
+the \code{object} with as many columns as levels in
+\code{groupby}. This object has assay/count data which is
+summed from the various columns which are grouped together,
+and the \code{colData} is subset using the first column for
+each group in \code{groupby}.
+}
+\description{
+Collapses the columns in \code{object} by summing within
+levels of a grouping factor \code{groupby}. Optionally
+renames the columns of returned object with the levels of
+the grouping factor. Note: this function is written very
+simply and can be easily altered to produce other behavior
+by examining the source code.
+}
+\examples{
+dds <- makeExampleDESeqDataSet(m=12)
+
+# make data with two technical replicates for three samples
+colData(dds)$sample <- factor(sample(paste0("sample",rep(1:9, c(2,1,1,2,1,1,2,1,1)))))
+colData(dds)$run <- paste0("run",1:12)
+
+ddsColl <- collapseReplicates(dds, colData(dds)$sample, colData(dds)$run)
+
+# examine the colData and column names of the collapsed data
+colData(ddsColl)
+colnames(ddsColl)
+
+# check that the sum of the counts for "sample1" is the same
+# as the counts in the "sample1" column in ddsColl
+matchFirstLevel <- colData(dds)$sample == levels(colData(dds)$sample)[1]
+stopifnot(all(rowSums(counts(dds[,matchFirstLevel])) == counts(ddsColl[,1])))
+}
+
