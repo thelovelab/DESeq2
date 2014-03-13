@@ -537,11 +537,12 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' or \code{\link{nbinomLRT}}.
 #' @param SE whether to give the standard errors instead of coefficients.
 #' defaults to FALSE so that the coefficients are given.
+#' @param ... ignored
 #'
 #' @docType methods
 #' @name coef
 #' @rdname coef
-#' @aliases coef coef,DESeqDataSet-method 
+#' @aliases coef coef.DESeqDataSet
 #' @author Michael Love
 #' @importFrom stats coef
 #'
@@ -552,11 +553,14 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' coef(dds, SE=TRUE)[1,]
 #' 
 #' @export
-setMethod("coef", signature(object="DESeqDataSet"), function(object, SE=FALSE) {
+coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
   resNms <- resultsNames(object)
+  if (length(resNms) == 0) {
+    stop("no coefficients have been generated yet, first call DESeq()")
+  }
   if (!SE) {
     mcols(object)[resNms]
   } else {
     mcols(object)[paste0("SE_",resNms)]
   }
-})
+}

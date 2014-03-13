@@ -1,10 +1,10 @@
 \docType{methods}
 \name{coef}
 \alias{coef}
-\alias{coef,DESeqDataSet-method}
+\alias{coef.DESeqDataSet}
 \title{Extract a matrix of model coefficients/standard errors}
 \usage{
-\S4method{coef}{DESeqDataSet}(object, SE = FALSE)
+\method{coef}{DESeqDataSet}(object, SE = FALSE, ...)
 }
 \arguments{
   \item{object}{a DESeqDataSet returned by
@@ -14,6 +14,8 @@
   \item{SE}{whether to give the standard errors instead of
   coefficients. defaults to FALSE so that the coefficients
   are given.}
+
+  \item{...}{ignored}
 }
 \description{
 \strong{Note:} results tables with log2 fold change,

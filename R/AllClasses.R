@@ -32,7 +32,13 @@ convert these columns of colData(object) to factors before including in the desi
   }
   designFactors <- designVars[designVarsClass == "factor"]
   if (any(sapply(designFactors,function(v) any(table(colData(object)[[v]]) == 0)))) {
-    return("factors in design formula must have samples for each level")
+    return("factors in design formula must have samples for each level.
+this error can arise when subsetting a DESeqDataSet, in which
+all the samples for one or more levels of a factor in the design were removed.
+if this was intentional, use droplevels() to remove these levels, e.g.:
+
+colData(dds)$condition <- droplevels(colData(dds)$condition)
+")
   }
   TRUE
 } )
@@ -87,7 +93,7 @@ convert these columns of colData(object) to factors before including in the desi
 #' @rdname DESeqDataSet
 #' @export
 DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
-  if (names(assays(se))[1] != "counts") {
+  if (is.null(names(assays(se))) || names(assays(se))[1] != "counts") {
     message("renaming the first element in assays to 'counts'")
     names(assays(se))[1] <- "counts"
   }

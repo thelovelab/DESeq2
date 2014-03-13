@@ -111,12 +111,14 @@ objects as input for \deseqtwo{}). An example of the steps to produce
 a \Rclass{SummarizedExperiment} can be found in the data package
 \Biocexptpkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
 4 human cell cultures \cite{Haglund2012Evidence}.
+In this last line of the following code chunk, note that \Robject{dds\$variable} 
+is equivalent to \Robject{colData(dds)\$variable}.
 
 <<loadSumExp,results="hide",cache=TRUE>>=
 library("parathyroidSE")
 data("parathyroidGenesSE")
 se <- parathyroidGenesSE
-colnames(se) <- colData(se)$run
+colnames(se) <- se$run
 @
 
 A \Rclass{DESeqDataSet} object must have an associated design formula.  
@@ -140,8 +142,8 @@ of the formula and make sure the control level is the first level.
 <<sumExpInput, cache=TRUE>>=
 library("DESeq2")
 ddsPara <- DESeqDataSet(se = se, design = ~ patient + treatment)
-colData(ddsPara)$treatment <- factor(colData(ddsPara)$treatment,
-                                     levels=c("Control","DPN","OHT"))
+ddsPara$treatment <- factor(ddsPara$treatment,
+                            levels=c("Control","DPN","OHT"))
 ddsPara
 @
 
@@ -167,8 +169,8 @@ we can construct a \Rclass{DESeqDataSet}:
 dds <- DESeqDataSetFromMatrix(countData = countData,
                               colData = colData,
                               design = ~ condition)
-colData(dds)$condition <- factor(colData(dds)$condition,
-                                 levels=c("untreated","treated"))
+dds$condition <- factor(dds$condition,
+                        levels=c("untreated","treated"))
 dds
 @
 
@@ -210,8 +212,8 @@ sampleTable <- data.frame(sampleName = sampleFiles,
 ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
                                        directory = directory,
                                        design= ~ condition)
-colData(ddsHTSeq)$condition <- factor(colData(ddsHTSeq)$condition,
-                                      levels=c("untreated","treated"))
+ddsHTSeq$condition <- factor(ddsHTSeq$condition,
+                             levels=c("untreated","treated"))
 ddsHTSeq
 @
 
@@ -227,8 +229,18 @@ An \R{} function for easily changing the base level is
 \Rfunction{relevel}. An example of setting the base level of a factor
 with \Rfunction{relevel} is:
 
-<<relevel, eval=FALSE>>=
-colData(dds)$condition <- relevel(colData(dds)$condition, "control")
+<<relevel>>=
+dds$condition <- relevel(dds$condition, "untreated")
+@ 
+
+In addition, when subsetting the columns of a \Rclass{DESeqDataSet},
+i.e., when removing certain samples from the analysis, it is possible
+that all the samples for one or more levels of a variable in the design
+formula are removed. In this case, the \Rfunction{droplevels} function can be used
+to remove those levels which do not have samples in the current \Rclass{DESeqDataSet}:
+
+<<droplevels>>=
+dds$condition <- droplevels(dds$condition)
 @ 
 
 \subsubsection{About the pasilla dataset}
@@ -747,7 +759,7 @@ in the design formula.
 
 <<paraSetup>>=
 # test only the top 1000 genes
-ddsCtrst <- ddsPara[1:1000, colData(ddsPara)$time == "48h"]
+ddsCtrst <- ddsPara[1:1000, ddsPara$time == "48h"]
 as.data.frame(colData(ddsCtrst)[,c("patient","treatment")])
 design(ddsCtrst) <- ~ patient + treatment
 @ 

@@ -224,7 +224,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   countData <- matrix(rnbinom(m*n, mu=mu, size=1/dispersion), ncol=m)
   rownames(colData) <- colData$sample
   rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
-  names(rowData) <- paste0("feature",1:n)
+  names(rowData) <- paste0("gene",1:n)
   designFormula <- if (m > 1) {
     as.formula("~ condition",env=new.env())
   } else {

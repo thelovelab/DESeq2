@@ -1,0 +1,62 @@
+\docType{methods}
+\name{fpm}
+\alias{fpm}
+\title{FPM: fragments per million mapped fragments}
+\usage{
+fpm(object, robust = TRUE)
+}
+\arguments{
+  \item{object}{a \code{DESeqDataSet}}
+
+  \item{robust}{whether to use size factors to normalize
+  rather than taking the column sums of the raw counts.}
+}
+\value{
+a matrix which is normalized per million of mapped
+fragments, either using the robust median ratio method
+(robust=TRUE, default) or using raw counts (robust=FALSE).
+}
+\description{
+Calculates either a robust version (default) or the
+traditional matrix of fragments/counts per million mapped
+fragments (FPM/CPM). Note: this function is written very
+simply and can be easily altered to produce other behavior
+by examining the source code.
+}
+\examples{
+# generate a dataset with size factors: .5, 1, 1, 2
+dds <- makeExampleDESeqDataSet(m = 4, n = 1e3,
+                               interceptMean=log2(1e3),
+                               interceptSD=0,
+                               sizeFactors=c(.5,1,1,2),
+                               dispMeanRel=function(x) .01)
+
+# examine the column sums
+# then add 1 million counts over rows 11:15 for each sample
+colSums(counts(dds))/1e6
+counts(dds)[11:15,] <- 2e5L
+colSums(counts(dds))/1e6
+
+# the robust FPM treats the samples
+# relatively equally
+head(fpm(dds), 3)
+
+# the non-robust version is thrown
+# off by the 5 rows with large counts
+head(fpm(dds, robust=FALSE), 3)
+
+# the column sums of the robust version
+# are not equal to 1e6, but the
+# column sums of the non-robust version
+# are equal to 1e6 by definition
+colSums(fpm(dds))/1e6
+colSums(fpm(dds, robust=FALSE))/1e6
+
+# the total sum is equal for both methods
+sum(fpm(dds))
+sum(fpm(dds, robust=FALSE))
+}
+\seealso{
+\code{\link{fpkm}}
+}
+
