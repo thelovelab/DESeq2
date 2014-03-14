@@ -153,12 +153,13 @@ results <- function(object, contrast, name,
         nlvls <- nlevels(lastVar)
         contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
       }
-    } else {     
+    } else {
+      # the user specified a name, with expanded model matrix and no interactions
+      # print a note, because the defaults changed from version 1.2 to 1.4
       message("\n
-note: an expanded model matrix was used in fitting the model.
-
-recommendation: the 'contrast' argument should be used to extract
-log2 fold changes of levels against each other.\n")
+usage note: an expanded model matrix was used in fitting the model
+-- 'name' can be used to compare one level against the fitted value over all levels
+-- 'contrast' should be used compare levels against each other\n")
     }
   }
   if (missing(name)) {

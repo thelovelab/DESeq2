@@ -1,21 +1,21 @@
 CHANGES IN VERSION 1.3.34
 
-    o Expanded model matrices used by default when a log2 fold change
-      prior is used (betaPrior=TRUE). Results should be extracted 
-      using the 'contrast' argument to the results() function.
-      Expanded model matrices produce shrinkage of log
+    o *** USAGE NOTE *** Expanded model matrices are now used when 
+      betaPrior = TRUE (the default). Therefore, level comparison results 
+      should be extracted using the 'contrast' argument to the results() 
+      function. Expanded model matrices produce shrinkage of log
       fold changes that is independent of the choice of base level.
-      (This independence was already the case for 2-level factors
-      but not for designs with factors having 3 or more levels.)
-      The choice of model matrix can be controlled by the 
-      argument 'modelMatrixType' to DESeq() and nbinomWaldTest().
       Expanded model matrices are not used in the case of designs
       with an interaction term between factors with only 2 levels.
 
     o The order of the arguments 'name' and 'contrast' to the results()
       function are swapped, to indicate that 'contrast' should be used 
-      in most cases. The 'name' argument should still be used in the 
-      case of results for interaction terms, or when betaPrior=FALSE.
+      for the standard comparisons of levels against each other.
+      Calling results() with no arguments will still produce the 
+      same comparison: the fold change of the last level of the last 
+      design variable over the first level of the last design variable.
+      The 'name' argument should still be used in the case of results 
+      for interaction terms.
 
 CHANGES IN VERSION 1.3.24
 -------------------------
