@@ -129,7 +129,7 @@ variables with plus signs between them (it will be coerced into an
 representing the base mean of counts. The design can be changed later, 
 however then all differential analysis steps should be repeated, 
 as the design formula is used to estimate the dispersions and 
-to estimate the $\log_2$ fold changes of the model. A summary of various
+to estimate the log2 fold changes of the model. A summary of various
 design formulae for different experiments is presented later in 
 Section~\ref{sec:recDesign}.
 
@@ -223,7 +223,7 @@ In the three examples above, we applied the function \Rfunction{factor}
 to the column of interest in \Robject{colData}, supplying a character
 vector of levels. It is important to supply levels (otherwise the
 levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
-level as the first element ("base level"), so that the $\log_2$ fold changes
+level as the first element ("base level"), so that the log2 fold changes
 produced by default will be the expected comparison against the base level. 
 An \R{} function for easily changing the base level is 
 \Rfunction{relevel}. An example of setting the base level of a factor
@@ -294,7 +294,7 @@ to these values is discussed in Section~\ref{sec:access}.
 
 \subsubsection{MA-plot}
 
-For \deseqtwo{}, the function \Rfunction{plotMA} shows the $\log_2$
+For \deseqtwo{}, the function \Rfunction{plotMA} shows the log2
 fold changes attributable to a variable over the mean of normalized counts.
 Points will be colored red if the adjusted p-value is less than 0.1.  
 Points which fall out of the window are plotted as open triangles.
@@ -318,12 +318,12 @@ plotMA(resNoPrior,
 \includegraphics[width=.45\textwidth]{figure/MA}
 \caption{
   \textbf{MA-plot.} 
-  These plots show the $\log_2$ fold changes from the treatment over
+  These plots show the log2 fold changes from the treatment over
   the mean of normalized counts, i.e. the average of counts normalized by
-  size factors. The left plot shows the ``unshrunken'' $\log_2$ fold changes, 
+  size factors. The left plot shows the ``unshrunken'' log2 fold changes, 
   while the right plot, produced by the code above, shows the shrinkage 
-  of $\log_2$ fold changes resulting from the incorporation of zero-centered
-  normal prior. The shrinkage is greater for the $\log_2$ fold change
+  of log2 fold changes resulting from the incorporation of zero-centered
+  normal prior. The shrinkage is greater for the log2 fold change
   estimates from genes with low counts and high dispersion, 
   as can be seen by the narrowing of spread of leftmost points 
   in the right plot.}
@@ -341,9 +341,9 @@ mcols(res)$description
 
 The variable \Robject{condition} and the factor level \Robject{treated} 
 are combined as ``condition\_treated\_vs\_untreated''.  For a particular gene, a
-$\log_2$ fold change of $-1$ for \Robject{condition\_treated\_vs\_untreated} means 
+log2 fold change of $-1$ for \Robject{condition\_treated\_vs\_untreated} means 
 that the treatment induces a change in observed expression level of $2^{-1} = 0.5$ compared to the untreated condition.
-If the variable of interest is continuous-valued, then the reported $\log_2$ fold change is per unit of change of that variable.
+If the variable of interest is continuous-valued, then the reported log2 fold change is per unit of change of that variable.
 
 The results for particular genes can be set to \texttt{NA}, 
 for either one of the following reasons:
@@ -351,7 +351,7 @@ for either one of the following reasons:
   \begin{enumerate} 
   \item If within a row, all samples have zero
     counts, this is recorded in \texttt{mcols(dds)\$allZero} and
-    $\log_2$ fold change  estimates, p-value and adjusted p-value
+    log2 fold change  estimates, p-value and adjusted p-value
     will all be set to \texttt{NA}.
   \item If a row contains a sample with an extreme count
     then the p-value and adjusted p-value are set to \texttt{NA}.
@@ -421,27 +421,21 @@ res <- results(dds)
 head(res)
 @
 
-It is also possible to retrieve the $\log_2$ fold changes, p-values and adjusted
+It is also possible to retrieve the log2 fold changes, p-values and adjusted
 p-values of the \Robject{type} variable.  The function \Rfunction{results} takes an
-argument \Robject{name}, which is a combination of the variable, the level
-(numerator of the fold change) and the base level 
-(denominator of the fold change).  In addition, there might be minor
-changes made by the \Rfunction{make.names} function on column names, 
-e.g. changing \texttt{-} (a dash) to \texttt{.} (a period). The function
-\Rfunction{resultsNames} will tell you the names of all available results.
+argument \Robject{contrast}, which takes a character vector of length three:
+the name of the variable, the name of the factor level for the numerator
+of the log2 ratio, and the name of the factor level for the denominator.
+Contrasts are described in more detail in Section~\ref{sec:contrasts}.
 
 <<multiTypeResults>>=
-resultsNames(dds)
-resType <- results(dds, contrast=c("type","single.read","paired.end"))
+resType <- results(dds, contrast=c("type","single-read","paired-end"))
 head(resType)
 @
 
-If the condition of interest contains 3 or more levels, the \Robject{contrast}
-argument of \Rfunction{results} should be used to specify which $\log_2$ 
-fold changes and p-values should be returned. This is described in detail
-in Section~\ref{sec:contrasts}. The \Robject{contrast} argument
-can also be used to return the same results as using the \Robject{names} 
-argument, but provides more flexibility.
+If the variable is continuous or an interaction term, then the results
+can be extracted using the \Robject{name} argument to \Rfunction{results},
+where the name is one of the characters returned by \Robject{resultsNames(dds)}.
 
 \newpage
 
@@ -480,7 +474,7 @@ transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
 The two functions, \Rfunction{rlogTransformation} and 
 \Rfunction{varianceStabilizingTransformation}, have an argument \Robject{blind},
 for whether the transformation should be blind to the sample information specified by the 
-design formula. By setting the argument \Robject{blind} to \Robject{TRUE},
+design formula. When \Robject{blind} equals \Robject{TRUE} (the default),
 the functions will re-estimate the dispersions using only an intercept
 (design formula $\sim 1$). This setting should be used in order to compare samples 
 in a manner wholly unbiased by the information about experimental groups, 
@@ -492,7 +486,7 @@ in counts which are explanable by the experimental design, and one wishes
 to tranform the data for downstream analysis. In this case, using blind dispersion
 estimation will lead to large estimates of dispersion, as it attributes differences
 due to experimental design as unwanted ``noise'', and shrinks the tranformed values
-towards each other.  By setting \Robject{blind} to \Robject{FALSE}, the dispersions 
+towards each other. By setting \Robject{blind} to \Robject{FALSE}, the dispersions 
 already estimated will be used to perform transformations, or if not present, 
 they will be estimated using the current design formula. Note that only the fitted
 dispersion estimates from mean-dispersion trend line is used in the transformation.
@@ -505,9 +499,20 @@ The two functions return \Rclass{SummarizedExperiment} objects, as the
 data are no longer counts. The \Rfunction{assay} function is used to
 extract the matrix of normalized values.
 
-<<defvsd,cache=TRUE>>=
-rld <- rlogTransformation(dds, blind=TRUE)
-vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
+<<echo=FALSE>>=
+ddsblind <- dds
+design(ddsblind) <- ~ 1
+ddsblind <- estimateDispersions(ddsblind)
+# we do blind estimation once, then re-use these for both:
+rld <- rlogTransformation(ddsblind, blind=FALSE)
+vsd <- varianceStabilizingTransformation(ddsblind, blind=FALSE)
+rlogMat <- assay(rld)
+vstMat <- assay(vsd)
+@ 
+
+<<defvsd,eval=FALSE>>=
+rld <- rlogTransformation(dds)
+vsd <- varianceStabilizingTransformation(dds)
 rlogMat <- assay(rld)
 vstMat <- assay(vsd)
 @
@@ -516,7 +521,7 @@ vstMat <- assay(vsd)
 
 The function \Rfunction{rlogTransformation},
 stands for \emph{regularized log}, transforming
-the original count data to the $\log_2$ scale by fitting a model with a
+the original count data to the log2 scale by fitting a model with a
 term for each sample and a prior distribution on the coefficients
 which is estimated from the data. This is the same kind of shrinkage 
 (sometimes referred to as regularization, or moderation) of log fold changes
@@ -738,17 +743,17 @@ used to test if differences between groups are actually zero.
 The simplest use case for contrasts is an experimental design 
 containing a factor with three levels, say A, B and C.
 Contrasts enable the user to generate results for all 3
-possible differences: $\log_2$ fold change of B vs A, of C vs A,
+possible differences: log2 fold change of B vs A, of C vs A,
 and of C vs B (the other three possible pairs will simply have
-$-1 \times$ the $\log_2$ fold changes of these three). 
+$-1 \times$ the log2 fold changes of these three). 
 
-In order to fit models with ``shrunken'' $\log_2$ fold changes 
+In order to fit models with ``shrunken'' log2 fold changes 
 in a manner which is independent to the choice of base level,
 \deseqtwo{} uses ``expanded model matrices'', described further in 
 Section~\ref{sec:expanded}. The expanded model matrices 
 include a coefficient for each level of the factors in addition to an intercept. 
 The \Robject{contrast} argument of \Rfunction{results} function is
-again used to extract test results of $\log_2$ fold changes of interest.
+again used to extract test results of log2 fold changes of interest.
 
 Here we show how to perform contrasts using the parathyroid dataset 
 which was built in Section~\ref{sec:sumExpInput}.
@@ -759,7 +764,8 @@ in the design formula.
 
 <<paraSetup>>=
 # test only the top 1000 genes
-ddsCtrst <- ddsPara[1:1000, ddsPara$time == "48h"]
+idx <- which(rowSums(counts(ddsPara)) > 0)[1:1000]
+ddsCtrst <- ddsPara[idx, ddsPara$time == "48h"]
 as.data.frame(colData(ddsCtrst)[,c("patient","treatment")])
 design(ddsCtrst) <- ~ patient + treatment
 @ 
@@ -774,8 +780,8 @@ Using the \Robject{contrast} argument of the \Rfunction{results} function,
 we can specify a test of OHT vs DPN. The contrast argument takes a character 
 vector of length three, containing the name of the factor, 
 the name of the numerator level, and the name of the denominator level,
-where we test the $\log_2$ fold change of numerator vs denominator.
-Here we extract the results for the $\log_2$ fold change of 
+where we test the log2 fold change of numerator vs denominator.
+Here we extract the results for the log2 fold change of 
 OHT vs DPN for the treatment factor.
 
 <<contrastsChar>>=
@@ -880,7 +886,7 @@ addmargins(tab)
 \subsection{Likelihood ratio test} \label{sec:LRT}
 
 One reason to use the likelihood ratio test is in order to test the 
-null hypothesis that $\log_2$ fold changes for multiple levels of a factor, 
+null hypothesis that log2 fold changes for multiple levels of a factor, 
 or for multiple variables, such as all interactions between two variables,
 are equal to zero.
 The likelihood ratio test can also be specified using the \Robject{test}
@@ -895,10 +901,10 @@ share many of the same genes with adjusted p-value $< 0.1$ for this experiment.
 As we already have an object \Robject{dds} with dispersions calculated 
 for the design formula \texttt{~ type + condition}, 
 we only need to run the function \Rfunction{nbinomLRT}, with a reduced formula
-including only the type of sequencing, in order to test the $\log_2$ fold change
+including only the type of sequencing, in order to test the log2 fold change
 attributable to the condition:
 
-<<likelihoodRatioTest, cache=TRUE>>=
+<<likelihoodRatioTest,cache=TRUE>>=
 ddsLRT <- nbinomLRT(dds, reduced = ~ type)
 resLRT <- results(ddsLRT)
 head(resLRT,2)
@@ -935,7 +941,8 @@ fails to converge. A warning will be printed that one should use
 the curve is pulled dramatically by a few outlier points. 
 
 <<dispFitLocalSub, echo=FALSE>>=
-ddsLocal <- estimateDispersions(dds[1:1000,], fitType="local")
+idx <- which(rowSums(counts(dds)) > 0)[1:500]
+ddsLocal <- estimateDispersions(dds[idx,], fitType="local")
 @
 
 <<dispFitLocal, eval=FALSE>>=
@@ -950,7 +957,7 @@ this assumption is not appropriate for all assays.  An alternative is
 to use the mean of all gene-wise dispersion estimates.
 
 <<dispFitMeanSub, echo=FALSE>>=
-ddsMean <- estimateDispersions(dds[1:1000,], fitType="mean")
+ddsMean <- estimateDispersions(dds[idx,], fitType="mean")
 @
 
 <<dispFitMean, eval=FALSE>>=
@@ -973,7 +980,7 @@ the fitted values in the column \Robject{fitDisp}.  The width of
 this prior is calculated from the data.
 
 <<dispFitCustomSub, echo=FALSE>>=
-ddsMed <- estimateDispersionsGeneEst(dds[1:1000,])
+ddsMed <- estimateDispersionsGeneEst(dds[idx,])
 useForMedian <- mcols(ddsMed)$dispGeneEst > 1e-7
 medianDisp <- median(mcols(ddsMed)$dispGeneEst[useForMedian],na.rm=TRUE)
 mcols(ddsMed)$dispFit <- medianDisp
@@ -1038,7 +1045,7 @@ resFiltByVar <- results(dds, filter=rv)
 table(rowMean=(res$padj < .1), rowVar=(resFiltByVar$padj < .1))
 @ 
 
-\subsection{Tests of $\log_2$ fold change above or below a threshold}
+\subsection{Tests of log2 fold change above or below a threshold}
 
 It is also possible to provide thresholds for constructing
 Wald tests of significance. Two arguments to the \Rfunction{results}
@@ -1049,7 +1056,7 @@ Note that the \textit{alternative hypothesis} is specified by the user,
 i.e. those genes which the user is interested in finding, and the test 
 provides p-values for the null hypothesis, the complement of the set 
 defined by the alternative. The \Robject{altHypothesis} argument can take one 
-of the following four values, where $\beta$ is the $\log_2$ fold change
+of the following four values, where $\beta$ is the log2 fold change
 specified by the \Robject{name} argument:
 
 \begin{itemize}
@@ -1101,7 +1108,7 @@ plotMA(resL, ylim=yl)
 abline(h=-.5,col="dodgerblue",lwd=2)
 @ 
 
-\incfig{figure/lfcThresh}{.5\textwidth}{MA-plots of tests of $\log_2$ fold
+\incfig{figure/lfcThresh}{.5\textwidth}{MA-plots of tests of log2 fold
   change with respect to a threshold value.}{
   Going left to right across rows, the tests are for \Robject{altHypothesis = "greaterAbs"},
   \Robject{"lessAbs"}, \Robject{"greater"}, and \Robject{"less"}.
@@ -1187,10 +1194,10 @@ $s_j$\footnote{The model can be generalized to use sample-
 \textbf{and} gene-dependent normalization factors, see
 Appendix~\ref{sec:normfactors}.} and a parameter $q_{ij}$ 
 proportional to the expected true concentration of fragments for sample $j$.
-The coefficients $\beta_i$ give the $\log_2$ fold changes for gene $i$ for each 
+The coefficients $\beta_i$ give the log2 fold changes for gene $i$ for each 
 column of the model matrix $X$. Dispersions are estimated using
 expected mean values from the maximum likelihood estimate 
-of $\log_2$ fold changes, and optimizing the Cox-Reid
+of log2 fold changes, and optimizing the Cox-Reid
 adjusted profile likelihood, as first implemented for RNA-Seq data in
 \Biocpkg{edgeR} \cite{CR,edgeR_GLM}. The steps performed by the 
 \Rfunction{DESeq} function are documented in its manual page; 
@@ -1217,7 +1224,7 @@ version \Biocpkg{DESeq}, are as follows:
 \item Maximum \textit{a posteriori} estimation of GLM coefficients incorporating a zero-mean
   normal prior with variance estimated from data (equivalent to Tikhonov/ridge
   regularization).  This adjustment has little effect on genes with high counts, yet it
-  helps to moderate the otherwise large spread in $\log_2$ fold changes for genes with low
+  helps to moderate the otherwise large spread in log2 fold changes for genes with low
   counts (e.\,g.\ single digits per condition).
 \item Maximum \textit{a posteriori} estimation of dispersion replaces the
   \Robject{sharingMode} options \Robject{fit-only} or \Robject{maximum} of the previous version
@@ -1281,19 +1288,19 @@ $$ W = \frac{c^t \beta}{\sqrt{c^t \Sigma c}} $$
 \subsection{Expanded model matrices} \label{sec:expanded}
 
 As mentioned in Section~\ref{sec:contrasts}, \deseqtwo{} uses
-``expanded model matrices'' with the $\log_2$ fold change prior, 
-in order to produce $\log_2$ fold change estimates and test 
+``expanded model matrices'' with the log2 fold change prior, 
+in order to produce log2 fold change estimates and test 
 results which are independent of the choice of base level. 
 These model matrices differ from the standard model matrices, in that
 they have an indicator column (and therefore a coefficient) for
 each level of factors in the design formula in addition to an intercept. 
-Expanded model matrices are not used without the $\log_2$ fold change 
+Expanded model matrices are not used without the log2 fold change 
 prior or in the case of designs
 with 2 level factors and an interaction term.
 
 These matrices are therefore not full rank, but a coefficient vector $\beta_i$ 
 can still be found due to the zero-centered prior on non-intercept coefficients.
-The prior variance for the $\log_2$ fold changes is 
+The prior variance for the log2 fold changes is 
 calculated by first generating maximum likelihood
 estimates for a standard model matrix. The prior variance for each level
 of a factor is then set as the average of the mean squared maximum likelihood 

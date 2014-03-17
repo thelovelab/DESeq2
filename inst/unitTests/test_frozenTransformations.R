@@ -1,11 +1,11 @@
 test_frozenTransformations <- function() {
   set.seed(1)
-  dds <- makeExampleDESeqDataSet()
+  dds <- makeExampleDESeqDataSet(n=100)
   design(dds) <- ~ 1
   dds <- estimateSizeFactors(dds)
   dds <- estimateDispersions(dds)
   
-  ddsNew <- makeExampleDESeqDataSet(m=1)
+  ddsNew <- makeExampleDESeqDataSet(m=1,n=100)
   counts(ddsNew)[,1] <- counts(dds)[,1]
   sizeFactors(ddsNew)[1] <- sizeFactors(dds)[1]
 

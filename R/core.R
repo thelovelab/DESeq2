@@ -130,7 +130,7 @@
 #'
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(betaSD=1)
+#' dds <- makeExampleDESeqDataSet(betaSD=1, n=100)
 #' dds <- DESeq(dds)
 #' res <- results(dds)
 #' ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)

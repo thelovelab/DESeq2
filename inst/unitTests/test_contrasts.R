@@ -1,6 +1,6 @@
 test_contrasts <- function() {
   set.seed(1)
-  n <- 1000
+  n <- 200
   dds <- makeExampleDESeqDataSet(n=n)
   counts(dds) <- matrix(as.integer(rpois(n*12,
                         lambda=rep(c(100,200,800),each=n*4))),ncol=12)
