@@ -47,9 +47,9 @@ library("DESeq2")
   incorporate data-driven prior distributions \footnote{Other \Bioconductor{} packages 
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{baySeq} and \Biocpkg{DSS}.}. 
   This vignette explains the use of the package and demonstrates typical work flows.  
-%  Note that another vignette, ``Beginner's guide to using the DESeq2 package'', covers
-%  similar material, but at a slower pace, which might be useful if you are analyzing
-%  RNA-Seq or high-throughput sequencing data in R for the first time.
+  Note that another vignette, ``Beginner's guide to using the DESeq2 package'', covers
+  similar material, but at a slower pace, which might be useful if you are new 
+  to the analysis of RNA-Seq or high-throughput sequencing data in R.
   For an exposition of the statistical method, please see our paper \cite{Love:2014:biorxiv}.
   
   \vspace{1em}
