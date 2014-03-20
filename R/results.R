@@ -72,7 +72,8 @@
 #' (most simple case)
 #'  \item a list of two character vectors: the names of the effects
 #' for the numerator, and the names of the effects for denominator.
-#' these names should be elements of \code{resultsNames(object)}
+#' these names should be elements of \code{resultsNames(object)}.
+#' one list element can be the empty vector \code{character()}.
 #' (more general case, can be to combine interaction terms and main effects)
 #'  \item a numeric contrast vector with one element
 #' for each element in \code{resultsNames(object)} (most general case)
@@ -214,13 +215,6 @@ results <- function(object, contrast, name,
         nlvls <- nlevels(lastVar)
         contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
       }
-    } else {
-      # the user specified a name, with expanded model matrix and no interactions
-      # print a note, because the defaults changed from version 1.2 to 1.4
-      message("\n
-usage note: an expanded model matrix was used in fitting the model
--- 'name' can be used to extract the results for a single effect
--- 'contrast' should be used compare levels against each other\n")
     }
   }
   if (missing(name)) {
@@ -520,6 +514,9 @@ or a numeric vector, see the argument description in ?results")
       stop("elements in the contrast list should only appear in the numerator (first element of contrast list)
 or the denominator (second element of contrast list), but not both")
     }
+    if (length(c(contrast[[1]],contrast[[2]])) == 0) {
+      stop("one of the two elements in the list should be a character vector of non-zero length")
+    }
     # ...if character
   } else if (is.character(contrast)) {
     # check if the appropriate columns are in the resultsNames
@@ -628,7 +625,15 @@ resultsNames(object), prefixed by",contrastFactor))
   } else if (is.list(contrast)) {
     # interpret list contrast into numeric
     # and make a name for the contrast
-    contrastName <- paste(paste(contrast[[1]],collapse=","),"vs",paste(contrast[[2]],collapse=","))
+    lc1 <- length(contrast[[1]])
+    lc2 <- length(contrast[[2]])
+    if (lc1 > 0 & lc2 > 0) {
+      contrastName <- paste(paste(contrast[[1]],collapse="+"),"vs",paste(contrast[[2]],collapse="+"))
+    } else if (lc1 > 0 & lc2 == 0) {
+      contrastName <- paste(paste(contrast[[1]],collapse="+"),"effect")
+    } else if (lc1 == 0 & lc2 > 0) {
+      contrastName <- paste("negative of",paste(contrast[[2]],collapse="+"),"effect")
+    }
     contrastNumeric <- rep(0,length(resNames))
     contrastNumeric[resNames %in% contrast[[1]]] <- 1
     contrastNumeric[resNames %in% contrast[[2]]] <- -1

@@ -29,8 +29,9 @@ removeResults(object)
   of two character vectors: the names of the effects for
   the numerator, and the names of the effects for
   denominator. these names should be elements of
-  \code{resultsNames(object)} (more general case, can be to
-  combine interaction terms and main effects) \item a
+  \code{resultsNames(object)}. one list element can be the
+  empty vector \code{character()}. (more general case, can
+  be to combine interaction terms and main effects) \item a
   numeric contrast vector with one element for each element
   in \code{resultsNames(object)} (most general case) } If
   specified, the \code{name} argument is ignored.}
