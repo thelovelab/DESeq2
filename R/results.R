@@ -628,11 +628,11 @@ resultsNames(object), prefixed by",contrastFactor))
   } else if (is.list(contrast)) {
     # interpret list contrast into numeric
     # and make a name for the contrast
+    contrastName <- paste(paste(contrast[[1]],collapse=","),"vs",paste(contrast[[2]],collapse=","))
     contrastNumeric <- rep(0,length(resNames))
     contrastNumeric[resNames %in% contrast[[1]]] <- 1
     contrastNumeric[resNames %in% contrast[[2]]] <- -1
     contrast <- contrastNumeric
-    contrastName <- paste(paste(contrast[[1]],collapse=","),"vs",paste(contrast[[2]],collapse=","))
   } else if (is.character(contrast)) {
     # interpret character contrast into numeric
     # and make a name for the contrast
