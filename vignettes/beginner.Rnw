@@ -708,10 +708,10 @@ A so-called MA plot provides a useful overview for an experiment
 with a two-group comparison:
 
 <<beginner_MA>>=
-plotMA(res, ylim = c( -3, 3 ) )
+plotMA( res )
 @ 
 
-The plot (Fig.\ \ref{MA1}) represents each gene with a dot. The $x$ axis
+The plot (Fig.\ \ref{figure/beginner_MA}) represents each gene with a dot. The $x$ axis
 is the average expression over all samples, the $y$ axis the log2
 fold change between treatment and control. Genes with an adjusted p value
 below a threshold (here 0.1, the default) are shown in red. 
@@ -760,15 +760,15 @@ dispersion outliers. These estimates are therefore not shrunk toward the fitted 
 \incfig{figure/beginner_pvalHist}{.5\textwidth}{Histogram}{of the p values returned by the
   test for differential expression}
 
-Another useful diagnostic plot is the histogram of the p values (Fig.~\ref{pvalHist}).
+Another useful diagnostic plot is the histogram of the p values (Fig.~\ref{figure/beginner_pvalHist}).
 
 <<beginner_pvalHist, dev="pdf">>=
-hist( res$pvalue, breaks=100     )
+hist( res$pvalue, breaks=20 )
 @
 
 \section{Independent filtering}
 
-The MA plot (Figure~\ref{MA1}) highlights an important property of RNA-Seq data.
+The MA plot (Figure~\ref{figure/beginner_MA}) highlights an important property of RNA-Seq data.
 For weakly expressed genes, we have no chance of seeing differential
 expression, because the low read counts suffer from so high Poisson
 noise that any biological effect is drowned in the uncertainties from the
@@ -777,8 +777,8 @@ We can also show this by examining the ratio of small p values
 (say, less than, 0.01) for genes binned by mean normalized count:
 
 <<beginner_ratioSmallP, dev="pdf", fig.width=8, fig.height=4>>=
-# create 10 bins using the quantile function
-qs <- c( 0, quantile( res$baseMean[res$baseMean > 0], 0:9/9 ) )
+# create bins using the quantile function
+qs <- c( 0, quantile( res$baseMean[res$baseMean > 0], 0:7/7 ) )
 # "cut" the genes into the bins
 bins <- cut( res$baseMean, qs )
 # rename the levels of the bins using the middle point
@@ -789,7 +789,7 @@ ratios <- tapply( res$pvalue, bins, function(p) mean( p < .01, na.rm=TRUE ) )
 barplot(ratios, xlab="mean normalized count", ylab="ratio of small p values")
 @
 
-\incfig{figure/beginner_ratioSmallP}{.5\textwidth}{Ratio of small p valules}{for groups of genes 
+\incfig{figure/beginner_ratioSmallP}{.9\textwidth}{Ratio of small p valules}{for groups of genes 
 binned by mean normalized count}
 
 At first sight, there may seem to be little benefit in filtering out these genes. After
@@ -936,7 +936,7 @@ and changed the points to solid disks (\Rfunction{pch=20}) with reduced size
 (\Rfunction{cex=0.3})\footnote{The function \Rfunction{heatscatter} from the package
   \CRANpkg{LSD} offers a colorful alternative.}.
 
-In Figure~\ref{rldPlot}, we can see how genes with low counts seem to be excessively variable
+In Figure~\ref{figure/beginner_rldPlot}, we can see how genes with low counts seem to be excessively variable
 on the ordinary logarithmic scale, while the rlog transform compresses differences for genes
 for which the data cannot provide good information anyway.
 
@@ -969,7 +969,7 @@ the \CRANpkg{gplots} package.
 sampleDistMatrix <- as.matrix( sampleDists )
 rownames(sampleDistMatrix) <- paste( rld$treatment, 
    rld$patient, sep="-" )
-   
+colnames(sampleDistMatrix) <- NULL   
 library( "gplots" )
 library( "RColorBrewer" )
 colours = colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
@@ -979,13 +979,13 @@ heatmap.2( sampleDistMatrix, trace="none", col=colours)
 Note that we have changed the row names of the distance matrix to contain
 treatment type and patient number instead of sample ID, so that we have
 all this information in view when looking at the heatmap 
-(Fig.~\ref{sampleDistHeatmap}).
+(Fig.~\ref{figure/beginner_sampleDistHeatmap}).
 
 \incfig{figure/beginner_samplePCA}{.5\textwidth}{Principal components analysis (PCA)}{ of samples after rlog transformation.}
 
 Another way to visualize sample-to-sample distances is a principal-components
 analysis (PCA). In this ordination method, the data points (i.e., here, the samples)
-are projected onto the 2D plane such that they spread out optimally (Fig.\ \ref{samplePCA}).
+are projected onto the 2D plane such that they spread out optimally (Fig.\ \ref{figure/beginner_samplePCA}).
 If we only had two treatments, the \Rfunction{plotPCA} will automatically use a paired color palette
 for each combination of the levels of patient and treatment. As we have three treatments, 
 we supply a vector which specifies three shades of red, green, blue and purple for each patient.
@@ -1022,7 +1022,7 @@ package of the same name, useful.
 
 \incfig{figure/beginner_geneHeatmap}{.5\textwidth}{Heatmap with gene clustering.}
 
-In the heatmap of Fig.~\ref{sampleDistHeatmap}, the dendrogram at the side shows
+In the heatmap of Fig.~\ref{figure/beginner_sampleDistHeatmap}, the dendrogram at the side shows
 us a hierarchical clustering of the samples. Such a clustering can also be performed 
 for the genes. 
 
@@ -1046,7 +1046,7 @@ heatmap.2( assay(rld)[ topVarGenes, ], scale="row",
      col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
 @
 
-We can now see (Fig. \ref{geneHeatmap}) blocks of genes which covary across patients.
+We can now see (Fig. \ref{figure/beginner_geneHeatmap}) blocks of genes which covary across patients.
 Often, such a heatmap is insightful, even though here, seeing these variations
 across patients is of limited value because we are rather interested in the effects
 between the treatments from each patient. 

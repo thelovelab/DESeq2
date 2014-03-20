@@ -204,7 +204,7 @@ setReplaceMethod("dispersions", signature(object="DESeqDataSet", value="numeric"
 #' sizeFactors(dds)
 sizeFactors.DESeqDataSet <- function(object) {
   if (!"sizeFactor" %in% names(colData(object))) return(NULL)
-  sf <- colData(object)$sizeFactor
+  sf <- object$sizeFactor
   names( sf ) <- colnames( object )
   sf
 }
@@ -224,7 +224,7 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
                    }
                    # have to make sure to remove sizeFactor which might be
                    # coming from a previous CountDataSet
-                   colData(object)$sizeFactor <- value
+                   object$sizeFactor <- value
                    idx <- which(colnames(colData(object)) == "sizeFactor")
                    metaDataFrame <- DataFrame(type="intermediate",
                                               description="a scaling factor for columns")
@@ -374,9 +374,9 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #' (the methods of Cox Reid-adjusted profile likelihood maximization for
 #' estimation of dispersion in RNA-Seq data were developed by McCarthy,
 #' et al. (2012), first implemented in the edgeR package in 2010);
-#' a dispersion-mean relationship is fit to the maximum likelihood estimates;
+#' a trend line capturing the dispersion-mean relationship is fit to the maximum likelihood estimates;
 #' a normal prior is determined for the log dispersion estimates centered
-#' on the predicted value from the fit
+#' on the predicted value from the trended fit
 #' with variance equal to the difference between the observed variance of the
 #' log dispersion estimates and the expected sampling variance;
 #' finally maximum a posteriori dispersion estimates are returned.
@@ -384,6 +384,9 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 #' The final dispersion estimates can be accessed from an object using \code{\link{dispersions}}.
 #' The fitted dispersion-mean relationship is also used in
 #' \code{\link{varianceStabilizingTransformation}}.
+#' All of the intermediate values (gene-wise dispersion estimates, fitted dispersion
+#' estimates from the trended fit, etc.) are stored in \code{mcols(dds)}, with
+#' information about these columns in \code{mcols(mcols(dds))}.
 #'
 #' The log normal prior on the dispersion parameter has been proposed
 #' by Wu, et al. (2012) and is also implemented in the DSS package.

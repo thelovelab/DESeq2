@@ -19,18 +19,28 @@ removeResults(object)
   \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}, or
   \code{\link{nbinomLRT}}}
 
-  \item{contrast}{either a character vector with exactly
-  three elements (name of the factor, name of the numerator
-  level, name of the denominator level), or a numeric
-  contrast vector with one element for each element in
-  \code{resultsNames(object)}, i.e. columns of the model
-  matrix. The DESeqDataSet must be one produced using the
-  Wald test steps in order to use contrasts. If used, the
-  \code{name} argument is ignored.}
+  \item{contrast}{this argument specifies what comparison
+  to extract from the \code{object} to build a results
+  table. one of either: \itemize{ \item a character vector
+  with exactly three elements: the name of a factor in the
+  design formula, the name of the numerator level for the
+  log2 fold change, and the name of the denominator level
+  for the log2 fold change (most simple case) \item a list
+  of two character vectors: the names of the effects for
+  the numerator, and the names of the effects for
+  denominator. these names should be elements of
+  \code{resultsNames(object)} (more general case, can be to
+  combine interaction terms and main effects) \item a
+  numeric contrast vector with one element for each element
+  in \code{resultsNames(object)} (most general case) } If
+  specified, the \code{name} argument is ignored.}
 
-  \item{name}{the name of the coefficient for which to
-  report log2 fold changes -- and for the Wald test,
-  p-values and adjusted p-values}
+  \item{name}{the name of the individual effect
+  (coefficient) for building a results table. Use this
+  argument rather than \code{contrast} for continuous
+  variables, individual effects or for individual
+  interaction terms. The value provided to \code{name} must
+  be an element of \code{resultsNames(object)}.}
 
   \item{lfcThreshold}{a non-negative value, which specifies
   the test which should be applied to the log2 fold
@@ -107,66 +117,127 @@ with results metadata columns removed
 \code{results} extracts results from a DESeq analysis
 giving base means across samples, log2 fold changes,
 standard errors, test statistics, p-values and adjusted
-p-values. \code{resultsNames} finds available names for
-results; \code{removeResults} returns a \code{DESeqDataSet}
-object with results columns removed.
+p-values; \code{resultsNames} returns the names of the
+estimated effects (coefficents) of the model;
+\code{removeResults} returns a \code{DESeqDataSet} object
+with results columns removed.
 }
 \details{
-Multiple results can be returned for an analysis with
-multifactor design, so \code{results} takes an argument
-\code{name} as well as the argument \code{contrast}
-explained below.
+Multiple results can be returned for analyses beyond a
+simple two group comparison, so \code{results} takes
+arguments \code{contrast} and \code{name} to help the user
+pick out the comparison of interest for printing the
+results table. If \code{results} is run without specifying
+\code{contrast} or \code{name}, it will return the
+comparison of the last level of the last variable in the
+design formula over the first level of this variable. For
+example, for a simple two-group comparison, this would
+return the log2 fold changes of the second group over the
+first group (the base level). Please see examples below and
+in the vignette.
 
-The available names can be checked using
-\code{resultsNames}; these are combined variable names and
-factor levels, potentially with minor changes made by the
-\code{make.names} function on column names (e.g. dashes
-into periods).
-
-By default, results for the last variable will be returned.
-Information on the variable represented and the test used
-for p-values (Wald test or likelihood ratio test) is stored
-in the metadata columns, accessible by calling \code{mcol}
-on the \code{DataFrame} returned by \code{results}.
-
-By default, independent filtering is performed to select a
-set of genes which will result in the most genes with
-adjusted p-values less than a threshold, alpha. The
-adjusted p-values for the genes which do not pass the
-filter threshold are set to \code{NA}. By default, the mean
-of normalized counts is used to perform this filtering,
-though other statistics can be provided. Several arguments
-from the \code{filtered_p} function of genefilter are
-provided to control or turn off the independent filtering
-behavior.
-
-A contrast can be performed by specifying the variable and
-factor levels which should be compared, or by specifying
-the numeric contrast vector. The test statistic is then:
+The argument \code{contrast} can be used to generate
+results tables for any comparison of interest, for example,
+the log2 fold change between two levels of a factor, and
+its usage is described below. It can also accomodate more
+complicated numeric comparisons. The test statistic used
+for a contrast is:
 
 \deqn{ c^t \beta / \sqrt{c^t \Sigma c } }{ c' beta / sqrt(
 c' Sigma c ) }
 
+The argument \code{name} can be used to generate results
+tables for individual effects, which must be individual
+elements of \code{resultsNames(object)}. These individual
+effects could represent continuous covariates, effects for
+individual levels, or individual interaction effects.
+
+Information on the comparison which was used to build the
+results table, and the statistical test which was used for
+p-values (Wald test or likelihood ratio test) is stored
+within the object returned by \code{results}. This
+information is in the metadata columns of the results
+table, which is accessible by calling \code{mcol} on the
+\code{\link{DESeqResults}} object returned by
+\code{results}.
+
+By default, independent filtering is performed to select a
+set of genes for multiple test correction which will
+optimize the number of adjusted p-values less than a given
+critical value \code{alpha} (by default 0.1). The adjusted
+p-values for the genes which do not pass the filter
+threshold are set to \code{NA}. By default, the mean of
+normalized counts is used to perform this filtering, though
+other statistics can be provided. Several arguments from
+the \code{filtered_p} function of genefilter are provided
+here to control or turn off the independent filtering
+behavior.
+
+In addition, \code{results} by default assigns a p-value of
+\code{NA} to genes containing count outliers, as identified
+using Cook's distance. See the \code{cooksCutoff} argument
+for control of this behavior. Cook's distances for each
+sample are accessible as a matrix "cooks" stored in the
+assays() list. This measure is useful for identifying rows
+where the observed counts might not fit to a negative
+binomial distribution.
+
 For analyses using the likelihood ratio test (using
 \code{\link{nbinomLRT}}), the p-values are determined
 solely by the difference in deviance between the full and
-reduced model formula. In this case, the \code{name}
-argument only specifies which coefficient should be used
-for reporting the log2 fold changes.
-
-Cook's distance for each sample are accessible as a matrix
-"cooks" stored in the assays() list. This measure is useful
-for identifying rows where the observed counts might not
-fit to a negative binomial distribution.
-
-Results can be removed from an object by calling
-\code{removeResults}
+reduced model formula. A log2 fold change is included,
+which can be controlled using the \code{name} argument, or
+by default this will be the estimated coefficient for the
+last element of \code{resultsNames(object)}.
 }
 \examples{
+# minimal example with simple two-group comparison
 example("DESeq")
 results(dds)
 resultsNames(dds)
 dds <- removeResults(dds)
+
+# two conditions, two groups, with interaction term
+dds <- makeExampleDESeqDataSet(n=100,m=12)
+dds$group <- factor(rep(rep(c("X","Y"),each=3),2))
+design(dds) <- ~ group + condition + group:condition
+dds <- DESeq(dds)
+resultsNames(dds)
+results(dds, contrast=c("condition","B","A"))
+results(dds, contrast=c("group","Y","X"))
+# extract the interaction term simply with 'name'
+results(dds, name="groupY.conditionB")
+
+# two conditions, three groups, with interaction term
+dds <- makeExampleDESeqDataSet(n=100,m=18)
+dds$group <- factor(rep(rep(c("X","Y","Z"),each=3),2))
+design(dds) <- ~ group + condition + group:condition
+dds <- DESeq(dds)
+resultsNames(dds)
+
+# results tables for various comparisons:
+
+# the condition effect over all groups
+results(dds, contrast=c("condition","B","A"))
+# which is equivalent to
+results(dds, contrast=list("conditionB","conditionA"))
+# which is equivalent to
+results(dds, contrast=c(0, 0,0,0, -1,1, 0,0,0, 0,0,0))
+
+# the individual effect for group Z, compared to the intercept
+results(dds, name="groupZ")
+
+# the interaction effect of condition for group Z.
+# if this term is non-zero, then group Z has a
+# different condition effect than the overall condition effect
+results(dds, contrast=list("groupZ.conditionB","groupZ.conditionA"))
+
+# the condition effect for group Z:
+# this is the sum of the main effect for condition
+# and the interaction effect for group Z
+results(dds, contrast=list(
+               c("conditionB","groupZ.conditionB"),
+               c("conditionA","groupZ.conditionA")))
 }
 \references{
 Richard Bourgon, Robert Gentleman, Wolfgang Huber:

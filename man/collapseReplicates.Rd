@@ -38,10 +38,10 @@ by examining the source code.
 dds <- makeExampleDESeqDataSet(m=12)
 
 # make data with two technical replicates for three samples
-colData(dds)$sample <- factor(sample(paste0("sample",rep(1:9, c(2,1,1,2,1,1,2,1,1)))))
-colData(dds)$run <- paste0("run",1:12)
+dds$sample <- factor(sample(paste0("sample",rep(1:9, c(2,1,1,2,1,1,2,1,1)))))
+dds$run <- paste0("run",1:12)
 
-ddsColl <- collapseReplicates(dds, colData(dds)$sample, colData(dds)$run)
+ddsColl <- collapseReplicates(dds, dds$sample, dds$run)
 
 # examine the colData and column names of the collapsed data
 colData(ddsColl)
@@ -49,7 +49,7 @@ colnames(ddsColl)
 
 # check that the sum of the counts for "sample1" is the same
 # as the counts in the "sample1" column in ddsColl
-matchFirstLevel <- colData(dds)$sample == levels(colData(dds)$sample)[1]
+matchFirstLevel <- dds$sample == levels(dds$sample)[1]
 stopifnot(all(rowSums(counts(dds[,matchFirstLevel])) == counts(ddsColl[,1])))
 }
 

@@ -1228,7 +1228,7 @@ replaceOutliers <- function(dds, trim=.2, cooksCutoff, minReplicates=7, whichSam
     whichSamples <- nOrMoreInCell(attr(dds,"modelMatrix"), n = minReplicates)
   }
   stopifnot(is.logical(whichSamples))
-  colData(dds)$replaceable <- whichSamples
+  dds$replaceable <- whichSamples
   mcols(colData(dds),use.names=TRUE)["replaceable",] <- DataFrame(type="intermediate",
                          description="outliers can be replaced")
   assays(dds)[["originalCounts"]] <- counts(dds)
@@ -2111,11 +2111,11 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
     mcols(object)[newAllZero, mcols(mcols(object))$type == "results"] <- NA
     
     # continue to flag if some conditions have less than minReplicatesForReplace
-    if (all(colData(object)$replaceable)) {
+    if (all(object$replaceable)) {
       mcols(object)$maxCooks <- NA
     } else {
       replaceCooks <- assays(object)[["cooks"]]
-      replaceCooks[,colData(object)$replaceable] <- 0
+      replaceCooks[,object$replaceable] <- 0
       mcols(object)$maxCooks <- recordMaxCooks(design(object), colData(object),
                                                attr(object,"modelMatrix"), replaceCooks, nrow(object))
     }
