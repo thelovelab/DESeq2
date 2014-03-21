@@ -1,8 +1,13 @@
 \name{DESeq}
 \alias{DESeq}
+\alias{deseq}
 \title{Differential expression analysis based on the negative binomial distribution}
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
+  "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
+  minReplicatesForReplace = 7, modelMatrixType)
+
+deseq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
   minReplicatesForReplace = 7, modelMatrixType)
 }

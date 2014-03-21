@@ -3,13 +3,16 @@
 #' This function uses Tikhonov/ridge regularization
 #' to transform the data to the log2 scale in a way 
 #' which minimizes differences between samples for rows with small counts.
-#' The transformation produces a similar variance stabilizing effect as
+#' The rlog transformation produces a similar variance stabilizing effect as
 #' \code{\link{varianceStabilizingTransformation}},
 #' though \code{rlogTransformation} is more robust in the
 #' case when the size factors vary widely.
 #' The transformation is useful when checking for outliers
 #' or as input for machine learning techniques
 #' such as clustering or linear discriminant analysis.
+#' Note: \code{rlog} is equivalent to \code{rlogTransformation}, which
+#' take as input a \code{\link{DESeqDataSet}} and return a
+#' \code{\link{SummarizedExperiment}} object.
 #'
 #' Note that neither rlog transformation nor the VST are used by the
 #' differential expression estimation in \code{\link{DESeq}}, which always
@@ -50,8 +53,10 @@
 #' and running rlogTransformation with 'blind' set to FALSE
 #' (see example below).
 #' 
-#' @aliases rlogTransformation rlogData rlogDataFast
-#'
+#' @aliases rlog rlogTransformation rlogData rlogDataFast
+#' @rdname rlog
+#' @name rlog
+#' 
 #' @param object a DESeqDataSet
 #' @param blind logical, whether to blind the transformation to the experimental
 #' design. blind=TRUE should be used for comparing samples in an manner unbiased by
@@ -80,7 +85,8 @@
 #' this is the amount of shrinkage from 0 to 1 for each row, and takes precedence
 #' over internal calculation of B using betaPriorVar.
 #' 
-#' @return for \code{rlogTransformation}, a \code{\link{SummarizedExperiment}}.
+#' @return \code{rlog}, equivalent to \code{rlogTransformation},
+#' returns a \code{\link{SummarizedExperiment}}.
 #' The matrix of transformed values are accessed by \code{assay(rld)}.
 #' for \code{rlogData}, a \code{matrix} of the same dimension as the
 #' count data, containing the transformed values. To avoid returning
@@ -93,7 +99,7 @@
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet(m=6,betaSD=1)
-#' rld <- rlogTransformation(dds, blind=TRUE)
+#' rld <- rlog(dds, blind=TRUE)
 #' dists <- dist(t(assay(rld)))
 #' plot(hclust(dists))
 #'
@@ -101,7 +107,7 @@
 #' design(dds) <- ~ 1
 #' dds <- estimateSizeFactors(dds)
 #' dds <- estimateDispersions(dds)
-#' rld <- rlogTransformation(dds, blind=FALSE)
+#' rld <- rlog(dds, blind=FALSE)
 #'
 #' # apply the parameters to a new sample
 #' 
@@ -109,14 +115,14 @@
 #' mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
 #' betaPriorVar <- attr(rld,"betaPriorVar")
 #' intercept <- mcols(rld)$rlogIntercept
-#' rldNew <- rlogTransformation(ddsNew, blind=FALSE,
-#'                              intercept=intercept,
-#'                              betaPriorVar=betaPriorVar)
+#' rldNew <- rlog(ddsNew, blind=FALSE,
+#'                intercept=intercept,
+#'                betaPriorVar=betaPriorVar)
 #'                            
 #' 
 #' @export
-rlogTransformation <- function(object, blind=TRUE, fast=FALSE,
-                               intercept, betaPriorVar, B) {
+rlog <- function(object, blind=TRUE, fast=FALSE,
+                 intercept, betaPriorVar, B) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
@@ -162,7 +168,11 @@ rlogTransformation <- function(object, blind=TRUE, fast=FALSE,
   se
 }
 
-#' @rdname rlogTransformation
+#' @rdname rlog
+#' @export
+rlogTransformation <- rlog
+
+#' @rdname rlog
 #' @export
 rlogData <- function(object, intercept, betaPriorVar) {
   if (is.null(mcols(object)$dispFit)) {
@@ -269,7 +279,7 @@ rlogData <- function(object, intercept, betaPriorVar) {
 
 
 
-#' @rdname rlogTransformation
+#' @rdname rlog
 #' @export
 rlogDataFast <- function(object, intercept, betaPriorVar, B) {
   if (is.null(mcols(object)$dispFit)) {
@@ -316,14 +326,14 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
       betaPriorVar <- matchUpperQuantileForVariance(logFoldChangeVector)
     }
     stopifnot(length(betaPriorVar)==1)
-    if (!is.null(normalizationFactors(object))) { 
+    if (!is.null(normalizationFactors(object))) {
       nf <- normalizationFactors(objectNZ)
     } else {
       sf <- sizeFactors(object)
       nf <- matrix(rep(sf,each=nrow(objectNZ)),ncol=ncol(objectNZ))
     }
     dispersion <- mcols(objectNZ)$dispFit
-    
+
     # the posterior / penalized log likelihood times -1
     objectiveFn <- function(B, idx) {
       lfcShrink <- (1 - B) * logFoldChangeMatrix
@@ -338,7 +348,7 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     quantiles[1] <- quantiles[1] - 1
     quantiles[11] <- quantiles[11] + 1
     cutByQuantiles <- as.integer(cut(interceptNZ, quantiles))
-    
+
     Bs <- sapply(1:nq, function(i) {
       idx <- cutByQuantiles == i
       optimize(objectiveFn, interval=c(0,1), idx=idx)$minimum
@@ -358,7 +368,7 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     Bout <- B
     optimalB <- B[!mcols(object)$allZero]
   }
-  
+
   # shrink the betas/log fold changes according to the interpolated B's
   lfcShrink <- (1 - optimalB) * logFoldChangeMatrix
   normalizedDataNZ <- interceptNZ + lfcShrink

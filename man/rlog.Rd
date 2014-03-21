@@ -1,9 +1,12 @@
-\name{rlogTransformation}
+\name{rlog}
+\alias{rlog}
 \alias{rlogData}
 \alias{rlogDataFast}
 \alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
+rlog(object, blind = TRUE, fast = FALSE, intercept, betaPriorVar, B)
+
 rlogTransformation(object, blind = TRUE, fast = FALSE, intercept,
   betaPriorVar, B)
 
@@ -54,8 +57,8 @@ rlogDataFast(object, intercept, betaPriorVar, B)
   calculation of B using betaPriorVar.}
 }
 \value{
-for \code{rlogTransformation}, a
-\code{\link{SummarizedExperiment}}. The matrix of
+\code{rlog}, equivalent to \code{rlogTransformation},
+returns a \code{\link{SummarizedExperiment}}. The matrix of
 transformed values are accessed by \code{assay(rld)}. for
 \code{rlogData}, a \code{matrix} of the same dimension as
 the count data, containing the transformed values. To avoid
@@ -68,14 +71,17 @@ of one, only to those rows in which all samples have zero).
 This function uses Tikhonov/ridge regularization to
 transform the data to the log2 scale in a way which
 minimizes differences between samples for rows with small
-counts. The transformation produces a similar variance
+counts. The rlog transformation produces a similar variance
 stabilizing effect as
 \code{\link{varianceStabilizingTransformation}}, though
 \code{rlogTransformation} is more robust in the case when
 the size factors vary widely. The transformation is useful
 when checking for outliers or as input for machine learning
 techniques such as clustering or linear discriminant
-analysis.
+analysis. Note: \code{rlog} is equivalent to
+\code{rlogTransformation}, which take as input a
+\code{\link{DESeqDataSet}} and return a
+\code{\link{SummarizedExperiment}} object.
 }
 \details{
 Note that neither rlog transformation nor the VST are used
@@ -125,7 +131,7 @@ below).
 }
 \examples{
 dds <- makeExampleDESeqDataSet(m=6,betaSD=1)
-rld <- rlogTransformation(dds, blind=TRUE)
+rld <- rlog(dds, blind=TRUE)
 dists <- dist(t(assay(rld)))
 plot(hclust(dists))
 
@@ -133,7 +139,7 @@ plot(hclust(dists))
 design(dds) <- ~ 1
 dds <- estimateSizeFactors(dds)
 dds <- estimateDispersions(dds)
-rld <- rlogTransformation(dds, blind=FALSE)
+rld <- rlog(dds, blind=FALSE)
 
 # apply the parameters to a new sample
 
@@ -141,9 +147,9 @@ ddsNew <- makeExampleDESeqDataSet(m=1)
 mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
 betaPriorVar <- attr(rld,"betaPriorVar")
 intercept <- mcols(rld)$rlogIntercept
-rldNew <- rlogTransformation(ddsNew, blind=FALSE,
-                             intercept=intercept,
-                             betaPriorVar=betaPriorVar)
+rldNew <- rlog(ddsNew, blind=FALSE,
+               intercept=intercept,
+               betaPriorVar=betaPriorVar)
 }
 \seealso{
 \code{\link{plotPCA}},

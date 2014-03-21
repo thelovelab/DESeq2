@@ -913,7 +913,7 @@ The function \Rfunction{rlogTransform} returns a \Rclass{SummarizedExperiment} o
 which contains the rlog-transformed values in its \Rclass{assay} slot:
 
 <<rld, cache=TRUE>>=
-rld <- rlogTransformation(dds)
+rld <- rlog( dds )
 head( assay(rld) )
 @ 
 

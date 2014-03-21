@@ -110,6 +110,8 @@
 #' 
 #' @author Michael Love
 #'
+#' @aliases DESeq deseq
+#' 
 #' @references
 #'
 #' DESeq2 reference:
@@ -183,6 +185,10 @@ DESeq <- function(object, test=c("Wald","LRT"),
   
   object
 }
+
+#' @export
+#' @rdname DESeq
+deseq <- DESeq
 
 #' Make a simulated DESeqDataSet
 #'

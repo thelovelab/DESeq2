@@ -471,7 +471,7 @@ transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
 
 \subsubsection{Blind dispersion estimation}
 
-The two functions, \Rfunction{rlogTransformation} and 
+The two functions, \Rfunction{rlog} and 
 \Rfunction{varianceStabilizingTransformation}, have an argument \Robject{blind},
 for whether the transformation should be blind to the sample information specified by the 
 design formula. When \Robject{blind} equals \Robject{TRUE} (the default),
@@ -504,14 +504,14 @@ ddsblind <- dds
 design(ddsblind) <- ~ 1
 ddsblind <- estimateDispersions(ddsblind)
 # we do blind estimation once, then re-use these for both:
-rld <- rlogTransformation(ddsblind, blind=FALSE)
+rld <- rlog(ddsblind, blind=FALSE)
 vsd <- varianceStabilizingTransformation(ddsblind, blind=FALSE)
 rlogMat <- assay(rld)
 vstMat <- assay(vsd)
 @ 
 
 <<defvsd,eval=FALSE>>=
-rld <- rlogTransformation(dds)
+rld <- rlog(dds)
 vsd <- varianceStabilizingTransformation(dds)
 rlogMat <- assay(rld)
 vstMat <- assay(vsd)
@@ -519,7 +519,7 @@ vstMat <- assay(vsd)
 
 \subsubsection{Regularized log transformation}
 
-The function \Rfunction{rlogTransformation},
+The function \Rfunction{rlog},
 stands for \emph{regularized log}, transforming
 the original count data to the log2 scale by fitting a model with a
 term for each sample and a prior distribution on the coefficients

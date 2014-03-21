@@ -63,6 +63,21 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 
 #' FPKM: fragments per kilobase per million mapped fragments
 #'
+#' The following function returns fragment counts normalized
+#' per kilobase of feature length per million mapped fragments
+#' (by default using a robust estimate of the library size,
+#' as in \code{\link{estimateSizeFactors}}).
+#'
+#' Note: the kilobase length of the features is calculated from the \code{rowData}
+#' if a column \code{unionBasepairs} is not present in \code{mcols(dds)}.
+#' This is the number of basepairs in the union of all \code{GRanges}
+#' assigned to a given row of \code{object}, e.g., 
+#' the union of all basepairs of exons of a given gene.
+#' When the read/fragment counting is interfeature dependent, a strict
+#' normalization would not incorporate the basepairs of a feature which
+#' overlap another feature. This interfeature dependence is not taken into
+#' consideration in the internal union basepair calculation.
+#'
 #' @param object a \code{DESeqDataSet}
 #' @param robust whether to use size factors to normalize
 #' rather than taking the column sums of the raw counts,
@@ -73,9 +88,8 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' of the mcols(object), and per million of mapped fragments,
 #' either using the robust median ratio method (robust=TRUE, default)
 #' or using raw counts (robust=FALSE).
-#' If the \code{mcol(object)} is not a \code{GRangesList} or \code{GRanges},
-#' a column \code{mcols(object)$unionBasepairs} should be defined
-#' for the kilobase normalization.
+#' Defining a column \code{mcols(object)$unionBasepairs} takes
+#' precedence over internal calculation of the kilobases for each row.
 #'
 #' @examples
 #'
