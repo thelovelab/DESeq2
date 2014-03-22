@@ -109,8 +109,6 @@
 #' to be fit.
 #' 
 #' @author Michael Love
-#'
-#' @aliases DESeq deseq
 #' 
 #' @references
 #'
@@ -185,10 +183,6 @@ DESeq <- function(object, test=c("Wald","LRT"),
   
   object
 }
-
-#' @export
-#' @rdname DESeq
-deseq <- DESeq
 
 #' Make a simulated DESeqDataSet
 #'
