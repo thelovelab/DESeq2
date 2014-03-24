@@ -271,8 +271,8 @@ package, discussed in Section~\ref{sec:autoFilt}.
 <<deseq,cache=TRUE>>=
 dds <- DESeq(dds)
 res <- results(dds)
-res <- res[order(res$padj),]
-head(res)
+resOrdered <- res[order(res$padj),]
+head(resOrdered)
 @
 
 <<deseqNoPrior,cache=TRUE,echo=FALSE>>=
@@ -379,7 +379,7 @@ or \Rfunction{write.delim}, and a descriptive file name indicating the variable
 which was tested.
 
 <<export, eval=FALSE>>=
-write.csv(as.data.frame(res), 
+write.csv(as.data.frame(resOrdered), 
           file="condition_treated_results.csv")
 @
 
@@ -396,13 +396,17 @@ see below:
 colData(dds)
 @
 
-We save the single factor analysis as a separate object, so that we can rerun
-the analysis on the \Robject{dds} object.
+We create a copy of the \Rclass{DESeqDataSet}, so that we can rerun
+the analysis using a multi-factor design.
 
-<<saveSingleFactor,echo=FALSE>>=
-ddsSingleFactor <- dds
+<<copyMultifactor>>=
+ddsMF <- dds
 @
 
+<<subsetMF, echo=FALSE>>=
+idx <- 1:1000
+ddsMF <- ddsMF[idx,]
+@
 
 We can account for the different types of sequencing, and get a clearer picture
 of the differences attributable to the treatment.  As \Robject{condition} is the
@@ -410,15 +414,15 @@ variable of interest, we put it at the end of the formula. Then we can re-run
 \Rfunction{DESeq}.
 
 <<replaceDesign,cache=TRUE>>=
-design(dds) <- formula(~ type + condition)
-dds <- DESeq(dds)
+design(ddsMF) <- formula(~ type + condition)
+ddsMF <- DESeq(ddsMF)
 @
 
 Again, we access the results using the \Rfunction{results} function.
 
 <<multiResults>>=
-res <- results(dds)
-head(res)
+resMF <- results(ddsMF)
+head(resMF)
 @
 
 It is also possible to retrieve the log2 fold changes, p-values and adjusted
@@ -429,8 +433,8 @@ of the log2 ratio, and the name of the factor level for the denominator.
 Contrasts are described in more detail in Section~\ref{sec:contrasts}.
 
 <<multiTypeResults>>=
-resType <- results(dds, contrast=c("type","single-read","paired-end"))
-head(resType)
+resMFType <- results(ddsMF, contrast=c("type","single-read","paired-end"))
+head(resMFType)
 @
 
 If the variable is continuous or an interaction term, then the results
@@ -871,7 +875,7 @@ The single factor design is necessary for the demonstration,
 such that there are 3 or more replicates for every sample.
 
 <<replaceCooksOutlier>>=
-ddsReplace <- replaceOutliers(ddsSingleFactor,minReplicates=3)
+ddsReplace <- replaceOutliers(dds, minReplicates=3)
 @ 
 
 Finally we re-run all the steps of \Rfunction{DESeq}.
@@ -899,18 +903,22 @@ of parameters in the two models. The Wald test and the likelihood ratio test
 share many of the same genes with adjusted p-value $< 0.1$ for this experiment.
 
 As we already have an object \Robject{dds} with dispersions calculated 
-for the design formula \texttt{~ type + condition}, 
+for the design formula \texttt{\lowtilde{} condition}, 
 we only need to run the function \Rfunction{nbinomLRT}, with a reduced formula
-including only the type of sequencing, in order to test the log2 fold change
-attributable to the condition:
+including only the intercept, in order to test the log2 fold change
+attributable to the condition. 
 
 <<likelihoodRatioTest,cache=TRUE>>=
-ddsLRT <- nbinomLRT(dds, reduced = ~ type)
+ddsLRT <- nbinomLRT(dds, reduced = ~ 1)
 resLRT <- results(ddsLRT)
 head(resLRT,2)
 tab <- table(Wald=res$padj < .1, LRT=resLRT$padj < .1)
 addmargins(tab)
 @
+
+If the full design formula had multiple factors,
+\texttt{\lowtilde{} type + condition}, then the reduced formula would be 
+\texttt{\lowtilde{} type}, i.e., accounting for only the type of sequencing.
 
 \subsection{Dispersion plot and fitting alternatives}
 
@@ -924,7 +932,7 @@ on the sample size, the number of coefficients, the row mean
 and the variability of the gene-wise estimates.
 
 <<dispFit>>=
-plotDispEsts(ddsSingleFactor)
+plotDispEsts(dds)
 @
 
 \incfig{figure/dispFit}{.5\textwidth}{Dispersion plot.}{

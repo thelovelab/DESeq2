@@ -1,4 +1,4 @@
-%\VignetteIndexEntry{Beginner's guide to the "DESeq2" package.}
+%\VignetteIndexEntry{Beginner's guide to the "DESeq2" package}
 %\VignettePackage{DESeq2}
 %\VignetteEngine{knitr::knitr}
 
@@ -380,7 +380,7 @@ sampleInfo <- read.csv( "/path/to/file.CSV" )
 
 <<sampleInfo, echo=FALSE>>=
 sampleInfo <- data.frame(run=rev(se$run), 
-                         color=rep(c("blue","orange"),length=ncol(se)))
+                         pheno=rep(c("pheno1","pheno2"),length=ncol(se)))
 @ 
 
 Here we show a toy example of such a table. Note that the order
@@ -411,6 +411,10 @@ The following line builds the \Rclass{DESeqDataSet} from a \Rclass{SummarizedExp
 \Robject{se} and specifying a design formula, as described in the previous section.
 The names of variables used in the design formula must be the names of columns in the
 \Robject{colData} of \Robject{se}.
+
+<<removeToy, echo=FALSE>>=
+se$pheno <- NULL
+@ 
 
 <<fromSE>>=
 ddsFull <- DESeqDataSet( se, design = ~ patient + treatment )
@@ -708,7 +712,7 @@ A so-called MA plot provides a useful overview for an experiment
 with a two-group comparison:
 
 <<beginner_MA>>=
-plotMA( res )
+plotMA( res, ylim = c(-1, 1) )
 @ 
 
 The plot (Fig.\ \ref{figure/beginner_MA}) represents each gene with a dot. The $x$ axis
@@ -743,7 +747,7 @@ the Poisson noise is an additional source of noise, which is added to the disper
 The function \Rfunction{plotDispEsts} visualizes \deseqtwo's dispersion estimates:
 
 <<beginner_dispPlot>>=
-plotDispEsts( dds, ylim = c(1e-5, 1e1) )
+plotDispEsts( dds, ylim = c(1e-6, 1e1) )
 @
 
 \incfig{figure/beginner_dispPlot}{.5\textwidth}{Plot of dispersion estimates}{See text for details}
@@ -763,7 +767,7 @@ dispersion outliers. These estimates are therefore not shrunk toward the fitted 
 Another useful diagnostic plot is the histogram of the p values (Fig.~\ref{figure/beginner_pvalHist}).
 
 <<beginner_pvalHist, dev="pdf">>=
-hist( res$pvalue, breaks=20 )
+hist( res$pvalue, breaks=20, col="grey" )
 @
 
 \section{Independent filtering}
