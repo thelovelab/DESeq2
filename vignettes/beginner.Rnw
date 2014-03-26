@@ -583,7 +583,7 @@ results tables of interest from this object.
 \subsection{Inspecting the results table}
 
 Calling \Rfunction{results} without any arguments will extract
-the estimated log2 fold changes and p values for the last variable
+the estimated log2 fold changes and $p$ values for the last variable
 in the design formula. If there are more than 2 levels for this variable
 -- as is the case in this analysis -- \Rfunction{results} will extract the 
 results table for a comparison of the last level over the first level.
@@ -624,13 +624,13 @@ that there is no effect of the treatment on the gene and that the observed diffe
 between treatment and control was merely caused by experimental variability (i.\,e., the
 type of variability that you can just as well expect between different samples in the same
 treatment group). As usual in statistics, the result of this test is reported as a 
-\emph{p value}, and it is found in the column \Robject{pvalue}. (Remember that a p value indicates
+\emph{$p$ value}, and it is found in the column \Robject{pvalue}. (Remember that a $p$ value indicates
 the probability that a fold change as strong as the observed one, or even stronger, would
 be seen under the situation described by the null hypothesis.)
 
-We note that a subset of the p values in \Robject{res} are \Robject{NA} (``not
+We note that a subset of the $p$ values in \Robject{res} are \Robject{NA} (``not
 available''). This is \Rfunction{DESeq}'s way of reporting that all counts for this gene
-were zero, and hence not test was applied. In addition, p values can be 
+were zero, and hence not test was applied. In addition, $p$ values can be 
 assigned \Robject{NA} if the gene was excluded from analysis because it 
 contained an extreme count outlier. For more information, see the outlier
 detection section of the advanced vignette.
@@ -654,13 +654,13 @@ argument of \Rfunction{results} should be used. Please see the more advanced
 vignette for more details.
 
 \subsection{Multiple testing}
-Novices in high-throughput biology often assume that thresholding these p values at a low value,
+Novices in high-throughput biology often assume that thresholding these $p$ values at a low value,
 say 0.01, as is often done in other settings, would be appropriate -- but it is not. We briefly
 explain why:
 
-There are \Sexpr{sum( res$pvalue < 0.01, na.rm=TRUE )} genes with a p value below
+There are \Sexpr{sum( res$pvalue < 0.01, na.rm=TRUE )} genes with a $p$ value below
 0.01 among the \Sexpr{sum( !is.na(res$pvalue) )} genes, for which the test succeeded
-in reporting a p value:
+in reporting a $p$ value:
 
 <<rawpvalue>>=
 sum( res$pvalue < 0.01, na.rm=TRUE )
@@ -668,24 +668,24 @@ table( is.na(res$pvalue) )
 @
 
 Now, assume for a moment that the null hypothesis is true for all genes, i.e., no
-gene is affected by the treatment with DPN. Then, by the definition of \emph{p value},
-we expect up to 1\% of the genes to have a p value below 0.01. This amounts to
+gene is affected by the treatment with DPN. Then, by the definition of \emph{$p$ value},
+we expect up to 1\% of the genes to have a $p$ value below 0.01. This amounts to
 \Sexpr{round( sum( !is.na(res$pvalue) ) * 0.01 )} genes.
-If we just considered the list of genes with a p value below 0.01 as differentially
+If we just considered the list of genes with a $p$ value below 0.01 as differentially
 expressed, this list should therefore be expected to contain up to 
 $\Sexpr{round( sum( !is.na(res$pvalue) ) * 0.01)} / \Sexpr{sum( res$pvalue < 0.01, na.rm=TRUE ) } = 
  \Sexpr{round( sum( !is.na(res$pvalue) ) * 0.01 / sum( res$pvalue < 0.01, na.rm=TRUE ) * 100, 0 )}$\% 
 false positives!
 
 \deseqtwo{} uses the so-called Benjamini-Hochberg (BH) adjustment; in brief, this method calculates
-for each gene an \emph{adjusted p value} which answers the following question: if one
-called significant all genes with a p value less than or equal to this gene's p value threshold,
+for each gene an \emph{adjusted $p$ value} which answers the following question: if one
+called significant all genes with a $p$ value less than or equal to this gene's $p$ value threshold,
 what would be the fraction of false positives (the \emph{false discovery rate}, FDR) among
 them (in the sense of the calculation outlined above)? These values, called the BH-adjusted
-p values, are given in the column \Robject{padj} of the \Robject{results} object.
+$p$ values, are given in the column \Robject{padj} of the \Robject{results} object.
 
 Hence, if we consider a fraction of 10\% false positives acceptable, we can consider all
-genes with an \emph{adjusted} p value below 10\%=0.1 as significant. How many such genes
+genes with an \emph{adjusted} $p$ value below 10\%=0.1 as significant. How many such genes
 are there?
 
 <<adjpvalue>>=
@@ -717,7 +717,7 @@ plotMA( res, ylim = c(-1, 1) )
 
 The plot (Fig.\ \ref{figure/beginner_MA}) represents each gene with a dot. The $x$ axis
 is the average expression over all samples, the $y$ axis the log2
-fold change between treatment and control. Genes with an adjusted p value
+fold change between treatment and control. Genes with an adjusted $p$ value
 below a threshold (here 0.1, the default) are shown in red. 
  
 \incfig{figure/beginner_MA}{.5\textwidth}{MA-plot}{
@@ -761,10 +761,10 @@ that are then used in the hypothesis test. The blue circles above the main ``clo
 are genes which have high gene-wise dispersion estimates which are labelled as 
 dispersion outliers. These estimates are therefore not shrunk toward the fitted trend line.
 
-\incfig{figure/beginner_pvalHist}{.5\textwidth}{Histogram}{of the p values returned by the
+\incfig{figure/beginner_pvalHist}{.5\textwidth}{Histogram}{of the $p$ values returned by the
   test for differential expression}
 
-Another useful diagnostic plot is the histogram of the p values (Fig.~\ref{figure/beginner_pvalHist}).
+Another useful diagnostic plot is the histogram of the $p$ values (Fig.~\ref{figure/beginner_pvalHist}).
 
 <<beginner_pvalHist, dev="pdf">>=
 hist( res$pvalue, breaks=20, col="grey" )
@@ -777,7 +777,7 @@ For weakly expressed genes, we have no chance of seeing differential
 expression, because the low read counts suffer from so high Poisson
 noise that any biological effect is drowned in the uncertainties from the
 read counting. 
-We can also show this by examining the ratio of small p values
+We can also show this by examining the ratio of small $p$ values
 (say, less than, 0.01) for genes binned by mean normalized count:
 
 <<beginner_ratioSmallP, dev="pdf", fig.width=8, fig.height=4>>=
@@ -787,10 +787,10 @@ qs <- c( 0, quantile( res$baseMean[res$baseMean > 0], 0:7/7 ) )
 bins <- cut( res$baseMean, qs )
 # rename the levels of the bins using the middle point
 levels(bins) <- paste0("~",round(.5*qs[-1] + .5*qs[-length(qs)]))
-# calculate the ratio of p values less than .01 for each bin
+# calculate the ratio of $p$ values less than .01 for each bin
 ratios <- tapply( res$pvalue, bins, function(p) mean( p < .01, na.rm=TRUE ) )
 # plot these ratios
-barplot(ratios, xlab="mean normalized count", ylab="ratio of small p values")
+barplot(ratios, xlab="mean normalized count", ylab="ratio of small $p$ values")
 @
 
 \incfig{figure/beginner_ratioSmallP}{.9\textwidth}{Ratio of small p valules}{for groups of genes 
@@ -804,7 +804,7 @@ can find more genes to be significant among those which we keep, and so
 improved the power of our test. This approach is known as \emph{independent filtering}. 
 
 The \deseqtwo{} software automatically performs independent filtering which
-maximizes the number of genes which will have adjusted p value less 
+maximizes the number of genes which will have adjusted $p$ value less 
 than a critical value (by default, \Robject{alpha} is set to 0.1). 
 This automatic independent filtering
 is performed by, and can be controlled by, the \Rfunction{results} function.
@@ -823,7 +823,7 @@ plot(attr(res,"filterNumRej"),type="b",
 \incfig{figure/beginner_filtByMean}{.5\textwidth}{Independent filtering.}{\deseqtwo{}
 automatically determines a threshold, filtering on mean normalized count,
 which maximizes the number of genes which will have an adjusted
-p value less than a critical value.}
+$p$ value less than a critical value.}
 
 The term \emph{independent} highlights an important caveat. Such filtering is permissible
 only if the filter criterion is independent of the actual test
