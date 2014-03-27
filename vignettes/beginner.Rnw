@@ -189,18 +189,8 @@ fls <- list.files(bamDir, pattern="bam$",full=TRUE)
 We indicate in Bioconductor that these fls are BAM files using the \Rfunction{BamFileList}
 function. Here we also specify details about how the BAM files should be treated, e.g., 
 only process $100000$ reads at a time. 
-The following call can be used for paired-end reads sorted by QNAME, where we
-specify no index, because these files do not have a location-based index.
 
 <<bamfilepaired>>=
-library( "Rsamtools" )
-bamLst <- BamFileList( fls, index=character(),
-                      yieldSize=100000, obeyQname=TRUE )
-@ 
-
-While the following call can be used for single-end reads:
-
-<<bamfilesingle, eval=FALSE>>=
 library( "Rsamtools" )
 bamLst <- BamFileList( fls, yieldSize=100000 )
 @ 
