@@ -177,6 +177,11 @@
 #' # which is equivalent to
 #' results(dds, contrast=c(0, 0,0,0, -1,1, 0,0,0, 0,0,0))
 #'
+#' # the group Z effect compared to the average of group X and Y
+#' # here we use 'listValues' to multiply group X and
+#' # group Y by -1/2 in the numeric contrast
+#' results(dds, contrast=list("groupZ",c("groupX","groupY")), listValues=c(1,-1/2))
+#' 
 #' # the individual effect for group Z, compared to the intercept
 #' results(dds, name="groupZ")
 #' 
@@ -636,18 +641,18 @@ resultsNames(object), prefixed by",contrastFactor))
     lc1 <- length(contrast[[1]])
     lc2 <- length(contrast[[2]])
     # these just for naming
-    lvNm1 <- round(listValues[1],3)
-    lvNm2 <- round(listValues[2],3)
+    listvalname1 <- round(listValues[1],3)
+    listvalname2 <- round(listValues[2],3)
     if (lc1 > 0 & lc2 > 0) {
-      lvNm2 <- abs(lvNm2)
-      if (lvNm1 == 1) lvNm1 <- ""
-      if (lvNm2 == 1) lvNm2 <- ""
-      contrastName <- paste(lvNm1,paste(contrast[[1]],collapse="+"),"vs",lvNm2,paste(contrast[[2]],collapse="+"))
+      listvalname2 <- abs(listvalname2)
+      listvalname1 <- if (listvalname1 == 1) "" else paste0(listvalname1," ")
+      listvalname2 <- if (listvalname2 == 1) "" else paste0(listvalname2," ")
+      contrastName <- paste0(listvalname1,paste(contrast[[1]],collapse="+")," vs ",listvalname2,paste(contrast[[2]],collapse="+"))
     } else if (lc1 > 0 & lc2 == 0) {
-      if (lvNm1 == 1) lvNm1 <- ""
-      contrastName <- paste(lvNm1,paste(contrast[[1]],collapse="+"),"effect")
+      listvalname1 <- if (listvalname1 == 1) "" else paste0(listvalname1," ")
+      contrastName <- paste0(listvalname1,paste(contrast[[1]],collapse="+")," effect")
     } else if (lc1 == 0 & lc2 > 0) {
-      contrastName <- paste(lvNm2,paste(contrast[[2]],collapse="+"),"effect")
+      contrastName <- paste(listvalname2,paste(contrast[[2]],collapse="+"),"effect")
     }
     contrastNumeric <- rep(0,length(resNames))
     contrastNumeric[resNames %in% contrast[[1]]] <- listValues[1]

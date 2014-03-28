@@ -37,4 +37,13 @@ test_contrasts <- function() {
   checkEquals(attr(dds,"betaPriorVar")[1:6],
               c(Intercept=1e6, groupx=1e3, groupy=1e3,
                 conditionA=1e3, conditionB=1e3, conditionC=1e3))
+
+  # test a number of contrast as list options
+  results(dds, contrast=list("conditionC","conditionA"))
+  results(dds, contrast=list("conditionC","conditionA"), listValues=c(.5,-.5))
+  results(dds, contrast=list("conditionC",character()))
+  results(dds, contrast=list("conditionC",character()), listValues=c(.5,-.5))
+  results(dds, contrast=list(character(),"conditionA"))
+  results(dds, contrast=list(character(),"conditionA"), listValues=c(.5,-.5))
+  
 }

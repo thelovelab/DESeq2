@@ -450,14 +450,14 @@ resMFType <- results(ddsMF, contrast=c("type","single-read","paired-end"))
 head(resMFType)
 @
 
-If the variable is continuous or an interaction term, then the results
-can be extracted using the \Robject{name} argument to \Rfunction{results},
+If the variable is continuous or an interaction term (see Section~\ref{sec:interaction})
+then the results can be extracted using the \Robject{name} argument to \Rfunction{results},
 where the name is one of elements returned by \Robject{resultsNames(dds)}.
 
 \newpage
 
 %---------------------------------------------------
-\section{Data transformations and visualization}
+\section{Data transformations and visualization} \label{sec:transf}
 %---------------------------------------------------
 \subsection{Count data transformations}
 %---------------------------------------------------
@@ -839,11 +839,104 @@ head(resCtrst,2)
 The formula that is used to generate the contrasts can be
 found in Section~\ref{sec:ctrstTheory}.
 
-% \subsection{Interactions}
+\subsection{Interactions} \label{sec:interaction}
 
+Interaction terms can be added to the design formula, in order to
+test, for example, if the log2 fold change attributable to a given
+condition is different for different groups of samples. There are a
+variety of models involving interaction terms, but here we will show
+an example using the parathyroid dataset introduced earlier.
 
-% \subsection{Time-series experiments}
+For demonstration purposes, we will disregard the \Robject{time}
+variable and consider these samples across time as replicates. Note
+that this is not recommended for an analysis of this or similar
+datasets. 
 
+<<interact>>=
+ddsX <- ddsPara
+design(ddsX) <- ~ patient + treatment + patient:treatment
+@ 
+
+<<interactSubset, echo=FALSE>>=
+idx <- which(rowSums(counts(ddsX)) > 0)[1:1000]
+ddsX <- ddsX[idx,]
+@ 
+
+We can then run the standard analysis and examine the names of the
+results columns. The model includes an effect for each patient, an
+effect for each treatment, and additionally interactions for each
+combination of treatment and patient. 
+
+<<interactRun>>=
+ddsX <- DESeq(ddsX)
+resultsNames(ddsX)
+@ 
+
+In order to test if the log2 fold change for OHT over the control
+sample is different for patient 4, one would use the following call to
+\Rfunction{results}: 
+
+<<interactRes>>=
+resX <- results(ddsX, contrast =
+                list("patient4.treatmentOHT",
+                     "patient4.treatmentControl"))
+head(resX, 2)
+@ 
+
+Note that the log2 fold change for treatment of OHT over control for
+patient 4 is the interaction effect above in addition to the main
+effect of treatment OHT over control.
+
+If the factors in the model have only two levels, the handling of
+interaction is slightly different to simplify the analysis. Here only 
+a single interaction term is used in the model, and a test for the
+interaction effect is extracted using the \Robject{name} argument to
+\Rfunction{results}. Here we drop all but two levels of treatment and
+patient variables.
+
+<<interact2x2>>=
+ddsXsub <- ddsX[,ddsX$treatment %in% c("Control","OHT") &
+                ddsX$patient %in% c("1","2")]
+ddsXsub$treatment <- droplevels(ddsXsub$treatment)
+ddsXsub$patient <- droplevels(ddsXsub$patient)
+@ 
+
+We can then rerun \Rfunction{DESeq}, and note that instead of terms
+for each level of the factors (expanded model matrices), we have the
+standard comparisons over the base level, and a single interaction term
+which can be extracted by \Robject{name}.
+
+<<interact2x2results>>=
+ddsXsub <- DESeq(ddsXsub)
+resultsNames(ddsXsub)
+resXsub <- results(ddsXsub, name="patient2.treatmentOHT")
+head(resXsub, 2)
+@ 
+
+\subsection{Time-series experiments}
+
+As with models containing interaction terms, there are a number of
+ways to analyze time-series experiments, depending on the biological
+question of interest. In order to test for any differences over
+multiple time points, once can use a design including the time factor,
+and then test using the likelihood ratio test as described in
+Section~\ref{sec:LRT}, where the time factor is removed in the reduced
+formula. For a control and treatment time series, one can use a design
+formula containing the condition factor, the time factor, and the
+interaction of the two. In this case, using the likelihood ratio test
+with a reduced model which does not contain the interaction term will
+test whether the condition induces a change in gene expression at any
+time point after the base-level time point (time 0).
+
+Effects at individual time points can also be investigated using
+interactions, however we note that testing all combinations
+of time points and conditions is just one approach to exploring time
+course data. We also suggest that users consider applying
+transformations which stabilize the variance of the count data, as
+described in Section~\ref{sec:transf}. This transformed data can then
+be used for exploratory data analysis, by selecting a subset of genes
+which has the highest variance and then using other packages to
+perform gene clustering.
 
 \subsection{Dealing with count outliers} \label{sec:dealingCooks}
 

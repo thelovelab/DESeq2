@@ -232,6 +232,11 @@ results(dds, contrast=list("conditionB","conditionA"))
 # which is equivalent to
 results(dds, contrast=c(0, 0,0,0, -1,1, 0,0,0, 0,0,0))
 
+# the group Z effect compared to the average of group X and Y
+# here we use 'listValues' to multiply group X and
+# group Y by -1/2 in the numeric contrast
+results(dds, contrast=list("groupZ",c("groupX","groupY")), listValues=c(1,-1/2))
+
 # the individual effect for group Z, compared to the intercept
 results(dds, name="groupZ")
 
