@@ -5,9 +5,9 @@
 \title{Extract results from a DESeq analysis}
 \usage{
 results(object, contrast, name, lfcThreshold = 0,
-  altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"), cooksCutoff,
-  independentFiltering = TRUE, alpha = 0.1, filter, theta,
-  pAdjustMethod = "BH")
+  altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
+  listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
+  alpha = 0.1, filter, theta, pAdjustMethod = "BH")
 
 resultsNames(object)
 
@@ -71,6 +71,13 @@ removeResults(object)
   \item greater - \eqn{ \beta > \textrm{lfcThreshold} }{
   beta > lfcThreshold } \item less - \eqn{ \beta <
   -\textrm{lfcThreshold} }{ beta < -lfcThreshold } }}
+
+  \item{listValues}{only used if a list is provided to
+  \code{contrast}: a numeric of length two, giving the
+  values to assign to the first and second elements of the
+  list, which should be positive and negative,
+  respectively, to specify the numerator and denominator.
+  by default this is \code{c(1,-1)}}
 
   \item{cooksCutoff}{theshold on Cook's distance, such that
   if one or more samples for a row have a distance higher,

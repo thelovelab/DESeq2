@@ -105,6 +105,11 @@
 #' \item greater - \eqn{ \beta > \textrm{lfcThreshold} }{ beta > lfcThreshold }
 #' \item less - \eqn{ \beta < -\textrm{lfcThreshold} }{ beta < -lfcThreshold }
 #' }
+#' @param listValues only used if a list is provided to \code{contrast}:
+#' a numeric of length two, giving the values to assign to the first and
+#' second elements of the list, which should be positive and negative,
+#' respectively, to specify the numerator and denominator. by default
+#' this is \code{c(1,-1)}
 #' @param cooksCutoff theshold on Cook's distance, such that if one or more
 #' samples for a row have a distance higher, the p-value for the row is
 #' set to NA.
@@ -193,6 +198,7 @@
 results <- function(object, contrast, name, 
                     lfcThreshold=0,
                     altHypothesis=c("greaterAbs","lessAbs","greater","less"),
+                    listValues=c(1,-1),
                     cooksCutoff,
                     independentFiltering=TRUE,
                     alpha=0.1, filter, theta,
@@ -226,6 +232,8 @@ results <- function(object, contrast, name,
   stopifnot(length(altHypothesis)==1)
   stopifnot(length(alpha)==1)
   stopifnot(length(pAdjustMethod)==1)
+  stopifnot(length(listValues)==2 & is.numeric(listValues))
+  stopifnot(listValues[1] > 0 & listValues[2] < 0)
   if (length(name) != 1 | !is.character(name)) {
     stop("the argument 'name' should be a character vector of length 1")
   }
@@ -258,7 +266,7 @@ see the manual page of ?results for more information")
     }
     
     # pass down whether the model matrix type was "expanded"
-    res <- cleanContrast(object, contrast, expanded=isExpanded)
+    res <- cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues)
   } else {
     # if not performing a contrast
     # pull relevant columns from mcols(object)
@@ -483,7 +491,7 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
 # this function takes a desired contrast as specified by results(),
 # performs checks, and then either returns the already existing contrast
 # or generates the contrast by calling getContrast() using a numeric vector
-cleanContrast <- function(object, contrast, expanded=FALSE) {
+cleanContrast <- function(object, contrast, expanded=FALSE, listValues) {
   # get the names of columns in the beta matrix
   resNames <- resultsNames(object)
   
@@ -627,16 +635,23 @@ resultsNames(object), prefixed by",contrastFactor))
     # and make a name for the contrast
     lc1 <- length(contrast[[1]])
     lc2 <- length(contrast[[2]])
+    # these just for naming
+    lvNm1 <- round(listValues[1],3)
+    lvNm2 <- round(listValues[2],3)
     if (lc1 > 0 & lc2 > 0) {
-      contrastName <- paste(paste(contrast[[1]],collapse="+"),"vs",paste(contrast[[2]],collapse="+"))
+      lvNm2 <- abs(lvNm2)
+      if (lvNm1 == 1) lvNm1 <- ""
+      if (lvNm2 == 1) lvNm2 <- ""
+      contrastName <- paste(lvNm1,paste(contrast[[1]],collapse="+"),"vs",lvNm2,paste(contrast[[2]],collapse="+"))
     } else if (lc1 > 0 & lc2 == 0) {
-      contrastName <- paste(paste(contrast[[1]],collapse="+"),"effect")
+      if (lvNm1 == 1) lvNm1 <- ""
+      contrastName <- paste(lvNm1,paste(contrast[[1]],collapse="+"),"effect")
     } else if (lc1 == 0 & lc2 > 0) {
-      contrastName <- paste("negative of",paste(contrast[[2]],collapse="+"),"effect")
+      contrastName <- paste(lvNm2,paste(contrast[[2]],collapse="+"),"effect")
     }
     contrastNumeric <- rep(0,length(resNames))
-    contrastNumeric[resNames %in% contrast[[1]]] <- 1
-    contrastNumeric[resNames %in% contrast[[2]]] <- -1
+    contrastNumeric[resNames %in% contrast[[1]]] <- listValues[1]
+    contrastNumeric[resNames %in% contrast[[2]]] <- listValues[2]
     contrast <- contrastNumeric
   } else if (is.character(contrast)) {
     # interpret character contrast into numeric
