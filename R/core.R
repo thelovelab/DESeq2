@@ -317,7 +317,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
 #' fitted dispersion and the expected sampling variance
 #' of the log dispersion
 #' @param minDisp small value for the minimum dispersion, to allow
-#' for calculations in log scale, one decade above this value is used
+#' for calculations in log scale, one order of magnitude above this value is used
 #' as a test for inclusion in mean-dispersion fitting
 #' @param kappa_0 control parameter used in setting the initial proposal
 #' in backtracking search, higher kappa_0 results in larger steps
@@ -474,7 +474,14 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
   }
   objectNZ <- object[!mcols(object)$allZero,]
   useForFit <- mcols(objectNZ)$dispGeneEst > 100*minDisp
-
+  if (sum(useForFit) == 0) {
+    stop("all gene-wise dispersion estimates are within 2 orders of magnitude
+from the minimum value, and so the standard curve fitting techniques will not work.
+You can instead use the gene-wise estimates as final estimates:
+dds <- estimateDispersionsGeneEst(dds)
+dispersions(dds) <- mcols(dds)$dispGeneEst")
+  }
+  
   # take the first fitType
   fitType <- fitType[1]
   stopifnot(length(fitType)==1)
@@ -593,7 +600,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   # get previously calculated mu
   mu <- assays(objectNZ)[["mu"]]
 
-  # start fitting at gene estimate unless the points are one decade
+  # start fitting at gene estimate unless the points are one order of magnitude
   # below the fitted line, then start at fitted line
   dispInit <- ifelse(mcols(objectNZ)$dispGeneEst >  0.1 * mcols(objectNZ)$dispFit,
                      mcols(objectNZ)$dispGeneEst,

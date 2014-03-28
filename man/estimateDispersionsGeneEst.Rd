@@ -34,9 +34,9 @@ estimateDispersionsMAP(object, outlierSD = 2, dispPriorVar, minDisp = 1e-08,
   expected sampling variance of the log dispersion}
 
   \item{minDisp}{small value for the minimum dispersion, to
-  allow for calculations in log scale, one decade above
-  this value is used as a test for inclusion in
-  mean-dispersion fitting}
+  allow for calculations in log scale, one order of
+  magnitude above this value is used as a test for
+  inclusion in mean-dispersion fitting}
 
   \item{kappa_0}{control parameter used in setting the
   initial proposal in backtracking search, higher kappa_0
