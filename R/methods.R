@@ -29,7 +29,7 @@
 #'
 counts.DESeqDataSet <- function(object, normalized=FALSE) {
             if (!normalized) {
-              return(assays(object)[["counts"]])
+              return(assays(object, withDimnames=FALSE)[["counts"]])
             } else {
               if (!is.null(normalizationFactors(object))) {
                 return( assays(object)[["counts"]]/normalizationFactors(object) )
