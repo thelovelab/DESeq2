@@ -69,7 +69,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' as in \code{\link{estimateSizeFactors}}).
 #'
 #' Note: the kilobase length of the features is calculated from the \code{rowData}
-#' if a column \code{unionBasepairs} is not present in \code{mcols(dds)}.
+#' if a column \code{basepairs} is not present in \code{mcols(dds)}.
 #' This is the number of basepairs in the union of all \code{GRanges}
 #' assigned to a given row of \code{object}, e.g., 
 #' the union of all basepairs of exons of a given gene.
@@ -88,7 +88,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' of the mcols(object), and per million of mapped fragments,
 #' either using the robust median ratio method (robust=TRUE, default)
 #' or using raw counts (robust=FALSE).
-#' Defining a column \code{mcols(object)$unionBasepairs} takes
+#' Defining a column \code{mcols(object)$basepairs} takes
 #' precedence over internal calculation of the kilobases for each row.
 #'
 #' @examples
@@ -128,15 +128,15 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' @export
 fpkm <- function(object, robust=TRUE) {
   fpm <- fpm(object, robust=robust)
-  if (is.null(mcols(object)$unionBasepairs)) {
+  if (is.null(mcols(object)$basepairs)) {
     if (class(rowData(object)) == "GRangesList") {
-      ubp <- DataFrame(unionBasepairs = sum(width(reduce(rowData(object)))))
+      ubp <- DataFrame(basepairs = sum(width(reduce(rowData(object)))))
     } else if (class(rowData(object)) == "GRanges") {
-      ubp <- DataFrame(unionBasepairs = width(rowData(object)))
+      ubp <- DataFrame(basepairs = width(rowData(object)))
     }
-    if (all(ubp$unionBasepairs == 0)) {
+    if (all(ubp$basepairs == 0)) {
       stop("rowData(object) has all ranges of zero width.
-the user should instead supply a column, mcols(object)$unionBasepairs,
+the user should instead supply a column, mcols(object)$basepairs,
 which will be used to produce FPKM values")
     }
     if (is.null(mcols(mcols(object)))) {
@@ -147,7 +147,7 @@ which will be used to produce FPKM values")
       mcols(object) <- cbind(mcols(object), ubp)
     }
   }
-  1e3 * sweep(fpm, 1, mcols(object)$unionBasepairs, "/")
+  1e3 * sweep(fpm, 1, mcols(object)$basepairs, "/")
 }
 
 #' FPM: fragments per million mapped fragments

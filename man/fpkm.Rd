@@ -18,8 +18,8 @@ basepairs in the \code{GRangesList} or \code{GRanges} of
 the mcols(object), and per million of mapped fragments,
 either using the robust median ratio method (robust=TRUE,
 default) or using raw counts (robust=FALSE). Defining a
-column \code{mcols(object)$unionBasepairs} takes precedence
-over internal calculation of the kilobases for each row.
+column \code{mcols(object)$basepairs} takes precedence over
+internal calculation of the kilobases for each row.
 }
 \description{
 The following function returns fragment counts normalized
@@ -29,8 +29,8 @@ in \code{\link{estimateSizeFactors}}).
 }
 \details{
 Note: the kilobase length of the features is calculated
-from the \code{rowData} if a column \code{unionBasepairs}
-is not present in \code{mcols(dds)}. This is the number of
+from the \code{rowData} if a column \code{basepairs} is not
+present in \code{mcols(dds)}. This is the number of
 basepairs in the union of all \code{GRanges} assigned to a
 given row of \code{object}, e.g., the union of all
 basepairs of exons of a given gene. When the read/fragment
