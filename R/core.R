@@ -381,21 +381,17 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   fullRank <- qr(modelMatrix)$rank == ncol(modelMatrix)
   alpha_hat <- if (fullRank) {
     # if full rank use this estimator which compares normalized counts to mu
-    roughDispEstimate(y = counts(objectNZ,normalized=TRUE),
-                      x = modelMatrix)
+    roughDisp <- roughDispEstimate(y = counts(objectNZ,normalized=TRUE),
+                                   x = modelMatrix)
+    momentsDisp <- momentsDispEstimate(objectNZ)
+    pmin(roughDisp, momentsDisp)
   } else {
     # if not full rank use method of moments across all samples
-    xim <- if (!is.null(normalizationFactors(object))) {
-      mean(1/colMeans(normalizationFactors(object)))
-    } else {
-      mean(1/sizeFactors(object))
-    }
-    bv <- mcols(objectNZ)$baseVar
-    bm <- mcols(objectNZ)$baseMean
-    (bv - xim*bm)/bm^2
+    momentsDispEstimate(objectNZ)
   }
-  
-  alpha_hat <- alpha_hat_new <- alpha_init <- pmax(minDisp, alpha_hat)
+
+  # bound the rough estimated alpha between minDisp and m, number of samples
+  alpha_hat <- alpha_hat_new <- alpha_init <- pmin(pmax(minDisp, alpha_hat), ncol(object))
 
   stopifnot(length(niter) == 1 & niter > 0)
 
@@ -2037,13 +2033,25 @@ fitDispInR <- function(y, x, mu, logAlphaPriorMean,
 # rough dispersion estimate using a statistic similar to the Pearson residuals
 roughDispEstimate <- function(y, x) {
   # must be positive
-  mu <- pmax(.1, linearModelMu(y, x))
+  mu <- linearModelMu(y, x)
+  mu <- matrix(pmax(1, mu), ncol=ncol(mu))
   m <- nrow(x)
   p <- ncol(x)
   # these will be adjusted up to minDisp later
   numerator <- pmax( rowSums( ((y - mu)^2 - mu) / mu^2 ), 0)
   denominator <- (m - p)
   numerator/denominator
+}
+
+momentsDispEstimate <- function(object) {
+  xim <- if (!is.null(normalizationFactors(object))) {
+    mean(1/colMeans(normalizationFactors(object)))
+  } else {
+    mean(1/sizeFactors(object))
+  }
+  bv <- mcols(object)$baseVar
+  bm <- mcols(object)$baseMean
+  (bv - xim*bm)/bm^2
 }
 
 # fast, rough estimation of means for rough dispersion estimation (above)

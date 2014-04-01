@@ -112,6 +112,6 @@ test_dispInR <- function() {
                               logAlphaPriorMean = NA,
                               logAlphaPriorSigmaSq = NA,
                               usePrior=FALSE)
-  plot(log(trueDisp), log(disp));abline(0,1)
+  # plot(log(trueDisp), log(disp));abline(0,1)
   checkEqualsNumeric(log(trueDisp), log(disp), tol=.5)
 }
