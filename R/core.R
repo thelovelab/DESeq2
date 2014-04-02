@@ -979,35 +979,41 @@ nbinomLRT <- function(object, full=design(object), reduced,
                       modelMatrixType,
                       maxit=100, useOptim=TRUE, quiet=FALSE,
                       useQR=TRUE, betaPriorUpperQuantile=.05) {
+
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
 
-  # run check on the formulae
-  checkLRT(full, reduced)
-  
   stopifnot(length(betaPriorUpperQuantile) == 1 &&
             betaPriorUpperQuantile > 0 &&
             betaPriorUpperQuantile < 1)
+  
+  # run check on the formula
+  modelsAsFormula <- !(is.matrix(full) & is.matrix(reduced))
+  if (modelsAsFormula) {
+    checkLRT(full, reduced)
+
+    # try to form model matrices, test for difference
+    # in residual degrees of freedom
+    fullModelMatrix <- model.matrix(full,
+                                    data=as.data.frame(colData(object)))
+    reducedModelMatrix <- model.matrix(reduced,
+                                       data=as.data.frame(colData(object)))
+    df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
+  } else {
+    df <- ncol(full) - ncol(reduced)
+  }
+  
+  if (df < 1) stop("less than one degree of freedom, perhaps full and reduced models are not in the correct order")
   
   if (any(mcols(mcols(object))$type == "results")) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
   } 
 
-  # try to form model matrices, test for difference
-  # in residual degrees of freedom
-  fullModelMatrix <- model.matrix(full,
-                                  data=as.data.frame(colData(object)))
-  reducedModelMatrix <- model.matrix(reduced,
-                                     data=as.data.frame(colData(object)))
-  df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
-  if (df < 1) stop("less than one degree of freedom, perhaps full and reduced models are not in the correct order")
-
   if (!"allZero" %in% names(mcols(object))) {
     object <- getBaseMeansAndVariances(object)
   }
-
   
   # what kind of model matrix to use
   stopifnot(is.logical(betaPrior))
@@ -1033,17 +1039,24 @@ nbinomLRT <- function(object, full=design(object), reduced,
 has not been implemented")
   }
   priorOnlyInteraction <- interactionPresent & betaPrior & missing(betaPriorVar)
-
   
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
 
   if (!betaPrior) {
-    fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit,
-                               useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
-    modelMatrix <- fullModel$modelMatrix
-    reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
-                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+    if (modelsAsFormula) {
+      fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full, maxit=maxit,
+                                 useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+      modelMatrix <- fullModel$modelMatrix
+      reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
+                                    useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+    } else {
+      fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full, maxit=maxit,
+                                 useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+      modelMatrix <- full
+      reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced, maxit=maxit,
+                                    useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+    }
     betaPriorVar <- rep(1e6, ncol(modelMatrix))
   } else {
     priorFull <- fitGLMsWithPrior(objectNZ=objectNZ,
@@ -1080,8 +1093,8 @@ has not been implemented")
   attr(object,"modelMatrixType") <- modelMatrixType
   attr(object,"test") <- "LRT"
   
-  p <- ncol(fullModelMatrix)
-  m <- nrow(fullModelMatrix)
+  p <- ncol(modelMatrix)
+  m <- nrow(modelMatrix)
   H <- fullModel$hat_diagonals
 
   # store mu in case the user did not call estimateDispersionsGeneEst
@@ -1092,7 +1105,7 @@ has not been implemented")
   cooks <- calculateCooksDistance(objectNZ, H, p)
 
   # record maximum of Cook's
-  maxCooks <- recordMaxCooks(design(object), colData(object), fullModelMatrix, cooks, nrow(objectNZ))
+  maxCooks <- recordMaxCooks(design(object), colData(object), modelMatrix, cooks, nrow(objectNZ))
 
   # store Cook's distance for each sample
   assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
@@ -1117,8 +1130,12 @@ has not been implemented")
                         maxCooks = maxCooks))
   LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
 
-  modelComparison <- paste0("'",paste(as.character(full),collapse=" "),
-                            "' vs '", paste(as.character(reduced),collapse=" "),"'")
+  modelComparison <- if (modelsAsFormula) {
+    paste0("'",paste(as.character(full),collapse=" "),
+           "' vs '", paste(as.character(reduced),collapse=" "),"'")
+  } else {
+    "full vs reduced"
+  }
 
   modelMatrixNames <- colnames(fullModel$betaMatrix)
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
