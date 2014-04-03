@@ -1444,7 +1444,9 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   
   if ("Intercept" %in% modelMatrixNames) {
     beta_mat <- matrix(0, ncol=ncol(modelMatrix), nrow=nrow(object))
-    beta_mat[,which(modelMatrixNames == "Intercept")] <- log(mcols(object)$baseMean)
+    # recalculate, in case this was changed
+    logBaseMean <- log(rowMeans(counts(object,normalized=TRUE)))
+    beta_mat[,which(modelMatrixNames == "Intercept")] <- logBaseMean
   } else {
     beta_mat <- matrix(1, ncol=ncol(modelMatrix), nrow=nrow(object))
   }
