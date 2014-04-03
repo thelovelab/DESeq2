@@ -17,9 +17,6 @@ setValidity( "DESeqDataSet", function( object ) {
     return( "the count data is not in integer mode" )
   if ( any( counts(object) < 0 ) )
     return( "the count data contains negative values" )
-  if ( ncol(colData(object)) < 1 ) {
-    return("colData must have at least one column")
-  }
   design <- design(object)
   designVars <- all.vars(design)
   if (!all(designVars %in% names(colData(object)))) {
@@ -107,6 +104,10 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   mode(assay(se)) <- "integer" 
 
   designVars <- all.vars(design)
+  if (!all(designVars %in% names(colData(se)))) {
+    stop("all variables in design formula must be columns in colData")
+  }
+
   designVarsClass <- sapply(designVars, function(v) class(colData(se)[[v]]))
   if (any(designVarsClass == "character")) {
     warning("some variables in design formula are characters, converting to factors")
