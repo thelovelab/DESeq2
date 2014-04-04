@@ -363,6 +363,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     stop("for computational stability, log(minDisp/10) should be above -30")
   }
 
+  # in case the class of the mcols(mcols(object)) are not character
+  object <- sanitizeRowData(object)
+
   if (missing(modelMatrix)) {
     modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
   } else {
@@ -766,6 +769,10 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   stopifnot(length(betaPriorUpperQuantile) == 1 &&
             betaPriorUpperQuantile > 0 &&
             betaPriorUpperQuantile < 1)
+
+  # in case the class of the mcols(mcols(object)) are not character
+  object <- sanitizeRowData(object)
+  
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("you had results columns, replacing these")
     object <- removeResults(object)
@@ -987,6 +994,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
   stopifnot(length(betaPriorUpperQuantile) == 1 &&
             betaPriorUpperQuantile > 0 &&
             betaPriorUpperQuantile < 1)
+
+  # in case the class of the mcols(mcols(object)) are not character
+  object <- sanitizeRowData(object)
   
   # run check on the formula
   modelsAsFormula <- !(is.matrix(full) & is.matrix(reduced))
@@ -2166,5 +2176,17 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
     assays(object)[["originalCounts"]] <- NULL
   }
   
+  object
+}
+
+sanitizeRowData <- function(object) {
+  class(mcols(mcols(object))$type) <- "character"
+  class(mcols(mcols(object))$description) <- "character"
+  object
+}
+
+sanitizeColData <- function(object) {
+  class(mcols(colData(object))$type) <- "character"
+  class(mcols(colData(object))$description) <- "character"
   object
 }

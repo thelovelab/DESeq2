@@ -144,6 +144,8 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
                          description=rep("",ncol(colData(se))))
   mcols(colData(se)) <- if (is.null(mcols(colData(se)))) {
     mcolsCols
+  } else if (all(names(mcols(colData(se))) == c("type","description"))) {
+    mcolsCols
   } else {
     cbind(mcols(colData(se)), mcolsCols)
   }
@@ -157,6 +159,8 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   mcolsRows <- DataFrame(type=rep("input",ncol(mcols(dds))),
                          description=rep("",ncol(mcols(dds))))
   mcols(mcols(dds)) <- if (is.null(mcols(mcols(dds)))) {
+    mcolsRows
+  } else if (all(names(mcols(mcols(dds))) == c("type","description"))) {
     mcolsRows
   } else {
     cbind(mcols(mcols(dds)), mcolsRows)

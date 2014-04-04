@@ -351,6 +351,7 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' sizeFactors(dds)
 #' 
 estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median, geoMeans) {
+  object <- sanitizeColData(object)
   sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc, geoMeans=geoMeans)
   object
 }
