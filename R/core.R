@@ -403,7 +403,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   mu <- matrix(0, nrow=nrow(objectNZ), ncol=ncol(objectNZ))
   dispIter <- numeric(nrow(objectNZ))
   for (iter in seq_len(niter)) {
-    fit <- fitNbinomGLMs(objectNZ[fitidx,],
+    fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],
                          alpha_hat=alpha_hat[fitidx],
                          modelMatrix=modelMatrix)
     fitMu <- fit$mu
@@ -412,7 +412,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
-    dispRes <- fitDisp(ySEXP = counts(objectNZ)[fitidx,],
+    dispRes <- fitDisp(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
                        xSEXP = fit$modelMatrix,
                        mu_hatSEXP = fitMu,
                        log_alphaSEXP = log(alpha_hat)[fitidx],
@@ -1251,9 +1251,11 @@ replaceOutliers <- function(dds, trim=.2, cooksCutoff, minReplicates=7, whichSam
   } else {
     as.integer(outer(trimBaseMean, sizeFactors(dds), "*"))
   }
+  
   # replace only those values which fall above the cutoff on Cook's distance
   newCounts <- counts(dds)
   newCounts[idx] <- replacementCounts[idx]
+  
   if (missing(whichSamples)) {
     whichSamples <- nOrMoreInCell(attr(dds,"modelMatrix"), n = minReplicates)
   }

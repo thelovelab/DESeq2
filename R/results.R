@@ -464,8 +464,16 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   # convert betas to log scale
   beta_mat <- log(2) * as.matrix(mcols(objectNZ)[,coefColumns,drop=FALSE])
   # convert beta prior variance to log scale
-  lambda = 1/(log(2)^2 * attr(object,"betaPriorVar")) 
-  betaRes <- fitBeta(ySEXP = counts(objectNZ), xSEXP = modelMatrix,
+  lambda = 1/(log(2)^2 * attr(object,"betaPriorVar"))
+
+  # check if DESeq() replaced outliers
+  countsMatrix <- if ("replaceCounts" %in% names(assays(object))) {
+    assays(objectNZ)[["replaceCounts"]]
+  } else {
+    counts(objectNZ)
+  }
+    
+  betaRes <- fitBeta(ySEXP = countsMatrix, xSEXP = modelMatrix,
                      nfSEXP = normalizationFactors,
                      alpha_hatSEXP = alpha_hat,
                      contrastSEXP = contrast,
