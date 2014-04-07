@@ -1242,7 +1242,7 @@ replaceOutliers <- function(dds, trim=.2, cooksCutoff, minReplicates=7, whichSam
   }
   idx <- which(assays(dds)[["cooks"]] > cooksCutoff)
   mcols(dds)$replace <- apply(assays(dds)[["cooks"]], 1, function(row) any(row > cooksCutoff))
-  mcols(mcols(dds),use.names=TRUE)["replace",] <- DataFrame(type="results",description="had counts replaced")
+  mcols(mcols(dds),use.names=TRUE)["replace",] <- DataFrame(type="intermediate",description="had counts replaced")
   trimBaseMean <- apply(counts(dds,normalized=TRUE),1,mean,trim=trim)
   # build a matrix of counts based on the trimmed mean and the size factors
   replacementCounts <- if (!is.null(normalizationFactors(dds))) {

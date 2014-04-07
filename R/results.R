@@ -349,6 +349,15 @@ Likelihood ratio test p-values are overwritten")
     cooksOutlier <- mcols(object)$maxCooks > cooksCutoff
     res$pvalue[cooksOutlier] <- NA
   }
+
+  # if original baseMean was positive, but now zero, fill in results
+  if ( sum(mcols(object)$replace, na.rm=TRUE) > 0) {
+    nowZero <- which(mcols(object)$replace & mcols(object)$baseMean == 0)
+    res$log2FoldChange[nowZero] <- 0
+    res$lfcSE[nowZero] <- 0
+    res$stat[nowZero] <- 0
+    res$pvalue[nowZero] <- 1
+  }
   
   # perform independent filtering
   if (independentFiltering) {
