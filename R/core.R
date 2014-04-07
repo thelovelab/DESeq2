@@ -2114,15 +2114,19 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
   object <- replaceOutliers(object, minReplicates=minReplicatesForReplace)
 
   # refit without outliers, if there were any replacements
-  nrefit <- sum(mcols(object)$replace,na.rm=TRUE)
+  nrefit <- sum(mcols(object)$replace, na.rm=TRUE)
   if ( nrefit > 0 ) {
+    object <- getBaseMeansAndVariances(object)
+    newAllZero <- which(mcols(object)$replace & mcols(object)$allZero)
+  }
+  # only refit if some of the replacements don't result in all zero counts
+  # otherwise, these cases are handled by results()
+  if ( nrefit > 0 && nrefit > length(newAllZero) ) {
     if (!quiet) message(paste("-- replacing outliers and refitting for", nrefit,"genes
 -- DESeq argument 'minReplicatesForReplace' =",minReplicatesForReplace,"
 -- original counts are preserved in counts(dds))"))
     
     # refit on those rows which had replacement
-    object <- getBaseMeansAndVariances(object)
-    newAllZero <- which(mcols(object)$replace & mcols(object)$allZero)
     refitReplace <- which(mcols(object)$replace & !mcols(object)$allZero)
     objectSub <- object[refitReplace,]
     intermediateOrResults <- which(mcols(mcols(objectSub))$type %in% c("intermediate","results"))
@@ -2165,7 +2169,9 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
       mcols(object)$maxCooks <- recordMaxCooks(design(object), colData(object),
                                                attr(object,"modelMatrix"), replaceCooks, nrow(object))
     }
-    
+  }
+  
+  if ( nrefit > 0 ) {
     # save the counts used for fitting as replaceCounts
     assays(object)[["replaceCounts"]] <- counts(object)
     assays(object)[["replaceCooks"]] <- assays(object)[["cooks"]]
