@@ -394,7 +394,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   }
 
   # bound the rough estimated alpha between minDisp and maxDisp for numeric stability
-  maxDisp <- 100
+  maxDisp <- max(10, ncol(object))
   alpha_hat <- alpha_hat_new <- alpha_init <- pmin(pmax(minDisp, alpha_hat), maxDisp)
 
   stopifnot(length(niter) == 1 & niter > 0)
@@ -453,7 +453,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                           usePrior=FALSE)
     dispGeneEst[refitDisp] <- dispInR
   }
-  dispGeneEst <- pmax(dispGeneEst, minDisp)
+  dispGeneEst <- pmin(pmax(dispGeneEst, minDisp), maxDisp)
   
   dispDataFrame <- buildDataFrameWithNARows(list(dispGeneEst=dispGeneEst),
                                             mcols(object)$allZero)
