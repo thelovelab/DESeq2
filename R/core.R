@@ -393,8 +393,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     momentsDispEstimate(objectNZ)
   }
 
-  # bound the rough estimated alpha between minDisp and m, number of samples
-  alpha_hat <- alpha_hat_new <- alpha_init <- pmin(pmax(minDisp, alpha_hat), ncol(object))
+  # bound the rough estimated alpha between minDisp and maxDisp for numeric stability
+  maxDisp <- 100
+  alpha_hat <- alpha_hat_new <- alpha_init <- pmin(pmax(minDisp, alpha_hat), maxDisp)
 
   stopifnot(length(niter) == 1 & niter > 0)
 
@@ -421,7 +422,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                        kappa_0SEXP = kappa_0, tolSEXP = dispTol,
                        maxitSEXP = maxit, use_priorSEXP = FALSE)
     dispIter[fitidx] <- dispRes$iter
-    alpha_hat_new[fitidx] <- exp(dispRes$log_alpha)
+    alpha_hat_new[fitidx] <- pmin(exp(dispRes$log_alpha), maxDisp)
     # only rerun those rows which moved
     fitidx <- abs(log(alpha_hat_new) - log(alpha_hat)) > .05
     alpha_hat <- alpha_hat_new
