@@ -34,8 +34,7 @@ CHANGES IN VERSION 1.3.24
 -------------------------
 
     o rlogTransformation() gains an argument 'fast', which switches to
-      an approximation of the rlog transformation when there are many 
-      samples. Speed-up is 2x or more.
+      an approximation of the rlog transformation. Speed-up is ~ 2x.
 
     o A more robust estimator for the beta prior variance is used:
       instead of taking the mean of squared MLE betas, the prior variance
