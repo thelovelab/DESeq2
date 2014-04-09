@@ -1,4 +1,5 @@
 CHANGES IN VERSION 1.4.0
+------------------------
 
     o *** USAGE NOTE *** Expanded model matrices are now used when 
       betaPrior = TRUE (the default). Therefore, level comparison results 
