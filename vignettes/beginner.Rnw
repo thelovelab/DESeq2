@@ -783,7 +783,7 @@ ratios <- tapply( res$pvalue, bins, function(p) mean( p < .01, na.rm=TRUE ) )
 barplot(ratios, xlab="mean normalized count", ylab="ratio of small $p$ values")
 @
 
-\incfig{figure/beginner_ratioSmallP}{.9\textwidth}{Ratio of small p valules}{for groups of genes 
+\incfig{figure/beginner_ratioSmallP}{.9\textwidth}{Ratio of small p values}{for groups of genes 
 binned by mean normalized count}
 
 At first sight, there may seem to be little benefit in filtering out these genes. After
