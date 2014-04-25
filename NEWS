@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.4.1
+------------------------
+
+    o Fixed bug where DESeqDataSetFromHTSeqCount() imported the special
+      rows, "_ambiguous", etc.
+
 CHANGES IN VERSION 1.4.0
 ------------------------
 

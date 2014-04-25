@@ -212,7 +212,7 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory="", design, ignor
                        "alignment_not_unique" )
   # either starts with two underscores
   # or is one of the old special names (htseq-count backward compatability)
-  specialRows <- (substr(rownames(tbl),1,2) == "__") | rownames(tbl) %in% oldSpecialNames
+  specialRows <- (substr(rownames(tbl),1,1) == "_") | rownames(tbl) %in% oldSpecialNames
   tbl <- tbl[ !specialRows, ]
   dds <- DESeqDataSetFromMatrix(countData = tbl,
                                 colData = sampleTable[,-(1:2),drop=FALSE],

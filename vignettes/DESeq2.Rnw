@@ -47,16 +47,29 @@ library("DESeq2")
   incorporate data-driven prior distributions \footnote{Other \Bioconductor{} packages 
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{baySeq} and \Biocpkg{DSS}.}. 
   This vignette explains the use of the package and demonstrates typical work flows.  
-  Note that another vignette, ``Beginner's guide to using the DESeq2 package'', covers
-  similar material, but at a slower pace, including the generation of count tables from
-  FASTQ files. This vignette might be useful if you are new to the analysis of RNA-Seq 
-  or high-throughput sequencing data in R.
-  For an exposition of the statistical method, please see our paper \cite{Love:2014:biorxiv}.
-  
+  Another vignette, ``Beginner's guide to using the DESeq2 package'', covers
+  similar material but at a slower pace, including the generation of count tables from
+  FASTQ files.
+
   \vspace{1em}
   
   \textbf{DESeq2 version:} \Sexpr{packageDescription("DESeq2")$Version}
-\end{abstract}
+
+  \vspace{1em}
+  
+  \begin{center}
+    \begin{tabular}{ | l | }
+      \hline 
+      If you use \deseqtwo{} in published research, please cite:  \\
+      \\
+      M. I. Love, W. Huber, S. Anders: Moderated estimation of \\
+      fold change and dispersion for RNA-Seq data with DESeq2. \\
+      bioRxiv (2014). doi:10.1101/002832 \cite{Love:2014:biorxiv} \\
+      \hline 
+    \end{tabular}
+  \end{center}
+
+  \end{abstract}
 
 <<options, results="hide", echo=FALSE>>=
 options(digits=3, width=80, prompt=" ", continue=" ")
@@ -130,9 +143,7 @@ variables with plus signs between them (it will be coerced into an
 representing the base mean of counts. The design can be changed later, 
 however then all differential analysis steps should be repeated, 
 as the design formula is used to estimate the dispersions and 
-to estimate the log2 fold changes of the model. A summary of various
-design formulae for different experiments is presented later in 
-Section~\ref{sec:recDesign}.
+to estimate the log2 fold changes of the model. 
 
 The constructor function below shows the generation of a
 \Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}. 
@@ -288,7 +299,7 @@ customize the results table which is generated.
 Note that the \Rfunction{results} function automatically performs independent filtering 
 based on the mean of counts for each gene, optimizing the number of genes
 which will have an adjusted $p$ value below a given threshold. 
-This will be discussed further in Section~\ref{sec:autoFilt}
+This will be discussed further in Section~\ref{sec:autoFilt}.
 
 If a multi-factor design is used, or if the variable in the design
 formula has more than two levels, the \Robject{contrast} argument of
@@ -1690,12 +1701,20 @@ See the details in Section~\ref{sec:moreInfo}.
   testing we recommend the \Rfunction{DESeq} function applied to raw
   counts as outlined in Section~\ref{sec:de}.
       
-\subsection{Can I perform a \Rfunction{DESeq} analysis without replicates?}
+\subsection{Can I use DESeq2 to analyze paired samples?}
+
+Yes, you should use a multi-factor design which includes the sample
+information as a term in the design formula. This will account for 
+differences between the samples while estimating the effect due to 
+the condition. The condition of interest should go at the end of the 
+design formula. See Section~\ref{sec:multifactor}.
+  
+\subsection{Can I use DESeq2 to analyze a dataset without replicates?}
 
 If a \Rclass{DESeqDataSet} is provided with an experimental design without replicates,
-a warning message is printed, and the samples are treated as replicates
+a message is printed, that the samples are treated as replicates
 for estimation of dispersion. More details can be found in the 
-manual page for \Rfunction{DESeq}.
+manual page for \Rfunction{?DESeq}.
 
 \subsection{How can I include a continuous covariate in the design formula?}
 
@@ -1712,7 +1731,7 @@ regardless of the trend over the continuous covariates.
 In R, \Rclass{numeric} vectors can be converted into \Rclass{factors} 
 using the function \Rfunction{cut}.
 
-\subsection{What are the exact steps performed by \Rfunction{DESeq}?}
+\subsection{What are the exact steps performed by \Rfunction{DESeq()}?}
 
 See the manual page for \Rfunction{DESeq}, which links to the 
 subfunctions which are called in order, where complete details are listed.

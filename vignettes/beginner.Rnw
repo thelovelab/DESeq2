@@ -41,13 +41,26 @@ library("DESeq2")
   matrices from raw sequencing data.  This vignette is designed for users who are perhaps new to
   analyzing RNA-Seq or high-throughput sequencing data in R, and so goes at a slower pace,
   explaining each step in detail.  Another vignette, ``Differential analysis of count data -- the
-  DESeq2 package'', also included with the \deseqtwo{} package, covers more of the advanced details
-  and at a faster pace.  For an exposition of the statistical method, please see our paper
-  \cite{Love:2014:biorxiv}.
-  
+  DESeq2 package'' covers more of the advanced details at a faster pace.
+
   \vspace{1em}
   
   \textbf{DESeq2 version:} \Sexpr{packageDescription("DESeq2")$Version}
+
+  \vspace{1em}
+  
+  \begin{center}
+    \begin{tabular}{ | l | }
+      \hline 
+      If you use \deseqtwo{} in published research, please cite:  \\
+      \\
+      M. I. Love, W. Huber, S. Anders: Moderated estimation of \\
+      fold change and dispersion for RNA-Seq data with DESeq2. \\
+      bioRxiv (2014). doi:10.1101/002832 \cite{Love:2014:biorxiv} \\
+      \hline 
+    \end{tabular}
+  \end{center}
+
 \end{abstract}
 
 <<options, results="hide", echo=FALSE>>=
