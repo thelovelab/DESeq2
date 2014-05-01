@@ -128,6 +128,12 @@
 #' @param theta the quantiles at which to assess the number of rejections
 #' from independent filtering
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
+#' @param format character, either "DataFrame", "GRanges", or "GRangesList",
+#' whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
+#' or if the results DataFrame should be attached as metadata columns to
+#' the \code{GRanges} or \code{GRangesList} \code{rowData} of the \code{DESeqDataSet}.
+#' If the \code{rowData} is a \code{GRangesList}, and \code{GRanges} is requested, 
+#' the range of each gene will be returned.
 #'
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
 #' a simple subclass of DataFrame. This object contains the results columns:
@@ -147,6 +153,7 @@
 #' # minimal example with simple two-group comparison
 #' example("DESeq")
 #' results(dds)
+#' results(dds, format="GRanges")
 #' resultsNames(dds)
 #' dds <- removeResults(dds)
 #'
@@ -207,12 +214,14 @@ results <- function(object, contrast, name,
                     cooksCutoff,
                     independentFiltering=TRUE,
                     alpha=0.1, filter, theta,
-                    pAdjustMethod="BH") {
+                    pAdjustMethod="BH",
+                    format=c("DataFrame","GRanges","GRangesList")) {
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
   }
 
-  test <- attr(object,"test")
+  test <- attr(object, "test")
+  format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
   
   isExpanded <- attr(object, "modelMatrixType") == "expanded"
   termsOrder <- attr(terms.formula(design(object)),"order")
@@ -388,13 +397,28 @@ Likelihood ratio test p-values are overwritten")
   
   mcols(res)$type[names(res)=="padj"] <- "results"
   mcols(res)$description[names(res)=="padj"] <- paste(pAdjustMethod,"adjusted p-values")
-  
+
   deseqRes <- DESeqResults(res)
   if (independentFiltering) {
     attr(deseqRes, "filterThreshold") <- filterThreshold
     attr(deseqRes, "filterNumRej") <- filterNumRej
   }
-  deseqRes
+
+  if (format == "DataFrame") {
+    return(deseqRes)
+  } else if (format == "GRangesList") {
+    if (class(rowData(object)) == "GRanges") message("rowData is GRanges")
+    out <- rowData(object)
+    mcols(out) <- deseqRes
+    out
+  } else if (format == "GRanges") {
+    if (class(rowData(object)) == "GRangesList") {
+      message("rowData is GRangesList, unlisting the ranges")
+      out <- unlist(range(rowData(object)))
+      mcols(out) <- deseqRes
+      out
+    }
+  }
 }
 
 #' @rdname results

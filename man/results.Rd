@@ -7,7 +7,8 @@
 results(object, contrast, name, lfcThreshold = 0,
   altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
   listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
-  alpha = 0.1, filter, theta, pAdjustMethod = "BH")
+  alpha = 0.1, filter, theta, pAdjustMethod = "BH",
+  format = c("DataFrame", "GRanges", "GRangesList"))
 
 resultsNames(object)
 
@@ -105,6 +106,16 @@ removeResults(object)
 
   \item{pAdjustMethod}{the method to use for adjusting
   p-values, see \code{?p.adjust}}
+
+  \item{format}{character, either "DataFrame", "GRanges",
+  or "GRangesList", whether the results should be printed
+  as a \code{\link{DESeqResults}} DataFrame, or if the
+  results DataFrame should be attached as metadata columns
+  to the \code{GRanges} or \code{GRangesList}
+  \code{rowData} of the \code{DESeqDataSet}. If the
+  \code{rowData} is a \code{GRangesList}, and
+  \code{GRanges} is requested, the range of each gene will
+  be returned.}
 }
 \value{
 For \code{results}: a \code{\link{DESeqResults}} object,
@@ -202,6 +213,7 @@ last element of \code{resultsNames(object)}.
 # minimal example with simple two-group comparison
 example("DESeq")
 results(dds)
+results(dds, format="GRanges")
 resultsNames(dds)
 dds <- removeResults(dds)
 
