@@ -222,6 +222,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   }
   mu <- 2^(t(x %*% t(beta))) * rep(sizeFactors, each=n)
   countData <- matrix(rnbinom(m*n, mu=mu, size=1/dispersion), ncol=m)
+  mode(countData) <- "integer"
   rownames(colData) <- colData$sample
   rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
   names(rowData) <- paste0("gene",1:n)

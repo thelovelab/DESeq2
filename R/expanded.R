@@ -27,6 +27,7 @@ averagePriorsOverLevels <- function(object, betaPriorVar) {
   idx <- which(bpiNms %in% expandedNames)
   betaPriorOut[match(bpiNms[idx],expandedNames)] <- betaPriorIn[idx]
   designFactors <- getDesignFactors(object)
+  allVars <- all.vars(design(object))
   coldata <- colData(object)
   for (f in designFactors) {
     lvls <- levels(coldata[[f]])
@@ -39,14 +40,22 @@ averagePriorsOverLevels <- function(object, betaPriorVar) {
   termsOrder <- attr(terms.formula(design(object)),"order")
   if (any(termsOrder > 1)) {
     for (f1 in designFactors) {
-      for (f2 in designFactors) {
+      for (f2 in allVars) {
         if (f1 == f2) next
         lvls1 <- levels(coldata[[f1]])
-        lvls2 <- levels(coldata[[f2]])
-        mmColnames <- make.names(paste0(f1,rep(lvls1,each=length(lvls2)),":",
-                                        f2,rep(lvls2,times=length(lvls1))))
-        meanPriorVar <- mean(betaPriorIn[names(betaPriorIn) %in% mmColnames])
-        betaPriorOut[expandedNames %in% mmColnames] <- meanPriorVar
+        # the case where f2 is a factor like f1
+        if (f2 %in% designFactors) {
+          lvls2 <- levels(coldata[[f2]])
+          mmColnames <- make.names(paste0(f1,rep(lvls1,each=length(lvls2)),":",
+                                          f2,rep(lvls2,times=length(lvls1))))
+          meanPriorVar <- mean(betaPriorIn[names(betaPriorIn) %in% mmColnames])
+          betaPriorOut[expandedNames %in% mmColnames] <- meanPriorVar
+        # the case where f2 is not a factor
+        } else {
+          mmColnames <- make.names(c(paste0(f1,lvls1,":",f2),paste0(f2,":",f1,lvls1)))
+          meanPriorVar <- mean(betaPriorIn[names(betaPriorIn) %in% mmColnames])
+          betaPriorOut[expandedNames %in% mmColnames] <- meanPriorVar
+        }
       }
     }
   }

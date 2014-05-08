@@ -1,3 +1,23 @@
+CHANGES IN VERSION 1.5.3
+------------------------
+
+    o Speeding up and reducing copying for DESeqDataSet construction.
+
+CHANGES IN VERSION 1.5.2
+------------------------
+
+    o Added 'format' argument to results, which will attach results to
+      GRangesList or GRanges if requested (default is DataFrame).
+
+CHANGES IN VERSION 1.4.2
+------------------------
+
+    o Fixed bugs: estimating beta prior for interaction between factor 
+      and numeric; not returning row names for counts(); construction
+      of DESeqDataSet gives wrong error when there are empty levels:
+      instead now drops the levels for the user.
+
+
 CHANGES IN VERSION 1.4.1
 ------------------------
 

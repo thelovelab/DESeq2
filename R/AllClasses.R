@@ -34,7 +34,7 @@ this error can arise when subsetting a DESeqDataSet, in which
 all the samples for one or more levels of a factor in the design were removed.
 if this was intentional, use droplevels() to remove these levels, e.g.:
 
-colData(dds)$condition <- droplevels(colData(dds)$condition)
+dds$condition <- droplevels(dds$condition)
 ")
   }
   TRUE
@@ -92,16 +92,19 @@ colData(dds)$condition <- droplevels(colData(dds)$condition)
 DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   if (is.null(names(assays(se))) || names(assays(se))[1] != "counts") {
     message("renaming the first element in assays to 'counts'")
-    names(assays(se))[1] <- "counts"
+    names(assays(se, withDimnames=FALSE))[1] <- "counts"
   }
   # before validity check, try to convert assay to integer mode
   if (any(assay(se) < 0)) {
     stop("some values in assay are negative")
   }
-  if (any(round(assay(se)) != assay(se))) {
-    stop("some values in assay are not integers")
-  }  
-  mode(assay(se)) <- "integer" 
+  if (!is.integer(assay(se))) {
+    if (any(round(assay(se)) != assay(se))) {
+      stop("some values in assay are not integers")
+    }
+    message("convering counts to integer mode")
+    mode(assay(se)) <- "integer"
+  }
 
   designVars <- all.vars(design)
   if (!all(designVars %in% names(colData(se)))) {
@@ -116,6 +119,15 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     }
   }
 
+  designFactors <- designVars[designVarsClass == "factor"]
+  missingLevels <- sapply(designFactors,function(v) any(table(colData(se)[[v]]) == 0))
+  if (any(missingLevels)) {
+    message("factor levels were dropped which had no samples")
+    for (v in designFactors[missingLevels]) {
+      colData(se)[[v]] <- droplevels(colData(se)[[v]])
+    }
+  }
+  
   modelMatrix <- model.matrix(design, data=as.data.frame(colData(se)))
   if (!ignoreRank) {
     if (qr(modelMatrix)$rank < ncol(modelMatrix)) {
@@ -128,15 +140,15 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   # the base level and if not print a message
   lastDV <- length(designVars)
   if (length(designVars) > 0 && designVarsClass[lastDV] == "factor") {
-      lastDVLvls <- levels(colData(se)[[designVars[lastDV]]])
-      controlSynonyms <- c("control","Control","CONTROL")
-      for (cSyn in controlSynonyms) {
-          if (cSyn %in% lastDVLvls) {
-              if (cSyn != lastDVLvls[1]) {
-                  message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"', has a factor level, '",cSyn,"', which is not the base level. we recommend you use factor(...,levels=...) or relevel() to set this as the base level before proceeding. for more information, please see the 'Note on factor levels' in vignette('DESeq2')."))
-              }
-          }
+    lastDVLvls <- levels(colData(se)[[designVars[lastDV]]])
+    controlSynonyms <- c("control","Control","CONTROL")
+    for (cSyn in controlSynonyms) {
+      if (cSyn %in% lastDVLvls) {
+        if (cSyn != lastDVLvls[1]) {
+          message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"', has a factor level, '",cSyn,"', which is not the base level. we recommend you use factor(...,levels=...) or relevel() to set this as the base level before proceeding. for more information, please see the 'Note on factor levels' in vignette('DESeq2')."))
+        }
       }
+    }
   }
   
   # Add columns on the columns
@@ -175,9 +187,12 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, ignoreRank=FALSE
 {
   # we expect a matrix of counts, which are non-negative integers
   countData <- as.matrix( countData )
+
   if (is(colData,"data.frame")) colData <- DataFrame(colData, row.names=rownames(colData))
-  # check if the rownames of colData are in different order
-  # than the colnames of the countData
+
+  # check if the rownames of colData are simply in different order
+  # than the colnames of the countData, if so throw an error
+  # as the user probably should investigate what's wrong
   if (!is.null(rownames(colData)) & !is.null(colnames(countData))) {
     if (all(sort(rownames(colData)) == sort(colnames(countData)))) {
       if (!all(rownames(colData) == colnames(countData))) {
@@ -188,6 +203,10 @@ are not in the same order as the colnames of the countData:
       }
     }
   }
+  if (is.null(rownames(colData)) & !is.null(colnames(countData))) {
+    rownames(colData) <- colnames(countData)
+  }
+  
   se <- SummarizedExperiment(assays = SimpleList(counts=countData), colData = colData, ...)
   dds <- DESeqDataSet(se, design = design, ignoreRank)
   return(dds)
@@ -205,6 +224,7 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory="", design, ignor
   if( ! all( sapply( l, function(a) all( a$V1 == l[[1]]$V1 ) ) ) )
     stop( "Gene IDs (first column) differ between files." )
   tbl <- sapply( l, function(a) a$V2 )
+  colnames(tbl) <- l[[1]]$V1
   rownames(tbl) <- l[[1]]$V1
   rownames(sampleTable) <- sampleTable[,1]
   oldSpecialNames <- c( "no_feature", "ambiguous",
