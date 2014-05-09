@@ -105,8 +105,11 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
 
 // declarations
 extern "C" {
-SEXP fitDisp( SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP use_priorSEXP) ;
+
+  SEXP fitDisp( SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP use_priorSEXP) ;
   SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP) ;
+  SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP interceptSEXP, SEXP bgridSEXP, SEXP betapriorvarSEXP ) ;
+
 }
 
 // definition
@@ -334,6 +337,53 @@ return Rcpp::List::create(Rcpp::Named("beta_mat",beta_mat),
 			  Rcpp::Named("contrast_denom",contrast_denom),
 			  Rcpp::Named("deviance",deviance));
 END_RCPP
+}
+
+
+// evaluates the log posterior over a grid of values for B
+// note: the calculations here are on the log2 scale
+SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP interceptSEXP, SEXP bgridSEXP, SEXP betapriorvarSEXP ){
+  BEGIN_RCPP
+  arma::mat y = Rcpp::as<arma::mat>(ySEXP);
+  arma::mat nf = Rcpp::as<arma::mat>(nfSEXP);
+  arma::mat beta = Rcpp::as<arma::mat>(betaSEXP);
+  arma::vec alpha = Rcpp::as<arma::vec>(alphaSEXP);
+  arma::vec intercept = Rcpp::as<arma::vec>(interceptSEXP);
+  arma::vec bgrid = Rcpp::as<arma::vec>(bgridSEXP);
+  double betapriorvar = Rcpp::as<double>(betapriorvarSEXP);
+
+  int y_n = y.n_rows;
+  int y_m = y.n_cols;
+  double mu;
+  double B;
+  double loglike;
+  double logprior; 
+  double logpost;
+  //arma::mat beta_shrunk_mat = arma::zeros(beta.n_rows, beta.n_cols);
+  arma::mat logpostmat = arma::zeros(y_n, bgrid.n_elem);
+  arma::vec beta_shrunk = arma::zeros(beta.n_cols);
+  arma::vec Bvec = arma::zeros(y_n);
+  
+  for (int i = 0; i < y_n; i++) {
+    for (int t = 0; t < bgrid.n_elem; t++) {
+      B = bgrid(t);
+      beta_shrunk = (1.0 - B) * beta.row(i).t();
+      loglike = 0.0;
+      for (int j = 0; j < y_m; j++) {
+	mu = nf(i,j) * pow(intercept(i) + beta_shrunk(j), 2);
+	// note the order for Rf_dnbinom_mu: x, sz, mu, lg
+	loglike = loglike + Rf_dnbinom_mu(y(i,j), 1.0/alpha(i), mu, 1);
+      }
+      // as we compare for fixed beta prior variance, don't need Normal constant
+      logprior = sum( -1.0 * square(beta_shrunk) / (2.0 * betapriorvar) );
+      // we want to maximize the log posterior
+      logpost = loglike + logprior;
+      logpostmat(i, t) = logpost;
+    }
+  }
+
+  return Rcpp::List::create(Rcpp::Named("logpostmat",logpostmat));
+  END_RCPP
 }
 
 

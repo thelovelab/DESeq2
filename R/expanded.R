@@ -1,7 +1,7 @@
 makeExpandedModelMatrix <- function(object) {
   designFactors <- getDesignFactors(object)
   coldata <- colData(object)
-  coldata <- rbind(coldata,coldata[nrow(coldata),])
+  coldata <- rbind(coldata,coldata[nrow(coldata),,drop=FALSE])
   for (f in designFactors) {
     levels(coldata[[f]]) <- c(levels(coldata[[f]]),"_null_level_")
     coldata[[f]] <- relevel(coldata[[f]],"_null_level_")

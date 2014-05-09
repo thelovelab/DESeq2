@@ -224,7 +224,7 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory="", design, ignor
   if( ! all( sapply( l, function(a) all( a$V1 == l[[1]]$V1 ) ) ) )
     stop( "Gene IDs (first column) differ between files." )
   tbl <- sapply( l, function(a) a$V2 )
-  colnames(tbl) <- l[[1]]$V1
+  colnames(tbl) <- sampleTable[,1]
   rownames(tbl) <- l[[1]]$V1
   rownames(sampleTable) <- sampleTable[,1]
   oldSpecialNames <- c( "no_feature", "ambiguous",

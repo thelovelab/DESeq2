@@ -334,36 +334,12 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     }
     dispersion <- mcols(objectNZ)$dispFit
 
-    # the posterior / penalized log likelihood times -1
-    objectiveFn <- function(B, idx) {
-      lfcShrink <- (1 - B) * logFoldChangeMatrix
-      logLike <- sum(dnbinom(counts(objectNZ)[idx,], mu = (nf * 2^(interceptNZ + lfcShrink))[idx,],
-                             size = 1/dispersion[idx], log=TRUE))
-      logPrior <- sum(dnorm(lfcShrink[idx,], 0, sqrt(betaPriorVar), log=TRUE))
-      -1 * (logLike + logPrior)
-    }
+    bgrid <- c(0, .001, .005, .01, .02, .05, 1:10/10)
+    # evaluate over a grid of B (shrinkage amount)
+    logpostmat <- rlogGrid(counts(objectNZ), nf, logFoldChangeMatrix,
+                           dispersion, interceptNZ, bgrid, betaPriorVar)$logpostmat
 
-    nq <- 12
-    quantiles <- quantile(interceptNZ, 0:nq/nq)
-    quantiles[1] <- quantiles[1] - 1
-    quantiles[11] <- quantiles[11] + 1
-    cutByQuantiles <- as.integer(cut(interceptNZ, quantiles))
-
-    Bs <- sapply(1:nq, function(i) {
-      idx <- cutByQuantiles == i
-      optimize(objectiveFn, interval=c(0,1), idx=idx)$minimum
-    })
-
-    # interpolate between the optimal B's based on the log2(baseMean)
-    xs <- (quantiles[-1] + quantiles[-(nq + 1)])/2
-    logit <- function(p) log(p / (1 - p))
-    sigmoid <- function(x) 1 / (1 + exp(-x))
-    logitBs <- logit(Bs)
-    lofit <- loess(logitBs ~ xs)
-    pred <- predict(lofit, newdata=data.frame(xs=interceptNZ))
-    pred[interceptNZ <= xs[1]] <- logitBs[1]
-    pred[interceptNZ >= xs[nq]] <- logitBs[nq]
-    optimalB <- sigmoid(pred)
+    optimalB <- bgrid[ apply(logpostmat, 1, which.max) ]
   } else {
     Bout <- B
     optimalB <- B[!mcols(object)$allZero]
@@ -382,3 +358,19 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
   attr(normalizedData,"B") <- Bout
   normalizedData
 }
+
+# Evaluate the likelihood over a grid of B's
+rlogGrid <- function (ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSEXP, betapriorvarSEXP) {
+  # test for any NAs in arguments
+  arg.names <- names(formals(rlogGrid))
+  na.test <- sapply(list(ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSEXP, betapriorvarSEXP),
+                    function(x) any(is.na(x)))
+  if (any(na.test)) {
+    stop(paste("in call to rlogGrid, the following arguments contain NA:",
+               paste(arg.names[na.test],collapse=", ")))
+  }
+  .Call("rlogGrid", ySEXP=ySEXP, nfSEXP=nfSEXP, betaSEXP=betaSEXP,
+        alphaSEXP=alphaSEXP, interceptSEXP=interceptSEXP,
+        bgridSEXP=bgridSEXP, betapriorvarSEXP=betapriorvarSEXP, PACKAGE = "DESeq2")
+}
+

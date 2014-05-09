@@ -9,6 +9,13 @@ CHANGES IN VERSION 1.5.2
     o Added 'format' argument to results, which will attach results to
       GRangesList or GRanges if requested (default is DataFrame).
 
+CHANGES IN VERSION 1.4.3
+------------------------
+
+    o Fixed simple bug when using normalizationFactors and running 
+      nbinomWaldTest, error was "no method for coercing this S4 class 
+      to a vector".
+
 CHANGES IN VERSION 1.4.2
 ------------------------
 
