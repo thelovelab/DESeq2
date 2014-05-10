@@ -9,6 +9,11 @@ CHANGES IN VERSION 1.5.2
     o Added 'format' argument to results, which will attach results to
       GRangesList or GRanges if requested (default is DataFrame).
 
+CHANGES IN VERSION 1.4.4
+------------------------
+
+    o Fixed a hang which could occur in the GLM fitting procedure.
+
 CHANGES IN VERSION 1.4.3
 ------------------------
 
