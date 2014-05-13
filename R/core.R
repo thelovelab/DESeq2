@@ -2192,11 +2192,15 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
 sanitizeRowData <- function(object) {
   class(mcols(mcols(object))$type) <- "character"
   class(mcols(mcols(object))$description) <- "character"
+  mcols(mcols(object))$type[ is.na(mcols(mcols(object))$type) ] <- ""
+  mcols(mcols(object))$description[ is.na(mcols(mcols(object))$description) ] <- ""
   object
 }
 
 sanitizeColData <- function(object) {
   class(mcols(colData(object))$type) <- "character"
   class(mcols(colData(object))$description) <- "character"
+  mcols(colData(object))$type[ is.na(mcols(colData(object))$type) ] <- ""
+  mcols(colData(object))$description[ is.na(mcols(colData(object))$description) ] <- ""
   object
 }
