@@ -916,7 +916,7 @@ than differential testing. For differential testing we recommend the
 in this vignette, which also takes into account the dependence of the 
 variance of counts on the mean value during the dispersion estimation step.
 
-The function \Rfunction{rlogTransform} returns a \Rclass{SummarizedExperiment} object
+The function \Rfunction{rlog} returns a \Rclass{SummarizedExperiment} object
 which contains the rlog-transformed values in its \Rclass{assay} slot:
 
 <<rld, cache=TRUE>>=

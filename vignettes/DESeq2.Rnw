@@ -409,7 +409,7 @@ write.csv(as.data.frame(resOrdered),
 \subsection{Multi-factor designs} \label{sec:multifactor}
 
 Experiments with more than one factor influencing the counts can be 
-easily analyzed using model formulae including the additional variables. 
+easily analyzed using model formula including the additional variables. 
 The data in the \Biocexptpkg{pasilla} package have a condition of interest 
 (the column \Robject{condition}), as well as information on the type of sequencing 
 which was performed (the column \Robject{type}), as we can see below:
@@ -731,7 +731,7 @@ rownames(mat) <- colnames(mat) <- with(colData(dds),
 heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
 @
 
-\subsubsection{Principal component plot of the samples}
+\subsubsection{Principal component plot of the samples}\label{sec:pca}
 
 Related to the distance matrix of Section~\ref{sec:dists} is the PCA
 plot of the samples, which we obtain as follows (Figure \ref{figure/figPCA}).
@@ -1708,7 +1708,22 @@ information as a term in the design formula. This will account for
 differences between the samples while estimating the effect due to 
 the condition. The condition of interest should go at the end of the 
 design formula. See Section~\ref{sec:multifactor}.
-  
+
+\subsection{Can I run DESeq2 to contrast the levels of 100 groups?}
+
+\deseqtwo will work with any kind of design specified using the R
+formula. We enourage users to consider exploratory data analysis such
+as principal components analysis as described in Section~\ref{sec:pca}, 
+rather than performing statistical testing of all combinations of
+dozens of groups. 
+
+As a speed concern with fitting very large models, 
+note that each additional level of a factor in the
+design formula adds another parameter to the GLM which is fit by
+\deseqtwo. Users might consider first removing genes with very few
+reads, e.g.\ genes with row sum of 1, as this will speed up the
+fitting procedure.
+
 \subsection{Can I use DESeq2 to analyze a dataset without replicates?}
 
 If a \Rclass{DESeqDataSet} is provided with an experimental design without replicates,

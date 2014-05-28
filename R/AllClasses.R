@@ -119,6 +119,22 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     }
   }
 
+  designVarsNumeric <- sapply(designVars, function(v) is.numeric(colData(se)[[v]]))
+  if (any(designVarsNumeric)) {
+    warnIntVars <- FALSE
+    for (v in designVars[designVarsNumeric]) {
+      if (all(colData(se)[[v]] == round(colData(se)[[v]]))) {
+        warnIntVars <- TRUE
+      }
+    }
+    if (warnIntVars) {
+      message(paste0("the design formula contains a numeric variable with integer values,
+specifying a model with increasing fold change for higher values.
+did you mean for this to be a factor? if so, you should first convert
+this variable to a factor using the factor() function"))
+    }
+  }
+
   designFactors <- designVars[designVarsClass == "factor"]
   missingLevels <- sapply(designFactors,function(v) any(table(colData(se)[[v]]) == 0))
   if (any(missingLevels)) {
