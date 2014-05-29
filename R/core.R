@@ -1318,19 +1318,19 @@ parametricDispersionFit <- function( means, disps ) {
    while(TRUE) {
       residuals <- disps / ( coefs[1] + coefs[2] / means )
       good <- which( (residuals > 1e-4) & (residuals < 15) )
-      fit <- glm( disps[good] ~ I(1/means[good]),
-         family=Gamma(link="identity"), start=coefs )
+      # check for glm convergence below to exit while-loop
+      suppressWarnings({fit <- glm( disps[good] ~ I(1/means[good]),
+         family=Gamma(link="identity"), start=coefs )})
       oldcoefs <- coefs
       coefs <- coefficients(fit)
-      if( !all( coefs > 0 ) )
+      if ( !all( coefs > 0 ) )
          stop(simpleError("parametric dispersion fit failed"))
-      if( sum( log( coefs / oldcoefs )^2 ) < 1e-6 )
+      if ( ( sum( log( coefs / oldcoefs )^2 ) < 1e-6 )  & fit$converged )
          break
       iter <- iter + 1
-      if( iter > 10 ) {
-         stop(simpleError("dispersion fit did not converge"))
-         break }
-   }
+      if ( iter > 10 ) 
+        stop(simpleError("dispersion fit did not converge"))
+    }
    names( coefs ) <- c( "asymptDisp", "extraPois" )
    ans <- function(q) coefs[1] + coefs[2] / q
    attr( ans, "coefficients" ) <- coefs
