@@ -10,7 +10,7 @@ makeExpandedModelMatrix <- function(object) {
   mm0 <- model.matrix(design(object), data=coldata)
   # these can appear when interactions are present without main effect variables
   nullLvls <- grepl("_null_level_",colnames(mm0))
-  mm <- mm0[-nrow(mm0), !nullLvls]
+  mm <- mm0[-nrow(mm0),!nullLvls,drop=FALSE]
   attr(mm,"assign") <- attr(mm0,"assign")
   colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
   colnames(mm) <- make.names(colnames(mm))

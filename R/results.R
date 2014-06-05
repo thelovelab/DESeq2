@@ -222,11 +222,17 @@ results <- function(object, contrast, name,
 
   test <- attr(object, "test")
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
-  
+
+  # check for intercept
+  hasIntercept <- attr(terms(design(object)),"intercept") == 1
+
+  # check for expanded model matrix
   isExpanded <- attr(object, "modelMatrixType") == "expanded"
+  
   termsOrder <- attr(terms.formula(design(object)),"order")
+
   # allows use of 'name' for expanded model matrices if there are interactions
-  if ((test == "Wald") & isExpanded & missing(contrast) & all(termsOrder < 2)) {
+  if ((test == "Wald") & (isExpanded | !hasIntercept) & missing(contrast) & all(termsOrder < 2)) {
     if (missing(name)) {
       designVars <- all.vars(design(object))
       lastVarName <- designVars[length(designVars)]
@@ -432,7 +438,7 @@ resultsNames <- function(object) {
 removeResults <- function(object) {
   resCols <- mcols(mcols(object))$type == "results"
   if (sum(resCols,na.rm=TRUE) > 0) {
-    mcols(object) <- mcols(object)[,-which(resCols)]
+    mcols(object) <- mcols(object)[,-which(resCols),drop=FALSE]
   }
   return(object)
 }
@@ -584,10 +590,13 @@ or the denominator (second element of contrast list), but not both")
     contrastNumLevel <- contrast[2]
     contrastDenomLevel <- contrast[3]
 
+    # check for intercept
+    hasIntercept <- attr(terms(design(object)),"intercept") == 1
+    
     # case 1: standard model matrices: build the appropriate contrast
     # coefficients names are of the form  "factor_level_vs_baselevel"
     # output: contrastNumColumn and contrastDenomColumn
-    if (!expanded) {
+    if (!expanded & hasIntercept) {
 
       # then we have a base level for the factor
       contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
@@ -598,7 +607,7 @@ or the denominator (second element of contrast list), but not both")
       contrastDenomColumn <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel))
       resNames <- resultsNames(object)
       
-      # check in case the desired contrast is already
+      # check that the desired contrast is already
       # available in mcols(object), and then we can either
       # take it directly or multiply the log fold
       # changes and stat by -1
@@ -656,7 +665,8 @@ or the denominator (second element of contrast list), but not both")
                    "are contained in 'resultsNames(object)'"))
       }
 
-      # case 2: expanded model matrices: build the appropriate contrasrt
+      # case 2: expanded model matrices or no intercept:
+      # need to then build the appropriate contrast.
       # these coefficient names have the form "factorlevel"
       # output: contrastNumColumn and contrastDenomColumn
     } else {

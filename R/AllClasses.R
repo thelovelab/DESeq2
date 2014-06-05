@@ -102,7 +102,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     if (any(round(assay(se)) != assay(se))) {
       stop("some values in assay are not integers")
     }
-    message("convering counts to integer mode")
+    message("converting counts to integer mode")
     mode(assay(se)) <- "integer"
   }
 
@@ -249,7 +249,7 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory="", design, ignor
   # either starts with two underscores
   # or is one of the old special names (htseq-count backward compatability)
   specialRows <- (substr(rownames(tbl),1,1) == "_") | rownames(tbl) %in% oldSpecialNames
-  tbl <- tbl[ !specialRows, ]
+  tbl <- tbl[ !specialRows, , drop=FALSE ]
   dds <- DESeqDataSetFromMatrix(countData = tbl,
                                 colData = sampleTable[,-(1:2),drop=FALSE],
                                 design = design,

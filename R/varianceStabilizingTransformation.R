@@ -39,19 +39,24 @@
 #' A typical workflow is shown in Section \emph{Variance stabilizing transformation}
 #' in the package vignette.
 #'
-#' If \code{\link{estimateDispersions}} was called with \code{fitType="parametric"},
+#' If \code{\link{estimateDispersions}} was called with:
+#'
+#' \code{fitType="parametric"},
 #' a closed-form expression for the variance stabilizing
 #' transformation is used on the normalized
 #' count data. The expression can be found in the file \file{vst.pdf}
 #' which is distributed with the vignette.
 #'
-#' If \code{\link{estimateDispersions}} was called with \code{fitType="local"},
+#' \code{fitType="local"},
 #' the reciprocal of the square root of the variance of the normalized counts, as derived
 #' from the dispersion fit, is then numerically
 #' integrated, and the integral (approximated by a spline function) is evaluated for each
 #' count value in the column, yielding a transformed value. 
-#'   
-#' In both cases, the transformation is scaled such that for large
+#'
+#' \code{fitType="mean"}, a VST is applied for negative binomial counts, 'k',
+#' with a fixed dispersion, 'a': ( 2 asinh(sqrt(a k)) - log(a) - log(4) )/log(2).
+#' 
+#' In all cases, the transformation is scaled such that for large
 #' counts, it becomes asymptotically (for large values) equal to the
 #' logarithm to base 2.
 #'
@@ -141,7 +146,7 @@ getVarianceStabilizedData <- function(object) {
       log( (1 + coefs["extraPois"] + 2 * coefs["asymptDisp"] * q + 2 * sqrt( coefs["asymptDisp"] * q * ( 1 + coefs["extraPois"] + coefs["asymptDisp"] * q ) ) ) / ( 4 * coefs["asymptDisp"] ) ) / log(2)
     }
     return(vst(ncounts))
-  } else {
+  } else if ( attr( dispersionFunction(object), "fitType" ) == "local" ) {
     # non-parametric fit -> numerical integration
     if (is.null(sizeFactors(object))) {
       stop("call estimateSizeFactors before calling getVarianceStabilizedData if using local dispersion fit")
@@ -164,5 +169,13 @@ getVarianceStabilizedData <- function(object) {
     })
     rownames( tc ) <- rownames( counts(object) )
     return(tc)
+  } else if ( attr( dispersionFunction(object), "fitType" ) == "mean" ) {
+    alpha <- attr( dispersionFunction(object), "mean" )
+    # the following stablizes NB counts with fixed dispersion alpha
+    # and converges to log2(q) as q => infinity
+    vst <- function(q) ( 2 * asinh(sqrt(alpha * q)) - log(alpha) - log(4) ) / log(2)
+    return(vst(ncounts))
+  } else {
+    stop( "fitType is not parametric, local or mean" )
   }
 }

@@ -468,7 +468,7 @@ these column could have come in during colData import")
   }
   if (!is.null(dispersions(object))) {
     if (!quiet) message("you had estimated dispersions, replacing these")
-    mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results"))]
+    mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results")),drop=FALSE]
   }
   stopifnot(length(maxit)==1)
   fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
