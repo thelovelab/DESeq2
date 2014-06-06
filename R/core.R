@@ -150,6 +150,11 @@ DESeq <- function(object, test=c("Wald","LRT"),
   if (test == "LRT") {
     checkLRT(full, reduced)
   }
+  hasIntercept <- attr(terms(design(object)),"intercept") == 1
+  if (betaPrior & !hasIntercept) {
+    stop("betaPrior=TRUE can only be used if the design has an intercept.
+i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
+  }
   attr(object, "betaPrior") <- betaPrior
   if (!is.null(sizeFactors(object)) || !is.null(normalizationFactors(object))) {
     if (!quiet) {

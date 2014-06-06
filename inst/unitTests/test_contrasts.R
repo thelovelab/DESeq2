@@ -16,9 +16,15 @@ test_contrasts <- function() {
   lfcCA <- results(dds,contrast=c("condition","C","A"))$log2FoldChange
   lfcBA <- results(dds,contrast=c("condition","B","A"))$log2FoldChange
   lfcCB <- results(dds,contrast=c("condition","C","B"))$log2FoldChange
+  lfcAC <- results(dds,contrast=c("condition","A","C"))$log2FoldChange
+  lfcAB <- results(dds,contrast=c("condition","A","B"))$log2FoldChange
+  lfcBC <- results(dds,contrast=c("condition","B","C"))$log2FoldChange
   checkEqualsNumeric(median(lfcCA), 3, tolerance=.1)
   checkEqualsNumeric(median(lfcBA), 1, tolerance=.1)
   checkEqualsNumeric(median(lfcCB), 2, tolerance=.1)
+  checkEqualsNumeric(median(lfcAC), -3, tolerance=.1)
+  checkEqualsNumeric(median(lfcAB), -1, tolerance=.1)
+  checkEqualsNumeric(median(lfcBC), -2, tolerance=.1)
 
   # check that results are not changed by releveling
   dds2 <- dds

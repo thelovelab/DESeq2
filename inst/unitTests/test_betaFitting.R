@@ -11,7 +11,7 @@ test_betaFitting <- function() {
   alpha <- .5
 
   dds <- DESeqDataSetFromMatrix(matrix(y,nrow=1),
-                                colData=DataFrame(x=x[,2]),
+                                colData=DataFrame(x=factor(x[,2])),
                                 design= ~ x)
   sizeFactors(dds) <- sf
   dispersions(dds) <- alpha

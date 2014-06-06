@@ -219,10 +219,9 @@ results <- function(object, contrast, name,
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
   }
-
   test <- attr(object, "test")
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
-
+  
   # check for intercept
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
 
@@ -231,7 +230,9 @@ results <- function(object, contrast, name,
   
   termsOrder <- attr(terms.formula(design(object)),"order")
 
-  # allows use of 'name' for expanded model matrices if there are interactions
+  # if neither 'contrast' nor 'name' were specified, create the default result table:
+  # the last level / first level for the last variable in design.
+  # (unless there are interactions, in which case the lastCoefName is pulled below)
   if ((test == "Wald") & (isExpanded | !hasIntercept) & missing(contrast) & all(termsOrder < 2)) {
     if (missing(name)) {
       designVars <- all.vars(design(object))
@@ -284,7 +285,6 @@ see the manual page of ?results for more information")
       stop("'contrast', as a list of length 2, should have character vectors as elements,
 see the manual page of ?results for more information")
     }
-    
     # pass down whether the model matrix type was "expanded"
     res <- cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues)
   } else {
@@ -294,9 +294,7 @@ see the manual page of ?results for more information")
     lfcSE <- getCoefSE(object, name)
     stat <- getStat(object, test, name)
     pvalue <- getPvalue(object, test, name)
-    res <- cbind(mcols(object)["baseMean"],
-                 log2FoldChange,lfcSE,stat,
-                 pvalue)
+    res <- cbind(mcols(object)["baseMean"],log2FoldChange,lfcSE,stat,pvalue)
     names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
   }
   rownames(res) <- rownames(object)
@@ -308,34 +306,24 @@ see the manual page of ?results for more information")
 Likelihood ratio test p-values are overwritten")
     }
     if (altHypothesis == "greaterAbs") {
-      newPvalue <- pmin(1, 2 * pnorm(abs(res$log2FoldChange),
-                                     mean = lfcThreshold,
-                                     sd = res$lfcSE,
-                                     lower.tail = FALSE))
+      newPvalue <- pmin(1, 2 * pnorm(abs(res$log2FoldChange), mean = lfcThreshold,
+                                     sd = res$lfcSE, lower.tail = FALSE))
     } else if (altHypothesis == "lessAbs") {
       # check requirement if betaPrior was set to FALSE
       if (attr(object,"betaPrior")) {
         stop("testing altHypothesis='lessAbs' requires setting the DESeq() argument betaPrior=FALSE")
       }
-      pvalueAbove <- pnorm(res$log2FoldChange,
-                           mean = lfcThreshold,
-                           sd = res$lfcSE,
-                           lower.tail = TRUE)
-      pvalueBelow <- pnorm(res$log2FoldChange,
-                           mean = -lfcThreshold,
-                           sd = res$lfcSE,
-                           lower.tail = FALSE)
+      pvalueAbove <- pnorm(res$log2FoldChange, mean = lfcThreshold,
+                           sd = res$lfcSE, lower.tail = TRUE)
+      pvalueBelow <- pnorm(res$log2FoldChange, mean = -lfcThreshold,
+                           sd = res$lfcSE, lower.tail = FALSE)
       newPvalue <- pmax(pvalueAbove, pvalueBelow)
     } else if (altHypothesis == "greater") {
-      newPvalue <- pnorm(res$log2FoldChange,
-                         mean = lfcThreshold,
-                         sd = res$lfcSE,
-                         lower.tail = FALSE)
+      newPvalue <- pnorm(res$log2FoldChange, mean = lfcThreshold,
+                         sd = res$lfcSE, lower.tail = FALSE)
     } else if (altHypothesis == "less") {
-      newPvalue <- pnorm(res$log2FoldChange,
-                         mean = -lfcThreshold,
-                         sd = res$lfcSE,
-                         lower.tail = TRUE)
+      newPvalue <- pnorm(res$log2FoldChange, mean = -lfcThreshold,
+                         sd = res$lfcSE, lower.tail = TRUE)
     }
     res$pvalue <- newPvalue
   }
@@ -365,7 +353,7 @@ Likelihood ratio test p-values are overwritten")
     res$pvalue[cooksOutlier] <- NA
   }
 
-  # if original baseMean was positive, but now zero, fill in results
+  # if original baseMean was positive, but now zero due to replaced counts, fill in results
   if ( sum(mcols(object)$replace, na.rm=TRUE) > 0) {
     nowZero <- which(mcols(object)$replace & mcols(object)$baseMean == 0)
     res$log2FoldChange[nowZero] <- 0
@@ -589,73 +577,81 @@ or the denominator (second element of contrast list), but not both")
     }
     contrastNumLevel <- contrast[2]
     contrastDenomLevel <- contrast[3]
-
+    contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
+    
     # check for intercept
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
+    firstVar <- contrastFactor == all.vars(design(object))[1]
+
+    # tricky case: if the design has no intercept, the factor is
+    # not the first variable in the design, and one of the numerator or denominator
+    # is the base level, then the desired contrast is simply a coefficient (or -1 times)
+    noInterceptPullCoef <- !hasIntercept & !firstVar &
+      (contrastBaseLevel %in% c(contrastNumLevel, contrastDenomLevel))
     
-    # case 1: standard model matrices: build the appropriate contrast
+    # case 1: standard model matrices: pull coef or build the appropriate contrast
     # coefficients names are of the form  "factor_level_vs_baselevel"
     # output: contrastNumColumn and contrastDenomColumn
-    if (!expanded & hasIntercept) {
-
-      # then we have a base level for the factor
-      contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
-      
+    if (!expanded & (hasIntercept | noInterceptPullCoef)) {
       # use make.names() so the column names are
       # the same as created by DataFrame in mcols(object).
       contrastNumColumn <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel))
       contrastDenomColumn <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel))
       resNames <- resultsNames(object)
-      
       # check that the desired contrast is already
       # available in mcols(object), and then we can either
       # take it directly or multiply the log fold
       # changes and stat by -1
       if ( contrastDenomLevel == contrastBaseLevel ) {
+        cleanName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
         # the results can be pulled directly from mcols(object)
-        name <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel))
+        name <- if (!noInterceptPullCoef) {
+          make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel))
+        } else {
+          make.names(paste0(contrastFactor,contrastNumLevel))
+        }
         if (!name %in% resNames) {
-          stop(paste("as",contrastDenomLevel,"is the base level, was expecting",name,"to be present in 'resultsNames(object)'"))
+          stop(paste("as",contrastDenomLevel,"is the base level, was expecting",
+                     name,"to be present in 'resultsNames(object)'"))
         }
         test <- "Wald"
         log2FoldChange <- getCoef(object, name)
         lfcSE <- getCoefSE(object, name)
         stat <- getStat(object, test, name)
         pvalue <- getPvalue(object, test, name)
-        res <- cbind(mcols(object)["baseMean"],
-                     log2FoldChange,lfcSE,stat,
-                     pvalue)
+        res <- cbind(mcols(object)["baseMean"],log2FoldChange,lfcSE,stat,pvalue)
         names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
+        contrastDescriptions <- paste(c("log2 fold change:","standard error:",
+                                        "Wald statistic:","Wald test p-value:"), cleanName)
+        mcols(res)$description[mcols(res)$type == "results"] <- contrastDescriptions
         return(res)
       } else if ( contrastNumLevel == contrastBaseLevel ) {
         # fetch the results for denom vs num 
         # and mutiply the log fold change and stat by -1
         cleanName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
-        swapName <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel))
+        swapName <- if (!noInterceptPullCoef) {
+          make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel))
+        } else {
+          make.names(paste0(contrastFactor,contrastDenomLevel))
+        }
         if (!swapName %in% resNames) {
-          stop(paste("as",contrastNumLevel,"is the base level, was expecting",swapName,"to be present in 'resultsNames(object)'"))
+          stop(paste("as",contrastNumLevel,"is the base level, was expecting",
+                     swapName,"to be present in 'resultsNames(object)'"))
         }
         test <- "Wald"
         log2FoldChange <- getCoef(object, swapName)
         lfcSE <- getCoefSE(object, swapName)
         stat <- getStat(object, test, swapName)
         pvalue <- getPvalue(object, test, swapName)
-        res <- cbind(mcols(object)["baseMean"],
-                     log2FoldChange,lfcSE,stat,
-                     pvalue)
+        res <- cbind(mcols(object)["baseMean"],log2FoldChange,lfcSE,stat,pvalue)
         names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
         res$log2FoldChange <- -1 * res$log2FoldChange
         res$stat <- -1 * res$stat
-        # also need to swap the name in the mcols
-        contrastDescriptions <- paste(c("log2 fold change (MAP):",
-                                        "standard error:",
-                                        "Wald statistic:",
-                                        "Wald test p-value:"),
-                                      cleanName)
+        contrastDescriptions <- paste(c("log2 fold change:","standard error:",
+                                        "Wald statistic:","Wald test p-value:"), cleanName)
         mcols(res)$description[mcols(res)$type == "results"] <- contrastDescriptions
         return(res)
       }
-    
       # check for the case where neither are present
       # as comparisons against base level
       if ( ! (contrastNumColumn %in% resNames &
@@ -664,19 +660,17 @@ or the denominator (second element of contrast list), but not both")
                    "such that",contrastNumColumn,"and",contrastDenomColumn,
                    "are contained in 'resultsNames(object)'"))
       }
-
-      # case 2: expanded model matrices or no intercept:
+      # case 2: expanded model matrices or no intercept and first variable
       # need to then build the appropriate contrast.
       # these coefficient names have the form "factorlevel"
       # output: contrastNumColumn and contrastDenomColumn
     } else {
-      
-      # else in the expanded case, we first check validity
+      # we only need to check validity
       contrastNumColumn <- make.names(paste0(contrastFactor, contrastNumLevel))
       contrastDenomColumn <- make.names(paste0(contrastFactor, contrastDenomLevel))
       if ( ! (contrastNumColumn %in% resNames & contrastDenomColumn %in% resNames) ) {
-        stop(paste("both",contrastNumLevel,"and",contrastDenomLevel,"are expected to be in
-resultsNames(object), prefixed by",contrastFactor))
+        stop(paste(paste0(contrastFactor,contrastNumLevel),"and",paste0(contrastFactor,contrastDenomLevel),
+                   "are expected to be in resultsNames(object)"))
       }
     }
   }
@@ -740,7 +734,6 @@ lastCoefName <- function(object) {
   resNms <- resultsNames(object)
   resNms[length(resNms)]
 }
-
 
 # functions to get coef, coefSE, pvalues and padj from mcols(object)
 getCoef <- function(object,name) {
