@@ -45,7 +45,7 @@ The code of this function can be seen with:
 \code{getMethod("plotMA","DESeqDataSet")}
 If users wish to modify the graphical parameters of the plot,
 it is recommended to build the data.frame in the
-same manner and call \code{plotMA}
+same manner and call \code{plotMA}.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()

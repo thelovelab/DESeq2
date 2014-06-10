@@ -89,7 +89,7 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' \code{getMethod("plotMA","DESeqDataSet")}
 #' If users wish to modify the graphical parameters of the plot,
 #' it is recommended to build the data.frame in the
-#' same manner and call \code{plotMA}
+#' same manner and call \code{plotMA}.
 #'
 #' @usage
 #' \S4method{plotMA}{DESeqResults}(object, alpha, main, ylim, ...)
@@ -151,7 +151,7 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 
 #' Sample PCA plot from variance-stabilized data
 #' 
-#' This plot helps to check for batch effects and the like.
+#' This plot helps to check for batch effects and the like. 
 #' 
 #' @param x a SummarizedExperiment, with data in \code{assay(x)},
 #' produced for example by either \code{\link{varianceStabilizingTransformation}}
@@ -161,54 +161,92 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #'    row variance
 #' @param col a vector of colors for each level of intgroup
 #'
-#' @return A \code{trellis} object.
+#' @return An object created by \code{ggplot}, which can be assigned and further customized.
 #' 
 #' @author Wolfgang Huber
 #'
 #' @note See the vignette for an example of variance stabilization and PCA plots.
-#'
-#' @importFrom RColorBrewer brewer.pal
-#' @importFrom lattice xyplot draw.key
+#' Note that the source code of plotPCA is very simple and commented.
+#' Users should find it easy to customize this function.
 #' 
 #' @examples
 #'
-#' dds = makeExampleDESeqDataSet(betaSD=1)
-#' vsd = varianceStabilizingTransformation(dds)
-#' p = plotPCA(vsd)
-#' print(p)
-#' 
-#' ## Add text labels (for presentation graphics, consider additional
-#' ## layout operations that avoid overplotting, such as the FField package on CRAN)
-#' names = colData(vsd)$sample
-#' 
-#' p = update(p, panel = function(x, y, ...) {
-#'       lattice::panel.xyplot(x, y, ...);
-#'       lattice::ltext(x=x, y=y, labels=names, pos=1, offset=1, cex=0.8)
-#'     })
-#' print(p)
+#' dds <- makeExampleDESeqDataSet(betaSD=1)
+#' rld <- rlog(dds)
+#' plotPCA(rld)
 #' 
 #' @export
 plotPCA = function(x, intgroup="condition", ntop=500, col)
 {
-  rv = rowVars(assay(x))
-  select = order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
-  pca = prcomp(t(assay(x)[select,]))
+  # calculate the variance for each gene
+  rv <- rowVars(assay(x))
 
-  fac = factor(apply( as.data.frame(colData(x)[, intgroup, drop=FALSE]), 1, paste, collapse=" : "))
-  if (missing(col)) {
-    col = if( nlevels(fac) >= 3 )
-      brewer.pal(nlevels(fac), "Paired")
-    else
-      c( "lightgreen", "dodgerblue" )
-  }
-  
-  xyplot(PC2 ~ PC1, groups=fac, data=as.data.frame(pca$x), pch=16, cex=2,
-    aspect = "iso", col=col,
-    main = draw.key(key = list(
-      rect = list(col = col),
-      text = list(levels(fac)),
-      rep = FALSE)))
+  # select the ntop genes by variance
+  select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
+
+  # perform a PCA on the data in assay(x) for the selected genes
+  pca <- prcomp(t(assay(x)[select,]))
+
+  # the contribution to the total variance for each component
+  percvar <- pca$sdev^2 / sum( pca$sdev^2 )
+
+  # add the intgroup factors together to create a new grouping factor
+  group <- factor(apply( as.data.frame(colData(x)[, intgroup, drop=FALSE]), 1, paste, collapse=" : "))
+
+  # assembly the data for the plot
+  d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group)
+
+  ggplot(data=d, aes_string(x="PC1", y="PC2", color="group")) + geom_point(size=3) + 
+    xlab(paste0("PC1: ",round(percvar[1] * 100),"% variance")) +
+    ylab(paste0("PC2: ",round(percvar[2] * 100),"% variance"))
 }
+
+
+#' Plot of normalized counts for a single gene on log scale
+#' 
+#' @param dds a \code{DESeqDataSet}
+#' @param gene a character, specifying the name of the gene to plot
+#' @param intgroup a character vector of names in \code{colData(x)} to use for grouping
+#' @param normalized whether the counts should be normalized by size factor
+#' (default is TRUE)
+#' @param transform whether to present log2 counts (TRUE) or
+#' to present the counts on the log scale (FALSE, default)
+#' @param ... arguments passed to plot
+#' 
+#' @examples
+#'
+#' dds <- makeExampleDESeqDataSet()
+#' plotCounts(dds, "gene1")
+#' 
+#' @export
+plotCounts <- function(dds, gene, intgroup="condition", normalized=TRUE, transform=FALSE, ...) {
+  stopifnot(is.character(gene) & length(gene) == 1)
+  stopifnot(all(sapply(intgroup, function(v) is(colData(dds)[[v]], "factor"))))
+  if (is.null(sizeFactors(dds)) & is.null(normalizationFactors(dds))) {
+    dds <- estimateSizeFactors(dds)
+  }
+  cnts <- counts(dds,normalized=normalized)[gene,]
+  group <- factor(apply( as.data.frame(colData(dds)[, intgroup, drop=FALSE]), 1, paste, collapse=" : "))
+  data <- data.frame(counts=cnts + ifelse(cnts == 0, .5, 0), group=as.integer(group))
+  if (transform) {
+    data$counts <- log2(data$counts)
+    ylab <- expression(log[2]~counts)
+    logxy <- ""
+  } else {
+    ylab <- "counts"
+    logxy <- "y"
+  }
+  with(data,
+       plot(group + rnorm(ncol(dds),0,.03), counts, xlim=c(.5,max(group)+.5),
+            log=logxy, xaxt="n", xlab="", ylab=ylab, ...)
+       )
+  axis(1, at=seq_along(levels(group)), levels(group))
+}
+
+
+##############
+# unexported #
+##############
 
 
 # convenience function for adding alpha transparency to named colors

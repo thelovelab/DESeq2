@@ -675,19 +675,19 @@ select <- order(rowMeans(counts(dds,normalized=TRUE)),decreasing=TRUE)[1:30]
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
 @
 
-<<figHeatmap2a, fig.width=7, fig.height=10>>=
+<<figHeatmap2a, dev="pdf", fig.width=7, fig.height=10>>=
 heatmap.2(counts(dds,normalized=TRUE)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
           dendrogram="none", trace="none", margin=c(10,6))
 @
 
-<<figHeatmap2b, fig.width=7, fig.height=10>>=
+<<figHeatmap2b, dev="pdf", fig.width=7, fig.height=10>>=
 heatmap.2(assay(rld)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
           dendrogram="none", trace="none", margin=c(10, 6))
 @
 
-<<figHeatmap2c, fig.width=7, fig.height=10>>=
+<<figHeatmap2c, dev="pdf", fig.width=7, fig.height=10>>=
 heatmap.2(assay(vsd)[select,], col = hmcol,
           Rowv = FALSE, Colv = FALSE, scale="none",
           dendrogram="none", trace="none", margin=c(10, 6))
@@ -724,7 +724,7 @@ distsRL <- dist(t(assay(rld)))
 A heatmap of this distance matrix gives us an overview over similarities
 and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples}):
 
-<<figHeatmapSamples, fig.width=7, fig.height=7>>=
+<<figHeatmapSamples, dev="pdf", fig.width=7, fig.height=7>>=
 mat <- as.matrix(distsRL)
 rownames(mat) <- colnames(mat) <- with(colData(dds),
                                        paste(condition, type, sep=" : "))
@@ -736,11 +736,11 @@ heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
 Related to the distance matrix of Section~\ref{sec:dists} is the PCA
 plot of the samples, which we obtain as follows (Figure \ref{figure/figPCA}).
 
-<<figPCA, fig.width=5, fig.height=5>>=
-print(plotPCA(rld, intgroup=c("condition", "type")))
+<<figPCA, dev="pdf", fig.width=5, fig.height=3>>=
+plotPCA(rld, intgroup=c("condition", "type"))
 @
 
-\incfig{figure/figPCA}{.5\textwidth}{PCA plot.}{
+\incfig{figure/figPCA}{.7\textwidth}{PCA plot.}{
   PCA plot. The \Sexpr{ncol(rld)} samples shown in the 2D
   plane spanned by their first two principal components. This type of
   plot is useful for visualizing the overall effect of experimental
@@ -1166,7 +1166,7 @@ returned by \Rfunction{results}. For example, we can easily visualize
 the optimization by plotting the \Robject{filterNumRej} attribute of 
 the results object, as seen in Figure \ref{figure/filtByMean}.
 
-<<filtByMean>>=
+<<filtByMean, dev="pdf">>=
 attr(res,"filterThreshold")
 plot(attr(res,"filterNumRej"),type="b",
      ylab="number of rejections")
@@ -1533,7 +1533,7 @@ It shows how the filtering ameliorates the multiple testing problem
 -- and thus the severity of a multiple testing adjustment -- by
 removing a background set of hypotheses whose $p$ values are distributed
 more or less uniformly in $[0,1]$.
-<<histindepfilt, fig.width=7, fig.height=5>>=
+<<histindepfilt, dev="pdf", fig.width=7, fig.height=5>>=
 use <- res$baseMean > attr(res,"filterThreshold")
 table(use)
 h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)

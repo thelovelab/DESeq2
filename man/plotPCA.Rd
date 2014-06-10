@@ -18,29 +18,20 @@ row variance}
 \item{col}{a vector of colors for each level of intgroup}
 }
 \value{
-A \code{trellis} object.
+An object created by \code{ggplot}, which can be assigned and further customized.
 }
 \description{
 This plot helps to check for batch effects and the like.
 }
 \note{
 See the vignette for an example of variance stabilization and PCA plots.
+Note that the source code of plotPCA is very simple and commented.
+Users should find it easy to customize this function.
 }
 \examples{
-dds = makeExampleDESeqDataSet(betaSD=1)
-vsd = varianceStabilizingTransformation(dds)
-p = plotPCA(vsd)
-print(p)
-
-## Add text labels (for presentation graphics, consider additional
-## layout operations that avoid overplotting, such as the FField package on CRAN)
-names = colData(vsd)$sample
-
-p = update(p, panel = function(x, y, ...) {
-      lattice::panel.xyplot(x, y, ...);
-      lattice::ltext(x=x, y=y, labels=names, pos=1, offset=1, cex=0.8)
-    })
-print(p)
+dds <- makeExampleDESeqDataSet(betaSD=1)
+rld <- rlog(dds)
+plotPCA(rld)
 }
 \author{
 Wolfgang Huber

@@ -988,22 +988,14 @@ treatment type and patient number instead of sample ID, so that we have
 all this information in view when looking at the heatmap 
 (Fig.~\ref{figure/beginner_sampleDistHeatmap}).
 
-\incfig{figure/beginner_samplePCA}{.5\textwidth}{Principal components analysis (PCA)}{ of samples after rlog transformation.}
+\incfig{figure/beginner_samplePCA}{.6\textwidth}{Principal components analysis (PCA)}{ of samples after rlog transformation.}
 
 Another way to visualize sample-to-sample distances is a principal-components
 analysis (PCA). In this ordination method, the data points (i.e., here, the samples)
 are projected onto the 2D plane such that they spread out optimally (Fig.\ \ref{figure/beginner_samplePCA}).
-If we only had two treatments, the \Rfunction{plotPCA} will automatically use a paired color palette
-for each combination of the levels of patient and treatment. As we have three treatments, 
-we supply a vector which specifies three shades of red, green, blue and purple for each patient.
 
-<<beginner_samplePCA, dev="pdf">>=
-ramp <- 1:3/3
-cols <- c(rgb(ramp, 0, 0), 
-          rgb(0, ramp, 0), 
-          rgb(0, 0, ramp), 
-          rgb(ramp, 0, ramp))
-print( plotPCA( rld, intgroup = c( "patient", "treatment"), col=cols ) )
+<<beginner_samplePCA, dev="pdf", fig.width=4.3, fig.height=3>>=
+plotPCA( rld, intgroup = c( "patient", "treatment" ) )
 @
 
 Here, we have used the function \Rfunction{plotPCA} which comes with \deseqtwo.
@@ -1047,7 +1039,7 @@ but rather at the amount by which each gene deviates in a specific sample from
 the gene's average across all samples. Hence, we center and scale each genes' values across
 samples, and plot a heatmap.
 
-<<beginner_geneHeatmap, fig.width=9, fig.height=9>>=
+<<beginner_geneHeatmap, dev="pdf", fig.width=9, fig.height=9>>=
 heatmap.2( assay(rld)[ topVarGenes, ], scale="row", 
      trace="none", dendrogram="column", 
      col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
