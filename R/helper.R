@@ -43,6 +43,7 @@
 #' @export
 collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
   if (!is.factor(groupby)) groupby <- factor(groupby)
+  groupby <- droplevels(groupby)
   stopifnot(length(groupby) == ncol(object))
   sp <- split(seq(along=groupby), groupby)
   countdata <- sapply(sp, function(i) rowSums(assay(object)[,i,drop=FALSE]))
@@ -220,3 +221,34 @@ fpm <- function(object, robust=TRUE) {
   }
 }
 
+#' Summarize DESeq results
+#'
+#' Print a summary of the results from a DESeq analysis.
+#' 
+#' @param res a \code{\link{DESeqResults}} object
+#' @param alpha the adjusted p-value cutoff
+#'
+#' @examples
+#'
+#' example("DESeq")
+#' summarizeResults(res)
+#' 
+#' @export
+summarizeResults <- function(res, alpha=.1) {
+  cat("\n")
+  notallzero <- sum(res$baseMean > 0)
+  up <- sum(res$padj < alpha & res$log2FoldChange > 0, na.rm=TRUE)
+  down <- sum(res$padj < alpha & res$log2FoldChange < 0, na.rm=TRUE)
+  filt <- sum(!is.na(res$pvalue) & is.na(res$padj))
+  outlier <- sum(res$baseMean > 0 & is.na(res$pvalue))
+
+  cat("out of",notallzero,"with nonzero total read count\n\n")
+  cat(paste0("at adjusted p-value < ",alpha,":\n\n"))
+  cat(paste0("LFC > 0 (up)   : ",up,", ",round(up/notallzero*100),"% \n"))
+  cat(paste0("LFC < 0 (down) : ",down,", ",round(down/notallzero*100),"% \n\n"))
+  cat(paste0("filtered *     : ",filt,", ",round(filt/notallzero*100),"% \n"))
+  cat(paste0("flagged **     : ",outlier,", ",round(outlier/notallzero*100),"% \n\n"))
+  cat("* for low mean count, see independentFiltering argument of results()\n")
+  cat("** for high Cook's distance, see cooksCutoff argument of results()\n")
+  cat("\n")
+}

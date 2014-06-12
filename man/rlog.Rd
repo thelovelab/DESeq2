@@ -29,10 +29,8 @@ analysis.}
 
 \item{fast}{if TRUE, an approximation to the rlog transformation is made,
 wherein an optimal amount of shrinkage of sample-wise log fold changes
-is calculated for genes divided into 12 batched based on mean counts.
-then shrinkage is performed by interpolating between these optimal values.
-optimal is defined by maximizing the same posterior as in the standard
-rlog transformation.}
+is calculated for each gene. optimal is defined by maximizing the same
+posterior as in the standard rlog transformation.}
 
 \item{intercept}{by default, this is not provided and calculated automatically.
 if provided, this should be a vector as long as the number of rows of object,
@@ -56,23 +54,22 @@ The matrix of transformed values are accessed by \code{assay(rld)}.
 for \code{rlogData}, a \code{matrix} of the same dimension as the
 count data, containing the transformed values. To avoid returning
 matrices with NA values where there were zeros for all rows of
-the unnormalized counts, rlogTransformation returns instead all
+the unnormalized counts, the rlog transformation returns instead all
 zeros (essentially adding a pseudocount of one, only to those rows
 in which all samples have zero).
 }
 \description{
-This function uses Tikhonov/ridge regularization
-to transform the data to the log2 scale in a way
-which minimizes differences between samples for rows with small counts.
+This function transform the count data to the log2 scale in a way
+which minimizes differences between samples for rows with small counts,
+and which normalizes with respect to library size.
 The rlog transformation produces a similar variance stabilizing effect as
 \code{\link{varianceStabilizingTransformation}},
-though \code{rlogTransformation} is more robust in the
+though \code{rlog} is more robust in the
 case when the size factors vary widely.
 The transformation is useful when checking for outliers
 or as input for machine learning techniques
 such as clustering or linear discriminant analysis.
-Note: \code{rlog} is equivalent to \code{rlogTransformation}, which
-take as input a \code{\link{DESeqDataSet}} and return a
+\code{rlog} takes as input a \code{\link{DESeqDataSet}} and returns a
 \code{\link{SummarizedExperiment}} object.
 }
 \details{
@@ -84,35 +81,36 @@ and VST are offered as separate functionality which can be used for visualizatio
 clustering or other machine learning tasks. See the transformation section of the
 vignette for more details.
 
-The 'regularization' referred to here corresponds to the maximum a posteriori
-solution to the GLM with a prior on the coefficients for each sample.
+The transformation does not require that one has already estimated size factors
+and dispersions.
+
+The regularization is on the log fold changes of the count for each sample
+over an intercept, for each gene. As nearby count values for low counts genes
+are almost as likely as the observed count, the rlog shrinkage is greater for low counts.
+For high counts, the rlog shrinkage has a much weaker effect.
 The fitted dispersions are used rather than the MAP dispersions
-(so similar to the \code{\link{varianceStabilizingTransformation}})
-as the blind dispersion estimation would otherwise shrink
-large, true log fold changes.
-The prior variance is calculated as follows:
+(so similar to the \code{\link{varianceStabilizingTransformation}}).
+
+The prior variance for the shrinkag of log fold changes is calculated as follows:
 a matrix is constructed of the logarithm of the counts plus a pseudocount of 0.5,
 the log of the row means is then subtracted, leaving an estimate of
 the log fold changes per sample over the fitted value using only an intercept.
-The prior variance is then calculated as with
-\code{\link{nbinomWaldTest}}, by matching the upper quantiles of the observed
+The prior variance is then calculated by matching the upper quantiles of the observed
 log fold change estimates with an upper quantile of the normal distribution.
-A second and final GLM fit is then performed using this prior.
-It is also possible to supply the variance of the prior.
-See the vignette for an example of the use and a comparison with
-\code{varianceStabilizingTransformation}.
+A GLM fit is then calculated using this prior. It is also possible to supply the variance of the prior.
+See the vignette for an example of the use and a comparison with \code{varianceStabilizingTransformation}.
 
 The transformed values, rlog(K), are equal to
-\eqn{rlog(K_{ij}) = \log_2(q_{ij}) = x_{j.} \beta_i}{rlog(K_ij) = log2(q_ij) = x_j. * beta_i},
+\eqn{rlog(K_{ij}) = \log_2(q_{ij}) = \beta_{i0} + \beta_{ij}}{rlog(K_ij) = log2(q_ij) = beta_i0 + beta_ij},
 with formula terms defined in \code{\link{DESeq}}.
 
 The parameters of the rlog transformation from a previous dataset
-can be "frozen" and reapplied to new samples. See the "Data quality assessment"
+can be frozen and reapplied to new samples. See the 'Data quality assessment'
 section of the vignette for strategies to see if new samples are
 sufficiently similar to previous datasets.
-The "freezing" is accomplished by saving the dispersion function,
+The frozen rlog is accomplished by saving the dispersion function,
 beta prior variance and the intercept from a previous dataset,
-and running rlogTransformation with 'blind' set to FALSE
+and running \code{rlog} with 'blind' set to FALSE
 (see example below).
 }
 \examples{

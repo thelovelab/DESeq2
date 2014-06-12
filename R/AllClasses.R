@@ -106,6 +106,14 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     mode(assay(se)) <- "integer"
   }
 
+  if (all(assay(se) == 0)) {
+    message("all samples have 0 counts for all genes. check the counting script.")
+  }
+  
+  if (all(rowSums(assay(se) == assay(se)[,1]) == ncol(se))) {
+    message("all genes have equal values for all samples. cannot perform differential analysis")
+  }
+  
   designVars <- all.vars(design)
   if (!all(designVars %in% names(colData(se)))) {
     stop("all variables in design formula must be columns in colData")

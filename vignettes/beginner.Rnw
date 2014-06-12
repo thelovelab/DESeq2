@@ -138,6 +138,11 @@ used to count the number of reads which can be unambiguously assigned to genomic
 for each sample. These often take as input BAM or SAM alignment files and a file
 specifiying the genomic features, e.g. GFF3 or GTF files specifying a gene model.
 
+\textbf{Note:} make sure that the chromosome names of the genomic
+features in the annotation you use are consistent with the chromosome names
+of the reference used for read alignment. Otherwise, the scripts might
+fail to count any reads to features due to the mismatching names.
+
 The following tools can be used generate count tables:
 
 \begin{table}[h]

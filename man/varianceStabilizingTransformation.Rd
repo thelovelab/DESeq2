@@ -33,12 +33,19 @@ This function calculates a variance stabilizing transformation (VST) from the
 fitted dispersion-mean relation(s) and then transforms the count data (normalized
 by division by the size factors or normalization factors), yielding a matrix
 of values which are now approximately homoskedastic (having constant variance along the range
-of mean values). The \code{\link{rlogTransformation}} is less sensitive
+of mean values). The transformation also normalizes with respect to library size.
+The \code{\link{rlog}} is less sensitive
 to size factors, which can be an issue when size factors vary widely.
-This transformation is useful when checking for outliers or as input for
+These transformations are useful when checking for outliers or as input for
 machine learning techniques such as clustering or linear discriminant analysis.
 }
 \details{
+For each sample (i.e., column of \code{counts(dds)}), the full variance function
+is calculated from the raw variance (by scaling according to the size factor and adding
+the shot noise). We recommend a blind estimation of the variance function, i.e.,
+one ignoring conditions. This is performed by default, and can be modified using the
+'blind' argument.
+
 Note that neither rlog transformation nor the VST are used by the
 differential expression estimation in \code{\link{DESeq}}, which always
 occurs on the raw count data, through generalized linear modeling which
@@ -47,11 +54,8 @@ and VST are offered as separate functionality which can be used for visualizatio
 clustering or other machine learning tasks. See the transformation section of the
 vignette for more details.
 
-For each sample (i.e., column of \code{counts(dds)}), the full variance function
-is calculated from the raw variance (by scaling according to the size factor and adding
-the shot noise). We recommend a blind estimation of the variance function, i.e.,
-one ignoring conditions. This is performed by default, and can be modified using the
-'blind' argument.
+The transformation does not require that one has already estimated size factors
+and dispersions.
 
 A typical workflow is shown in Section \emph{Variance stabilizing transformation}
 in the package vignette.
@@ -75,21 +79,19 @@ with a fixed dispersion, 'a': ( 2 asinh(sqrt(a k)) - log(a) - log(4) )/log(2).
 
 In all cases, the transformation is scaled such that for large
 counts, it becomes asymptotically (for large values) equal to the
-logarithm to base 2.
+logarithm to base 2 of normalized counts.
 
 The variance stabilizing transformation from a previous dataset
-can be "frozen" and reapplied to new samples. See the "Data quality assessment"
+can be frozen and reapplied to new samples. See the 'Data quality assessment'
 section of the vignette for strategies to see if new samples are
 sufficiently similar to previous datasets.
-The "freezing" is accomplished by saving the dispersion function
+The frozen VST is accomplished by saving the dispersion function
 accessible with \code{\link{dispersionFunction}}, assigning this
 to the \code{DESeqDataSet} with the new samples, and running
 varianceStabilizingTransformation with 'blind' set to FALSE
 (see example below).
 Then the dispersion function from the previous dataset will be used
 to transform the new sample(s).
-See \code{\link{estimateSizeFactors}} for details on how to "freeze"
-size factor estimation.
 
 Limitations: In order to preserve normalization, the same
 transformation has to be used for all samples. This results in the
@@ -123,6 +125,6 @@ vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
 Simon Anders
 }
 \seealso{
-\code{\link{plotPCA}}, \code{\link{rlogTransformation}}
+\code{\link{plotPCA}}, \code{\link{rlog}}
 }
 

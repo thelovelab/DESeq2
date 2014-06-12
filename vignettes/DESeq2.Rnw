@@ -496,6 +496,8 @@ of choosing the parameter equivalent to $n_0$ above.
 One method incorporates priors on the sample differences \cite{Love:2014:biorxiv},
 and the other uses the concept of variance stabilizing
 transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
+Both transformations produce transformed data on the $\log_2$ scale
+which has been normalized with respect to library size.
 
 \subsubsection{Blind dispersion estimation}
 
@@ -525,7 +527,7 @@ by the information about the samples.
 
 The two functions return \Rclass{SummarizedExperiment} objects, as the
 data are no longer counts. The \Rfunction{assay} function is used to
-extract the matrix of normalized values.
+extract the matrix of normalized values:
 
 <<echo=FALSE>>=
 ddsblind <- dds
@@ -883,9 +885,17 @@ ddsX <- DESeq(ddsX)
 resultsNames(ddsX)
 @ 
 
-In order to test if the log2 fold change for OHT over the control
-sample is different for patient 4, one would use the following call to
-\Rfunction{results}: 
+The main effect of OHT treatment over control for all patients 
+can be extracted with the following:
+
+<<interactResMain>>=
+resOHT <- results(ddsX, contrast = c("treatment","OHT","Control"))
+head(resOHT, 2)
+@ 
+
+In order to test if the effect for OHT treatment over control
+is different for patient 4, we test the interaction term with
+the folloing: 
 
 <<interactRes>>=
 resX <- results(ddsX, contrast =
@@ -894,9 +904,16 @@ resX <- results(ddsX, contrast =
 head(resX, 2)
 @ 
 
-Note that the log2 fold change for treatment of OHT over control for
-patient 4 is the interaction effect above in addition to the main
-effect of treatment OHT over control.
+This above call returns a results table for the \emph{interaction} of OHT treatment in
+patient 4. For the effect due to OHT treatment in patient 4,
+we need to add the interaction terms for patient 4 to the main effect terms:
+
+<<interactResGroup>>=
+resPat4 <- results(ddsX, contrast =
+                   list(c("treatmentOHT","patient4.treatmentOHT"),
+                        c("treatmentControl","patient4.treatmentControl")))
+head(resPat4, 2)
+@ 
 
 If the factors in the model have only two levels, the handling of
 interaction is slightly different to simplify the analysis. Here only 
@@ -1290,7 +1307,7 @@ results tables with $p$ values and adjusted $p$ values.
 head(coef(dds))
 @ 
 
-\subsection{Sample-/gene-dependent normalization factors}\label{sec:normfactors}
+\subsection{Sample-/gene-dependent normalization factors} \label{sec:normfactors}
 
 In some experiments, there might be gene-dependent dependencies
 which vary across samples. For instance, GC-content bias or length
@@ -1386,19 +1403,24 @@ version \Biocpkg{DESeq}, are as follows:
 \begin{itemize}
 \item \Rclass{SummarizedExperiment} is used as the superclass for storage of input data,
   intermediate calculations and results.
-\item Maximum \textit{a posteriori} estimation of GLM coefficients incorporating a zero-mean
-  normal prior with variance estimated from data (equivalent to Tikhonov/ridge
-  regularization).  This adjustment has little effect on genes with high counts, yet it
-  helps to moderate the otherwise large spread in log2 fold changes for genes with low
-  counts (e.\,g.\ single digits per condition).
+\item Maximum \textit{a posteriori} estimation of GLM coefficients
+  incorporating a zero-centered
+  Normal prior with variance estimated from data (equivalent to Tikhonov/ridge
+  regularization). This adjustment has little effect on genes with high counts, yet it
+  helps to moderate the otherwise large variance in log2 fold change estimates
+  for genes with low counts or highly variable counts.
 \item Maximum \textit{a posteriori} estimation of dispersion replaces the
   \Robject{sharingMode} options \Robject{fit-only} or \Robject{maximum} of the previous version
-  of the package \cite{Wu2012New}.
+  of the package. This is similar to the dispersion estimation methods of DSS \cite{Wu2012New}.
 \item All estimation and inference is based on the generalized linear model, which
   includes the two condition case (previously the \textit{exact test} was used).
 \item The Wald test for significance of GLM coefficients is provided as the default
   inference method, with the likelihood ratio test of the previous version still available.
-\item It is possible to provide a matrix of sample-/gene-dependent normalization factors.
+\item It is possible to provide a matrix of sample-/gene-dependent
+  normalization factors (Section \ref{sec:normfactors}).
+\item Automatic independent filtering on the mean of normalized counts
+  (Section \ref{sec:indepfilt}).
+\item Automatic outlier detection and handling (Section \ref{sec:cook}).
 \end{itemize}
 
 \subsection{Count outlier detection} \label{sec:cooks}
