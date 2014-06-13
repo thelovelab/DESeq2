@@ -128,12 +128,15 @@
 #' @param theta the quantiles at which to assess the number of rejections
 #' from independent filtering
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
-#' @param format character, either "DataFrame", "GRanges", or "GRangesList",
+#' @param format character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 #' whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 #' or if the results DataFrame should be attached as metadata columns to
 #' the \code{GRanges} or \code{GRangesList} \code{rowData} of the \code{DESeqDataSet}.
 #' If the \code{rowData} is a \code{GRangesList}, and \code{GRanges} is requested, 
-#' the range of each gene will be returned.
+#' the range of each gene will be returned
+#' @param test this is typically automatically detected internally.
+#' the one exception is after \code{nbinomLRT} has been run, \code{test="Wald"}
+#' will generate Wald statistics and Wald test p-values.
 #'
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
 #' a simple subclass of DataFrame. This object contains the results columns:
@@ -215,11 +218,19 @@ results <- function(object, contrast, name,
                     independentFiltering=TRUE,
                     alpha=0.1, filter, theta,
                     pAdjustMethod="BH",
-                    format=c("DataFrame","GRanges","GRangesList")) {
+                    format=c("DataFrame","GRanges","GRangesList"),
+                    test) {
   if (!"results" %in% mcols(mcols(object))$type) {
-    stop("cannot find results columns in object, first call 'DESeq','nbinomWaldTest', or 'nbinomLRT'")
+    stop("cannot find results columns in object, first call DESeq, nbinomWaldTest, or nbinomLRT")
   }
-  test <- attr(object, "test")
+  if (missing(test)) {
+    test <- attr(object, "test")
+  } else if (test == "Wald" & attr(object, "test") == "LRT") {
+    # need to add Wald statistics and p-values
+    object <- makeWaldTest(object)
+  } else if (test == "LRT" & attr(object, "test") == "Wald") {
+    stop("the LRT requires the user run nbinomLRT or DESeq(dds,test='LRT')")
+  }
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
   
   # check for intercept
@@ -787,4 +798,22 @@ renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
 getNonInteractionColumnIndices <- function(object, modelMatrix) {
   interactions <- which(attr(terms.formula(design(object)),"order") > 1)
   which(attr(modelMatrix,"assign") != interactions)
+}
+
+makeWaldTest <- function(object) {
+  betaMatrix <- as.matrix(mcols(object)[,grep("log2 fold change",mcols(mcols(object))$description),drop=FALSE])
+  modelMatrixNames <- colnames(betaMatrix)
+  betaSE <- as.matrix(mcols(object)[,grep("standard error",mcols(mcols(object))$description),drop=FALSE])
+  WaldStatistic <- betaMatrix/betaSE
+  colnames(WaldStatistic) <- paste0("WaldStatistic_",modelMatrixNames)
+  WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)
+  colnames(WaldPvalue) <- paste0("WaldPvalue_",modelMatrixNames)
+  modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
+  statInfo <- paste("Wald statistic:",modelMatrixNamesSpaces)
+  pvalInfo <- paste("Wald test p-value:",modelMatrixNamesSpaces)
+  WaldResults <- DataFrame(c(matrixToList(WaldStatistic), matrixToList(WaldPvalue)))
+  mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
+                                  description = c(statInfo, pvalInfo))
+  mcols(object) <- cbind(mcols(object),WaldResults)
+  return(object)
 }

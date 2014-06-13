@@ -76,3 +76,13 @@ test_designs_zero_intercept <- function() {
   checkEqualsNumeric(results(dds, contrast=c("condition","1","2"))[1,2], -1, tolerance=.1)
   checkEqualsNumeric(results(dds, contrast=c("condition","2","3"))[1,2], -1, tolerance=.1)
 }
+
+test_LRT_then_Wald <- function() {
+  set.seed(1)
+  dds <- makeExampleDESeqDataSet(n=200)
+  dds$group <- factor(rep(1:2,6))
+  design(dds) <- ~ group + condition
+  dds <- DESeq(dds, test="LRT", reduced=~group)
+  checkTrue(!all(results(dds,name="condition_B_vs_A")$stat ==
+                 results(dds,name="condition_B_vs_A",test="Wald")$stat))
+}

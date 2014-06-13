@@ -111,7 +111,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   }
   
   if (all(rowSums(assay(se) == assay(se)[,1]) == ncol(se))) {
-    message("all genes have equal values for all samples. cannot perform differential analysis")
+    message("all genes have equal values for all samples. will note be able to perform differential analysis")
   }
   
   designVars <- all.vars(design)

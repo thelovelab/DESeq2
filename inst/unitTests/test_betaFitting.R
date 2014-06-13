@@ -6,13 +6,14 @@ test_betaFitting <- function() {
   set.seed(1)
   y <- rpois(m,20)
   sf <- rep(1,m)
+  condition <- factor(rep(0:1,each=m/2))
   x <- cbind(rep(1,m),rep(0:1,each=m/2))
   lambda <- 2
   alpha <- .5
 
   dds <- DESeqDataSetFromMatrix(matrix(y,nrow=1),
-                                colData=DataFrame(x=factor(x[,2])),
-                                design= ~ x)
+                                colData=DataFrame(condition),
+                                design= ~ condition)
   sizeFactors(dds) <- sf
   dispersions(dds) <- alpha
   mcols(dds)$baseMean <- mean(y)

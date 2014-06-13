@@ -1295,6 +1295,29 @@ substr(names(mcols(dds)),1,10)
 mcols(mcols(dds), use.names=TRUE)[1:4,]
 @
 
+The mean values $\mu_{ij} = s_j q_{ij}$ and the Cook's distances for each gene and
+sample are stored as matrices in the assays slot:
+
+<<muAndCooks>>=
+head(assays(dds)[["mu"]])
+head(assays(dds)[["cooks"]])
+@ 
+
+The dispersions $\alpha_i$ can be accessed with the
+\Rfunction{dispersions} function.
+
+<<dispersions>>=
+head(dispersions(dds))
+# which is the same as 
+head(mcols(dds)$dispersion)
+@ 
+
+The size factors $s_j$ are accessible via \Rfunction{sizeFactors}:
+
+<<sizefactors>>=
+sizeFactors(dds)
+@ 
+
 For advanced users, we also include a convenience function \Rfunction{coef} for 
 extracting the matrix of coefficients $[\beta_{ir}]$ for all genes $i$ and
 parameters $r$, as in the formula in Section~\ref{sec:glm}.

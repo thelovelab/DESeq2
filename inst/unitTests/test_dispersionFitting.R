@@ -6,6 +6,7 @@ test_dispersionFitting <- function() {
   set.seed(1)
   y <- rpois(m,20)
   sf <- rep(1,m)
+  condition <- factor(rep(0:1,each=m/2))
   x <- cbind(rep(1,m),rep(0:1,each=m/2))
   colnames(x) <- c("Intercept","condition")
   
@@ -15,7 +16,7 @@ test_dispersionFitting <- function() {
   # make a DESeqDataSet but don't use the design formula
   # instead we supply a model matrix below
   dds <- DESeqDataSetFromMatrix(matrix(y,nrow=1),
-                                colData=DataFrame(condition=x[,2]),
+                                colData=DataFrame(condition),
                                 design= ~ condition)
   sizeFactors(dds) <- sf
   dispersions(dds) <- alpha
