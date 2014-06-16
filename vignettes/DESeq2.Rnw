@@ -186,6 +186,16 @@ dds$condition <- factor(dds$condition,
 dds
 @
 
+If you have additional feature data, it can be added to the
+\Rclass{DESeqDataSet} by adding to the metadata columns of a newly
+constructed object. (Here we add redundant data for demonstration, as
+the gene names are already the rownames of the \Robject{dds}.)
+
+<<addFeatureData>>=
+featureData <- data.frame(gene=rownames(pasillaGenes))
+mcols(dds) <- DataFrame(mcols(dds), featureData)
+@ 
+
 \subsubsection{\textit{HTSeq} input}
 
 If you have \texttt{htseq-count} from the \textit{HTSeq} python package\footnote{available from 

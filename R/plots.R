@@ -237,7 +237,7 @@ plotCounts <- function(dds, gene, intgroup="condition", normalized=TRUE, transfo
     logxy <- "y"
   }
   with(data,
-       plot(group + rnorm(ncol(dds),0,.03), counts, xlim=c(.5,max(group)+.5),
+       plot(group + runif(ncol(dds),-.02,.02), counts, xlim=c(.5,max(group)+.5),
             log=logxy, xaxt="n", xlab="", ylab=ylab, ...)
        )
   axis(1, at=seq_along(levels(group)), levels(group))

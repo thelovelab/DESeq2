@@ -2212,6 +2212,10 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
 }
 
 sanitizeRowData <- function(object) {
+  if (is.null(mcols(mcols(object)))) {
+    mcols(mcols(object)) <- DataFrame(type=rep("input",ncol(mcols(object))),
+                                      description=character(ncol(mcols(object))))
+  }
   class(mcols(mcols(object))$type) <- "character"
   class(mcols(mcols(object))$description) <- "character"
   mcols(mcols(object))$type[ is.na(mcols(mcols(object))$type) ] <- ""
@@ -2220,6 +2224,10 @@ sanitizeRowData <- function(object) {
 }
 
 sanitizeColData <- function(object) {
+  if (is.null(mcols(colData(object)))) {
+    mcols(colData(object)) <- DataFrame(type=rep("input",ncol(colData(object))),
+                                        description=character(ncol(colData(object))))
+  }
   class(mcols(colData(object))$type) <- "character"
   class(mcols(colData(object))$description) <- "character"
   mcols(colData(object))$type[ is.na(mcols(colData(object))$type) ] <- ""
