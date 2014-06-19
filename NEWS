@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.5.15
+-------------------------
+
+    o For likelihood ratio test, expanded model matrices not default.
+      Some improvements in fit time from handling of genes with
+      dispersions that do not converge using line search.
+
 CHANGES IN VERSION 1.5.13
 -------------------------
 

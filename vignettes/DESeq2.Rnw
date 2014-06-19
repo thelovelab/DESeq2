@@ -265,6 +265,13 @@ to remove those levels which do not have samples in the current \Rclass{DESeqDat
 dds$condition <- droplevels(dds$condition)
 @ 
 
+\subsubsection{Collapsing technical replicates}
+
+\deseqtwo provides a function \Rfunction{collapseReplicates} which can
+assist in combining the counts from technical replicates into single
+columns. See the manual page and the Beginner's vignette for an
+example of the use of \Rfunction{collapseReplicates}.
+
 \subsubsection{About the pasilla dataset}
 
 We continue with the \Biocexptpkg{pasilla} data constructed from the
@@ -390,7 +397,7 @@ for either one of the following reasons:
     These outlier counts are detected by Cook's distance. Customization
     of this outlier filtering and description of functionality for 
     replacement of outlier counts and refitting is described in 
-    Section~\ref{sec:dealingCooks},
+    Section~\ref{sec:outlierApproach},
   \item If a row is filtered by automatic independent filtering, 
     based on low mean normalized count, then only the adjusted $p$ value is 
     set to \texttt{NA}. Description and customization of independent filtering is 
@@ -976,7 +983,7 @@ be used for exploratory data analysis, by selecting a subset of genes
 which has the highest variance and then using other packages to
 perform gene clustering.
 
-\subsection{Dealing with count outliers} \label{sec:dealingCooks}
+\subsection{Approach to count outliers} \label{sec:outlierApproach}
 
 RNA-Seq data sometimes contain isolated instances of very large counts that are apparently
 unrelated to the experimental or study design, and which may be 
@@ -1026,33 +1033,12 @@ or \Robject{Inf}. The automatic outlier replacement performed by
 \Rfunction{DESeq} can be disabled by setting the \Robject{minReplicatesForReplace}
 argument to \Robject{Inf}.
 
-\Rfunction{DESeq} replaces outliers by calling the \Rfunction{replaceOutliers} function,
+\Rfunction{DESeq} replaces outliers by internally calling the \Rfunction{replaceOutliers} function,
 which has more arguments for controlling the replacement behavior.
 \Rfunction{DESeq} preserves the original counts in \Robject{counts(dds)} 
 saving the replacement counts as \Robject{replaceCounts} in \Robject{assays(dds)}.
 The function \Rfunction{replaceOutliers} replaces the counts in \Robject{counts(dds)}, 
 saving the original counts as \Robject{originalCounts} in \Robject{assays(dds)}. 
-
-Here we demonstrate the \Rfunction{replaceOutliers} function
-on the \Robject{pasilla} dataset, using the version of 
-\Robject{dds} which was analyzed with only \Robject{condition} in the design formula. 
-This is only for demonstration purposes, as we suggest 7 or more replicates 
-in order to consider replacement for large Cook's distances. 
-The single factor design is necessary for the demonstration, 
-such that there are 3 or more replicates for every sample.
-
-<<replaceCooksOutlier>>=
-ddsReplace <- replaceOutliers(dds, minReplicates=3)
-@ 
-
-Finally we re-run all the steps of \Rfunction{DESeq}.
-
-<<refitAfterReplace,cache=TRUE>>=
-ddsReplace <- DESeq(ddsReplace)
-tab <- table(initial = results(dds)$padj < .1,
-             replace = results(ddsReplace)$padj < .1)
-addmargins(tab)
-@ 
 
 \subsection{Likelihood ratio test} \label{sec:LRT}
 
@@ -1453,7 +1439,7 @@ version \Biocpkg{DESeq}, are as follows:
   normalization factors (Section \ref{sec:normfactors}).
 \item Automatic independent filtering on the mean of normalized counts
   (Section \ref{sec:indepfilt}).
-\item Automatic outlier detection and handling (Section \ref{sec:cook}).
+\item Automatic outlier detection and handling (Section \ref{sec:cooks}).
 \end{itemize}
 
 \subsection{Count outlier detection} \label{sec:cooks}
@@ -1466,7 +1452,7 @@ the negative binomial. For this reason, we perform automatic detection
 of count outliers. We use Cook's distance, which is a measure of how
 much the fitted coefficients would change if an individual sample were
 removed \cite{Cook1977Detection}. For more on the implementation of 
-Cook's distance see Section~\ref{sec:dealingCooks} and the manual page
+Cook's distance see Section~\ref{sec:outlierApproach} and the manual page
 for the \Rfunction{results} function. Below we plot the maximum value of
 Cook's distance for each row over the rank of the test statistic 
 to justify its use as a filtering criterion.

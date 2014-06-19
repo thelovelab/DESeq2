@@ -107,8 +107,12 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
 extern "C" {
 
   SEXP fitDisp( SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP use_priorSEXP) ;
+
   SEXP fitBeta( SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP) ;
+
   SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP interceptSEXP, SEXP bgridSEXP, SEXP betapriorvarSEXP ) ;
+
+  SEXP fitDispGrid( SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP use_priorSEXP ) ;
 
 }
 
@@ -376,12 +380,13 @@ SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP inte
   double loglike;
   double logprior; 
   double logpost;
-  //arma::mat beta_shrunk_mat = arma::zeros(beta.n_rows, beta.n_cols);
-  arma::mat logpostmat = arma::zeros(y_n, bgrid.n_elem);
+  arma::vec logpostvec = arma::zeros(bgrid.n_elem);
   arma::vec beta_shrunk = arma::zeros(beta.n_cols);
   arma::vec Bvec = arma::zeros(y_n);
+  arma::uword idxmax;
   
   for (int i = 0; i < y_n; i++) {
+    R_CheckUserInterrupt();
     for (int t = 0; t < bgrid.n_elem; t++) {
       B = bgrid(t);
       beta_shrunk = (1.0 - B) * beta.row(i).t();
@@ -395,13 +400,54 @@ SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP inte
       logprior = sum( -1.0 * square(beta_shrunk) / (2.0 * betapriorvar) );
       // we want to maximize the log posterior
       logpost = loglike + logprior;
-      logpostmat(i, t) = logpost;
+      logpostvec(t) = logpost;
     }
+    logpostvec.max(idxmax);
+    Bvec(i) = bgrid(idxmax);
   }
 
-  return Rcpp::List::create(Rcpp::Named("logpostmat",logpostmat));
+  return Rcpp::List::create(Rcpp::Named("Bvec",Bvec));
   END_RCPP
 }
 
+SEXP fitDispGrid( SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP use_priorSEXP ){
+BEGIN_RCPP
+Rcpp::NumericMatrix y(ySEXP);
+arma::mat x = Rcpp::as<arma::mat>(xSEXP);
+int y_n = y.nrow();
+Rcpp::NumericMatrix mu_hat(mu_hatSEXP);
+arma::vec disp_grid = Rcpp::as<arma::vec>(disp_gridSEXP);
+Rcpp::NumericVector log_alpha_prior_mean(log_alpha_prior_meanSEXP);
+double log_alpha_prior_sigmasq = Rcpp::as<double>(log_alpha_prior_sigmasqSEXP);
+bool use_prior = Rcpp::as<bool>(use_priorSEXP);
+double a;
+double delta = disp_grid(1) - disp_grid(0);
+double a_hat;
+arma::vec disp_grid_fine;
+arma::vec logpostvec = arma::zeros(disp_grid.n_elem);
+arma::vec log_alpha = arma::zeros(y_n);
+arma::uword idxmax;
+for (int i = 0; i < y_n; i++) {
+  R_CheckUserInterrupt();
+  Rcpp::NumericMatrix::Row yrow = y(i,_);
+  Rcpp::NumericMatrix::Row mu_hat_row = mu_hat(i,_);
+  for (int t = 0; t < disp_grid.n_elem; t++) {
+    // maximize the log likelihood over the variable a, the log of alpha, the dispersion parameter
+    a = disp_grid(t);
+    logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+  }
+  logpostvec.max(idxmax);
+  a_hat = disp_grid(idxmax);
+  disp_grid_fine = arma::linspace<arma::vec>(a_hat - delta, a_hat + delta, disp_grid.n_elem);
+  for (int t = 0; t < disp_grid_fine.n_elem; t++) {
+    a = disp_grid_fine(t);
+    logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+  }
+  logpostvec.max(idxmax);
+  log_alpha(i) = disp_grid_fine(idxmax);
+}
 
+return Rcpp::List::create(Rcpp::Named("log_alpha",log_alpha));
 
+END_RCPP
+}

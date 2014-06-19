@@ -36,7 +36,7 @@ Normalization factors alter the model of \code{\link{DESeq}} in the following wa
 counts \eqn{K_{ij}}{K_ij} and normalization factors \eqn{NF_{ij}}{NF_ij} for gene i and sample j:
 
 \deqn{ K_{ij} \sim \textrm{NB}( \mu_{ij}, \alpha_i) }{ K_ij ~ NB(mu_ij, alpha_i) }
-\deqn{ \mu_{ij} = NF_{ij} q_{ij} }{ mu_ij = NF_ij * q_ij }
+\deqn{ \mu_{ij} = NF_{ij} q_{ij} }{ mu_ij = NF_ij q_ij }
 }
 \note{
 Normalization factors are on the scale of the counts (similar to \code{\link{sizeFactors}})

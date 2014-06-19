@@ -4,8 +4,9 @@
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
 nbinomLRT(object, full = design(object), reduced, betaPrior = FALSE,
-  betaPriorVar, modelMatrixType, maxit = 100, useOptim = TRUE,
-  quiet = FALSE, useQR = TRUE, betaPriorUpperQuantile = 0.05)
+  betaPriorVar, modelMatrixType = "standard", maxit = 100,
+  useOptim = TRUE, quiet = FALSE, useQR = TRUE,
+  betaPriorUpperQuantile = 0.05)
 }
 \arguments{
 \item{object}{a DESeqDataSet}

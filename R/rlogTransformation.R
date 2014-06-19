@@ -334,10 +334,8 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
 
     bgrid <- c(0, .001, .005, .01, .02, .05, 1:10/10)
     # evaluate over a grid of B (shrinkage amount)
-    logpostmat <- rlogGrid(counts(objectNZ), nf, logFoldChangeMatrix,
-                           dispersion, interceptNZ, bgrid, betaPriorVar)$logpostmat
-
-    optimalB <- bgrid[ apply(logpostmat, 1, which.max) ]
+    optimalB <- as.numeric(rlogGrid(counts(objectNZ), nf, logFoldChangeMatrix,
+                                    dispersion, interceptNZ, bgrid, betaPriorVar)$Bvec)
   } else {
     Bout <- B
     optimalB <- B[!mcols(object)$allZero]
@@ -359,14 +357,13 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
 
 # Evaluate the likelihood over a grid of B's
 rlogGrid <- function (ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSEXP, betapriorvarSEXP) {
+
   # test for any NAs in arguments
   arg.names <- names(formals(rlogGrid))
-  na.test <- sapply(list(ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSEXP, betapriorvarSEXP),
-                    function(x) any(is.na(x)))
-  if (any(na.test)) {
-    stop(paste("in call to rlogGrid, the following arguments contain NA:",
-               paste(arg.names[na.test],collapse=", ")))
-  }
+  na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
+  if (any(na.test)) stop(paste("in call to rlogGrid, the following arguments contain NA:",
+                               paste(arg.names[na.test],collapse=", ")))
+
   .Call("rlogGrid", ySEXP=ySEXP, nfSEXP=nfSEXP, betaSEXP=betaSEXP,
         alphaSEXP=alphaSEXP, interceptSEXP=interceptSEXP,
         bgridSEXP=bgridSEXP, betapriorvarSEXP=betapriorvarSEXP, PACKAGE = "DESeq2")

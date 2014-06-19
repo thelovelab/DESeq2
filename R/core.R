@@ -16,8 +16,8 @@
 #' The differential expression analysis uses a generalized linear model of the form:
 #'
 #' \deqn{ K_{ij} \sim \textrm{NB}( \mu_{ij}, \alpha_i) }{ K_ij ~ NB(mu_ij, alpha_i) }
-#' \deqn{ \mu_{ij} = s_j q_{ij} }{ mu_ij = s_j * q_ij }
-#' \deqn{ \log_2(q_{ij}) = x_{j.} \beta_i }{ log2(q_ij) = x_j. * beta_i }
+#' \deqn{ \mu_{ij} = s_j q_{ij} }{ mu_ij = s_j q_ij }
+#' \deqn{ \log_2(q_{ij}) = x_{j.} \beta_i }{ log2(q_ij) = x_j. beta_i }
 #'
 #' where counts \eqn{K_{ij}}{K_ij} for gene i, sample j are modeled using
 #' a negative binomial distribution with fitted mean \eqn{\mu_{ij}}{mu_ij}
@@ -175,6 +175,9 @@ i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
     object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
                              modelMatrixType=modelMatrixType)
   } else if (test == "LRT") {
+    if (missing(modelMatrixType)) {
+      modelMatrixType <- "standard"
+    }
     object <- nbinomLRT(object, full=full, reduced=reduced,
                         betaPrior=betaPrior, quiet=quiet,
                         modelMatrixType=modelMatrixType)
@@ -446,12 +449,11 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   dispGeneEstConv <- dispIter < maxit
  
   # when lacking convergence from the C++ routine
-  # we use an R function to estimate dispersions.
-  # This finds the maximum of a smooth curve along a
-  # grid of posterior evaluations
+  # we use an R function to estimate dispersions
+  # by evaluating a grid of posterior evaluations
   refitDisp <- !dispGeneEstConv & dispGeneEst > minDisp*10
   if (sum(refitDisp) > 0) {
-    dispInR <- fitDispInR(y = counts(objectNZ)[refitDisp,,drop=FALSE],
+    dispInR <- fitDispGridR(y = counts(objectNZ)[refitDisp,,drop=FALSE],
                           x = modelMatrix,
                           mu = mu[refitDisp,,drop=FALSE],
                           logAlphaPriorMean = rep(0,sum(refitDisp)),
@@ -467,6 +469,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                     description=c("gene-wise estimates of dispersion"))
   mcols(object) <- cbind(mcols(object), dispDataFrame)
   assays(object)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
+  
   return(object)
 }
 
@@ -627,7 +630,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
   # prepare dispersions for storage in mcols(object)
   dispMAP <- exp(dispResMAP$log_alpha) 
-  
+
   # when lacking convergence from the C++ routine
   # we use an R function to estimate dispersions.
   # This finds the maximum of a smooth curve along a
@@ -635,15 +638,21 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispConv <- dispResMAP$iter < maxit
   refitDisp <- !dispConv
   if (sum(refitDisp) > 0) {
-    dispInR <- fitDispInR(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
+    dispInR <- fitDispGridR(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
                           mu = mu[refitDisp,,drop=FALSE],
                           logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
                           logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
                           usePrior=TRUE)
     dispMAP[refitDisp] <- dispInR
   }
+
+  # bound the dispersion estimate between minDisp and maxDisp for numeric stability
+  maxDisp <- max(10, ncol(object))
+  dispMAP <- pmin(pmax(dispMAP, minDisp), maxDisp)
+  
   dispersionFinal <- dispMAP
-    
+
+  
   # detect outliers which have gene-wise estimates
   # outlierSD * standard deviation of log gene-wise estimates
   # above the fitted mean (prior mean)
@@ -998,7 +1007,7 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
                       betaPrior=FALSE, betaPriorVar,
-                      modelMatrixType,
+                      modelMatrixType="standard",
                       maxit=100, useOptim=TRUE, quiet=FALSE,
                       useQR=TRUE, betaPriorUpperQuantile=.05) {
 
@@ -1044,16 +1053,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
   stopifnot(is.logical(betaPrior))
   termsOrder <- attr(terms.formula(design(object)),"order")
   interactionPresent <- any(termsOrder > 1)
-  if (missing(modelMatrixType)) {
-    blindDesign <- design(object) == formula(~ 1)
-    twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
-    mmTypeTest <- betaPrior & !blindDesign & !twoLevelsInteraction
-    modelMatrixType <- if (mmTypeTest) {
-      "expanded"
-    } else {
-      "standard"
-    }
-  }
+
   if (modelMatrixType == "expanded" & !betaPrior) {
     stop("expanded model matrices require a beta prior")
   }
@@ -1456,6 +1456,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   
   # bypass the beta fitting if the model formula is only intercept and
   # the prior variance is large (1e6)
+  # i.e., LRT with reduced ~ 1 and no beta prior
   if (modelFormula == formula(~ 1) & all(lambda <= 1e-6)) {
       alpha <- alpha_hat
       betaConv <- rep(TRUE, nrow(object))
@@ -1479,13 +1480,22 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
       return(res)
   }
   
-  if ("Intercept" %in% modelMatrixNames) {
-    beta_mat <- matrix(0, ncol=ncol(modelMatrix), nrow=nrow(object))
-    # recalculate, in case this was changed
-    logBaseMean <- log(rowMeans(counts(object,normalized=TRUE)))
-    beta_mat[,which(modelMatrixNames == "Intercept")] <- logBaseMean
+  qrx <- qr(modelMatrix)
+  # if full rank, estimate initial betas for IRLS below
+  if (qrx$rank == ncol(modelMatrix)) {
+    Q <- qr.Q(qrx)
+    R <- qr.R(qrx)
+    y <- t(log(counts(object,normalized=TRUE) + .1))
+    beta_mat <- t(solve(R, t(Q) %*% y))
   } else {
-    beta_mat <- matrix(1, ncol=ncol(modelMatrix), nrow=nrow(object))
+    if ("Intercept" %in% modelMatrixNames) {
+      beta_mat <- matrix(0, ncol=ncol(modelMatrix), nrow=nrow(object))
+      # use the natural log as fitBeta occurs in the natural log scale
+      logBaseMean <- log(rowMeans(counts(object,normalized=TRUE)))
+      beta_mat[,which(modelMatrixNames == "Intercept")] <- logBaseMean
+    } else {
+      beta_mat <- matrix(1, ncol=ncol(modelMatrix), nrow=nrow(object))
+    }
   }
   
   # here we convert from the log2 scale of the betas
@@ -1536,52 +1546,18 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   }
   
   if (length(rowsForOptim) > 0) {
-    scaleCols <- apply(modelMatrix,2,function(z) max(abs(z)))
-    x <- sweep(modelMatrix,2,scaleCols,"/")
-    lambdaColScale <- lambda / scaleCols^2
-    lambdaColScale <- ifelse(lambdaColScale == 0, 1e-6, lambdaColScale)
-    lambdaLogScaleColScale <- lambdaLogScale / scaleCols^2
-    large <- 30
-    for (row in rowsForOptim) {
-      betaRow <- if (rowStable[row]) {
-        betaMatrix[row,] * scaleCols
-      } else {
-        beta_mat[row,] * scaleCols
-      }
-      betaRow <- pmin(pmax(betaRow, -large), large)
-      nf <- normalizationFactors[row,]
-      k <- counts(object)[row,]
-      alpha <- alpha_hat[row]
-      objectiveFn <- function(p) {
-        mu_row <- as.numeric(nf * 2^(x %*% p))
-        logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
-        logPrior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
-        -1 * (logLike + logPrior)
-      }
-      o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-30, upper=30)
-      ridge <- if (length(lambdaLogScale) > 1) {
-        diag(lambdaLogScaleColScale)
-      } else {
-        as.matrix(lambdaLogScaleColScale,ncol=1)
-      }
-      # if we converged, change betaConv to TRUE
-      if (o$convergence == 0) {
-        betaConv[row] <- TRUE
-      }
-      # with or without convergence, store the estimate from optim
-      betaMatrix[row,] <- o$par / scaleCols
-      # calculate the standard errors
-      mu_row <- as.numeric(nf * 2^(x %*% o$par))
-      w <- diag((mu_row^-1 + alpha)^-1)
-      xtwx <- t(x) %*% w %*% x
-      xtwxRidgeInv <- solve(xtwx + ridge)
-      sigma <- xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv
-      # warn below regarding these rows with negative variance
-      betaSE[row,] <- log2(exp(1)) * sqrt(pmax(diag(sigma),0)) / scaleCols
-      # store the new mu vector
-      mu[row,] <- mu_row
-      logLike[row] <- sum(dnbinom(k, mu=mu_row, size=1/alpha, log=TRUE))
-    }
+    # we use optim if didn't reach convergence with the IRLS code
+    resOptim <- fitNbinomGLMsOptim(object,modelMatrix,lambda,
+                                   rowsForOptim,rowStable,
+                                   normalizationFactors,alpha_hat,
+                                   betaMatrix,betaSE,betaConv,
+                                   beta_mat,
+                                   mu,logLike)
+    betaMatrix <- resOptim$betaMatrix
+    betaSE <- resOptim$betaSE
+    betaConv <- resOptim$betaConv
+    mu <- resOptim$mu
+    logLike <- resOptim$logLike
   }
 
   nNonposVar <- sum(rowSums(betaSE == 0) > 0)
@@ -1606,6 +1582,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
 # log_alphaSEXP n length vector of initial guesses for log(alpha)
 # log_alpha_prior_meanSEXP n length vector of the fitted values for log(alpha)
 # log_alpha_prior_sigmasqSEXP a single numeric value for the variance of the prior
+# min_log_alphaSEXP the minimum value of log alpha
 # kappa_0SEXP a parameter used in calculting the initial proposal
 #   for the backtracking search
 #   initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
@@ -1617,16 +1594,13 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
 fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP,
                      log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP,
                      tolSEXP, maxitSEXP, use_priorSEXP) {
+
   # test for any NAs in arguments
   arg.names <- names(formals(fitDisp))
-  na.test <- sapply(list(ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP,
-                         log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP,
-                         tolSEXP, maxitSEXP, use_priorSEXP),
-                    function(x) any(is.na(x)))
-  if (any(na.test)) {
-    stop(paste("in call to fitDisp, the following arguments contain NA:",
-               paste(arg.names[na.test],collapse=", ")))
-  }
+  na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
+  if (any(na.test)) stop(paste("in call to fitDisp, the following arguments contain NA:",
+                               paste(arg.names[na.test],collapse=", ")))
+
   .Call("fitDisp", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
         log_alphaSEXP=log_alphaSEXP, log_alpha_prior_meanSEXP=log_alpha_prior_meanSEXP,
         log_alpha_prior_sigmasqSEXP=log_alpha_prior_sigmasqSEXP,
@@ -1655,17 +1629,15 @@ fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_me
 fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
                      beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP) {
   if ( missing(contrastSEXP) ) {
+    # contrast is not required, just give 1,0,0,...
     contrastSEXP <- c(1,rep(0,ncol(xSEXP)-1))
   }
   # test for any NAs in arguments
   arg.names <- names(formals(fitBeta))
-  na.test <- sapply(list(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
-                         beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP),
-                    function(x) any(is.na(x)))
-  if (any(na.test)) {
-    stop(paste("in call to fitBeta, the following arguments contain NA:",
-               paste(arg.names[na.test],collapse=", ")))
-  }
+  na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
+  if (any(na.test)) stop(paste("in call to fitBeta, the following arguments contain NA:",
+                               paste(arg.names[na.test],collapse=", ")))
+  
   .Call("fitBeta", ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP,
         alpha_hatSEXP=alpha_hatSEXP, contrastSEXP=contrastSEXP,
         beta_matSEXP=beta_matSEXP,
@@ -1673,8 +1645,6 @@ fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
         useQRSEXP=useQRSEXP,
         PACKAGE = "DESeq2")
 }
-
-
 
 
 # convenience function for building results tables
@@ -1739,19 +1709,20 @@ matrixToList <- function(m) {
 
 
 # calculate a robust method of moments dispersion
-# using the squared MAD and the row mean
-# the idea is to get a sense of the dispersion
-# excluding individual outlier counts which would raise the estimate
-robustMethodOfMomentsDisp <- function(counts) {
-  v <- apply(counts,1,mad)^2
-  m <- rowMeans(counts)
+# using the squared MAD and the row mean.
+# the point is to estimate the dispersion excluding
+# individual outlier counts which would raise the variance
+robustMethodOfMomentsDisp <- function(object) {
+  cnts <- counts(object,normalized=TRUE)
+  v <- apply(cnts,1,mad)^2
+  m <- rowMeans(cnts)
   alpha <- pmax(v - m, 0) / m^2
   alpha <- ifelse(alpha > 0, alpha, min(alpha))
 }
 
 
 calculateCooksDistance <- function(object, H, p) {
-  dispersions <- robustMethodOfMomentsDisp(counts(object,normalized=TRUE))
+  dispersions <- robustMethodOfMomentsDisp(object)
   V <- assays(object)[["mu"]] + dispersions * assays(object)[["mu"]]^2
   PearsonResSq <- (counts(object) - assays(object)[["mu"]])^2 / V
   cooks <- PearsonResSq / p  * H / (1 - H)^2
@@ -1975,6 +1946,67 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
   res
 }
 
+
+# breaking out the optim backup code from fitNbinomGLMs
+fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
+                               rowsForOptim,rowStable,
+                               normalizationFactors,alpha_hat,
+                               betaMatrix,betaSE,betaConv,
+                               beta_mat,
+                               mu,logLike) {
+  scaleCols <- apply(modelMatrix,2,function(z) max(abs(z)))
+  x <- sweep(modelMatrix,2,scaleCols,"/")
+  lambdaColScale <- lambda / scaleCols^2
+  lambdaColScale <- ifelse(lambdaColScale == 0, 1e-6, lambdaColScale)
+  lambdaLogScale <- lambda / log(2)^2
+  lambdaLogScaleColScale <- lambdaLogScale / scaleCols^2
+  large <- 30
+  for (row in rowsForOptim) {
+    betaRow <- if (rowStable[row]) {
+      betaMatrix[row,] * scaleCols
+    } else {
+      beta_mat[row,] * scaleCols
+    }
+    betaRow <- pmin(pmax(betaRow, -large), large)
+    nf <- normalizationFactors[row,]
+    k <- counts(object)[row,]
+    alpha <- alpha_hat[row]
+    objectiveFn <- function(p) {
+      mu_row <- as.numeric(nf * 2^(x %*% p))
+      logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
+      logPrior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
+      -1 * (logLike + logPrior)
+    }
+    o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-30, upper=30)
+    ridge <- if (length(lambdaLogScale) > 1) {
+      diag(lambdaLogScaleColScale)
+    } else {
+      as.matrix(lambdaLogScaleColScale,ncol=1)
+    }
+    # if we converged, change betaConv to TRUE
+    if (o$convergence == 0) {
+      betaConv[row] <- TRUE
+    }
+    # with or without convergence, store the estimate from optim
+    betaMatrix[row,] <- o$par / scaleCols
+    # calculate the standard errors
+    mu_row <- as.numeric(nf * 2^(x %*% o$par))
+    w <- diag((mu_row^-1 + alpha)^-1)
+    xtwx <- t(x) %*% w %*% x
+    xtwxRidgeInv <- solve(xtwx + ridge)
+    sigma <- xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv
+    # warn below regarding these rows with negative variance
+    betaSE[row,] <- log2(exp(1)) * sqrt(pmax(diag(sigma),0)) / scaleCols
+    # store the new mu vector
+    mu[row,] <- mu_row
+    logLike[row] <- sum(dnbinom(k, mu=mu_row, size=1/alpha, log=TRUE))
+  }
+  return(list(betaMatrix=betaMatrix,betaSE=betaSE,
+              betaConv=betaConv,
+              mu=mu,logLike=logLike))
+}
+
+
 # estimates the variance of the prior on log dispersions
 estimateDispersionPriorVar <- function(objectNZ, aboveMinDisp, modelMatrix) {
   # estimate the variance of the distribution of the
@@ -2052,6 +2084,7 @@ estimateDispersionPriorVar <- function(objectNZ, aboveMinDisp, modelMatrix) {
 
 
 # backup function in case dispersion doesn't converge
+# this functionality is now implemented in Cpp below
 fitDispInR <- function(y, x, mu, logAlphaPriorMean,
                        logAlphaPriorSigmaSq, usePrior) {
   disp <- numeric(nrow(y))
@@ -2069,20 +2102,65 @@ fitDispInR <- function(y, x, mu, logAlphaPriorMean,
     (logLike + coxReid + logPrior)
   }
 
+  maxDisp <- max(10, ncol(y))
+  s <- seq(from=log(1e-8),to=log(maxDisp),length=15)
+  delta <- s[2] - s[1]
   # loop through rows
   for (i in seq_len(nrow(y))) {
     murow <- mu[i,]
     yrow <- y[i,]
     logAlphaPriorMeanRow <- logAlphaPriorMean[i]
-    s <- seq(from=log(1e-8),to=log(1e5),length=100)
     lpo <- sapply(s, logPost)
-    lofit <- loess(lpo ~ s, span=0.1)
-    sfine <- seq(from=log(1e-8),to=log(1e5),length=1000)
-    pred <- predict(lofit, newdata=data.frame(s=sfine))
-    disp[i] <- exp(sfine[which.max(pred)])
+    sfine <- seq(from=s[which.max(lpo)]-delta, to=s[which.max(lpo)]+delta, length=15)
+    lpofine <- sapply(sfine, logPost)
+    disp[i] <- exp(sfine[which.max(lpofine)])
   }
   disp
 }
+
+# Fit dispersions by evaluating over grid
+#
+# This function estimates the dispersion parameter (alpha) for negative binomial
+# generalized linear models. The fitting is performed on the log scale.
+#
+# ySEXP n by m matrix of counts
+# xSEXP m by k design matrix
+# mu_hatSEXP n by m matrix, the expected mean values, given beta-hat
+# disp_gridSEXP the grid over which to estimate
+# log_alpha_prior_meanSEXP n length vector of the fitted values for log(alpha)
+# log_alpha_prior_sigmasqSEXP a single numeric value for the variance of the prior
+# use_priorSEXP boolean variable, whether to use a prior or just calculate the MLE
+#
+# return a list with elements: 
+fitDispGrid <- function (ySEXP, xSEXP, mu_hatSEXP,
+                         disp_gridSEXP,
+                         log_alpha_prior_meanSEXP,
+                         log_alpha_prior_sigmasqSEXP,
+                         use_priorSEXP) {
+  
+  # test for any NAs in arguments
+  arg.names <- names(formals(fitDispGrid))
+  na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
+  if (any(na.test)) stop(paste("in call to fitDispGrid, the following arguments contain NA:",
+                               paste(arg.names[na.test],collapse=", ")))
+ 
+  .Call("fitDispGrid", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
+        disp_gridSEXP=disp_gridSEXP,
+        log_alpha_prior_meanSEXP=log_alpha_prior_meanSEXP,
+        log_alpha_prior_sigmasqSEXP=log_alpha_prior_sigmasqSEXP,
+        use_priorSEXP=use_priorSEXP,
+        PACKAGE = "DESeq2")
+}
+
+fitDispGridR <- function(y, x, mu, logAlphaPriorMean,
+                            logAlphaPriorSigmaSq, usePrior) {
+  minLogAlpha <- log(1e-8)
+  maxLogAlpha <- log(max(10, ncol(y)))
+  dispGrid <- seq(from=minLogAlpha, to=maxLogAlpha, length=15)
+  logAlpha <- fitDispGrid(y, x, mu, dispGrid, logAlphaPriorMean, logAlphaPriorSigmaSq, usePrior)$log_alpha
+  exp(logAlpha)
+}
+
 
 
 # rough dispersion estimate using a statistic similar to the Pearson residuals
@@ -2118,7 +2196,7 @@ linearModelMu <- function(y, x) {
   t(hatmatrix %*% t(y))
 }
 
-# checks for LRT formulae, written as function to remove duplicate code
+# checks for LRT formulas, written as function to remove duplicate code
 # in DESeq() and nbinomLRT()
 checkLRT <- function(full, reduced) {
   if (missing(reduced)) {
