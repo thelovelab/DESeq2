@@ -4,14 +4,14 @@
 \title{Plot of normalized counts for a single gene on log scale}
 \usage{
 plotCounts(dds, gene, intgroup = "condition", normalized = TRUE,
-  transform = FALSE, ...)
+  transform = FALSE, las = 1, main = gene, returnData = FALSE, ...)
 }
 \arguments{
 \item{dds}{a \code{DESeqDataSet}}
 
 \item{gene}{a character, specifying the name of the gene to plot}
 
-\item{intgroup}{a character vector of names in \code{colData(x)} to use for grouping}
+\item{intgroup}{interesting groups: a character vector of names in \code{colData(x)} to use for grouping}
 
 \item{normalized}{whether the counts should be normalized by size factor
 (default is TRUE)}
@@ -19,10 +19,17 @@ plotCounts(dds, gene, intgroup = "condition", normalized = TRUE,
 \item{transform}{whether to present log2 counts (TRUE) or
 to present the counts on the log scale (FALSE, default)}
 
+\item{las}{as in 'par', for rotation of axis labels}
+
+\item{main}{as in 'plot'}
+
+\item{returnData}{should the function only return the data.frame of counts and
+covariates for custom plotting (default is FALSE)}
+
 \item{...}{arguments passed to plot}
 }
 \description{
-Plot of normalized counts for a single gene on log scale
+Note: normalized counts plus a pseudocount of 0.5 are shown.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()

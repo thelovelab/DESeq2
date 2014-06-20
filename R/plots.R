@@ -156,7 +156,7 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #' @param x a SummarizedExperiment, with data in \code{assay(x)},
 #' produced for example by either \code{\link{varianceStabilizingTransformation}}
 #' or \code{\link{rlogTransformation}}
-#' @param intgroup a character vector of names in \code{colData(x)} to use for grouping
+#' @param intgroup interesting groups: a character vector of names in \code{colData(x)} to use for grouping
 #' @param ntop number of top genes to use for principal components, selected by highest
 #'    row variance
 #' @param col a vector of colors for each level of intgroup
@@ -203,14 +203,20 @@ plotPCA = function(x, intgroup="condition", ntop=500, col)
 
 
 #' Plot of normalized counts for a single gene on log scale
+#'
+#' Note: normalized counts plus a pseudocount of 0.5 are shown.
 #' 
 #' @param dds a \code{DESeqDataSet}
 #' @param gene a character, specifying the name of the gene to plot
-#' @param intgroup a character vector of names in \code{colData(x)} to use for grouping
+#' @param intgroup interesting groups: a character vector of names in \code{colData(x)} to use for grouping
 #' @param normalized whether the counts should be normalized by size factor
 #' (default is TRUE)
 #' @param transform whether to present log2 counts (TRUE) or
 #' to present the counts on the log scale (FALSE, default)
+#' @param las as in 'par', for rotation of axis labels
+#' @param main as in 'plot'
+#' @param returnData should the function only return the data.frame of counts and
+#' covariates for custom plotting (default is FALSE)
 #' @param ... arguments passed to plot
 #' 
 #' @examples
@@ -219,28 +225,44 @@ plotPCA = function(x, intgroup="condition", ntop=500, col)
 #' plotCounts(dds, "gene1")
 #' 
 #' @export
-plotCounts <- function(dds, gene, intgroup="condition", normalized=TRUE, transform=FALSE, ...) {
+plotCounts <- function(dds, gene, intgroup="condition",
+                       normalized=TRUE, transform=FALSE,
+                       las=1, main=gene,
+                       returnData=FALSE, ...) {
   stopifnot(is.character(gene) & length(gene) == 1)
-  stopifnot(all(sapply(intgroup, function(v) is(colData(dds)[[v]], "factor"))))
+  if (!all(intgroup %in% names(colData(dds)))) stop("all variables in 'intgroup' must be columns of colData")
+  stopifnot(returnData | all(sapply(intgroup, function(v) is(colData(dds)[[v]], "factor"))))
   if (is.null(sizeFactors(dds)) & is.null(normalizationFactors(dds))) {
     dds <- estimateSizeFactors(dds)
   }
   cnts <- counts(dds,normalized=normalized)[gene,]
-  group <- factor(apply( as.data.frame(colData(dds)[, intgroup, drop=FALSE]), 1, paste, collapse=" : "))
-  data <- data.frame(counts=cnts + ifelse(cnts == 0, .5, 0), group=as.integer(group))
+  group <- if (length(intgroup) == 1) {
+    colData(dds)[[intgroup]]
+  } else if (length(intgroup) == 2) {
+    lvls <- as.vector(t(outer(levels(colData(dds)[[intgroup[1]]]),
+                              levels(colData(dds)[[intgroup[2]]]),
+                              function(x,y) paste(x,y,sep=" : "))))
+    droplevels(factor(apply( as.data.frame(colData(dds)[, intgroup, drop=FALSE]),
+                            1, paste, collapse=" : "), levels=lvls))
+  } else {
+    factor(apply( as.data.frame(colData(dds)[, intgroup, drop=FALSE]),
+                 1, paste, collapse=" : "))
+  }
+  data <- data.frame(counts=cnts + .5, group=as.integer(group))
   if (transform) {
     data$counts <- log2(data$counts)
     ylab <- expression(log[2]~counts)
     logxy <- ""
   } else {
-    ylab <- "counts"
+    ylab <- ifelse(normalized,"normalized counts","counts")
     logxy <- "y"
   }
+  if (returnData) return(data.frame(counts=data$counts, colData(dds)[intgroup]))
   with(data,
        plot(group + runif(ncol(dds),-.02,.02), counts, xlim=c(.5,max(group)+.5),
-            log=logxy, xaxt="n", xlab="", ylab=ylab, ...)
+            log=logxy, xaxt="n", xlab="", ylab=ylab, las=las, main=main, ...)
        )
-  axis(1, at=seq_along(levels(group)), levels(group))
+  axis(1, at=seq_along(levels(group)), levels(group), las=las)
 }
 
 

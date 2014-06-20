@@ -370,6 +370,39 @@ plotMA(resNoPrior,
 \label{MA}
 \end{figure}
 
+\subsubsection{Plot counts}
+
+It's also useful to examine the counts, normalized to account for
+sequencing depth, across the groups. A simple function for making this
+plot for one gene at a time is \Rfunction{plotCounts}.
+
+<<plotCounts>>=
+plotCounts(dds, gene=rownames(resOrdered)[1], intgroup="condition")
+@ 
+
+For customized plotting, the function can be told to just return
+a \Rclass{data.frame} for plotting with another library:
+
+<<plotCountsAdv>>=
+d <- plotCounts(dds, gene=rownames(resOrdered)[1], intgroup="condition", 
+                returnData=TRUE)
+library(ggplot2)
+ggplot(d, aes(x=condition, y=counts)) + geom_point()
+@ 
+
+\begin{figure}
+\centering
+\includegraphics[width=.45\textwidth]{figure/plotCounts}
+\includegraphics[width=.45\textwidth]{figure/plotCountsAdv}
+\caption{
+  \textbf{Plot of counts} 
+  The plot of normalized counts (plus a pseudocount of $\frac{1}{2}$)
+  either made using the simple \Rfunction{plotCounts} function (left)
+  or using another plotting library (right, using \CRANpkg{ggplot2}).}
+\label{figplotcounts}
+\end{figure}
+
+
 \subsubsection{More information on results columns} \label{sec:moreInfo}
 
 Information about which variables and tests were used can be found by calling

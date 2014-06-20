@@ -10,7 +10,7 @@ plotPCA(x, intgroup = "condition", ntop = 500, col)
 produced for example by either \code{\link{varianceStabilizingTransformation}}
 or \code{\link{rlogTransformation}}}
 
-\item{intgroup}{a character vector of names in \code{colData(x)} to use for grouping}
+\item{intgroup}{interesting groups: a character vector of names in \code{colData(x)} to use for grouping}
 
 \item{ntop}{number of top genes to use for principal components, selected by highest
 row variance}
