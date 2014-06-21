@@ -160,6 +160,7 @@ for (int i = 0; i < y_n; i++) {
   kappa = kappa_0;
   initial_lp(i) = lp;
   initial_dlp(i) = dlp;
+  change = -1.0;
   last_change(i) = -1.0;
   for (int t = 0; t < maxit; t++) {
     // iter counts the number of steps taken out of  maxit;
@@ -375,6 +376,7 @@ SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP inte
 
   int y_n = y.n_rows;
   int y_m = y.n_cols;
+  int bgrid_n = bgrid.n_elem;
   double mu;
   double B;
   double loglike;
@@ -387,7 +389,7 @@ SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP inte
   
   for (int i = 0; i < y_n; i++) {
     R_CheckUserInterrupt();
-    for (int t = 0; t < bgrid.n_elem; t++) {
+    for (int t = 0; t < bgrid_n; t++) {
       B = bgrid(t);
       beta_shrunk = (1.0 - B) * beta.row(i).t();
       loglike = 0.0;
@@ -417,6 +419,7 @@ arma::mat x = Rcpp::as<arma::mat>(xSEXP);
 int y_n = y.nrow();
 Rcpp::NumericMatrix mu_hat(mu_hatSEXP);
 arma::vec disp_grid = Rcpp::as<arma::vec>(disp_gridSEXP);
+int disp_grid_n = disp_grid.n_elem;
 Rcpp::NumericVector log_alpha_prior_mean(log_alpha_prior_meanSEXP);
 double log_alpha_prior_sigmasq = Rcpp::as<double>(log_alpha_prior_sigmasqSEXP);
 bool use_prior = Rcpp::as<bool>(use_priorSEXP);
@@ -431,15 +434,15 @@ for (int i = 0; i < y_n; i++) {
   R_CheckUserInterrupt();
   Rcpp::NumericMatrix::Row yrow = y(i,_);
   Rcpp::NumericMatrix::Row mu_hat_row = mu_hat(i,_);
-  for (int t = 0; t < disp_grid.n_elem; t++) {
+  for (int t = 0; t < disp_grid_n; t++) {
     // maximize the log likelihood over the variable a, the log of alpha, the dispersion parameter
     a = disp_grid(t);
     logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
   }
   logpostvec.max(idxmax);
   a_hat = disp_grid(idxmax);
-  disp_grid_fine = arma::linspace<arma::vec>(a_hat - delta, a_hat + delta, disp_grid.n_elem);
-  for (int t = 0; t < disp_grid_fine.n_elem; t++) {
+  disp_grid_fine = arma::linspace<arma::vec>(a_hat - delta, a_hat + delta, disp_grid_n);
+  for (int t = 0; t < disp_grid_n; t++) {
     a = disp_grid_fine(t);
     logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
   }
