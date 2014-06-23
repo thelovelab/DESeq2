@@ -502,14 +502,9 @@ dispersions(dds) <- mcols(dds)$dispGeneEst")
     if (!inherits(trial,"try-error")) {
       dispFit <- dispFunction(mcols(objectNZ)$baseMean)
     } else {
-      warning("the parametric fit of dispersion estimates over the mean of counts
-failed, which occurs when the trend is not well captured by the
-function y = a/x + b. A local regression fit is automatically performed,
-and the analysis can continue. You can specify fitType='local' or 'mean'
-to avoid this message if re-running the same data.
-When using local regression fit, the user should examine plotDispEsts(dds)
-to make sure the fitted line is not sharply curving up or down based on
-the position of individual points.")
+      message("NOTE: fitType='parametric', but the dispersion trend was not well captured by the
+function: y = a/x + b, and a local regression fit was automatically substituted.
+specify fitType='local' or 'mean' to avoid this message next time.")
       fitType <- "local"
     }
   }

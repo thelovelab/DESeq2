@@ -467,7 +467,7 @@ these column could have come in during colData import")
     }
   }
   if (all(rowSums(counts(object) == counts(object)[,1]) == ncol(object))) {
-    stop("all genes have equal values for all samples. will note be able to perform differential analysis")
+    stop("all genes have equal values for all samples. will not be able to perform differential analysis")
   }
   if (!is.null(dispersions(object))) {
     if (!quiet) message("you had estimated dispersions, replacing these")

@@ -111,7 +111,18 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   }
   
   if (all(rowSums(assay(se) == assay(se)[,1]) == ncol(se))) {
-    message("all genes have equal values for all samples. will note be able to perform differential analysis")
+    message("all genes have equal values for all samples. will not be able to perform differential analysis")
+  }
+
+  if (any(duplicated(rownames(se)))) {
+    warning(sum(duplicated(rownames(se)))," duplicate rownames were renamed by adding numbers")
+    rnms <- rownames(se)
+    dups <- unique(rnms[duplicated(rnms)])
+    for (rn in dups) {
+      idx <- which(rnms == rn)
+      rnms[idx[-1]] <- paste(rnms[idx[-1]], c(seq_len(length(idx) - 1)), sep=".")
+    }
+    rownames(se) <- rnms
   }
   
   designVars <- all.vars(design)
