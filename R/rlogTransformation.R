@@ -86,7 +86,7 @@
 #' @return \code{rlog}, equivalent to \code{rlogTransformation},
 #' returns a \code{\link{SummarizedExperiment}}.
 #' The matrix of transformed values are accessed by \code{assay(rld)}.
-#' for \code{rlogData}, a \code{matrix} of the same dimension as the
+#' \code{rlogData} returns a \code{matrix} of the same dimension as the
 #' count data, containing the transformed values. To avoid returning
 #' matrices with NA values where there were zeros for all rows of
 #' the unnormalized counts, the rlog transformation returns instead all
@@ -332,7 +332,8 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     }
     dispersion <- mcols(objectNZ)$dispFit
 
-    bgrid <- c(0, .001, .005, .01, .02, .05, 1:10/10)
+    delta <- .05
+    bgrid <- seq(from=delta, to=1-2*delta, by=delta)
     # evaluate over a grid of B (shrinkage amount)
     optimalB <- as.numeric(rlogGrid(counts(objectNZ), nf, logFoldChangeMatrix,
                                     dispersion, interceptNZ, bgrid, betaPriorVar)$Bvec)

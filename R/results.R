@@ -408,20 +408,24 @@ Likelihood ratio test p-values are overwritten")
     attr(deseqRes, "filterThreshold") <- filterThreshold
     attr(deseqRes, "filterNumRej") <- filterNumRej
   }
-
+ 
   if (format == "DataFrame") {
     return(deseqRes)
   } else if (format == "GRangesList") {
     if (class(rowData(object)) == "GRanges") message("rowData is GRanges")
     out <- rowData(object)
     mcols(out) <- deseqRes
-    out
+    return(out)
   } else if (format == "GRanges") {
     if (class(rowData(object)) == "GRangesList") {
       message("rowData is GRangesList, unlisting the ranges")
       out <- unlist(range(rowData(object)))
       mcols(out) <- deseqRes
-      out
+      return(out)
+    } else {
+      out <- rowData(object)
+      mcols(out) <- deseqRes
+      return(out)
     }
   }
 }

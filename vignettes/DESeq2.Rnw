@@ -392,7 +392,7 @@ plotting with another library.
 d <- plotCounts(dds, gene=rownames(resOrdered)[1], intgroup="condition", 
                 returnData=TRUE)
 library(ggplot2)
-ggplot(d, aes(x=condition, y=counts)) + geom_point()
+ggplot(d, aes(x=condition, y=count)) + geom_point()
 @ 
 
 \begin{figure}

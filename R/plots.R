@@ -248,20 +248,18 @@ plotCounts <- function(dds, gene, intgroup="condition",
     factor(apply( as.data.frame(colData(dds)[, intgroup, drop=FALSE]),
                  1, paste, collapse=" : "))
   }
-  data <- data.frame(counts=cnts + .5, group=as.integer(group))
+  data <- data.frame(count=cnts + .5, group=as.integer(group))
   if (transform) {
-    data$counts <- log2(data$counts)
-    ylab <- expression(log[2]~counts)
+    data$count <- log2(data$count)
+    ylab <- expression(log[2]~count)
     logxy <- ""
   } else {
-    ylab <- ifelse(normalized,"normalized counts","counts")
+    ylab <- ifelse(normalized,"normalized count","count")
     logxy <- "y"
   }
-  if (returnData) return(data.frame(counts=data$counts, colData(dds)[intgroup]))
-  with(data,
-       plot(group + runif(ncol(dds),-.02,.02), counts, xlim=c(.5,max(group)+.5),
-            log=logxy, xaxt="n", xlab="", ylab=ylab, las=las, main=main, ...)
-       )
+  if (returnData) return(data.frame(count=data$count, colData(dds)[intgroup]))
+  plot(data$group + runif(ncol(dds),-.02,.02), data$count, xlim=c(.5,max(data$group)+.5),
+       log=logxy, xaxt="n", xlab="", ylab=ylab, las=las, main=main, ...)
   axis(1, at=seq_along(levels(group)), levels(group), las=las)
 }
 

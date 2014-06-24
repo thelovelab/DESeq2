@@ -51,7 +51,7 @@ over internal calculation of B using betaPriorVar.}
 \code{rlog}, equivalent to \code{rlogTransformation},
 returns a \code{\link{SummarizedExperiment}}.
 The matrix of transformed values are accessed by \code{assay(rld)}.
-for \code{rlogData}, a \code{matrix} of the same dimension as the
+\code{rlogData} returns a \code{matrix} of the same dimension as the
 count data, containing the transformed values. To avoid returning
 matrices with NA values where there were zeros for all rows of
 the unnormalized counts, the rlog transformation returns instead all

@@ -372,6 +372,7 @@ SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP inte
   arma::vec alpha = Rcpp::as<arma::vec>(alphaSEXP);
   arma::vec intercept = Rcpp::as<arma::vec>(interceptSEXP);
   arma::vec bgrid = Rcpp::as<arma::vec>(bgridSEXP);
+  arma::vec bgrid_fine;
   double betapriorvar = Rcpp::as<double>(betapriorvarSEXP);
 
   int y_n = y.n_rows;
@@ -382,6 +383,8 @@ SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP inte
   double loglike;
   double logprior; 
   double logpost;
+  double delta = bgrid(1) - bgrid(0);
+  double Bhat;
   arma::vec logpostvec = arma::zeros(bgrid.n_elem);
   arma::vec beta_shrunk = arma::zeros(beta.n_cols);
   arma::vec Bvec = arma::zeros(y_n);
@@ -405,9 +408,26 @@ SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP inte
       logpostvec(t) = logpost;
     }
     logpostvec.max(idxmax);
-    Bvec(i) = bgrid(idxmax);
+    Bhat = bgrid(idxmax);
+    bgrid_fine = arma::linspace<arma::vec>(Bhat - delta, Bhat + delta, bgrid_n);
+    for (int t = 0; t < bgrid_n; t++) {
+      B = bgrid_fine(t);
+      beta_shrunk = (1.0 - B) * beta.row(i).t();
+      loglike = 0.0;
+      for (int j = 0; j < y_m; j++) {
+	mu = nf(i,j) * pow(intercept(i) + beta_shrunk(j), 2);
+	// note the order for Rf_dnbinom_mu: x, sz, mu, lg
+	loglike = loglike + Rf_dnbinom_mu(y(i,j), 1.0/alpha(i), mu, 1);
+      }
+      // as we compare for fixed beta prior variance, don't need Normal constant
+      logprior = sum( -1.0 * square(beta_shrunk) / (2.0 * betapriorvar) );
+      // we want to maximize the log posterior
+      logpost = loglike + logprior;
+      logpostvec(t) = logpost;
+    }
+    logpostvec.max(idxmax);
+    Bvec(i) = bgrid_fine(idxmax);
   }
-
   return Rcpp::List::create(Rcpp::Named("Bvec",Bvec));
   END_RCPP
 }
