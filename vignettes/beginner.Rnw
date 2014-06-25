@@ -391,7 +391,7 @@ sampleInfo <- data.frame(run=rev(se$run),
                          pheno=rep(c("pheno1","pheno2"),length=ncol(se)))
 @ 
 
-Here we show a toy example of such a table. Note that the order
+Here we show an example of such a table. Note that the order
 is not the same as in the \Rclass{SummarizedExperiment}. Here instead
 of \Robject{run}, most users will have the filename of the BAM files
 used for counting. We convert the \Robject{sampleInfo} object
@@ -420,7 +420,7 @@ The following line builds the \Rclass{DESeqDataSet} from a \Rclass{SummarizedExp
 The names of variables used in the design formula must be the names of columns in the
 \Robject{colData} of \Robject{se}.
 
-<<removeToy, echo=FALSE>>=
+<<removeExample, echo=FALSE>>=
 se$pheno <- NULL
 @ 
 
@@ -562,16 +562,24 @@ A quick check whether we now have the right samples:
 as.data.frame( colData(dds) )
 @ 
 
+In order to speed up the vignette, here subset to only those genes which have
+total counts over all samples greater than 10 reads. We know that these genes
+have counts which are too small to detect significant differences for
+typical RNA-Seq datasets. However, this step is not necessary
+for the \deseqtwo method, as the independent filtering step will
+remove these genes before multiple test correction.
+
+<<subsetRows>>=
+rs <- rowSums(counts(dds))
+table(cut(rs, c(-1,0,10,Inf)))
+dds <- dds[rs > 10,]
+@ 
+
 \subsection{Running the pipeline}
 
 Finally, we are ready to run the differential expression pipeline.
 With the data object prepared, the \deseqtwo{} analysis can now be run with a single
 call to the function \Rfunction{DESeq}:
-
-<<subsetRows, echo=FALSE>>=
-idx <- which(rowSums(counts(dds)) > 0)[1:4000]
-dds <- dds[idx,]
-@ 
 
 <<runDESeq, cache=TRUE>>=
 dds <- DESeq(dds)
@@ -839,43 +847,68 @@ statistic~\cite{Bourgon:2010:PNAS}. Otherwise, the filtering would invalidate th
 consequently the assumptions of the BH procedure.  This is why we filtered on the average
 over \emph{all} samples: this filter is blind to the assignment of samples to the
 treatment and control group and hence independent.
- 
+
 \subsection{Adding gene names}
 
 Our result table only uses Ensembl gene IDs, but gene names may be more
-informative. Bioconductor's \Biocpkg{biomaRt} package can help with mapping various
-ID schemes to each other. 
+informative. Bioconductor's annotation packages help with mapping various
+ID schemes to each other.
 
-First, we split up the rownames of the results object, which
-contain ENSEMBL gene ids, separated by the plus sign, \Robject{+}.
-The following code then takes the first id for each gene by invoking 
-the open square bracket function \Robject{"["} and the argument, \Robject{1}.
+We load the \Biocpkg{AnnotationDbi} package and the annotation package \Biocannopkg{org.Hs.eg.db}:
 
-<<>>=
-res$ensembl <- sapply( strsplit( rownames(res), split="\\+" ), "[", 1 )
+<<<loadOrg>>=
+library( "AnnotationDbi" )
+library( "org.Hs.eg.db" )
 @ 
 
-The following chunk of code uses the ENSEMBL mart, querying 
-with the ENSEMBL gene id and requesting the Entrez gene id 
-and HGNC gene symbol.
+This is the organism annotation package (``org'') for \emph{Homo sapiens}
+(``Hs''), organized as an \Biocpkg{AnnotationDbi} package (``db''), using
+Entrez Gene IDs (``eg'') as primary key.
 
-<<geneAnnot, cache=TRUE>>=
-library( "biomaRt" )
-ensembl = useMart( "ensembl", dataset = "hsapiens_gene_ensembl" )
-genemap <- getBM( attributes = c("ensembl_gene_id", "entrezgene", "hgnc_symbol"), 
-                 filters = "ensembl_gene_id", 
-                 values = res$ensembl, 
-                 mart = ensembl )
-idx <- match( res$ensembl, genemap$ensembl_gene_id )
-res$entrez <- genemap$entrezgene[ idx ]
-res$hgnc_symbol <- genemap$hgnc_symbol[ idx ]
+To get a list of all available key types, use
+<<<keyType>>=
+columns(org.Hs.eg.db)
+@ 
+
+Converting IDs with the native functions from the \Rpackage{AnnotationDbi}
+package is currently a bit cumbersome, so we provide the following
+convenience function
+(without explaining how exactly it works):
+
+<<<convertIDs>>=
+convertIDs <- function( ids, fromKey, toKey, db, ifMultiple=c( "putNA", "useFirst" ) ) {
+     stopifnot( inherits( db, "AnnotationDb" ) )
+        ifMultiple <- match.arg( ifMultiple )
+        suppressWarnings( selRes <- AnnotationDbi::select( 
+                db, keys=ids, keytype=fromKey, columns=c(fromKey,toKey) ) )
+        if( ifMultiple == "putNA" ) {
+                duplicatedIds <- selRes[ duplicated( selRes[,1] ), 1 ]   
+                      selRes <- selRes[ ! selRes[,1] %in% duplicatedIds, ] }
+        return( selRes[ match( ids, selRes[,1] ), 2 ] )
+     }
+@ 
+
+This function takes a list of IDs as first argument and their key type
+as the second argument. The third argument is the key type we want to
+convert to, the fourth is the \Rclass{AnnotationDb} object to
+use. Finally, the last argument specifies what to do if one source ID
+maps to several target IDs: should the function return an NA or simply
+the first of the multiple IDs?
+
+To convert the Ensembl IDs in the rownames of \Robject{res} to gene
+symbols and add them as a new column, we use:
+
+<<<addSymbols>>=
+res$hgnc_symbol <- convertIDs( row.names(res), "ENSEMBL", "SYMBOL", org.Hs.eg.db )
+res$entrezgene <- convertIDs( row.names(res), "ENSEMBL", "ENTREZID", org.Hs.eg.db )
+res
 @ 
 
 Now the results have the desired external gene ids:
 
-<<showAnnot>>=
+<<<showAnnot>>=
 head(res,4)
-@ 
+@  
 
 \subsection{Exporting results}
 
