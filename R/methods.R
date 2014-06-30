@@ -566,8 +566,8 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
     stop("no coefficients have been generated yet, first call DESeq()")
   }
   if (!SE) {
-    mcols(object,use.names=TRUE)[resNms]
+    as.matrix(mcols(object,use.names=TRUE)[resNms])
   } else {
-    mcols(object,use.names=TRUE)[paste0("SE_",resNms)]
+    as.matrix(mcols(object,use.names=TRUE)[paste0("SE_",resNms)])
   }
 }
