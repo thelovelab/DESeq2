@@ -36,9 +36,13 @@ library("DESeq2")
 \maketitle
 
 \begin{abstract}
-  This vignette describes the statistical analysis of count matrices for systematic changes between
-  conditions using the \deseqtwo{} package, and includes recommendations for producing count
-  matrices from raw sequencing data.  This vignette is designed for users who are perhaps new to
+
+  This lab will walk you through an end-to-end RNA-Seq differential
+  expression workflow.  We will start from the FASTQ files, align to
+  the reference genome, prepare gene expression values as a count
+  table by counting the sequenced fragments, perform differential gene
+  expression analysis, and visually explore the results. 
+  This vignette is designed for users who are perhaps new to
   analyzing RNA-Seq or high-throughput sequencing data in R, and so goes at a slower pace,
   explaining each step in detail.  Another vignette, ``Differential analysis of count data -- the
   DESeq2 package'' covers more of the advanced details at a faster pace.
@@ -71,13 +75,23 @@ options(digits=3, width=80, prompt=" ", continue=" ")
 
 \tableofcontents
 
-\section{Introduction}
-In this vignette, you will learn how to produce a read count table -- such as arising from a
-summarized RNA-Seq experiment -- analyze count tables for differentially expressed genes,  
-visualize the results, add extra gene annotations, and cluster samples and genes
-using transformed counts.
-
 \section{Input data}
+
+\label{Haglund}As example data for this lab, we will use publicly available data from the article by Felix Haglund et al.,
+\emph{Evidence of a Functional Estrogen Receptor in Parathyroid Adenomas}, J Clin Endocrin Metab, Sep
+2012\footnote{\url{http://www.ncbi.nlm.nih.gov/pubmed/23024189}}.
+
+The purpose of the experiment was to investigate the role of the
+estrogen receptor in parathyroid tumors. The investigators derived 
+primary cultures of parathyroid adenoma cells from 4 patients. These 
+primary cultures were treated with diarylpropionitrile (DPN), 
+an estrogen receptor $\beta$ agonist, or with 4-hydroxytamoxifen (OHT).  
+RNA was extracted at 24 hours and 48 hours from cultures under 
+treatment and control.  The blocked design of the experiment allows
+for statistical analysis of the treatment effects while controlling for patient-to-patient variation.
+
+Part of the data from this experiment is provided in the Bioconductor data package
+\Biocexptpkg{parathyroidSE}.
 
 \subsection{Preparing count matrices}
 
@@ -97,21 +111,22 @@ counts of covered base pairs -- this will only lead to nonsensical results.
 
 \subsection{Aligning reads to a reference}
 
-The computational analysis of an RNA-Seq experiment begins earlier however, 
-with a set of FASTQ files, which contain the bases for each read and their quality scores. 
+The computational analysis of an RNA-Seq experiment begins earlier: 
+what we get from the sequencing machine is a set of FASTQ files that contain the nucleotide sequence of each read and a quality score at each position. 
 These reads must first be aligned to a reference genome or transcriptome.
 It is important to know if the sequencing experiment was single-end or
-paired-end, as the alignment software will require the user specify
-both FASTQ files for a paired-end experiment.
+paired-end, as the alignment software will require the user to specify
+both FASTQ files for a paired-end experiment. The output of this alignment step is commonly stored in a 
+file format called \href{http://samtools.github.io/hts-specs}{\texttt{BAM}}.
 
 A number of software programs exist to align reads to the reference genome, 
 and the development is too rapid for this document to provide a current 
-list. We recommend reading benchmarking papers which discuss the advantages
+list. We recommend consulting benchmarking papers that discuss the advantages
 and disadvantages of each software, which include accuracy, ability to 
 align reads over splice junctions, speed, memory footprint, and many other 
 features. 
 
-We have experience using the TopHat2 spliced alignment 
+Here we use the TopHat2 spliced alignment 
 software\footnote{\url{http://tophat.cbcb.umd.edu/}} \cite{Kim2013TopHat2}
 in combination with the Bowtie index available at the Illumina iGenomes 
 page\footnote{\url{http://tophat.cbcb.umd.edu/igenomes.html}}.  
@@ -122,14 +137,88 @@ using TopHat2 with 8 threads, with the call:
 
 \begin{verbatim}
   tophat2 -o file_tophat_out -p 8 genome file_1.fastq file_2.fastq 
+\end{verbatim}
+
+\begin{verbatim}
   samtools sort -n file_tophat_out/accepted_hits.bam _sorted
 \end{verbatim}
+
 
 The second line sorts the reads by name rather than by genomic position, which is necessary
 for counting paired-end reads within Bioconductor.
 This command uses the SAMtools software\footnote{\url{http://samtools.sourceforge.net}} \cite{Li2009SAMtools}.
 The BAM files for a number of sequencing runs can then be used to generate
-coun matrices, as described in the following section.
+count matrices, as described in the following section.
+
+\subsection{Example BAM files}
+
+Besides tha main count table, which we will use later, the \Biocexptpkg{parathyroidSE} package also
+contains a small subset of the raw data 
+from the Haglund et al.\ experiment, namely three BAM file
+each with a subset of the reads from three of the samples. We will use these files to demonstrate
+how a count table can be constructed from BAM files. Afterwards, we will load the full count table
+corresponding to all samples and all data, which is already provided in the same package,
+and will continue the analysis with that full table.
+
+We load the data package with the example data
+
+<<loadExpPck>>=
+library( "parathyroidSE" )
+@
+
+The R function \Rfunction{system.file} can be used to find out where on your computer the files from a package
+have been installed. Here we ask for the full path to the \texttt{extdata} directory, which is part of
+the \Biocexptpkg{parathyroidSE} package:
+
+<<findExtData>>=
+extDataDir <- system.file("extdata", package = "parathyroidSE", mustWork = TRUE)
+extDataDir
+@
+
+In this directory, we find the three BAM files (and some other files):
+
+<<LookIntoExtData>>=
+list.files( extDataDir )
+@
+
+Typically, we have a table with experimental meta data for our samples. For these three files, it is as follows:
+
+\begin{tabular}{llll}
+sampleName & fileName & treatment & time \\ \hline
+Ctrl\_24h\_1 & SRR479052.bam & Control & 24h \\
+Ctrl\_48h\_1 & SRR479053.bam & Control & 48h \\
+DPN\_24h\_1 & SRR479054.bam & DPN & 24h 
+\end{tabular}
+
+To avoid mistakes, it is helpful to store such a sample table explicitly in a text file and load it. 
+
+Load it with:
+
+<<loadSampleTable,eval=FALSE>>=
+sampleTable <- read.csv( "/path/to/your/sampleTable.csv", header=TRUE )
+@
+
+<<makeSampleTable,echo=FALSE>>=
+sampleTable <- data.frame(
+   sampleName = c( "Ctrl_24h_1", "Ctrl_48h_1", "DPN_24h_1" ),
+   fileName = c( "SRR479052.bam", "SRR479053.bam",  "SRR479054.bam" ),
+   treatment =  c( "Control", "Control", "DPN" ),
+   time = c( "24h", "48h", "24h" ) )
+@
+
+This is how the sample table should look like
+
+<<showSampleTable>>=
+sampleTable
+@
+
+Using the fileName column in the table, we construct the full paths to the files we 
+want to perform the counting operation on:
+
+<<getBamList>>=
+bamFiles <- file.path( extDataDir, sampleTable$fileName )
+bamFiles
+@
 
 \subsection{Counting reads in genes}
 
@@ -171,6 +260,7 @@ The following example uses \Rfunction{summarizeOverlaps} for read counting,
 while produces a \Rclass{SummarizedExperiment} object. This class of object 
 contains a variety of information about an experiment, 
 and will be described in more detail below.
+
 We will demonstrate using example BAM files from the \Biocexptpkg{parathyroidSE} data package.
 First, we read in the gene model from a GTF file, using \Rfunction{makeTranscriptDbFromGFF}.
 Alternatively the \Rfunction{makeTranscriptDbFromBiomart} function can be used to 
@@ -193,34 +283,19 @@ library("GenomicFeatures")
 data(exonsByGene)
 @  
 
-We specify the BAM files which will be used for counting.
+In the previous section, we specified the BAM files which will be used for counting.
 
-<<eval=FALSE>>=
-fls <- list.files( "/path/to/bam/files", pattern="bam$", full=TRUE )
-@ 
-
-<<locateFiles, echo=FALSE>>=
-bamDir <- system.file("extdata",package="parathyroidSE",mustWork=TRUE)
-fls <- list.files(bamDir, pattern="bam$",full=TRUE)
-@ 
-
-We indicate in Bioconductor that these fls are BAM files using the \Rfunction{BamFileList}
+We indicate in Bioconductor that these files are BAM files using the \Rfunction{BamFileList}
 function. Here we also specify details about how the BAM files should be treated, e.g., 
-only process $100000$ reads at a time. 
+only process $500000$ reads at a time. 
 
 <<bamfilepaired>>=
 library( "Rsamtools" )
-bamLst <- BamFileList( fls, yieldSize=100000 )
+bamLst <- BamFileList( bamFiles, yieldSize=500000 )
 @ 
 
-We call \Rfunction{summarizeOverlaps} to count the reads.
-We use the counting mode \Robject{"Union"} which indicates that reads which overlap any portion of
-exactly one feature are counted. For more ihnformation on the various counting modes,
-see the help page for \Rfunction{summarizeOverlaps}.
-As this experiment was a paired-end, we specify \Robject{singleEnd=FALSE}.
-As it was not a strand-specific protocol, we specify \Robject{ignore.strand=TRUE}.
-\Robject{fragments=TRUE} indicates that we also want to count reads with unmapped pairs. 
-This last argument is only for use with paired-end experiments.
+After these preparations, the actual counting is easy. The function \Rfunction{summerizeOverlap} from
+the \Biocpkg{GenomicAlignments} package will do this.
 
 <<sumOver>>=
 library( "GenomicAlignments" )
@@ -230,6 +305,14 @@ se <- summarizeOverlaps( exonsByGene, bamLst,
                         ignore.strand=TRUE,
                         fragments=TRUE )
 @ 
+
+We use the counting mode \Robject{"Union"}, which indicates that those reads which overlap any portion of
+exactly one feature are counted. For more information on the different counting modes,
+see the help page for \Rfunction{summarizeOverlaps}.
+As this experiment produced paired-end reads, we specify \Robject{singleEnd = FALSE}.
+As protocol was not strand-specific, we specify \Robject{ignore.strand = TRUE}.
+\Robject{fragments = TRUE} indicates that we also want to count reads with unmapped pairs. 
+This last argument is only for use with paired-end experiments.
 
 <<beginner_plotSE, dev="pdf", echo=FALSE>>=
 par(mar=c(0,0,0,0))
@@ -258,7 +341,6 @@ text(62.5,82.5,"colData")
   column of the \Robject{assay}.
 }
 
-
 This example code above actually only counts a small subset of reads from the
 original experiment: for 3 samples and for 100 genes. Nevertheless, we can still 
 investigate the resulting \Rclass{SummarizedExperiment} by looking at the counts
@@ -276,28 +358,44 @@ rowData(se)
 Note that the \Robject{rowData} slot is a \Rclass{GRangesList}, which contains
 all the information about the exons for each gene, i.e., for each row of the count table.
 
+The \Robject{colData} slot, so far empty, should contain all the meta data. We hence assign our sample table to
+it:
+
+<<setColData>>=
+colData(se) <- DataFrame( sampleTable )
+@
+
+We can also use the sampleName table to name the columns of our data matrix:
+
+<<setColNames>>=
+colnames(se) <- sampleTable$sampleName
+head( assay(se) )
+@
+
 This \Rclass{SummarizedExperiment} object \Robject{se} is then all we need to start our analysis.
 In the following section we will show how to create the data object which is used in \deseqtwo{}, 
 either using the \Rclass{SummarizedExperiment}, or in general, a count table which has 
 been loaded into R.
 
-\subsection{Experiment data}
+\subsection{The DESeqDataSet, column metadata, and the design formula}
 
-\subsubsection{The DESeqDataSet, column metadata, and the design formula}
+Bioconductor software packages often have a special class of data
+object, which contains special slots and requirements. The data object
+class in \deseqtwo{} is the \Rclass{DESeqDataSet}, which is built on
+top of the \Rclass{SummarizedExperiment} class.  One main differences
+is that the \Robject{assay} slot is instead accessed using the
+\Rfunction{count} accessor, and the values in this matrix must be
+non-negative integers.
 
-Each Bioconductor software package often has a special class of data object,
-which contains special slots and requirements. The data object class in \deseqtwo{}
-is the \Rclass{DESeqDataSet}, which is built on top of the \Rclass{SummarizedExperiment}.
-One main differences is that the \Robject{assay} slot is instead accessed using the
-\Rfunction{count} accessor, and the values in this matrix must non-negative integers.
-
-A second difference is that the \Rclass{DESeqDataSet} has an associated ``design formula''.
-The design is specified at the beginning of the analysis, as this will inform 
-many of the \deseqtwo{} functions how to treat the samples in the analysis 
-(one exception is the size factor estimation -- adjustment for differing
-library sizes -- which does not depend on the design formula). 
-The design formula tells which variables in the column metadata table (\Robject{colData})
-specify the experimental design and how these factors should be used in the analysis.
+A second difference is that the \Rclass{DESeqDataSet} has an
+associated ``design formula''.  The design is specified at the
+beginning of the analysis, as it will inform many of the \deseqtwo{}
+functions how to treat the samples in the analysis (one exception is
+the size factor estimation, i.\,e., the adjustment for differing
+library sizes, which does not depend on the design formula).  The
+design formula tells which variables in the column metadata table
+(\Robject{colData}) specify the experimental design and how these
+factors should be used in the analysis.
 
 The simplest design formula for differential expression would be
 \Rfunction{\lowtilde{} condition}, where \Robject{condition} is a
@@ -307,13 +405,15 @@ will specify \Rfunction{\lowtilde{} patient + treatment}, which means
 that we want to test for the effect of treatment (the last factor),
 controlling for the effect of patient (the first factor).
 
-You can use R's formula notation to express any
-experimental design that can be described within an ANOVA-like framework.
-Note that \deseqtwo{} uses the same kind of formula as in base R, e.g., 
-for use by the \Rfunction{lm} function. If the question of interest is whether a fold change
-due to treatment is different across groups, for example across patients, ``interaction
-terms'' can be included using models such as \Rfunction{\lowtilde{} patient + treatment + patient:treatment}.
-More complex designs such as these are covered in the other \deseqtwo{} vignette.
+You can use R's formula notation to express any experimental design
+that can be described within an ANOVA-like framework.  Note that
+\deseqtwo{} uses the same formula notation as, for instance, the
+\Rfunction{lm} function of base R. If the question of interest is
+whether a fold change due to treatment is different across groups, for
+example across patients, ``interaction terms'' can be included using
+models such as \Rfunction{\lowtilde{} patient + treatment +
+patient:treatment}.  More complex designs such as these are covered in
+the other \deseqtwo{} vignette.
 
 In the following section, we will demonstrate the construction of the
 \Rclass{DESeqDataSet} from two starting points:
@@ -330,30 +430,11 @@ please see the other \deseqtwo{} vignette.
 
 \subsubsection{Starting from SummarizedExperiment}
 
-We load a prepared \Rclass{SummarizedExperiment}, which was generated using
-\Rfunction{summarizeOverlaps} from publicly available data from the article by Felix Haglund et al.,
-``Evidence of a Functional Estrogen Receptor in Parathyroid Adenomas'', J Clin Endocrin Metab, Sep
-2012\footnote{\url{http://www.ncbi.nlm.nih.gov/pubmed/23024189}}.  Details on the generation of this
-object can be found in the vignette for the \Biocexptpkg{parathyroidSE} package.
-
-The purpose of the experiment was to investigate the role of the
-estrogen receptor in parathyroid tumors. The investigators derived 
-primary cultures of parathyroid adenoma cells from 4 patients. These 
-primary cultures were treated with diarylpropionitrile (DPN), 
-an estrogen receptor $\beta$ agonist, or with 4-hydroxytamoxifen (OHT).  
-RNA was extracted at 24 hours and 48 hours from cultures under 
-treatment and control.  The blocked design of the experiment allows
-for statistical analysis of the treatment effects while controlling for patient-to-patient variation.
-
-We first load the \deseqtwo{} package and the data package \Biocexptpkg{parathyroidSE},
-which contains the example data set.
-
-<<libraries>>=
-library( "DESeq2" )
-library( "parathyroidSE" )
-@ 
-
-The \Rfunction{data} command loads a preconstructed data object:
+We now use R's \Rfunction{data} command to load a prepared \Rclass{SummarizedExperiment} 
+that was generated from the publicly available sequencing data files
+associated with the Haglund et al.~paper, described on page~\pageref{Haglund}.
+The steps we used to produce this object were equivalent to those you worked through in Section~\ref{sec:count}, except that 
+we used the complete set of samples and all reads.
 
 <<loadEcs>>=
 data( "parathyroidGenesSE" )
@@ -362,75 +443,45 @@ colnames(se) <- se$run
 @
 
 Supposing we have constructed a \Rclass{SummarizedExperiment} using one of the 
-methods described in the previous section, we now ensure that the 
-object contains the necessary information about the samples, 
+methods described in the previous section, we now need to make sure that the 
+object contains all the necessary information about the samples, 
 i.e., a table with metadata on the count table's columns stored in the \Robject{colData} slot:
 
 <<coldataSE>>=
 colData(se)[1:5,1:4]
 @
 
-This object does, because it was prepared so, as can be seen in the \Biocexptpkg{parathyroidSE} vignette.
-However, users will most likely have to add pertinent sample/phenotypic 
+Here we see that this object already contains an informative \Robject{colData} slot -- 
+because we have already prepared it for you, as described in the \Biocexptpkg{parathyroidSE} vignette.
+However, when you work with your own data, you will have to add the pertinent sample / phenotypic 
 information for the experiment at this stage.
 We highly recommend keeping this information in a comma-separated value (CSV) or 
-tab-separated value (TSV) file, which can be exported from an Excel spreadsheet.
-The advantage of this over typing out the characters into an R script, is that 
-while scrolling through a script, accidentally typed spaces or characters could lead 
-to changes to the sample phenotypic information, leading to spurious results.
+tab-separated value (TSV) file, which can be exported from an Excel spreadsheet, and the assign
+this to the \Robject{colData} slot, as shown in the previous section. 
 
-Suppose we have a CSV file which contains such data, we could read this file in 
-using the base R \Rfunction{read.csv} function:
+Make sure that the order
+of rows in your column data table matches the order of columns in the \Robject{assay} data slot.
 
-<<readcsv, eval=FALSE>>=
-sampleInfo <- read.csv( "/path/to/file.CSV" )
-@ 
-
-<<sampleInfo, echo=FALSE>>=
-sampleInfo <- data.frame(run=rev(se$run), 
-                         pheno=rep(c("pheno1","pheno2"),length=ncol(se)))
-@ 
-
-Here we show an example of such a table. Note that the order
-is not the same as in the \Rclass{SummarizedExperiment}. Here instead
-of \Robject{run}, most users will have the filename of the BAM files
-used for counting. We convert the \Robject{sampleInfo} object
-into a \Rclass{DataFrame} which is the format of the \Robject{colData}.
-
-<<showSampleInfo>>=
-head( sampleInfo )
-head( colnames(se) )
-sampleInfo <- DataFrame( sampleInfo )
-@ 
-
-We create an index which will put them in the 
-same order: the \Rclass{SummarizedExperiment} comes first because
-this is the sample order we want to achieve. We then check to see
-that we have lined them up correctly, and then we can add the
-new data to the existing \Robject{colData}.
-
-<<reorderSampleInfo>>=
-seIdx <- match(colnames(se), sampleInfo$run)
-head( cbind( colData(se)[ , 1:3 ], sampleInfo[ seIdx, ] ) )
-colData(se) <- cbind( colData(se), sampleInfo[ seIdx, ] )
-@ 
-
-The following line builds the \Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment}
-\Robject{se} and specifying a design formula, as described in the previous section.
-The names of variables used in the design formula must be the names of columns in the
-\Robject{colData} of \Robject{se}.
-
-<<removeExample, echo=FALSE>>=
-se$pheno <- NULL
-@ 
+Once we have our fully annotated \Rclass{SummerizedExperiment} object, we can construct a 
+\Rclass{DESeqDataSet} object from it, which will then form the staring point of the actual \Biocpkg{DESeq2}
+package, described in the following sections. Here, we use the \Rclass{SummerizedExperiment} object
+we got from the \Biocexptpkg{parathyroidSE} package and augment it by specifying an appropriate
+design formula.
 
 <<fromSE>>=
 ddsFull <- DESeqDataSet( se, design = ~ patient + treatment )
-@
+@ 
+
+Note that there are two alternative functions, \Rfunction{DESeqDataSetFromMatrix}
+and \Rfunction{DESeqDataSetFromHTSeq}, which allow you to get started in case
+you have your data not in the form of a \Rclass{SummerizedExperiment} object, but
+either as a simple matrix of count values or as output files from the \emph{htseq-count}
+script from the \emph{HTSeq} Python package. Below we demonstrate using
+\Rfunction{DESeqDataSetFromMatrix}.
 
 \subsubsection{Starting from count tables}
 
-In the following section, we will show how to build an \Rclass{DESeqDataSet}
+In this section, we will show how to build an \Rclass{DESeqDataSet}
 from a count table and a table of sample information. While the previous
 section would be used to contruct a \Rclass{DESeqDataSet} from a
 \Rclass{DESeqDataSet}, here we first extract the individual object
@@ -449,17 +500,21 @@ countdata <- assay( parathyroidGenesSE )
 head( countdata )
 @
 
-In this count table, each row represents an Ensembl gene, 
-each column a sequenced RNA library, 
-and the values give the raw numbers of sequencing reads that were mapped to the
-respective gene in each library.
+In this count table, each row represents an Ensembl gene, each column
+a sequenced RNA library, and the values give the raw numbers of
+sequencing reads that were mapped to the respective gene in each
+library.
 
-We also have metadata on each of the samples (the ``columns'' of the count table):
+We also have metadata on each of the samples (the ``columns'' of the
+count table).
+
+If you've counted reads with some other software, you need to check at
+this step that the columns of the count matrix correspond to the rows
+of the column metadata. 
 
 <<colData>>=
 coldata <- colData( parathyroidGenesSE )
 rownames( coldata ) <- coldata$run
-colnames( countdata ) <- coldata$run
 @
 
 <<colDataSubsetCols>>=
@@ -477,11 +532,11 @@ We now have all the ingredients to prepare our data object in a form that is sui
 To now construct the data object from the matrix of counts and the metadata table, we use:
 
 <<makeddsfull>>=
-ddsFullCountTable <- DESeqDataSetFromMatrix(
+ddsMat <- DESeqDataSetFromMatrix(
   countData = countdata,
   colData = coldata,
   design = ~ patient + treatment)
-ddsFullCountTable
+ddsMat
 @
 
 We will continue with the object generated from the \Rclass{SummarizedExperiment} section.
@@ -566,7 +621,7 @@ In order to speed up the vignette, here subset to only those genes which have
 total counts over all samples greater than 10 reads. We know that these genes
 have counts which are too small to detect significant differences for
 typical RNA-Seq datasets. However, this step is not necessary
-for the \deseqtwo method, as the independent filtering step will
+for the \deseqtwo{} method, as the independent filtering step will
 remove these genes before multiple test correction.
 
 <<subsetRows>>=

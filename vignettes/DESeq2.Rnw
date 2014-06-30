@@ -204,7 +204,7 @@ total counts over all samples greater than 10 reads.
 We know that these genes
 have counts which are too small to detect significant differences for
 typical RNA-Seq datasets. However, this step is not necessary
-for the \deseqtwo method, as the independent filtering step will
+for the \deseqtwo{} method, as the independent filtering step will
 remove these genes before multiple test correction.
 
 <<ddsSubset>>=
@@ -284,7 +284,7 @@ dds$condition <- droplevels(dds$condition)
 
 \subsubsection{Collapsing technical replicates}
 
-\deseqtwo provides a function \Rfunction{collapseReplicates} which can
+\deseqtwo{} provides a function \Rfunction{collapseReplicates} which can
 assist in combining the counts from technical replicates into single
 columns. See the manual page and the Beginner's vignette for an
 example of the use of \Rfunction{collapseReplicates}.
@@ -1613,7 +1613,7 @@ design formula. See Section~\ref{sec:multifactor}.
 
 \subsection{Can I run DESeq2 to contrast the levels of 100 groups?}
 
-\deseqtwo will work with any kind of design specified using the R
+\deseqtwo{} will work with any kind of design specified using the R
 formula. We enourage users to consider exploratory data analysis such
 as principal components analysis as described in Section~\ref{sec:pca}, 
 rather than performing statistical testing of all combinations of
