@@ -1055,16 +1055,10 @@ plot(attr(res,"filterNumRej"),type="b",
 
 Independent filtering can be turned off by setting 
 \Robject{independentFiltering} to \Robject{FALSE}.
-Alternative filtering statistics can be easily provided
-as an argument to the \Rfunction{results} function.
 
-<<moreFilt>>=
+<<noFilt>>=
 resNoFilt <- results(dds, independentFiltering=FALSE)
-table(filtering=(res$padj < .1), noFiltering=(resNoFilt$padj < .1))
-library(genefilter)
-rv <- rowVars(counts(dds,normalized=TRUE))
-resFiltByVar <- results(dds, filter=rv)
-table(rowMean=(res$padj < .1), rowVar=(resFiltByVar$padj < .1))
+addmargins(table(filtering=(res$padj < .1), noFiltering=(resNoFilt$padj < .1)))
 @ 
 
 \subsection{Tests of log2 fold change above or below a threshold}

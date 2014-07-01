@@ -5,7 +5,7 @@
 \usage{
 nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
   maxit = 100, useOptim = TRUE, quiet = FALSE, useT = FALSE, df,
-  useQR = TRUE, betaPriorUpperQuantile = 0.05)
+  useQR = TRUE, betaPriorMethod = c("quantile", "weighted"))
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -43,10 +43,10 @@ If FALSE, a standard normal null distribution is used.}
 \item{useQR}{whether to use the QR decomposition on the design
 matrix X while fitting the GLM}
 
-\item{betaPriorUpperQuantile}{the upper quantile to use for calculating the
-variance of the beta prior. by default the 0.05 upper quantile of the absolute
-value of the MLE betas is matched to the 0.025 upper quantile of a
-zero-centered normal.}
+\item{betaPriorMethod}{the method for calculating the beta prior variance,
+either "quantile" or "weighted".
+"quantile" matches a normal distribution using the upper quantile of the finite MLE betas.
+"weighted" calculates the mean of the squared MLE betas, weighting by the variance of the MLE betas.}
 }
 \value{
 a DESeqDataSet with results columns accessible
@@ -64,9 +64,8 @@ The fitting proceeds as follows: standard maximum likelihood estimates
 for GLM coefficients (synonymous with beta, log2 fold change)
 are calculated; a zero-mean normal prior distribution
 is assumed; the variance of the prior distribution for each
-non-intercept coefficient is calculated by matching the upper
-quantile of the MLE coefficients with a zero-centered normal
-distribution;
+non-intercept coefficient is calculated using the observed
+distribution of the maximum likelihood coefficients;
 the final coefficients are then maximum a posteriori estimates
 (using Tikhonov/ridge regularization) using this prior.
 The use of a prior has little effect on genes with high counts and helps to

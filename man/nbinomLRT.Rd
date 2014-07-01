@@ -5,8 +5,7 @@
 \usage{
 nbinomLRT(object, full = design(object), reduced, betaPrior = FALSE,
   betaPriorVar, modelMatrixType = "standard", maxit = 100,
-  useOptim = TRUE, quiet = FALSE, useQR = TRUE,
-  betaPriorUpperQuantile = 0.05)
+  useOptim = TRUE, quiet = FALSE, useQR = TRUE)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -48,12 +47,6 @@ converge within maxit}
 
 \item{useQR}{whether to use the QR decomposition on the design
 matrix X while fitting the GLM}
-
-\item{betaPriorUpperQuantile}{only used when betaPrior=TRUE, which
-is not the default. the upper quantile to use for calculating the
-variance of the beta prior. by default the 0.05 upper quantile of the absolute
-value of the MLE betas is matched to the 0.025 upper quantile of a
-zero-centered normal.}
 }
 \value{
 a DESeqDataSet with new results columns accessible
