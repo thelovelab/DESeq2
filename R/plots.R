@@ -215,6 +215,7 @@ plotPCA = function(x, intgroup="condition", ntop=500, col)
 #' to present the counts on the log scale (FALSE, default)
 #' @param las as in 'par', for rotation of axis labels
 #' @param main as in 'plot'
+#' @param xlab as in 'plot'
 #' @param returnData should the function only return the data.frame of counts and
 #' covariates for custom plotting (default is FALSE)
 #' @param ... arguments passed to plot
@@ -227,7 +228,7 @@ plotPCA = function(x, intgroup="condition", ntop=500, col)
 #' @export
 plotCounts <- function(dds, gene, intgroup="condition",
                        normalized=TRUE, transform=FALSE,
-                       las=1, main=gene,
+                       las=1, main=gene, xlab="group",
                        returnData=FALSE, ...) {
   stopifnot(is.character(gene) & length(gene) == 1)
   if (!all(intgroup %in% names(colData(dds)))) stop("all variables in 'intgroup' must be columns of colData")
@@ -258,8 +259,8 @@ plotCounts <- function(dds, gene, intgroup="condition",
     logxy <- "y"
   }
   if (returnData) return(data.frame(count=data$count, colData(dds)[intgroup]))
-  plot(data$group + runif(ncol(dds),-.02,.02), data$count, xlim=c(.5,max(data$group)+.5),
-       log=logxy, xaxt="n", xlab="", ylab=ylab, las=las, main=main, ...)
+  plot(data$group + runif(ncol(dds),-.05,.05), data$count, xlim=c(.5,max(data$group)+.5),
+       log=logxy, xaxt="n", xlab=xlab, ylab=ylab, las=las, main=main, ...)
   axis(1, at=seq_along(levels(group)), levels(group), las=las)
 }
 
