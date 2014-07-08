@@ -53,7 +53,7 @@
 #' and running \code{rlog} with 'blind' set to FALSE
 #' (see example below).
 #' 
-#' @aliases rlog rlogTransformation rlogData rlogDataFast
+#' @aliases rlog rlogTransformation
 #' @rdname rlog
 #' @name rlog
 #' 
@@ -86,9 +86,7 @@
 #' @return \code{rlog}, equivalent to \code{rlogTransformation},
 #' returns a \code{\link{SummarizedExperiment}}.
 #' The matrix of transformed values are accessed by \code{assay(rld)}.
-#' \code{rlogData} returns a \code{matrix} of the same dimension as the
-#' count data, containing the transformed values. To avoid returning
-#' matrices with NA values where there were zeros for all rows of
+#' To avoid returning matrices with NA values where there were zeros for all rows of
 #' the unnormalized counts, the rlog transformation returns instead all
 #' zeros (essentially adding a pseudocount of one, only to those rows 
 #' in which all samples have zero).
@@ -170,8 +168,9 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
 #' @export
 rlogTransformation <- rlog
 
-#' @rdname rlog
-#' @export
+
+###################### unexported
+
 rlogData <- function(object, intercept, betaPriorVar) {
   if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion with a design of formula(~ 1)")
@@ -277,8 +276,6 @@ rlogData <- function(object, intercept, betaPriorVar) {
 
 
 
-#' @rdname rlog
-#' @export
 rlogDataFast <- function(object, intercept, betaPriorVar, B) {
   if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion with a design of formula(~ 1)")
@@ -333,10 +330,16 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     dispersion <- mcols(objectNZ)$dispFit
 
     delta <- .05
-    bgrid <- seq(from=delta, to=1-2*delta, by=delta)
+    bgrid <- seq(from=delta, to=1-delta, by=delta)
     # evaluate over a grid of B (shrinkage amount)
     optimalB <- as.numeric(rlogGrid(counts(objectNZ), nf, logFoldChangeMatrix,
                                     dispersion, interceptNZ, bgrid, betaPriorVar)$Bvec)
+    # cap the B using a local average value for genes with base mean > 10
+    lbm <- log(mcols(objectNZ)$baseMean)
+    fit <- loess(optimalB ~ lbm,control=loess.control(trace.hat="approximate"),span=.1)
+    fitted <- pmin(pmax(fit$fitted, 0), 1)
+    idx <- lbm > log(10)
+    optimalB[idx] <- pmin(optimalB[idx], fitted[idx] + .1)
   } else {
     Bout <- B
     optimalB <- B[!mcols(object)$allZero]

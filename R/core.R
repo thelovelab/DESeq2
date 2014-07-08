@@ -123,6 +123,7 @@
 #' @import BiocGenerics GenomicRanges IRanges Rcpp RcppArmadillo methods ggplot2
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars filtered_p
+#' @importFrom Hmisc wtd.quantile
 #' 
 #' @useDynLib DESeq2
 #'
@@ -749,9 +750,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
 #' @param betaPriorMethod the method for calculating the beta prior variance,
-#' either "quantile" or "weighted".
+#' either "quanitle" or "weighted":
 #' "quantile" matches a normal distribution using the upper quantile of the finite MLE betas.
-#' "weighted" calculates the mean of the squared MLE betas, weighting by the variance of the MLE betas.
+#' "weighted" matches a normal distribution using the upper quantile, but weighting by the variance of the MLE betas.
+#' @param upperQuantile the upper quantile to be used for the
+#' "quantile" or "weighted" method of beta prior variance estimation
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -770,13 +773,14 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' @export
 nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType,
                            maxit=100, useOptim=TRUE, quiet=FALSE,
-                           useT=FALSE, df, useQR=TRUE, betaPriorMethod=c("quantile","weighted")) {
+                           useT=FALSE, df, useQR=TRUE, betaPriorMethod=c("weighted","quantile"),
+                           upperQuantile=.05) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
   
   stopifnot(length(maxit)==1)
-  betaPriorMethod <- match.arg(betaPriorMethod, choices=c("quantile","weighted"))
+  betaPriorMethod <- match.arg(betaPriorMethod, choices=c("weighted","quantile"))
   
   # in case the class of the mcols(mcols(object)) are not character
   object <- sanitizeRowData(object)
@@ -843,7 +847,8 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
                                      modelMatrixType=modelMatrixType,
                                      betaPriorVar=betaPriorVar,
                                      priorOnlyInteraction=priorOnlyInteraction,
-                                     betaPriorMethod=betaPriorMethod)
+                                     betaPriorMethod=betaPriorMethod,
+                                     upperQuantile=upperQuantile)
     fit <- priorFitList$fit
     H <- priorFitList$H
     betaPriorVar <- priorFitList$betaPriorVar
@@ -1080,7 +1085,8 @@ has not been implemented")
                                   maxit=maxit, useOptim=useOptim, useQR=useQR,
                                   modelMatrixType=modelMatrixType,
                                   betaPriorVar=betaPriorVar,
-                                  priorOnlyInteraction=priorOnlyInteraction)
+                                  priorOnlyInteraction=priorOnlyInteraction,
+                                  upperQuantile=.05)
     fullModel <- priorFull$fit
     modelMatrix <- fullModel$modelMatrix
     betaPriorVar <- priorFull$betaPriorVar
@@ -1809,6 +1815,12 @@ matchUpperQuantileForVariance <- function(x, upperQuantile=.05) {
   unname(sdEst)^2
 }
 
+matchWeightedUpperQuantileForVariance <- function(x, weights, upperQuantile=.05) {
+  sdEst <- wtd.quantile(abs(x), weights=weights, 1 - upperQuantile, normwt=TRUE) / qnorm(1 - upperQuantile/2)
+  unname(sdEst)^2
+}
+
+
 # this function takes a matrix of MLE betas
 # and estimates the beta prior variance from these.
 # it is called within fitGLMsWithPrior()
@@ -1838,9 +1850,9 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
         return(1e6)
       } else {
         if (betaPriorMethod=="quantile") {
-          return(matchUpperQuantileForVariance(x[useFinite],upperQuantile=upperQuantile))
+          return(matchUpperQuantileForVariance(x[useFinite],upperQuantile))
         } else if (betaPriorMethod=="weighted") {
-          return(weighted.mean(x[useFinite]^2,weights[useFinite]))
+          return(matchWeightedUpperQuantileForVariance(x[useFinite],weights[useFinite],upperQuantile))
         }
       }
     })
@@ -1886,8 +1898,9 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
 # 2 - again but with the prior in order to get beta matrix and standard errors
 fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
                              modelMatrixType, betaPriorVar,
-                             priorOnlyInteraction, betaPriorMethod=c("quantile","weighted")) {
-  betaPriorMethod <- match.arg(betaPriorMethod, choices=c("quantile","weighted"))  
+                             priorOnlyInteraction, betaPriorMethod=c("weighted","quantile"),
+                             upperQuantile=.05) {
+  betaPriorMethod <- match.arg(betaPriorMethod, choices=c("weighted","quantile"))  
   # first, fit the negative binomial GLM without a prior,
   # used to construct the prior variances
   # and for the hat matrix diagonals for calculating Cook's distance
@@ -1905,7 +1918,8 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
                                          modelMatrix=modelMatrix,
                                          modelMatrixType=modelMatrixType,
                                          priorOnlyInteraction=priorOnlyInteraction,
-                                         betaPriorMethod=betaPriorMethod)
+                                         betaPriorMethod=betaPriorMethod,
+                                         upperQuantile=upperQuantile)
   } else {
     # else we are provided the prior variance:
     # check if the lambda is the correct length
