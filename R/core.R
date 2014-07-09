@@ -120,7 +120,8 @@
 #' 
 #' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #'
-#' @import BiocGenerics GenomicRanges IRanges Rcpp RcppArmadillo methods ggplot2
+#' @import BiocGenerics GenomicRanges IRanges Biobase Rcpp RcppArmadillo methods ggplot2 
+#'
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars filtered_p
 #' @importFrom Hmisc wtd.quantile
@@ -872,7 +873,7 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   p <- ncol(modelMatrix)
 
   # calculate Cook's distance
-  cooks <- calculateCooksDistance(objectNZ, H, p)
+  cooks <- calculateCooksDistance(objectNZ, H, p, modelMatrix)
 
   # record maximum Cook's
   maxCooks <- recordMaxCooks(design(object), colData(object), fit$modelMatrix, cooks, nrow(objectNZ))
@@ -1124,7 +1125,7 @@ has not been implemented")
   assays(object)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
   
   # calculate Cook's distance
-  cooks <- calculateCooksDistance(objectNZ, H, p)
+  cooks <- calculateCooksDistance(objectNZ, H, p, modelMatrix)
 
   # record maximum of Cook's
   maxCooks <- recordMaxCooks(design(object), colData(object), modelMatrix, cooks, nrow(objectNZ))
@@ -1699,17 +1700,48 @@ matrixToList <- function(m) {
 # using the squared MAD and the row mean.
 # the point is to estimate the dispersion excluding
 # individual outlier counts which would raise the variance
-robustMethodOfMomentsDisp <- function(object) {
+robustMethodOfMomentsDisp <- function(object, modelMatrix) {
   cnts <- counts(object,normalized=TRUE)
-  v <- apply(cnts,1,mad)^2
+  # if there are more than 3 per cell
+  moreThanThree <- nOrMoreInCell(modelMatrix,n=4)
+  v <- if (all(moreThanThree)) {
+    cells <- apply(modelMatrix,1,paste0,collapse="")
+    cells <- unname(factor(cells,levels=unique(cells)))
+    levels(cells) <- seq_along(levels(cells))
+    medianCellVariance(cnts, cells)
+  } else {
+    rowMAD(cnts)^2
+  }
   m <- rowMeans(cnts)
-  alpha <- pmax(v - m, 0) / m^2
-  alpha <- ifelse(alpha > 0, alpha, min(alpha))
+  alpha <- ( v - m ) / m^2
+  minDisp <- 1e-8
+  alpha <- pmax(alpha, minDisp)
+  alpha
+}
+
+rowMAD <- function(x) {
+  med <- rowMedians(x)
+  1/qnorm(3/4) * rowMedians(abs(x - med))
+}
+
+medianCellVariance <- function(cnts, cells) {
+  # calculate the median absolute deviation per cell
+  cellMedians <- matrix(sapply(levels(cells), function(lvl)
+                               rowMedians(cnts[,cells==lvl,drop=FALSE])),
+                        nrow=nrow(cnts))
+  qmat <- cellMedians[,as.integer(cells),drop=FALSE]
+  absdev <- abs(cnts - qmat)
+  cellMAD <- matrix(sapply(levels(cells), function(lvl)
+                           rowMedians(absdev[,cells==lvl,drop=FALSE])),
+                    nrow=nrow(absdev))
+  varEst <- ( 1/qnorm(3/4) * cellMAD )^2
+  # then take the average 
+  rowMeans(varEst)
 }
 
 
-calculateCooksDistance <- function(object, H, p) {
-  dispersions <- robustMethodOfMomentsDisp(object)
+calculateCooksDistance <- function(object, H, p, modelMatrix) {
+  dispersions <- robustMethodOfMomentsDisp(object, modelMatrix)
   V <- assays(object)[["mu"]] + dispersions * assays(object)[["mu"]]^2
   PearsonResSq <- (counts(object) - assays(object)[["mu"]])^2 / V
   cooks <- PearsonResSq / p  * H / (1 - H)^2

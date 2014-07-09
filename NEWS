@@ -1,8 +1,18 @@
+CHANGES IN VERSION 1.5.25
+-------------------------
+
+    o Improved the robust variance estimate used for calculating
+      Cook's distances. The previous estimate could lead to outlier 
+      calls in datasets with many conditions, and when a single 
+      condition had large, highly variable counts for all its samples.
+
 CHANGES IN VERSION 1.5.22
 -------------------------
 
     o Adding an alternate method for beta prior variance calculation
-      in nbinomWaldTest.
+      in nbinomWaldTest. This helps to produce more robust prior 
+      variance estimates when many genes have small counts and highly
+      variable MLE log fold changes.
 
 CHANGES IN VERSION 1.5.15
 -------------------------

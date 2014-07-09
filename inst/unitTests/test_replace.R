@@ -10,7 +10,7 @@ test_replace <- function() {
   
   LFC <- results(dds1)[1:3,"log2FoldChange"]
   checkTrue(is.na(LFC[1]))
-  checkTrue(abs(LFC[2]) < .2)
+  checkTrue(abs(LFC[2]) < .01)
   checkTrue(LFC[3] == 0)
   
   dds0 <- DESeq(dds, minReplicatesForReplace=7)
