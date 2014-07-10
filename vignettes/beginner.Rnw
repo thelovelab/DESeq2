@@ -764,17 +764,17 @@ sum( res$padj < 0.1, na.rm=TRUE )
 @
 
 We subset the results table to these genes and then sort it by the log2 fold change
-estimate to get the significant genes with the strongest down-regulation
+estimate to get the significant genes with the strongest down-regulation.
 
 <<strongGenes>>=
-resSig <- res[ which(res$padj < 0.1 ), ]
+resSig <- subset(res, padj < 0.1 )
 head( resSig[ order( resSig$log2FoldChange ), ] )
 @
 
 and with the strongest upregulation
 
 <<strongGenesUp>>=
-tail( resSig[ order( resSig$log2FoldChange ), ] )
+head( resSig[ order( -resSig$log2FoldChange ), ] )
 @
 
 \subsection{Diagnostic plots}

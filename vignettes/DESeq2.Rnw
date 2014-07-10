@@ -477,6 +477,15 @@ write.csv(as.data.frame(resOrdered),
           file="condition_treated_results.csv")
 @
 
+Exporting only the results which pass an adjusted $p$ value
+threshold can be accomplished with the \Rfunction{subset} function,
+followed by the \Rfunction{write.csv} function.
+
+<<subset>>=
+resSig <- subset(resOrdered, padj < 0.1)
+resSig
+@ 
+
 \subsection{Multi-factor designs} \label{sec:multifactor}
 
 Experiments with more than one factor influencing the counts can be 
