@@ -159,8 +159,9 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #' @param intgroup interesting groups: a character vector of names in \code{colData(x)} to use for grouping
 #' @param ntop number of top genes to use for principal components, selected by highest
 #'    row variance
-#' @param col a vector of colors for each level of intgroup
-#'
+#' @param returnData should the function only return the data.frame of PC1 and PC2
+#' with intgroup covariates for custom plotting (default is FALSE)
+#' 
 #' @return An object created by \code{ggplot}, which can be assigned and further customized.
 #' 
 #' @author Wolfgang Huber
@@ -176,7 +177,7 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 #' plotPCA(rld)
 #' 
 #' @export
-plotPCA = function(x, intgroup="condition", ntop=500, col)
+plotPCA = function(x, intgroup="condition", ntop=500, returnData=FALSE)
 {
   # calculate the variance for each gene
   rv <- rowVars(assay(x))
@@ -190,12 +191,19 @@ plotPCA = function(x, intgroup="condition", ntop=500, col)
   # the contribution to the total variance for each component
   percvar <- pca$sdev^2 / sum( pca$sdev^2 )
 
+  if (!all(intgroup %in% names(colData(x)))) {
+    stop("the argument 'intgroup' should specify columns of colData(dds)")
+  }
+  
   # add the intgroup factors together to create a new grouping factor
-  group <- factor(apply( as.data.frame(colData(x)[, intgroup, drop=FALSE]), 1, paste, collapse=" : "))
+  intgroup.df <- as.data.frame(colData(x)[, intgroup, drop=FALSE])
+  group <- factor(apply( intgroup.df, 1, paste, collapse=" : "))
 
   # assembly the data for the plot
-  d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group)
+  d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group, intgroup.df, names=colnames(x))
 
+  if (returnData) return(d)
+  
   ggplot(data=d, aes_string(x="PC1", y="PC2", color="group")) + geom_point(size=3) + 
     xlab(paste0("PC1: ",round(percvar[1] * 100),"% variance")) +
     ylab(paste0("PC2: ",round(percvar[2] * 100),"% variance"))

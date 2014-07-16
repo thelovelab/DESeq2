@@ -97,10 +97,10 @@ Limitations: In order to preserve normalization, the same
 transformation has to be used for all samples. This results in the
 variance stabilizition to be only approximate. The more the size
 factors differ, the more residual dependence of the variance on the
-mean you will find in the transformed data. As shown in the vignette,
-you can use the function
-\code{meanSdPlot} from the package \pkg{vsn} to see whether this
-is a problem for your data.
+mean will be found in the transformed data. \code{\link{rlog}} is a
+transformation which can perform better in these cases.
+As shown in the vignette, the function \code{meanSdPlot}
+from the package \pkg{vsn} can be used to see whether this is a problem.
 }
 \examples{
 dds <- makeExampleDESeqDataSet(m=6)

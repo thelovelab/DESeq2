@@ -237,10 +237,11 @@ rlogData <- function(object, intercept, betaPriorVar) {
   # log2 counts plus a pseudocount
   if (missing(betaPriorVar)) {
     logCounts <- log2(counts(objectNZ,normalized=TRUE) + 0.5)
-    baseMean <- rowMeans(counts(objectNZ,normalized=TRUE))
-    logFoldChangeMatrix <- logCounts - log2(baseMean + 0.5)
+    logFoldChangeMatrix <- logCounts - log2(mcols(objectNZ)$baseMean + 0.5)
     logFoldChangeVector <- as.numeric(logFoldChangeMatrix)
-    betaPriorVar <- matchUpperQuantileForVariance(logFoldChangeVector)
+    varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
+    weights <- 1/varlogk   
+    betaPriorVar <- matchWeightedUpperQuantileForVariance(logFoldChangeVector, rep(weights,ncol(objectNZ)))
   }
   stopifnot(length(betaPriorVar)==1)
   
@@ -318,7 +319,9 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     # log2 counts plus a pseudocount
     if (missing(betaPriorVar)) {
       logFoldChangeVector <- as.numeric(logFoldChangeMatrix)
-      betaPriorVar <- matchUpperQuantileForVariance(logFoldChangeVector)
+      varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
+      weights <- 1/varlogk
+      betaPriorVar <- matchWeightedUpperQuantileForVariance(logFoldChangeVector, rep(weights,ncol(objectNZ)))
     }
     stopifnot(length(betaPriorVar)==1)
     if (!is.null(normalizationFactors(object))) {

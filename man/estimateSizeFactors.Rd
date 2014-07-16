@@ -42,8 +42,8 @@ Typically, the function is called with the idiom:
 \code{dds <- estimateSizeFactors(dds)}
 
 See \code{\link{DESeq}} for a description of the use of size factors in the GLM.
-You need to call this function after \code{\link{DESeqDataSet}}
-unless you have manually specified \code{\link{sizeFactors}}.
+One should call this function after \code{\link{DESeqDataSet}}
+unless size factors are manually specified with \code{\link{sizeFactors}}.
 Alternatively, gene-specific normalization factors for each sample can be provided using
 \code{\link{normalizationFactors}} which will always preempt \code{\link{sizeFactors}}
 in calculations.

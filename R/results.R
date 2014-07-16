@@ -3,6 +3,7 @@
 #' \code{results} extracts results from a DESeq analysis giving base means across samples,
 #' log2 fold changes, standard errors, test statistics, p-values and adjusted p-values;
 #' \code{resultsNames} returns the names of the estimated effects (coefficents) of the model;
+#' \code{mleNames} returns the names of the maximum likelihood (unshrunken) estimated effects;
 #' \code{removeResults} returns a \code{DESeqDataSet} object with results columns removed.
 #'
 #' Multiple results can be returned for analyses beyond a simple two group comparison,
@@ -147,6 +148,10 @@
 #' For \code{resultsNames}: the names of the columns available as results,
 #' usually a combination of the variable name and a level
 #'
+#' For \code{mleNames}: the names of the columns of unshrunken, maximum likelihood estimates
+#' which are available using: \code{mcols(dds)$MLE_condition_B_vs_A}. These are stored in the
+#' case that a beta prior was used.
+#'
 #' For \code{removeResults}: the original \code{DESeqDataSet} with results metadata columns removed
 #'
 #' @seealso \code{\link{DESeq}}
@@ -158,6 +163,7 @@
 #' results(dds)
 #' results(dds, format="GRanges")
 #' resultsNames(dds)
+#' mleNames(dds)
 #' dds <- removeResults(dds)
 #'
 #' # two conditions, two groups, with interaction term
@@ -317,6 +323,7 @@ see the manual page of ?results for more information")
 Likelihood ratio test p-values are overwritten")
     }
     if (altHypothesis == "greaterAbs") {
+      newStat <- sign(res$log2FoldChange) * pmax(0, (abs(res$log2FoldChange) - lfcThreshold)) / res$lfcSE
       newPvalue <- pmin(1, 2 * pnorm(abs(res$log2FoldChange), mean = lfcThreshold,
                                      sd = res$lfcSE, lower.tail = FALSE))
     } else if (altHypothesis == "lessAbs") {
@@ -324,18 +331,24 @@ Likelihood ratio test p-values are overwritten")
       if (attr(object,"betaPrior")) {
         stop("testing altHypothesis='lessAbs' requires setting the DESeq() argument betaPrior=FALSE")
       }
+      newStatAbove <- pmax(0, lfcThreshold - res$log2FoldChange) / res$lfcSE
       pvalueAbove <- pnorm(res$log2FoldChange, mean = lfcThreshold,
                            sd = res$lfcSE, lower.tail = TRUE)
+      newStatBelow <- pmax(0, res$log2FoldChange + lfcThreshold) / res$lfcSE
       pvalueBelow <- pnorm(res$log2FoldChange, mean = -lfcThreshold,
                            sd = res$lfcSE, lower.tail = FALSE)
+      newStat <- pmin(newStatAbove, newStatBelow)
       newPvalue <- pmax(pvalueAbove, pvalueBelow)
     } else if (altHypothesis == "greater") {
+      newStat <- pmax(0, res$log2FoldChange - lfcThreshold) / res$lfcSE
       newPvalue <- pnorm(res$log2FoldChange, mean = lfcThreshold,
                          sd = res$lfcSE, lower.tail = FALSE)
     } else if (altHypothesis == "less") {
+      newStat <- pmax(0, lfcThreshold - res$log2FoldChange) / res$lfcSE
       newPvalue <- pnorm(res$log2FoldChange, mean = -lfcThreshold,
                          sd = res$lfcSE, lower.tail = TRUE)
     }
+    res$stat <- newStat
     res$pvalue <- newPvalue
   }
   
@@ -433,7 +446,7 @@ Likelihood ratio test p-values are overwritten")
 #' @rdname results
 #' @export
 resultsNames <- function(object) {
-  names(mcols(object)[grep("log2 fold change",mcols(mcols(object))$description)])
+  names(mcols(object))[grep("log2 fold change",mcols(mcols(object))$description)]
 }
 
 #' @rdname results
@@ -444,6 +457,14 @@ removeResults <- function(object) {
     mcols(object) <- mcols(object)[,-which(resCols),drop=FALSE]
   }
   return(object)
+}
+
+#' @rdname results
+#' @export
+mleNames <- function(object) {
+  out <- names(mcols(object))[grep("MLE_",names(mcols(object)))]
+  if (length(out) == 0) message("no additional MLE columns, because a beta prior was not used")
+  out
 }
 
 

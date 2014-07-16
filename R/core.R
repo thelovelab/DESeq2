@@ -263,7 +263,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' factors as follows: Each column is divided by the geometric means of the
 #' rows. The median (or, if requested, another location estimator) of these
 #' ratios (skipping the genes with a geometric mean of zero) is used as the size
-#' factor for this column. Typically, you will not call this function directly, but use
+#' factor for this column. Typically, one will not call this function directly, but use
 #' \code{\link{estimateSizeFactors}}.
 #' 
 #' @param counts a matrix or data frame of counts, i.e., non-negative integer
@@ -362,7 +362,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        dispTol=1e-6, maxit=100, quiet=FALSE,
                                        modelMatrix, niter=1) {
   if ("dispGeneEst" %in% names(mcols(object))) {
-    if (!quiet) message("you had estimated gene-wise dispersions, removing these")
+    if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst")
     mcols(object) <- mcols(object)[,!names(mcols(object)) %in% removeCols,drop=FALSE]
   }
@@ -480,7 +480,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),
                                    minDisp=1e-8, quiet=FALSE) {
   if ("dispFit" %in% names(mcols(object))) {
-    if (!quiet) message("you had estimated fitted dispersions, removing these")
+    if (!quiet) message("found already estimated fitted dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit",drop=FALSE]
   }
   objectNZ <- object[!mcols(object)$allZero,]
@@ -488,7 +488,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
   if (sum(useForFit) == 0) {
     stop("all gene-wise dispersion estimates are within 2 orders of magnitude
 from the minimum value, and so the standard curve fitting techniques will not work.
-You can instead use the gene-wise estimates as final estimates:
+One can instead use the gene-wise estimates as final estimates:
 dds <- estimateDispersionsGeneEst(dds)
 dispersions(dds) <- mcols(dds)$dispGeneEst")
   }
@@ -550,7 +550,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   stopifnot(length(dispTol)==1)
   stopifnot(length(maxit)==1)
   if ("dispersion" %in% names(mcols(object))) {
-    if (!quiet) message("you had estimated dispersions, removing these")
+    if (!quiet) message("found already estimated dispersions, removing these")
     removeCols <- c("dispersion","dispOutlier","dispMAP","dispIter","dispConv")
     mcols(object) <- mcols(object)[,!names(mcols(object)) %in% removeCols,drop=FALSE]
   }
@@ -787,7 +787,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   object <- sanitizeRowData(object)
   
   if ("results" %in% mcols(mcols(object))$type) {
-    if (!quiet) message("you had results columns, replacing these")
+    if (!quiet) message("found results columns, replacing these")
     object <- removeResults(object)
   }
   if (!"allZero" %in% names(mcols(object))) {
@@ -854,6 +854,7 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
     H <- priorFitList$H
     betaPriorVar <- priorFitList$betaPriorVar
     modelMatrix <- priorFitList$modelMatrix
+    mleBetaMatrix <- priorFitList$mleBetaMatrix
   }
 
   # store mu in case the user did not call estimateDispersionsGeneEst
@@ -905,15 +906,23 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   if (any(!betaConv)) {
     if (!quiet) message(paste(sum(!betaConv),"rows did not converge in beta, labelled in mcols(object)$betaConv. Use larger maxit argument with nbinomWaldTest"))
   }
+
+  mleBetas <- if (betaPrior) {
+    matrixToList(mleBetaMatrix)
+  } else {
+    NULL
+  }
   
   resultsList <- c(matrixToList(betaMatrix),
                    matrixToList(betaSE),
+                   mleBetas,
                    matrixToList(WaldStatistic),
                    matrixToList(WaldPvalue),
                    list(betaConv = betaConv,
                         betaIter = fit$betaIter,
                         deviance = -2 * fit$logLike,
                         maxCooks = maxCooks))
+  
   WaldResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
   
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
@@ -923,16 +932,21 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
     paste("log2 fold change:",modelMatrixNamesSpaces)
   }
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
+  mleInfo <- if (betaPrior) {
+    gsub("_"," ",colnames(mleBetaMatrix))
+  } else {
+    NULL
+  }
   statInfo <- paste("Wald statistic:",modelMatrixNamesSpaces)
   pvalInfo <- paste("Wald test p-value:",modelMatrixNamesSpaces)
-  
+
   mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
-                                  description = c(coefInfo, seInfo, statInfo, pvalInfo,
+                                  description = c(coefInfo, seInfo, mleInfo, statInfo, pvalInfo,
                                     "convergence of betas",
                                     "iterations for betas",
                                     "deviance for the fitted model",
                                     "maximum Cook's distance for row"))
-  
+ 
   mcols(object) <- cbind(mcols(object),WaldResults)
   return(object)
 }
@@ -1029,7 +1043,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
   if (df < 1) stop("less than one degree of freedom, perhaps full and reduced models are not in the correct order")
   
   if (any(mcols(mcols(object))$type == "results")) {
-    if (!quiet) message("you had results columns, replacing these")
+    if (!quiet) message("found results columns, replacing these")
     object <- removeResults(object)
   } 
 
@@ -1091,6 +1105,7 @@ has not been implemented")
     fullModel <- priorFull$fit
     modelMatrix <- fullModel$modelMatrix
     betaPriorVar <- priorFull$betaPriorVar
+    mleBetaMatrix <- priorFull$mleBetaMatrix
     # form a reduced model matrix:
     # first find the dropped terms
     # then remove columns from the full model matrix which are
@@ -1141,9 +1156,16 @@ has not been implemented")
   LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
   LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
 
+  mleBetas <- if (betaPrior) {
+    matrixToList(mleBetaMatrix)
+  } else {
+    NULL
+  }
+  
   # continue storing LRT results
   resultsList <- c(matrixToList(fullModel$betaMatrix),
                    matrixToList(fullModel$betaSE),
+                   mleBetas,
                    list(LRTStatistic = LRTStatistic,
                         LRTPvalue = LRTPvalue,
                         fullBetaConv = fullModel$betaConv,
@@ -1164,11 +1186,16 @@ has not been implemented")
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
   coefInfo <- paste("log2 fold change:",modelMatrixNamesSpaces)
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
+  mleInfo <- if (betaPrior) {
+    gsub("_"," ",colnames(mleBetaMatrix))
+  } else {
+    NULL
+  }
   statInfo <- paste("LRT statistic:",modelComparison)
   pvalInfo <- paste("LRT p-value:",modelComparison)
 
   mcols(LRTResults) <- DataFrame(type = rep("results",ncol(LRTResults)),
-                                 description = c(coefInfo, seInfo,
+                                 description = c(coefInfo, seInfo, mleInfo,
                                    statInfo, pvalInfo, 
                                    "convergence of betas for full model",
                                    "convergence of betas for reduced model",
@@ -1933,17 +1960,27 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
                              priorOnlyInteraction, betaPriorMethod=c("weighted","quantile"),
                              upperQuantile=.05) {
   betaPriorMethod <- match.arg(betaPriorMethod, choices=c("weighted","quantile"))  
+
   # first, fit the negative binomial GLM without a prior,
   # used to construct the prior variances
   # and for the hat matrix diagonals for calculating Cook's distance
   fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
                        renameCols = (modelMatrixType == "standard"))
   modelMatrix <- fit$modelMatrix
-
+  modelMatrixNames <- colnames(modelMatrix)
   H <- fit$hat_diagonal
   betaMatrix <- fit$betaMatrix
-  colnames(betaMatrix) <- colnames(modelMatrix)
-  
+  colnames(betaMatrix) <- modelMatrixNames
+
+  # save the MLE log fold changes for lfcType="unshrunken"
+  convertNames <- renameModelMatrixColumns(modelMatrixNames,
+                                           as.data.frame(colData(objectNZ)),
+                                           design(objectNZ))
+  convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
+  modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
+  mleBetaMatrix <- fit$betaMatrix
+  colnames(mleBetaMatrix) <- paste0("MLE_",modelMatrixNames)
+ 
   if (missing(betaPriorVar)) {
     betaPriorVar <- estimateBetaPriorVar(object=objectNZ,
                                          betaMatrix=betaMatrix,
@@ -1982,7 +2019,7 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
   }
 
   res <- list(fit=fit, H=H, betaPriorVar=betaPriorVar,
-              modelMatrix=modelMatrix)
+              modelMatrix=modelMatrix, mleBetaMatrix=mleBetaMatrix)
   res
 }
 

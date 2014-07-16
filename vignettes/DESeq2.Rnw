@@ -718,10 +718,9 @@ along the whole dynamic range.
 library("vsn")
 par(mfrow=c(1,3))
 notAllZero <- (rowSums(counts(dds))>0)
-meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1),
-           ylim = c(0,2.5))
-meanSdPlot(assay(rld[notAllZero,]), ylim = c(0,2.5))
-meanSdPlot(assay(vsd[notAllZero,]), ylim = c(0,2.5))
+meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1))
+meanSdPlot(assay(rld[notAllZero,]))
+meanSdPlot(assay(vsd[notAllZero,]))
 @
 
 %---------------------------------------------------------------

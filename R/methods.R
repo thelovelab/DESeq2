@@ -308,8 +308,8 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' \code{dds <- estimateSizeFactors(dds)}
 #'
 #' See \code{\link{DESeq}} for a description of the use of size factors in the GLM.
-#' You need to call this function after \code{\link{DESeqDataSet}}
-#' unless you have manually specified \code{\link{sizeFactors}}.
+#' One should call this function after \code{\link{DESeqDataSet}}
+#' unless size factors are manually specified with \code{\link{sizeFactors}}.
 #' Alternatively, gene-specific normalization factors for each sample can be provided using
 #' \code{\link{normalizationFactors}} which will always preempt \code{\link{sizeFactors}}
 #' in calculations.
@@ -470,7 +470,7 @@ these column could have come in during colData import")
     stop("all genes have equal values for all samples. will not be able to perform differential analysis")
   }
   if (!is.null(dispersions(object))) {
-    if (!quiet) message("you had estimated dispersions, replacing these")
+    if (!quiet) message("found already estimated dispersions, replacing these")
     mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results")),drop=FALSE]
   }
   stopifnot(length(maxit)==1)

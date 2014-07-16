@@ -149,7 +149,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     if (warnIntVars) {
       message(paste0("the design formula contains a numeric variable with integer values,
 specifying a model with increasing fold change for higher values.
-did you mean for this to be a factor? if so, you should first convert
+did you mean for this to be a factor? if so, first convert
 this variable to a factor using the factor() function"))
     }
   }
@@ -180,7 +180,7 @@ this variable to a factor using the factor() function"))
     for (cSyn in controlSynonyms) {
       if (cSyn %in% lastDVLvls) {
         if (cSyn != lastDVLvls[1]) {
-          message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"', has a factor level, '",cSyn,"', which is not the base level. we recommend you use factor(...,levels=...) or relevel() to set this as the base level before proceeding. for more information, please see the 'Note on factor levels' in vignette('DESeq2')."))
+          message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"', has a factor level, '",cSyn,"', which is not the base level. we recommend to use factor(...,levels=...) or relevel() to set this as the base level before proceeding. for more information, please see the 'Note on factor levels' in vignette('DESeq2')."))
         }
       }
     }

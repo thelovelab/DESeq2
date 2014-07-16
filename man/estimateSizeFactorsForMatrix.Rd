@@ -26,7 +26,7 @@ Given a matrix or data frame of count data, this function estimates the size
 factors as follows: Each column is divided by the geometric means of the
 rows. The median (or, if requested, another location estimator) of these
 ratios (skipping the genes with a geometric mean of zero) is used as the size
-factor for this column. Typically, you will not call this function directly, but use
+factor for this column. Typically, one will not call this function directly, but use
 \code{\link{estimateSizeFactors}}.
 }
 \examples{
