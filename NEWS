@@ -1,11 +1,16 @@
+CHANGES IN VERSION 1.5.28
+-------------------------
+
+    o New results() argument 'addMLE' adds the unshrunken fold changes
+      for simple contrasts or interaction terms to the results tables.
+
 CHANGES IN VERSION 1.5.27
 -------------------------
 
     o Applied the beta prior variance calculation from v1.5.22 to the 
       regularized logarithm.
 
-    o Added MLE coefficients as columns to mcols(dds). The available
-      columns can be determined with a call to mleNames(dds).
+    o Added MLE coefficients as MLE_condition_B_vs_A columns to mcols(dds).
 
     o Fixed the statistic which is returned when lfcThreshold is used.
       Previously, only the p-value and adjusted p-value was changed.

@@ -3,7 +3,6 @@
 #' \code{results} extracts results from a DESeq analysis giving base means across samples,
 #' log2 fold changes, standard errors, test statistics, p-values and adjusted p-values;
 #' \code{resultsNames} returns the names of the estimated effects (coefficents) of the model;
-#' \code{mleNames} returns the names of the maximum likelihood (unshrunken) estimated effects;
 #' \code{removeResults} returns a \code{DESeqDataSet} object with results columns removed.
 #'
 #' Multiple results can be returned for analyses beyond a simple two group comparison,
@@ -138,6 +137,10 @@
 #' @param test this is typically automatically detected internally.
 #' the one exception is after \code{nbinomLRT} has been run, \code{test="Wald"}
 #' will generate Wald statistics and Wald test p-values.
+#' @param addMLE whether the "unshrunken" maximum likelihood estimates (MLE)
+#' of log2 fold change should be added as a column to the results table (default is FALSE).
+#' only applicable when a beta prior was used during the model fitting. only implemented
+#' for 'contrast' for three element character vectors or 'name' for interactions.
 #'
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
 #' a simple subclass of DataFrame. This object contains the results columns:
@@ -147,10 +150,6 @@
 #'
 #' For \code{resultsNames}: the names of the columns available as results,
 #' usually a combination of the variable name and a level
-#'
-#' For \code{mleNames}: the names of the columns of unshrunken, maximum likelihood estimates
-#' which are available using: \code{mcols(dds)$MLE_condition_B_vs_A}. These are stored in the
-#' case that a beta prior was used.
 #'
 #' For \code{removeResults}: the original \code{DESeqDataSet} with results metadata columns removed
 #'
@@ -163,7 +162,6 @@
 #' results(dds)
 #' results(dds, format="GRanges")
 #' resultsNames(dds)
-#' mleNames(dds)
 #' dds <- removeResults(dds)
 #'
 #' # two conditions, two groups, with interaction term
@@ -225,7 +223,8 @@ results <- function(object, contrast, name,
                     alpha=0.1, filter, theta,
                     pAdjustMethod="BH",
                     format=c("DataFrame","GRanges","GRangesList"),
-                    test) {
+                    test,
+                    addMLE=FALSE) {
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call DESeq, nbinomWaldTest, or nbinomLRT")
   }
@@ -238,6 +237,10 @@ results <- function(object, contrast, name,
     stop("the LRT requires the user run nbinomLRT or DESeq(dds,test='LRT')")
   }
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
+
+  if (addMLE & !attr(object,"betaPrior")) {
+    stop("addMLE=TRUE is only for when a beta prior was used. otherwise, the log2 fold changes are already MLE")
+  }
   
   # check for intercept
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
@@ -315,6 +318,24 @@ see the manual page of ?results for more information")
     names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
   }
   rownames(res) <- rownames(object)
+
+  # add unshrunken MLE coefficients to the results table
+  if (addMLE) {
+    if (!missing(contrast)) {
+      if (is.numeric(contrast)) stop("addMLE only implemented for: contrast=c('condition','B','A')")
+      if (is.list(contrast)) stop("addMLE only implemented for: contrast=c('condition','B','A')")
+      res <- cbind(res, mleContrast(object, contrast))
+    } else {
+      mleName <- paste0("MLE_",name)
+      mleNames <- names(mcols(object))[grep("MLE_",names(mcols(object)))]
+      if (!mleName %in% mleNames) stop("MLE_ plus 'name' was not found as a column in mcols(dds)")
+      mleColumn <- mcols(object)[mleName]
+      names(mleColumn) <- "lfcMLE"
+      mcols(mleColumn)$description <- paste("log2 fold change (MLE):", name)
+      res <- cbind(res, mleColumn)
+    }
+    res <- res[,c("baseMean","log2FoldChange","lfcMLE","lfcSE","stat","pvalue")]
+  }
   
   # only if we need to generate new p-values
   if ( !(lfcThreshold == 0 & altHypothesis == "greaterAbs") ) {
@@ -381,6 +402,7 @@ Likelihood ratio test p-values are overwritten")
   if ( sum(mcols(object)$replace, na.rm=TRUE) > 0) {
     nowZero <- which(mcols(object)$replace & mcols(object)$baseMean == 0)
     res$log2FoldChange[nowZero] <- 0
+    if (addMLE) { res$lfcMLE <- 0 }
     res$lfcSE[nowZero] <- 0
     res$stat[nowZero] <- 0
     res$pvalue[nowZero] <- 1
@@ -457,14 +479,6 @@ removeResults <- function(object) {
     mcols(object) <- mcols(object)[,-which(resCols),drop=FALSE]
   }
   return(object)
-}
-
-#' @rdname results
-#' @export
-mleNames <- function(object) {
-  out <- names(mcols(object))[grep("MLE_",names(mcols(object)))]
-  if (length(out) == 0) message("no additional MLE columns, because a beta prior was not used")
-  out
 }
 
 
@@ -841,4 +855,30 @@ makeWaldTest <- function(object) {
                                   description = c(statInfo, pvalInfo))
   mcols(object) <- cbind(mcols(object),WaldResults)
   return(object)
+}
+
+mleContrast <- function(object, contrast) {
+  contrastFactor <- contrast[1]
+  contrastNumLevel <- contrast[2]
+  contrastDenomLevel <- contrast[3]
+  contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
+  contrastNumColumn <- make.names(paste0("MLE_",contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel))
+  contrastDenomColumn <- make.names(paste0("MLE_",contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel))
+  cleanName <- paste("log2 fold change (MLE):",contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
+  if ( contrastDenomLevel == contrastBaseLevel ) {
+    name <- make.names(paste0("MLE_",contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel))
+    lfcMLE <- mcols(object)[name]
+  } else if ( contrastNumLevel == contrastBaseLevel ) {
+    swapName <- make.names(paste0("MLE_",contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel))
+    lfcMLE <- mcols(object)[swapName]
+    lfcMLE[[1]] <- -1 * lfcMLE[[swapName]]
+  } else {
+    numMLE <- mcols(object)[[contrastNumColumn]]
+    denomMLE <- mcols(object)[[contrastDenomColumn]]
+    lfcMLE <- mcols(object)[contrastNumColumn]
+    lfcMLE[[1]] <- numMLE - denomMLE
+  }
+  names(lfcMLE) <- "lfcMLE"
+  mcols(lfcMLE)$description <- cleanName
+  lfcMLE
 }
