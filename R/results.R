@@ -829,8 +829,8 @@ renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
   designVars <- all.vars(design)
   designVarsClass <- sapply(designVars, function(v) class(data[[v]]))
   factorVars <- designVars[designVarsClass == "factor"]
-  colNamesFrom <- do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1])))
-  colNamesTo <- do.call(c,lapply(factorVars, function(v) paste0(v,"_",levels(data[[v]])[-1],"_vs_",levels(data[[v]])[1])))
+  colNamesFrom <- make.names(do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1]))))
+  colNamesTo <- make.names(do.call(c,lapply(factorVars, function(v) paste0(v,"_",levels(data[[v]])[-1],"_vs_",levels(data[[v]])[1]))))
   data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
 }
 

@@ -1,0 +1,102 @@
+# Test suite
+
+```{r functionDefs}
+
+summarizeDESeqRun <- function(x) {
+  name <- x$name
+  time <- x$time
+  res <- x$res
+  dds <- x$dds
+  cat(name,"\n")
+  cat(paste(nrow(dds),"genes",ncol(dds),"samples \n"))
+  cat(paste(round(unname(time[3])),"seconds \n"))
+  summarizeResults(res)
+  par(mfrow=c(2,2))
+  yext <- max(abs(res$log2FoldChange),na.rm=TRUE)
+  plotMA(res,ylim=c(-yext,yext),main=name)
+  plotDispEsts(dds,main=name)
+  hist(res$pvalue[res$baseMean > 10],col="grey",main="p-values | base-mean > 10",xlab="")
+}
+
+library("GenomicRanges")
+
+recount2SE <- function(name) {
+  filename <- paste0(name,"_eset.RData")
+  if (!file.exists(filename)) download.file(paste0(
+    "http://bowtie-bio.sourceforge.net/recount/ExpressionSets/",
+    filename),filename)
+  load(filename)
+  e <- get(paste0(name,".eset"))
+  se <- SummarizedExperiment(SimpleList(counts=exprs(e)),
+                             colData=DataFrame(pData(e)))
+  se                   
+}
+
+```
+
+
+```{r runParathyroid, cache=TRUE}
+library("DESeq2")
+library("parathyroidSE")
+data(parathyroidGenesSE)
+se <- parathyroidGenesSE
+dds0 <- DESeqDataSet(se, ~ patient + treatment)
+dds0 <- dds0[,dds0$treatment != "OHT" & dds0$time == "48h"]
+dds <- collapseReplicates(dds0, groupby = dds0$sample, run = dds0$run)
+dds$treatment <- factor(dds$treatment, levels=c("Control","DPN"))
+time <- system.time({ dds <- DESeq(dds) })
+res <- results(dds,addMLE=TRUE)
+parathyroidRes <- list(name="parathyroid", time=time, res=res, dds=dds)
+```
+
+```{r runPasilla, cache=TRUE}
+library("pasilla")
+library("Biobase")
+data("pasillaGenes")
+countData <- counts(pasillaGenes)
+colData <- pData(pasillaGenes)[,c("condition","type")]
+dds <- DESeqDataSetFromMatrix(countData = countData,
+                              colData = colData,
+                              design = ~ type + condition)
+dds$condition <- relevel(dds$condition, "untreated","treated")
+time <- system.time({ dds <- DESeq(dds) })
+res <- results(dds,addMLE=TRUE)
+pasillaRes <- list(name="pasilla", time=time, res=res, dds=dds)
+```
+
+```{r runHammer, cache=TRUE}
+se <- recount2SE("hammer")
+se$Time[4] <- "2 months"
+dds <- DESeqDataSet(se, ~ Time + protocol)
+dds$protocol <- relevel(dds$protocol, "control")
+time <- system.time({ dds <- DESeq(dds) })
+res <- results(dds,addMLE=TRUE)
+hammerRes <- list(name="hammer", time=time, res=res, dds=dds)
+```
+
+```{r runBottomly, cache=TRUE}
+se <- recount2SE("bottomly")
+se$exp <- factor(se$experiment.number)
+dds <- DESeqDataSet(se, ~ exp + strain)
+time <- system.time({ dds <- DESeq(dds) })
+res <- results(dds,addMLE=TRUE)
+bottomlyRes <- list(name="bottomly", time=time, res=res, dds=dds)
+```
+
+
+```{r plotParathryoid, fig.width=12, fig.height=5}
+summarizeDESeqRun(parathyroidRes)
+```
+
+```{r plotPasilla, fig.width=12, fig.height=5}
+summarizeDESeqRun(pasillaRes)
+```
+
+```{r plotHammer, fig.width=12, fig.height=5}
+summarizeDESeqRun(hammerRes)
+```
+
+```{r plotBottomly, fig.width=12, fig.height=5}
+summarizeDESeqRun(bottomlyRes)
+```
+
