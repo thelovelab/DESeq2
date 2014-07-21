@@ -402,7 +402,7 @@ Likelihood ratio test p-values are overwritten")
   if ( sum(mcols(object)$replace, na.rm=TRUE) > 0) {
     nowZero <- which(mcols(object)$replace & mcols(object)$baseMean == 0)
     res$log2FoldChange[nowZero] <- 0
-    if (addMLE) { res$lfcMLE <- 0 }
+    if (addMLE) { res$lfcMLE[nowZero] <- 0 }
     res$lfcSE[nowZero] <- 0
     res$stat[nowZero] <- 0
     res$pvalue[nowZero] <- 1

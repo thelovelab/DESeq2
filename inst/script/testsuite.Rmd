@@ -2,6 +2,18 @@
 
 ```{r functionDefs}
 
+medianPercentShrinkage <- function(res,...) {
+  idx <- res$baseMean > 10
+  baseMean <- res$baseMean[idx]
+  qs <- quantile(baseMean, 0:10/10)
+  nms <- unname( round( (qs[-1] + qs[-length(qs)])/2 ) )
+  f <- cut(baseMean, qs)
+  delta <- 100 * ( (res$lfcMLE - res$log2FoldChange) / res$lfcMLE )[ idx ]
+  barplot(tapply(delta, f, median, na.rm=TRUE), las=2,
+          names=nms, xlab="mean expression", ylab="median percent LFC shrinkage",
+          ...)
+}
+
 summarizeDESeqRun <- function(x) {
   name <- x$name
   time <- x$time
@@ -14,6 +26,7 @@ summarizeDESeqRun <- function(x) {
   par(mfrow=c(2,2))
   yext <- max(abs(res$log2FoldChange),na.rm=TRUE)
   plotMA(res,ylim=c(-yext,yext),main=name)
+  medianPercentShrinkage(res,main=name)
   plotDispEsts(dds,main=name)
   hist(res$pvalue[res$baseMean > 10],col="grey",main="p-values | base-mean > 10",xlab="")
 }
@@ -47,6 +60,7 @@ dds$treatment <- factor(dds$treatment, levels=c("Control","DPN"))
 time <- system.time({ dds <- DESeq(dds) })
 res <- results(dds,addMLE=TRUE)
 parathyroidRes <- list(name="parathyroid", time=time, res=res, dds=dds)
+rm(time, res, dds)
 ```
 
 ```{r runPasilla, cache=TRUE}
@@ -62,41 +76,44 @@ dds$condition <- relevel(dds$condition, "untreated","treated")
 time <- system.time({ dds <- DESeq(dds) })
 res <- results(dds,addMLE=TRUE)
 pasillaRes <- list(name="pasilla", time=time, res=res, dds=dds)
+rm(time, res, dds)
 ```
 
 ```{r runHammer, cache=TRUE}
 se <- recount2SE("hammer")
 se$Time[4] <- "2 months"
+se$Time <- droplevels(se$Time)
 dds <- DESeqDataSet(se, ~ Time + protocol)
 dds$protocol <- relevel(dds$protocol, "control")
 time <- system.time({ dds <- DESeq(dds) })
 res <- results(dds,addMLE=TRUE)
 hammerRes <- list(name="hammer", time=time, res=res, dds=dds)
+rm(time, res, dds)
 ```
 
 ```{r runBottomly, cache=TRUE}
 se <- recount2SE("bottomly")
-se$exp <- factor(se$experiment.number)
-dds <- DESeqDataSet(se, ~ exp + strain)
+dds <- DESeqDataSet(se, ~ strain)
 time <- system.time({ dds <- DESeq(dds) })
 res <- results(dds,addMLE=TRUE)
 bottomlyRes <- list(name="bottomly", time=time, res=res, dds=dds)
+rm(time, res, dds)
 ```
 
 
-```{r plotParathryoid, fig.width=12, fig.height=5}
+```{r plotParathryoid, fig.width=9, fig.height=9}
 summarizeDESeqRun(parathyroidRes)
 ```
 
-```{r plotPasilla, fig.width=12, fig.height=5}
+```{r plotPasilla, fig.width=9, fig.height=9}
 summarizeDESeqRun(pasillaRes)
 ```
 
-```{r plotHammer, fig.width=12, fig.height=5}
+```{r plotHammer, fig.width=9, fig.height=9}
 summarizeDESeqRun(hammerRes)
 ```
 
-```{r plotBottomly, fig.width=12, fig.height=5}
+```{r plotBottomly, fig.width=9, fig.height=9}
 summarizeDESeqRun(bottomlyRes)
 ```
 
