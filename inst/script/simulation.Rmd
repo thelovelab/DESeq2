@@ -1,0 +1,290 @@
+# Assessment of DESeq2 performance through simulation
+
+## Differential expression analysis
+
+We assessed the sensitivity and specificity of various algorithms
+using simulation to complement on analysis on real data. The following
+Negative Binomial simulation samples mean and dispersions from the joint distribution of
+estimated mean and dispersion from the Pickrell et al dataset. The
+true differences between two groups are drawn from either *z*, *0* or
+*-z*, where the *0* component represents 80% of the genes. The
+absolute value of the effect size *z* for the 20% of genes with differential
+expression is varied, as is the total sample size m (such that each
+group has m/2 samples). 10,000 genes were simulated, and each
+combination of parameters was repeated 6 times.
+The code to generate these results is in `simulateDE.R`.
+
+```{r loadDE}
+load("results_simulateDE.RData")
+res$m <- factor(res$m)
+levels(res$m) <- paste0("m=",levels(res$m))
+res$effSize <- factor(res$effSize)
+levels(res$effSize) <- c("fold change 2","fold change 3","fold change 4")
+res$algorithm <- factor(res$algorithm)
+```
+
+```{r simulateDE, fig.width=7, fig.height=5, fig.align="center"}
+library("ggplot2")
+p <- ggplot(res, aes(y=sensitivity, x=oneminusspecpvals, color=algorithm, shape=algorithm))
+p + geom_point() + theme_bw() + facet_grid(effSize ~ m) +
+  scale_shape_manual(values=1:9) +
+  xlab("1 - specificity (false positive rate)") + 
+  coord_cartesian(xlim=c(-.003,.035)) + 
+  geom_vline(xintercept=.01) + 
+  scale_x_continuous(breaks=c(0,.02))
+```
+
+Use of simulation to assess the sensitivity and specificity of
+algorithms across combinations of sample size and effect size. The
+sensitivity was calculated as the fraction of genes with adjusted
+p-value less than 0.1 among the genes with true differences between
+group means. The specificity was calculated as the fraction of genes
+with p-value greater than 0.01 among the genes with no true
+differences between group means.  The p-value was chosen instead of
+the adjusted p-value, as this allows for comparison against the
+expected fraction of p-values less than a critical value given the
+uniformity of p-values under the null hypothesis. 
+
+```{r simulateDEPrec, fig.width=7, fig.height=5, fig.align="center"}
+library("ggplot2")
+p <- ggplot(res, aes(y=sensitivity, x=oneminusprec, color=algorithm, shape=algorithm))
+p + geom_point() + theme_bw() + facet_grid(effSize ~ m) +
+  scale_shape_manual(values=1:9) +
+  xlab("1 - precision (false discovery rate)") + 
+  coord_cartesian(xlim=c(-.03, .3)) + 
+  geom_vline(xintercept=.1)
+``` 
+
+Sensitivity and precision of algorithms across combinations of sample
+size and effect size. The sensitivity was calculated as the fraction
+of genes with adjusted p-value less than 0.1 among the genes with true
+differences between group means.  The precision was calculated as the
+fraction of genes with true differences between group means among
+those with adjusted p-value less than 0.1.
+
+
+## Performance in the presence of outliers
+
+The following plots examine the affect of outliers on differential
+calls by the two Negative-Binomial-based methods *DESeq2* and *edgeR*.
+*DESeq2* was run with default settings, after turning off
+gene filtering, and after turning off outlier replacement. *edgeR*
+was run with default settings, and after using the *robust* option.
+The code to generate these results is in `simulateOutliers.R`.
+
+```{r loadOut}
+load("results_simulateOutliers.RData")
+# when < 7 replicates DESeq does not replace
+res <- res[!(res$algorithm == "DESeq2-noRepl" & res$m < 14),]
+# when >= 7 replicates DESeq does not filter
+res <- res[!(res$algorithm == "DESeq2-noFilt" & res$m >= 14),]
+res$m <- factor(res$m)
+levels(res$m) <- paste0("m=",levels(res$m))
+res$percentOutlier <- 100 * res$percentOutlier
+res$percentOutlier <- factor(res$percentOutlier)
+levels(res$percentOutlier) <- paste0(levels(res$percentOutlier),"% outlier")
+``` 
+
+```{r simulateOutliersSens, fig.width=8, fig.height=4, fig.align="center"}
+library("ggplot2")
+p <- ggplot(res, aes(x=oneminusspec, y=sensitivity, color=algorithm))
+p + scale_x_continuous(breaks=c(0,.1,.2)) + 
+  scale_y_continuous(breaks=c(0,.2,.4,.6,.8)) + 
+  geom_line() + theme_bw() +
+  facet_grid(m ~ percentOutlier) + xlab("1 - specificity") + 
+  coord_cartesian(xlim=c(-.03, .25), ylim=c(-.05, .9)) + 
+  geom_point(aes(x=oneminusspec, y=sensitivity, shape=algorithm),
+            data=res[res$padj == .1,])
+``` 
+
+Sensitivity-specificity curves for detecting true differences in the
+presence of outliers. Negative Binomial counts were simulated for 4000
+genes and total sample sizes (m) of 10 and 20, for a two-group
+comparison. 80% of the simulated genes had no true differential
+expression, while for 20% of the genes true logarithmic (base 2)
+fold changes of -1 or 1. The number of genes with simulated outliers
+was increased from 0% to 15%. The outliers were constructed for a
+gene by multiplying the count of a single sample by 100.  Sensitivity
+and specificity were calculated by thresholding on p-values. Points
+indicate an adjusted p-value of 0.1. DESeq2 filters genes with
+potential outliers for samples with 3 to 6 replicates, while replacing
+outliers for samples with 7 or more replicates, hence the filtering
+can be turned off for the top row (m=10) and the replacement can be
+turned off for the bottom row (m=20).
+
+```{r simulateOutliersPrec, fig.width=8, fig.height=4, fig.align="center"}
+p <- ggplot(res, aes(x=padj, y=oneminusprec, color=algorithm))
+p + scale_x_continuous(breaks=c(0,.1,.2)) + 
+  scale_y_continuous(breaks=c(0,.1,.2)) + 
+  geom_line() + theme_bw() + 
+  facet_grid(m ~ percentOutlier) + 
+  geom_abline(intercept=0,slope=1) +
+  xlab("adjusted p-value") + ylab("1 - precision (FDR)") + 
+  coord_cartesian(xlim=c(-.03, .25), ylim=c(-.05, .25)) + 
+  geom_point(aes(x=padj, y=oneminusprec, shape=algorithm),
+             data=res[res$padj == .1,])
+```
+
+Outlier handling: One minus the precision (false discovery rate)
+plotted over various thresholds of adjusted p-value. Shown is the
+results for the same simulation with outliers described in the
+previous figure. Points indicate an adjusted p-value of 0.1.
+
+## Accuracy of log fold change estimates
+
+The following simulations used Negative Binomial random variables
+with mean and dispersion pairs samples from the joint
+distribution of mean-dispersion estimates from the Pickrell data. In
+addition, true differences between two groups were randomly generated,
+according to the following models, diagrammed below. The
+accuracy of four methods for estimating the log fold change between
+groups were compared by the root mean squared error (RMSE) and the 
+mean absolute error (MAE). The four methods were chosen for their
+particular focus on the logs fold change estimate. 
+The code to generate these results is in `simulateLFCAccuracy.R`.
+
+```{r lfcAccuracyHist, fig.width=8, fig.height=2.5, fig.align="center"}
+par(mfrow=c(1,4),mar=c(3,3,3,1))
+n <- 1000
+brks <- seq(from=-4,to=4,length.out=20)
+trimit <- function(x) x[x > -4 & x < 4] # for visualization only
+hist(trimit(rnorm(n)), breaks=brks, col="black", main="bell", xlab="", ylab="")
+hist(trimit(c(rnorm(n * 8/10), runif(n * 2/10, -4, 4))), breaks=brks, col="black", main="slab bell", xlab="", ylab="")
+hist(c(rep(0, n * 8/10), runif(n * 2/10, -4, 4)), breaks=brks, col="black", main="slab spike",xlab="", ylab="")
+hist(c(rep(0, n * 8/10), sample(c(-2, 2), n * 2/10, TRUE)), breaks=brks, col="black", main="spike spike",xlab="", ylab="")
+```
+
+Benchmarking LFC estimation: Models for simulating logarithmic (base
+2) fold changes. For the bell model, true logarithmic fold changes
+were drawn from a Normal with mean 0 and variance 1. For the slab bell
+model, true logarithmic fold changes were drawn for 80% of genes
+from a Normal with mean 0 and variance 1 and for 20% of genes from a
+Uniform distribution with range from -4 to 4. For the slab spike
+model, true logarithmic fold changes were drawn similarly to the slab
+bell model except the Normal is replaced with a spike of logarithmic
+fold changes at 0. For the spike spike model, true logarithmic fold
+changes were drawn according to a spike of logarithmic fold changes at
+0 (80%) and a spike randomly sampled from -2 or 2 (20%). These
+spikes represent fold changes of 1/4 and 4, respectively.
+
+```{r lfcAccuracy, fig.width=7, fig.height=5, fig.align="center"}
+load("results_simulateLFCAccuracy.RData")
+library("ggplot2")
+library("Hmisc")
+p <- ggplot(data=res, aes(x=m, y=RMSE, color=method, shape=method))
+p + stat_summary(fun.y=mean, geom="point") + 
+  stat_summary(fun.y=mean, geom="line") + 
+  stat_summary(fun.data=mean_cl_normal, geom="errorbar") + 
+  theme_bw() + xlab("total sample size") + facet_wrap(~ type) + 
+  scale_x_continuous(breaks=unique(res$m))
+```
+
+Root mean squared error (RMSE) for estimating logarithmic fold changes
+under the four models of logarithmic fold changes and varying total
+sample size m. Simulated Negative Binomial counts were generated for
+two groups and for 1000 genes. Points and error bars are drawn for the
+mean and 95% confidence interval over 10 replications.
+
+```{r lfcAccuracyDE, fig.width=6, fig.height=2.5, fig.align="center"}
+p <- ggplot(data=res[grepl("spike",res$type),], aes(x=m, y=DiffRMSE, color=method, shape=method))
+p + stat_summary(fun.y=mean, geom="point") + 
+  stat_summary(fun.y=mean, geom="line") + 
+  stat_summary(fun.data=mean_cl_normal, geom="errorbar") + 
+  theme_bw() + xlab("total sample size") +  ylab("RMSE only of DE genes") + 
+  facet_wrap(~ type) + 
+  scale_x_continuous(breaks=unique(res$m))
+``` 
+
+Root mean squared error (RMSE) of logarithmic fold change estimates,
+only considering genes with non-zero true logarithmic fold change. For
+the same simulation, shown here is the error only for the 20% of
+genes with non-zero true logarithmic fold changes (for bell and slab
+bell all genes have non-zero logarithmic fold change).
+
+```{r lfcAccuracyMAE, fig.width=7, fig.height=5, fig.align="center"}
+p <- ggplot(data=res, aes(x=m, y=MAE, color=method, shape=method))
+p + stat_summary(fun.y=mean, geom="point") + 
+  stat_summary(fun.y=mean, geom="line") + 
+  stat_summary(fun.data=mean_cl_normal, geom="errorbar") + 
+  theme_bw() + xlab("total sample size") +  ylab("MAE") + 
+  facet_wrap(~ type) + 
+  scale_x_continuous(breaks=unique(res$m))
+``` 
+
+Mean absolute error (MAE) of logarithmic fold change
+estimates. Results for the same simulation, however here using median
+absolute error in place of root mean squared error. Mean absolute
+error places less weight on the largest errors.
+
+```{r lfcAccuracyDiffMAE, fig.width=6, fig.height=2.5}
+p <- ggplot(data=res[grepl("spike",res$type),], aes(x=m, y=DiffMAE, color=method, shape=method))
+p + stat_summary(fun.y=mean, geom="point") + 
+  stat_summary(fun.y=mean, geom="line") + 
+  stat_summary(fun.data=mean_cl_normal, geom="errorbar") + 
+  theme_bw() + xlab("total sample size") +  ylab("MAE only of DE genes") + 
+  facet_wrap(~ type) + 
+  scale_x_continuous(breaks=unique(res$m))
+```
+
+Mean absolute error (MAE) of logarithmic fold change estimates, only
+considering those genes with non-zero true logarithmic fold change.
+
+
+## Transformations and distances for recovery of true clusters
+
+The following simulation evaluated a set of methods for
+transformation, and for calculating distances betweeen vectors of
+counts, for their performance in recapturing true clusters in
+simulated data. Negative Binomial counts were generated in
+four groups, each with four samples. These groups were generated with
+20% of genes given Normally-distributed log fold changes from a centroid. 
+The standard deviation of the Normal for the non-null genes
+was varied to make the clustering easier or more difficult.
+The mean of the centroid and
+the dispersion of the counts were drawn as pairs from the joint
+distribution of estimates from the Pickrell et al
+dataset. As the Pickrell dataset has high dispersion (RNA-Seq counts
+of lymphoblast cells across a population of individuals), simulations
+were also considered wherein the dispersion was 0.1 and 0.25 times the
+Pickrell dispersions. Hierarchical clustering with complete linkage was
+used to separate the samples into four predicted clusters, using a
+variety of combinations of transformation and distance. These
+predicted clusters were then compared to the true clusters according to
+the simulation using the adjusted Rand Index. Furthermore, two
+variations were considered, one in which the size factors between
+conditions were equal and one in which the size factors within each
+group were [1, 1, 1/3, 3].
+The code to generate these results is in `simulateCluster.R`.
+
+```{r simulateCluster, fig.width=8, fig.height=5, fig.align="center"}
+load("results_simulateCluster.RData")
+library("ggplot2")
+library("Hmisc")
+res$sizeFactor <- factor(res$sizeFactor)
+levels(res$sizeFactor) <- paste("size factors", levels(res$sizeFactor))
+res$dispScale <- factor(res$dispScale)
+levels(res$dispScale) <- paste(levels(res$dispScale),"x dispersion")
+p <- ggplot(res, aes(x=rnormsd, y=ARI, color=method, shape=method))
+p + stat_summary(fun.y=mean, geom="point", aes(shape=method)) + 
+  stat_summary(fun.y=mean, geom="line") + 
+  stat_summary(fun.data=mean_cl_normal, geom="errorbar") + 
+  facet_grid(sizeFactor ~ dispScale, scale="free") + theme_bw() + 
+  ylab("adjusted Rand Index") + xlab("SD of group differences")
+```
+
+Adjusted Rand Index from clusters using various transformation and
+distances compared to the true clusters from simulation. The methods
+assessed were Euclidean distance on counts normalized by size factor,
+log2 of normalized counts plus a pseudocount of 1, and after applying
+the rlog and variance stabilizing transformation. Additionally, the
+Poisson Distance from the PoiClaClu package was used for hierarchical
+clustering. The points indicate the mean from 20 simulations and the
+bars are 95 percent confidence intervals.
+
+## Session information
+
+```{r}
+sessionInfo()
+```
+
+

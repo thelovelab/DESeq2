@@ -1,0 +1,81 @@
+source("makeSim.R")
+load("meanDispPairs.RData")
+library("Biobase")
+library("DESeq2")
+library("edgeR")
+source("runScripts.R")
+algos <- list("DESeq2"=runDESeq2Outliers,
+              "edgeR"=runEdgeR,
+              "edgeR-robust"=runEdgeRRobust)
+namesAlgos <- names(algos)
+methods <- c("DESeq2", "DESeq2-noFilt", "DESeq2-noRepl", "edgeR", "edgeR-robust")
+
+set.seed(1)
+padjvector <- seq(from=0, to=1, length=101)
+n <- 4000
+percentOutliers <- seq(from=0,to=.15,length=4)
+ms <- c(10,20)
+nreps <- 10
+
+res <- do.call(rbind, lapply(ms, function(m) {
+  do.call(rbind, lapply(percentOutliers, function(pOut) {
+    resList <- lapply(seq_len(nreps), function(i) {
+      condition <- factor(rep(c("A","B"), each = m/2))
+      x <- model.matrix(~ condition)
+      beta <- c(rep(0, n * 8/10), sample(c(-1,1), n * 2/10, TRUE))
+      mat <- makeSim(n,m,x,beta,meanDispPairs)$mat
+      idx.i <- sample(n, round(n*pOut))
+      idx.j <- sample(m, round(n*pOut), TRUE)
+      mat[cbind(idx.i,idx.j)] <- mat[cbind(idx.i,idx.j)] * 100
+      e <- ExpressionSet(mat, AnnotatedDataFrame(data.frame(condition)))
+      resTest0 <- lapply(algos, function(f) f(e))
+      # this avoids re-running DESeq2 without filtering or replacement
+      resTest <- list()
+      resTest[names(resTest0[["DESeq2"]])] <- resTest0[["DESeq2"]]
+      resTest[c("edgeR","edgeR-robust")] <- resTest0[c("edgeR","edgeR-robust")]
+      resTest[["beta"]] <- beta
+      resTest[["nonzero"]] <- rowSums(exprs(e)) > 0
+      resTest
+    })
+    sens <- sapply(methods, function(method) {
+      sensMat <- sapply(seq_along(resList), function(i) {
+        sapply(padjvector, function(p) {
+          idx <- resList[[i]][["beta"]] != 0 & resList[[i]][["nonzero"]]
+          # here filter with adjusted p-value, this is monotonic with p-value
+          mean((resList[[i]][[method]]$padj < p)[idx])
+        })
+      })
+      apply(sensMat, 1, median)
+    })
+    spec <- sapply(methods, function(method) {
+      specMat <- sapply(seq_along(resList), function(i) {
+        sapply(padjvector, function(p) {
+          idx <- resList[[i]][["beta"]] == 0 & resList[[i]][["nonzero"]]
+          # here filter with adjusted p-value, this is monotonic with p-value
+          mean((resList[[i]][[method]]$padj >= p)[idx])
+        })
+      })
+      apply(specMat, 1, median)
+    })
+    prec <- sapply(methods, function(method) {
+      precMat <- sapply(seq_along(resList), function(i) {
+        sapply(padjvector, function(p) {
+          # here filter with adjusted p-value, this is monotonic with p-value
+          idx <- resList[[i]][[method]]$padj < p
+          ifelse(sum(idx) == 0, 1, mean( (resList[[i]][["beta"]] != 0)[idx] ))
+        })
+      })
+      apply(precMat, 1, median)
+    })
+    data.frame(sensitivity = as.vector(sens),
+               oneminusspec = 1 - as.vector(spec),
+               oneminusprec = 1 - as.vector(prec),
+               algorithm = rep(methods, each=length(padjvector)),
+               padj = rep(padjvector, times=length(methods)),
+               m = rep(m, length(methods) * length(padjvector)),
+               percentOutlier = rep(pOut, length(methods) * length(padjvector)))
+  }))
+}))
+
+save(res, file="results_simulateOutliers.RData")
+
