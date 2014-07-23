@@ -221,7 +221,6 @@ plotPCA = function(x, intgroup="condition", ntop=500, returnData=FALSE)
 #' (default is TRUE)
 #' @param transform whether to present log2 counts (TRUE) or
 #' to present the counts on the log scale (FALSE, default)
-#' @param las as in 'par', for rotation of axis labels
 #' @param main as in 'plot'
 #' @param xlab as in 'plot'
 #' @param returnData should the function only return the data.frame of counts and
@@ -236,9 +235,9 @@ plotPCA = function(x, intgroup="condition", ntop=500, returnData=FALSE)
 #' @export
 plotCounts <- function(dds, gene, intgroup="condition",
                        normalized=TRUE, transform=FALSE,
-                       las=1, main=gene, xlab="group",
+                       main, xlab="group",
                        returnData=FALSE, ...) {
-  stopifnot(is.character(gene) & length(gene) == 1)
+  stopifnot(length(gene) == 1 & (is.character(gene) | (is.numeric(gene) & (gene >= 1 & gene <= nrow(dds)))))
   if (!all(intgroup %in% names(colData(dds)))) stop("all variables in 'intgroup' must be columns of colData")
   stopifnot(returnData | all(sapply(intgroup, function(v) is(colData(dds)[[v]], "factor"))))
   if (is.null(sizeFactors(dds)) & is.null(normalizationFactors(dds))) {
@@ -266,10 +265,17 @@ plotCounts <- function(dds, gene, intgroup="condition",
     ylab <- ifelse(normalized,"normalized count","count")
     logxy <- "y"
   }
+  if (missing(main)) {
+    main <- if (is.numeric(gene)) {
+      rownames(dds)[gene]
+    } else {
+      gene
+    }
+  }
   if (returnData) return(data.frame(count=data$count, colData(dds)[intgroup]))
   plot(data$group + runif(ncol(dds),-.05,.05), data$count, xlim=c(.5,max(data$group)+.5),
-       log=logxy, xaxt="n", xlab=xlab, ylab=ylab, las=las, main=main, ...)
-  axis(1, at=seq_along(levels(group)), levels(group), las=las)
+       log=logxy, xaxt="n", xlab=xlab, ylab=ylab, main=main, ...)
+  axis(1, at=seq_along(levels(group)), levels(group))
 }
 
 

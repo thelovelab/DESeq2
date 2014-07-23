@@ -4,8 +4,7 @@
 \title{Plot of normalized counts for a single gene on log scale}
 \usage{
 plotCounts(dds, gene, intgroup = "condition", normalized = TRUE,
-  transform = FALSE, las = 1, main = gene, xlab = "group",
-  returnData = FALSE, ...)
+  transform = FALSE, main, xlab = "group", returnData = FALSE, ...)
 }
 \arguments{
 \item{dds}{a \code{DESeqDataSet}}
@@ -19,8 +18,6 @@ plotCounts(dds, gene, intgroup = "condition", normalized = TRUE,
 
 \item{transform}{whether to present log2 counts (TRUE) or
 to present the counts on the log scale (FALSE, default)}
-
-\item{las}{as in 'par', for rotation of axis labels}
 
 \item{main}{as in 'plot'}
 
