@@ -360,8 +360,9 @@ library( "Rsamtools" )
 bamLst <- BamFileList( bamFiles, yieldSize=2000000 )
 @ 
 
-After these preparations, the actual counting is easy. The function \Rfunction{summerizeOverlap} from
-the \Biocpkg{GenomicAlignments} package will do this.
+After these preparations, the actual counting is easy. The function
+\Rfunction{summarizeOverlaps} from the \Biocpkg{GenomicAlignments}
+package will do this.
 
 <<sumOver>>=
 library( "GenomicAlignments" )
@@ -526,9 +527,9 @@ this to the \Robject{colData} slot, as shown in the previous section.
 
 Make sure that the order of rows in your column data table matches the order of columns in the \Robject{assay} data slot.
 
-Once we have our fully annotated \Rclass{SummerizedExperiment} object, we can construct a 
+Once we have our fully annotated \Rclass{SummarizedExperiment} object, we can construct a 
 \Rclass{DESeqDataSet} object from it, which will then form the staring point of the actual \Biocpkg{DESeq2}
-package, described in the following sections. Here, we use the \Rclass{SummerizedExperiment} object
+package, described in the following sections. Here, we use the \Rclass{SummarizedExperiment} object
 we got from the \Biocexptpkg{parathyroidSE} package and augment it by specifying an appropriate
 design formula.
 
@@ -538,7 +539,7 @@ ddsFull <- DESeqDataSet( se, design = ~ patient + treatment )
 
 Note that there are two alternative functions, \Rfunction{DESeqDataSetFromMatrix}
 and \Rfunction{DESeqDataSetFromHTSeq}, which allow you to get started in case
-you have your data not in the form of a \Rclass{SummerizedExperiment} object, but
+you have your data not in the form of a \Rclass{SummarizedExperiment} object, but
 either as a simple matrix of count values or as output files from the \emph{htseq-count}
 script from the \emph{HTSeq} Python package. 
 
@@ -1077,7 +1078,7 @@ As a solution, \deseqtwo{} offers the \emph{regularized-logarithm transformation
 or \emph{rlog} for short. For genes with high counts, the rlog transformation
 differs not much from an ordinary log2 transformation. For genes with lower counts, however,
 the values are shrunken towards the genes' averages across all samples. Using
-an empirical Bayesian prior in the form of a \emph{ridge penality}, this is done such
+an empirical Bayesian prior in the form of a \emph{ridge penalty}, this is done such
 that the rlog-transformed data are approximately homoskedastic.
 
 Note that the rlog transformation is provided for applications other 
