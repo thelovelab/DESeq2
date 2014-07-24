@@ -10,6 +10,22 @@
 \newcommand{\deseqtwo}{\textit{DESeq2}}
 \newcommand{\lowtilde}{\raise.17ex\hbox{$\scriptstyle\mathtt{\sim}$}}
 
+%% \usepackage{xcolor}
+%% \usepackage[framemethod=default]{mdframed}
+%% \usepackage{amsmath,amsthm}
+%% \theoremstyle{definition}
+%% \newmdtheoremenv[linecolor=red,backgroundcolor=pink!50]{exer}{Exercise}
+
+%% \usepackage{comment}
+%% \includecomment{vignette}
+%% \excludecomment{course}
+
+%% <<switch, echo=FALSE>>=
+%% # these are used to determine eval
+%% vignette <- TRUE
+%% course <- FALSE
+%% @ 
+
 <<knitr, echo=FALSE, results="hide">>=
 library("knitr")
 opts_chunk$set(tidy=FALSE,dev="png",fig.show="hide",
@@ -112,7 +128,9 @@ counts of covered base pairs -- this will only lead to nonsensical results.
 \subsection{Aligning reads to a reference}
 
 The computational analysis of an RNA-Seq experiment begins earlier: 
-what we get from the sequencing machine is a set of FASTQ files that contain the nucleotide sequence of each read and a quality score at each position. 
+what we get from the sequencing machine is a set of FASTQ files that
+contain the nucleotide sequence of each read and a quality score at
+each position.  
 These reads must first be aligned to a reference genome or transcriptome.
 It is important to know if the sequencing experiment was single-end or
 paired-end, as the alignment software will require the user to specify
@@ -222,6 +240,12 @@ bamFiles
 
 \subsection{Counting reads in genes}
 
+
+%%%%%% SWITCH %%%%%%
+
+
+%% \begin{vignette} 
+  
 Once the reads have been aligned, there are a number of tools which can be
 used to count the number of reads which can be unambiguously assigned to genomic features 
 for each sample. These often take as input BAM or SAM alignment files and a file
@@ -277,21 +301,70 @@ hse <- makeTranscriptDbFromGFF( "/path/to/your/genemodel.GTF", format="gtf" )
 exonsByGene <- exonsBy( hse, by="gene" )
 @ 
 
-<<loadExonsByGene, echo=FALSE>>=
+<<echo=FALSE>>=
 library("parathyroidSE")
 library("GenomicFeatures")
 data(exonsByGene)
 @  
 
+%% \end{vignette}
+
+
+%%%%%% SWITCH %%%%%%
+
+
+%% \begin{course}
+  
+%% To count how many read map to each gene, we need transcript annotation. Download
+%% the current GTF file with human gene annotation from Ensembl. (In case the network
+%% is too slow for that, use the truncated version of this file, called \texttt{Homo\_sapiens.GRCh37.75.subset.gtf.gz}, 
+%% which we have placed on the course server.)
+
+%% From this file, the function \Rfunction{makeTranscriptDbFromGFF} from the \Biocpkg{GenomicFeatures}
+%% constructs a database of all annotated transcripts.
+
+%% <<eval=FALSE>>=
+%% library( "GenomicFeatures" )
+%% hse <- makeTranscriptDbFromGFF( "/path/to/your/genemodel_file.GTF", format="gtf" )
+%% exonsByGene <- exonsBy( hse, by="gene" )
+%% @ 
+
+%% <<echo=FALSE, eval=course>>=
+%% library("GenomicFeatures")
+%% hse <- makeTranscriptDbFromGFF( "Homo_sapiens.GRCh37.75.subset.gtf.gz", format="gtf" )
+%% exonsByGene <- exonsBy( hse, by="gene" )
+%% @  
+
+%% In the last step, we have used the \Rfunction{exonsBy} function to bring the transcriptome data 
+%% base into the shape of a list of all genes, 
+
+%% <<eval=course>>=
+%% exonsByGene
+%% @
+
+%% \begin{exer}
+%% Note the warnings issued by \Rfunction{makeTranscriptDbFromGFF}. Can we safely ignore them?
+%% \end{exer}
+
+%% \begin{exer}
+%% In \Robject{exonsByGene}, inspect the genomic intervals given for the exons of the first gene. Note that
+%% they are not disjunct (they overlap). How comes? Will this influence results in the following step? 
+%% \end{exer}
+
+%% \end{course}
+
+
+%%%%%% END SWITCH %%%%%%
+
 In the previous section, we specified the BAM files which will be used for counting.
 
 We indicate in Bioconductor that these files are BAM files using the \Rfunction{BamFileList}
 function. Here we also specify details about how the BAM files should be treated, e.g., 
-only process $500000$ reads at a time. 
+only process $2000000$ reads at a time. 
 
 <<bamfilepaired>>=
 library( "Rsamtools" )
-bamLst <- BamFileList( bamFiles, yieldSize=500000 )
+bamLst <- BamFileList( bamFiles, yieldSize=2000000 )
 @ 
 
 After these preparations, the actual counting is easy. The function \Rfunction{summerizeOverlap} from
@@ -439,7 +512,6 @@ we used the complete set of samples and all reads.
 <<loadEcs>>=
 data( "parathyroidGenesSE" )
 se <- parathyroidGenesSE
-colnames(se) <- se$run
 @
 
 Supposing we have constructed a \Rclass{SummarizedExperiment} using one of the 
@@ -459,8 +531,7 @@ We highly recommend keeping this information in a comma-separated value (CSV) or
 tab-separated value (TSV) file, which can be exported from an Excel spreadsheet, and the assign
 this to the \Robject{colData} slot, as shown in the previous section. 
 
-Make sure that the order
-of rows in your column data table matches the order of columns in the \Robject{assay} data slot.
+Make sure that the order of rows in your column data table matches the order of columns in the \Robject{assay} data slot.
 
 Once we have our fully annotated \Rclass{SummerizedExperiment} object, we can construct a 
 \Rclass{DESeqDataSet} object from it, which will then form the staring point of the actual \Biocpkg{DESeq2}
@@ -476,8 +547,15 @@ Note that there are two alternative functions, \Rfunction{DESeqDataSetFromMatrix
 and \Rfunction{DESeqDataSetFromHTSeq}, which allow you to get started in case
 you have your data not in the form of a \Rclass{SummerizedExperiment} object, but
 either as a simple matrix of count values or as output files from the \emph{htseq-count}
-script from the \emph{HTSeq} Python package. Below we demonstrate using
-\Rfunction{DESeqDataSetFromMatrix}.
+script from the \emph{HTSeq} Python package. 
+
+
+%%%%%% VIGNETTE ONLY %%%%%%
+
+
+%% \begin{vignette}
+
+Below we demonstrate using \Rfunction{DESeqDataSetFromMatrix}.
 
 \subsubsection{Starting from count tables}
 
@@ -540,6 +618,12 @@ ddsMat
 @
 
 We will continue with the object generated from the \Rclass{SummarizedExperiment} section.
+
+%% \end{vignette}
+
+
+%%%%%% END VIGNETTE ONLY %%%%%%
+
 
 \subsection{Collapsing technical replicates}
 
