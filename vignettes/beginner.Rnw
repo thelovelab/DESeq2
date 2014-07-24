@@ -150,21 +150,14 @@ in combination with the Bowtie index available at the Illumina iGenomes
 page\footnote{\url{http://tophat.cbcb.umd.edu/igenomes.html}}.  
 For full details on this software and on the iGenomes, users should follow the links
 to the manual and information provided in the links in the footnotes.
-For example, the paired-end RNA-Seq reads for the \Biocexptpkg{parathyroidSE} package were aligned 
-using TopHat2 with 8 threads, with the call:
+For example, the paired-end RNA-Seq reads for the 
+\Biocexptpkg{parathyroidSE} package were aligned using TopHat2 with 8
+threads, with the call: 
 
 \begin{verbatim}
   tophat2 -o file_tophat_out -p 8 genome file_1.fastq file_2.fastq 
 \end{verbatim}
 
-\begin{verbatim}
-  samtools sort -n file_tophat_out/accepted_hits.bam _sorted
-\end{verbatim}
-
-
-The second line sorts the reads by name rather than by genomic position, which is necessary
-for counting paired-end reads within Bioconductor.
-This command uses the SAMtools software\footnote{\url{http://samtools.sourceforge.net}} \cite{Li2009SAMtools}.
 The BAM files for a number of sequencing runs can then be used to generate
 count matrices, as described in the following section.
 
