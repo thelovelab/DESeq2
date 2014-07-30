@@ -145,7 +145,7 @@ double tol = Rcpp::as<double>(tolSEXP);
 bool use_prior = Rcpp::as<bool>(use_priorSEXP);
 
 for (int i = 0; i < y_n; i++) {
-  R_CheckUserInterrupt();
+  Rcpp::checkUserInterrupt();
   Rcpp::NumericMatrix::Row yrow = y(i,_);
   Rcpp::NumericMatrix::Row mu_hat_row = mu_hat(i,_);
   // maximize the log likelihood over the variable a, the log of alpha, the dispersion parameter
@@ -263,7 +263,7 @@ double large = 30.0;
 Rcpp::NumericVector iter(y_n);
 Rcpp::NumericVector deviance(y_n);
 for (int i = 0; i < y_n; i++) {
-  R_CheckUserInterrupt();
+  Rcpp::checkUserInterrupt();
   nfrow = nf.row(i).t();
   yrow = y.row(i).t();
   beta_hat = beta_mat.row(i).t();
@@ -391,7 +391,7 @@ SEXP rlogGrid( SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP inte
   arma::uword idxmax;
   
   for (int i = 0; i < y_n; i++) {
-    R_CheckUserInterrupt();
+    Rcpp::checkUserInterrupt();
     for (int t = 0; t < bgrid_n; t++) {
       B = bgrid(t);
       beta_shrunk = (1.0 - B) * beta.row(i).t();
@@ -451,7 +451,7 @@ arma::vec logpostvec = arma::zeros(disp_grid.n_elem);
 arma::vec log_alpha = arma::zeros(y_n);
 arma::uword idxmax;
 for (int i = 0; i < y_n; i++) {
-  R_CheckUserInterrupt();
+  Rcpp::checkUserInterrupt();
   Rcpp::NumericMatrix::Row yrow = y(i,_);
   Rcpp::NumericMatrix::Row mu_hat_row = mu_hat(i,_);
   for (int t = 0; t < disp_grid_n; t++) {
