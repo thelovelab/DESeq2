@@ -1337,9 +1337,9 @@ getBaseMeansAndVariances <- function(object) {
                            baseVar = unname(rowVars(counts(object,normalized=TRUE))),
                            allZero = unname(rowSums(counts(object)) == 0))
   mcols(meanVarZero) <- DataFrame(type = rep("intermediate",ncol(meanVarZero)),
-                                  description = c("the base mean over all rows",
-                                    "the base variance over all rows",
-                                    "all counts in a row are zero"))
+                                  description = c("mean of normalized counts for all samples",
+                                    "variance of normalized counts for all samples",
+                                    "all counts for a gene are zero"))
   if (all(c("baseMean","baseVar","allZero") %in% names(mcols(object)))) {
       mcols(object)[c("baseMean","baseVar","allZero")] <- meanVarZero
   } else {
