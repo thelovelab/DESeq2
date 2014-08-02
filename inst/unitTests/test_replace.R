@@ -4,13 +4,15 @@ test_replace <- function() {
   counts(dds)[1,] <- rep(0L, 12)
   counts(dds)[2,] <- c(100000L, rep(10L, 11))
   counts(dds)[3,] <- c(100000L, rep(0L, 11))
+  dds0 <- DESeq(dds)
   dds1 <- DESeq(dds, minReplicatesForReplace=6)
 
   head(results(dds1),3)
-  
+
+  LFC0 <- results(dds0)[2,"log2FoldChange"]
   LFC <- results(dds1)[1:3,"log2FoldChange"]
   checkTrue(is.na(LFC[1]))
-  checkTrue(abs(LFC[2]) < .01)
+  checkTrue(abs(LFC[2]) < abs(LFC0))
   checkTrue(LFC[3] == 0)
   
   dds0 <- DESeq(dds, minReplicatesForReplace=7)

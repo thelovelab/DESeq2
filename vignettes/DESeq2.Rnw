@@ -1476,7 +1476,8 @@ plot(seq(along=which(showInPlot)), resFilt$pvalue[orderInPlot][showInPlot],
 abline(a=0, b=alpha/length(resFilt$pvalue), col="red3", lwd=2)
 @
 <<doBH, echo=FALSE, results="hide">>=
-whichBH <- which(resFilt$pvalue[orderInPlot] <= alpha*seq(along=resFilt$pvalue)/length(resFilt$pvalue))
+whichBH <- which(resFilt$pvalue[orderInPlot] <= alpha * seq(along=resFilt$pvalue)/length(resFilt$pvalue))
+whichBH <- seq_len(max(whichBH))
 ## Test some assertions:
 ## - whichBH is a contiguous set of integers from 1 to length(whichBH)
 ## - the genes selected by this graphical method coincide with those

@@ -230,7 +230,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   } else {
     cbind(rep(1,m),rep(0,m))
   }
-  mu <- 2^(t(x %*% t(beta))) * rep(sizeFactors, each=n)
+  mu <- t(2^(x %*% t(beta)) * sizeFactors)
   countData <- matrix(rnbinom(m*n, mu=mu, size=1/dispersion), ncol=m)
   mode(countData) <- "integer"
   rownames(colData) <- colData$sample
@@ -284,7 +284,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' estimateSizeFactorsForMatrix(counts(dds))
 #' geoMeans <- exp(rowMeans(log(counts(dds))))
 #' estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
-#' 
+#'  
 #' @export
 estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
 {
@@ -1742,7 +1742,11 @@ robustMethodOfMomentsDisp <- function(object, modelMatrix) {
   m <- rowMeans(cnts)
   alpha <- ( v - m ) / m^2
   minDisp <- 1e-8
-  alpha <- pmax(alpha, minDisp)
+  if ("dispFit" %in% names(mcols(object))) {
+    alpha <- pmax(alpha, mcols(object)$dispFit)
+  } else {
+    alpha <- pmax(alpha, minDisp)
+  }
   alpha
 }
 
@@ -1751,8 +1755,21 @@ rowMAD <- function(x) {
   1/qnorm(3/4) * rowMedians(abs(x - med))
 }
 
+trimmedCellVariance <- function(cnts, cells) {
+  cellMeans <- matrix(sapply(levels(cells), function(lvl)
+                             apply(cnts[,cells==lvl,drop=FALSE],1,mean,trim=.25)),
+                      nrow=nrow(cnts))
+  qmat <- cellMeans[,as.integer(cells),drop=FALSE]
+  sqerror <- (cnts - qmat)^2
+  varEst <- matrix(sapply(levels(cells), function(lvl) {
+                          n <- sum(cells==lvl)
+                          n/(n-1) * apply(sqerror[,cells==lvl,drop=FALSE],1,mean,trim=.25)
+                          }),
+                   nrow=nrow(sqerror))
+  rowMeans(varEst)
+}
+
 medianCellVariance <- function(cnts, cells) {
-  # calculate the median absolute deviation per cell
   cellMedians <- matrix(sapply(levels(cells), function(lvl)
                                rowMedians(cnts[,cells==lvl,drop=FALSE])),
                         nrow=nrow(cnts))
@@ -1762,7 +1779,6 @@ medianCellVariance <- function(cnts, cells) {
                            rowMedians(absdev[,cells==lvl,drop=FALSE])),
                     nrow=nrow(absdev))
   varEst <- ( 1/qnorm(3/4) * cellMAD )^2
-  # then take the average 
   rowMeans(varEst)
 }
 
