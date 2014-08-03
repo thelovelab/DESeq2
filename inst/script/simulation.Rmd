@@ -216,7 +216,7 @@ estimates. Results for the same simulation, however here using median
 absolute error in place of root mean squared error. Mean absolute
 error places less weight on the largest errors.
 
-```{r lfcAccuracyDiffMAE, fig.width=6, fig.height=2.5}
+```{r lfcAccuracyDiffMAE, fig.width=6, fig.height=2.5, fig.align="center"}
 p <- ggplot(data=res[grepl("spike",res$type),], aes(x=m, y=DiffMAE, color=method, shape=method))
 p + stat_summary(fun.y=mean, geom="point") + 
   stat_summary(fun.y=mean, geom="line") + 
