@@ -1735,18 +1735,14 @@ robustMethodOfMomentsDisp <- function(object, modelMatrix) {
     cells <- apply(modelMatrix,1,paste0,collapse="")
     cells <- unname(factor(cells,levels=unique(cells)))
     levels(cells) <- seq_along(levels(cells))
-    medianCellVariance(cnts, cells)
+    trimmedCellVariance(cnts, cells)
   } else {
     rowMAD(cnts)^2
   }
   m <- rowMeans(cnts)
   alpha <- ( v - m ) / m^2
   minDisp <- 1e-8
-  if ("dispFit" %in% names(mcols(object))) {
-    alpha <- pmax(alpha, mcols(object)$dispFit)
-  } else {
-    alpha <- pmax(alpha, minDisp)
-  }
+  alpha <- pmax(alpha, minDisp)
   alpha
 }
 
@@ -1756,17 +1752,23 @@ rowMAD <- function(x) {
 }
 
 trimmedCellVariance <- function(cnts, cells) {
-  cellMeans <- matrix(sapply(levels(cells), function(lvl)
-                             apply(cnts[,cells==lvl,drop=FALSE],1,mean,trim=.25)),
+  # how much to trim at different n
+  trimfn <- function(n) ifelse(n < 24, .25, .125)
+  cellMeans <- matrix(sapply(levels(cells), function(lvl) {
+    n <- sum(cells==lvl)
+    apply(cnts[,cells==lvl,drop=FALSE],1,mean,trim=trimfn(n))
+  }),
                       nrow=nrow(cnts))
   qmat <- cellMeans[,as.integer(cells),drop=FALSE]
   sqerror <- (cnts - qmat)^2
   varEst <- matrix(sapply(levels(cells), function(lvl) {
-                          n <- sum(cells==lvl)
-                          n/(n-1) * apply(sqerror[,cells==lvl,drop=FALSE],1,mean,trim=.25)
-                          }),
+    n <- sum(cells==lvl)
+    n/(n-1) * apply(sqerror[,cells==lvl,drop=FALSE],1,mean,trim=trimfn(n))
+  }),
                    nrow=nrow(sqerror))
-  rowMeans(varEst)
+  # take the max of variance estimates from cells
+  # as one condition might have highly variable counts
+  rowMax(varEst)
 }
 
 medianCellVariance <- function(cnts, cells) {
