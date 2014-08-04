@@ -17,7 +17,7 @@
 \item{object}{a \code{DESeqDataSet} object}
 
 \item{value}{a \code{formula} used for estimating dispersion
-and fitting negative binomial GLMs}
+and fitting Negative Binomial GLMs}
 }
 \description{
 Accessors for the 'design' slot of a DESeqDataSet object.

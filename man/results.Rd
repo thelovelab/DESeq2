@@ -174,7 +174,7 @@ to genes containing count outliers, as identified using Cook's distance.
 See the \code{cooksCutoff} argument for control of this behavior.
 Cook's distances for each sample are accessible as a matrix "cooks"
 stored in the assays() list. This measure is useful for identifying rows where the
-observed counts might not fit to a negative binomial distribution.
+observed counts might not fit to a Negative Binomial distribution.
 
 For analyses using the likelihood ratio test (using \code{\link{nbinomLRT}}),
 the p-values are determined solely by the difference in deviance between

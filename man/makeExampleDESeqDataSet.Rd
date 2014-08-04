@@ -29,7 +29,7 @@ intercept and beta values in the metadata columns.  Note that the true
 betas are provided on the log2 scale.
 }
 \description{
-Constructs a simulated dataset of negative binomial data from
+Constructs a simulated dataset of Negative Binomial data from
 two conditions. By default, there are no fold changes between
 the two conditions, but this can be adjusted with the \code{betaSD} argument.
 }

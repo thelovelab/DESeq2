@@ -22,7 +22,7 @@ dispersions(object) <- value
 \arguments{
 \item{object}{a \code{DESeqDataSet} object.}
 
-\item{value}{the dispersions to use for the negative binomial modeling}
+\item{value}{the dispersions to use for the Negative Binomial modeling}
 }
 \description{
 The dispersions for each row of the DESeqDataSet.  Generally,

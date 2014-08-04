@@ -39,7 +39,7 @@ filled in as metadata columns, accessible via \code{mcols}, or the final dispers
 accessible via \code{\link{dispersions}}.
 }
 \description{
-This function obtains dispersion estimates for negative binomial distributed data.
+This function obtains dispersion estimates for Negative Binomial distributed data.
 }
 \details{
 Typically the function is called with the idiom:

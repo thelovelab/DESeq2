@@ -58,8 +58,8 @@ with the \code{\link{results}} function.  The coefficients and standard errors a
 reported on a log2 scale.
 }
 \description{
-This function tests for significance of coefficients in a negative
-binomial GLM, using previously calculated \code{\link{sizeFactors}}
+This function tests for significance of coefficients in a Negative Binomial 
+GLM, using previously calculated \code{\link{sizeFactors}}
 (or \code{\link{normalizationFactors}})
 and dispersion estimates.  See \code{\link{DESeq}} for the GLM formula.
 }
