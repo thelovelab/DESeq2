@@ -1729,13 +1729,17 @@ matrixToList <- function(m) {
 # individual outlier counts which would raise the variance
 robustMethodOfMomentsDisp <- function(object, modelMatrix) {
   cnts <- counts(object,normalized=TRUE)
-  # if there are more than 3 per cell
+  # if there are more than 3 per cell in any cell
   moreThanThree <- nOrMoreInCell(modelMatrix,n=4)
-  v <- if (all(moreThanThree)) {
+  v <- if (any(moreThanThree)) {
     cells <- apply(modelMatrix,1,paste0,collapse="")
     cells <- unname(factor(cells,levels=unique(cells)))
     levels(cells) <- seq_along(levels(cells))
-    trimmedCellVariance(cnts, cells)
+    levelsMoreThanThree <- levels(cells)[table(cells) > 3]
+    idx <- cells %in% levelsMoreThanThree
+    cntsSub <- cnts[,idx]
+    cellsSub <- factor(cells[idx])
+    trimmedCellVariance(cntsSub, cellsSub)
   } else {
     rowMAD(cnts)^2
   }
@@ -1763,7 +1767,9 @@ trimmedCellVariance <- function(cnts, cells) {
   sqerror <- (cnts - qmat)^2
   varEst <- matrix(sapply(levels(cells), function(lvl) {
     n <- sum(cells==lvl)
-    n/(n-1) * apply(sqerror[,cells==lvl,drop=FALSE],1,mean,trim=trimfn(n))
+    # scale due to trimming of large squares: 1/mean(rnorm(1e6)^2,trim=.125)
+    scale.c <- if (trimfn(n) == .25) { 1.86 } else if (trimfn(n) == .125) { 1.51 }
+    scale.c * apply(sqerror[,cells==lvl,drop=FALSE],1,mean,trim=trimfn(n))
   }),
                    nrow=nrow(sqerror))
   # take the max of variance estimates from cells

@@ -33,9 +33,9 @@ test_replace <- function() {
 
 test_outlier <- function() {
   # check that outlier filtering catches throughout range of mu
+  # par(mfrow=c(2,2))
   set.seed(1)
-  par(mfrow=c(2,2))
-  for (m in c(10,20,60,100)) {
+  for (m in c(10,20,60,80)) {
     beta0 <- seq(from=1,to=16,length=100)
     dds <- makeExampleDESeqDataSet(n=100, m=m, interceptMean=beta0, dispMeanRel=function(x) 4/x + .5)
     idx <- rep(rep(c(TRUE,FALSE),c(1,9)),10)
