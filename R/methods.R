@@ -71,7 +71,7 @@ setReplaceMethod("counts", signature(object="DESeqDataSet", value="matrix"),
 #' @aliases design design,DESeqDataSet-method design<-,DESeqDataSet,formula-method
 #' @param object a \code{DESeqDataSet} object
 #' @param value a \code{formula} used for estimating dispersion
-#' and fitting negative binomial GLMs
+#' and fitting Negative Binomial GLMs
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet()
@@ -145,7 +145,7 @@ setReplaceMethod("dispersionFunction", signature(object="DESeqDataSet", value="f
 #' @rdname dispersions
 #' @aliases dispersions dispersions,DESeqDataSet-method dispersions<-,DESeqDataSet,numeric-method
 #' @param object a \code{DESeqDataSet} object.
-#' @param value the dispersions to use for the negative binomial modeling
+#' @param value the dispersions to use for the Negative Binomial modeling
 #'
 #' @author Simon Anders
 #' @seealso \code{\link{estimateDispersions}}
@@ -364,7 +364,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 
 #' Estimate the dispersions for a DESeqDataSet
 #' 
-#' This function obtains dispersion estimates for negative binomial distributed data.
+#' This function obtains dispersion estimates for Negative Binomial distributed data.
 #'
 #' Typically the function is called with the idiom:
 #'

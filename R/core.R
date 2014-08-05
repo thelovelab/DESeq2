@@ -1,10 +1,10 @@
-#' Differential expression analysis based on the negative binomial distribution
+#' Differential expression analysis based on the Negative Binomial (a.k.a. Gamma-Poisson) distribution
 #'
 #' This function performs a default analysis through the steps:
 #' \enumerate{
 #' \item estimation of size factors: \code{\link{estimateSizeFactors}}
 #' \item estimation of dispersion: \code{\link{estimateDispersions}}
-#' \item negative binomial GLM fitting and Wald statistics: \code{\link{nbinomWaldTest}}
+#' \item Negative Binomial GLM fitting and Wald statistics: \code{\link{nbinomWaldTest}}
 #' }
 #' For complete details on each step, see the manual pages of the respective
 #' functions. After the \code{DESeq} function returns a DESeqDataSet object,
@@ -20,7 +20,7 @@
 #' \deqn{ \log_2(q_{ij}) = x_{j.} \beta_i }{ log2(q_ij) = x_j. beta_i }
 #'
 #' where counts \eqn{K_{ij}}{K_ij} for gene i, sample j are modeled using
-#' a negative binomial distribution with fitted mean \eqn{\mu_{ij}}{mu_ij}
+#' a Negative Binomial distribution with fitted mean \eqn{\mu_{ij}}{mu_ij}
 #' and a gene-specific dispersion parameter \eqn{\alpha_i}{alpha_i}.
 #' The fitted mean is composed of a sample-specific size factor
 #' \eqn{s_j}{s_j} and a parameter \eqn{q_{ij}}{q_ij} proportional to the
@@ -196,7 +196,7 @@ i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
 
 #' Make a simulated DESeqDataSet
 #'
-#' Constructs a simulated dataset of negative binomial data from
+#' Constructs a simulated dataset of Negative Binomial data from
 #' two conditions. By default, there are no fold changes between
 #' the two conditions, but this can be adjusted with the \code{betaSD} argument.
 #'
@@ -682,8 +682,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
 #' Wald test for the GLM coefficients
 #' 
-#' This function tests for significance of coefficients in a negative
-#' binomial GLM, using previously calculated \code{\link{sizeFactors}}
+#' This function tests for significance of coefficients in a Negative
+#' Binomial GLM, using previously calculated \code{\link{sizeFactors}}
 #' (or \code{\link{normalizationFactors}})
 #' and dispersion estimates.  See \code{\link{DESeq}} for the GLM formula.
 #' 
@@ -1729,15 +1729,15 @@ matrixToList <- function(m) {
 # individual outlier counts which would raise the variance
 robustMethodOfMomentsDisp <- function(object, modelMatrix) {
   cnts <- counts(object,normalized=TRUE)
-  # if there are more than 3 per cell in any cell
-  moreThanThree <- nOrMoreInCell(modelMatrix,n=4)
-  v <- if (any(moreThanThree)) {
+  # if there are 3 or more replicates in any cell
+  threeOrMore <- nOrMoreInCell(modelMatrix,n=3)
+  v <- if (any(threeOrMore)) {
     cells <- apply(modelMatrix,1,paste0,collapse="")
     cells <- unname(factor(cells,levels=unique(cells)))
     levels(cells) <- seq_along(levels(cells))
-    levelsMoreThanThree <- levels(cells)[table(cells) > 3]
-    idx <- cells %in% levelsMoreThanThree
-    cntsSub <- cnts[,idx]
+    levelsThreeOrMore <- levels(cells)[table(cells) >= 3]
+    idx <- cells %in% levelsThreeOrMore
+    cntsSub <- cnts[,idx,drop=FALSE]
     cellsSub <- factor(cells[idx])
     trimmedCellVariance(cntsSub, cellsSub)
   } else {
@@ -1757,19 +1757,20 @@ rowMAD <- function(x) {
 
 trimmedCellVariance <- function(cnts, cells) {
   # how much to trim at different n
-  trimfn <- function(n) ifelse(n < 24, .25, .125)
+  trimratio <- c(1/3, 1/4, 1/8)
+  trimfn <- function(n) as.integer(cut(n, breaks=c(0,3.5,23.5,Inf)))
   cellMeans <- matrix(sapply(levels(cells), function(lvl) {
     n <- sum(cells==lvl)
-    apply(cnts[,cells==lvl,drop=FALSE],1,mean,trim=trimfn(n))
+    apply(cnts[,cells==lvl,drop=FALSE],1,mean,trim=trimratio[trimfn(n)])
   }),
                       nrow=nrow(cnts))
   qmat <- cellMeans[,as.integer(cells),drop=FALSE]
   sqerror <- (cnts - qmat)^2
   varEst <- matrix(sapply(levels(cells), function(lvl) {
     n <- sum(cells==lvl)
-    # scale due to trimming of large squares: 1/mean(rnorm(1e6)^2,trim=.125)
-    scale.c <- if (trimfn(n) == .25) { 1.86 } else if (trimfn(n) == .125) { 1.51 }
-    scale.c * apply(sqerror[,cells==lvl,drop=FALSE],1,mean,trim=trimfn(n))
+    # scale due to trimming of large squares, by e.g. 1/mean(rnorm(1e6)^2,trim=1/8)
+    scale.c <- c(2.04, 1.86, 1.51)[trimfn(n)]
+    scale.c * apply(sqerror[,cells==lvl,drop=FALSE],1,mean,trim=trimratio[trimfn(n)])
   }),
                    nrow=nrow(sqerror))
   # take the max of variance estimates from cells

@@ -58,7 +58,7 @@
 #' integrated, and the integral (approximated by a spline function) is evaluated for each
 #' count value in the column, yielding a transformed value. 
 #'
-#' \code{fitType="mean"}, a VST is applied for negative binomial counts, 'k',
+#' \code{fitType="mean"}, a VST is applied for Negative Binomial distributed counts, 'k',
 #' with a fixed dispersion, 'a': ( 2 asinh(sqrt(a k)) - log(a) - log(4) )/log(2).
 #' 
 #' In all cases, the transformation is scaled such that for large

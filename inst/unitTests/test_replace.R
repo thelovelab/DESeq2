@@ -7,8 +7,6 @@ test_replace <- function() {
   counts(dds)[3,] <- c(100000L, rep(0L, 11))
   dds0 <- DESeq(dds, minReplicatesForReplace=Inf)
   dds1 <- DESeq(dds, minReplicatesForReplace=6)
-  head(results(dds0),3)
-  head(results(dds1),3)
   pval0 <- results(dds0)[1:3,"pvalue"]
   pval <- results(dds1)[1:3,"pvalue"]
   LFC0 <- results(dds0)[1:3,"log2FoldChange"]
@@ -41,7 +39,7 @@ test_outlier <- function() {
     idx <- rep(rep(c(TRUE,FALSE),c(1,9)),10)
     counts(dds)[idx,1] <- as.integer(1000 * 2^beta0[idx])
     dds <- DESeq(dds, minReplicatesForReplace=Inf)
-    # plot(assays(dds)[["cooks"]][,1], col=idx + 1, log="y", main=m);abline(h=qf(.99,2,m-2))
+    # plot(assays(dds)[["cooks"]][,1], col=idx + 1, log="y", main=m, ylab="cooks");abline(h=qf(.99,2,m-2))
     res <- results(dds)
     checkTrue(all(is.na(res$pvalue[idx])))
   }
