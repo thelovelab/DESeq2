@@ -2069,7 +2069,9 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     } else {
       beta_mat[row,] * scaleCols
     }
-    betaRow <- pmin(pmax(betaRow, -large), large)
+    if (any(abs(betaRow) > large)) {
+      betaRow <- rep(0, length(betaRow))
+    }
     nf <- normalizationFactors[row,]
     k <- counts(object)[row,]
     alpha <- alpha_hat[row]
