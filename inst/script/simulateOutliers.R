@@ -11,7 +11,8 @@ namesAlgos <- names(algos)
 methods <- c("DESeq2", "DESeq2-noFilt", "DESeq2-noRepl", "edgeR", "edgeR-robust")
 
 set.seed(1)
-padjvector <- seq(from=0, to=1, length=101)
+padjVector <- seq(from=0, to=1, length=101)
+pvalsVector <- seq(from=0, to=.2, length=101)
 n <- 4000
 percentOutliers <- seq(from=0,to=.15,length=4)
 ms <- c(10,20)
@@ -39,41 +40,50 @@ res <- do.call(rbind, lapply(ms, function(m) {
     })
     sens <- sapply(methods, function(method) {
       sensMat <- sapply(seq_along(resList), function(i) {
-        sapply(padjvector, function(p) {
+        sapply(pvalsVector, function(p) {
           idx <- resList[[i]][["beta"]] != 0 & resList[[i]][["nonzero"]]
-          # here filter with adjusted p-value, this is monotonic with p-value
-          mean((resList[[i]][[method]]$padj < p)[idx])
+          mean((resList[[i]][[method]]$pvals < p)[idx])
         })
       })
       apply(sensMat, 1, median)
     })
     spec <- sapply(methods, function(method) {
       specMat <- sapply(seq_along(resList), function(i) {
-        sapply(padjvector, function(p) {
+        sapply(pvalsVector, function(p) {
           idx <- resList[[i]][["beta"]] == 0 & resList[[i]][["nonzero"]]
-          # here filter with adjusted p-value, this is monotonic with p-value
-          mean((resList[[i]][[method]]$padj >= p)[idx])
+          mean((resList[[i]][[method]]$pvals >= p)[idx])
         })
       })
       apply(specMat, 1, median)
     })
+    senspadj <- sapply(methods, function(method) {
+      padjMat <- sapply(seq_along(resList), function(i) {
+        sapply(pvalsVector, function(p) {
+          idx <- resList[[i]][["nonzero"]]
+          smallp <- resList[[i]][[method]]$pvals[idx] < p
+          if (sum(smallp) == 0) 0 else max(resList[[i]][[method]]$padj[idx][ smallp ])
+        })
+      })
+      apply(padjMat, 1, median)
+    })   
     prec <- sapply(methods, function(method) {
       precMat <- sapply(seq_along(resList), function(i) {
-        sapply(padjvector, function(p) {
-          # here filter with adjusted p-value, this is monotonic with p-value
+        sapply(padjVector, function(p) {
           idx <- resList[[i]][[method]]$padj < p
-          ifelse(sum(idx) == 0, 1, mean( (resList[[i]][["beta"]] != 0)[idx] ))
+          if (sum(idx) == 0) 1 else mean( (resList[[i]][["beta"]] != 0)[idx] )
         })
       })
       apply(precMat, 1, median)
     })
     data.frame(sensitivity = as.vector(sens),
+               pvals = rep(pvalsVector, times=length(methods)),
+               senspadj = as.vector(senspadj),
                oneminusspec = 1 - as.vector(spec),
                oneminusprec = 1 - as.vector(prec),
-               algorithm = rep(methods, each=length(padjvector)),
-               padj = rep(padjvector, times=length(methods)),
-               m = rep(m, length(methods) * length(padjvector)),
-               percentOutlier = rep(pOut, length(methods) * length(padjvector)))
+               precpadj = rep(padjVector, times=length(methods)),
+               algorithm = rep(methods, each=length(pvalsVector)),
+               m = rep(m, length(methods) * length(pvalsVector)),
+               percentOutlier = rep(pOut, length(methods) * length(pvalsVector)))
   }))
 }))
 

@@ -2062,15 +2062,12 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
   lambdaColScale <- ifelse(lambdaColScale == 0, 1e-6, lambdaColScale)
   lambdaLogScale <- lambda / log(2)^2
   lambdaLogScaleColScale <- lambdaLogScale / scaleCols^2
-  large <- 30
+  large <- 20
   for (row in rowsForOptim) {
-    betaRow <- if (rowStable[row]) {
+    betaRow <- if (rowStable[row] & all(abs(betaRow) < large)) {
       betaMatrix[row,] * scaleCols
     } else {
       beta_mat[row,] * scaleCols
-    }
-    if (any(abs(betaRow) > large)) {
-      betaRow <- rep(0, length(betaRow))
     }
     nf <- normalizationFactors[row,]
     k <- counts(object)[row,]
@@ -2081,7 +2078,7 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
       logPrior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
       -1 * (logLike + logPrior)
     }
-    o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-30, upper=30)
+    o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-large, upper=large)
     ridge <- if (length(lambdaLogScale) > 1) {
       diag(lambdaLogScaleColScale)
     } else {
