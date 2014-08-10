@@ -2062,9 +2062,9 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
   lambdaColScale <- ifelse(lambdaColScale == 0, 1e-6, lambdaColScale)
   lambdaLogScale <- lambda / log(2)^2
   lambdaLogScaleColScale <- lambdaLogScale / scaleCols^2
-  large <- 20
+  large <- 30
   for (row in rowsForOptim) {
-    betaRow <- if (rowStable[row] & all(abs(betaRow) < large)) {
+    betaRow <- if (rowStable[row] & all(abs(betaMatrix[row,]) < large)) {
       betaMatrix[row,] * scaleCols
     } else {
       beta_mat[row,] * scaleCols
