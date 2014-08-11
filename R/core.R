@@ -2076,7 +2076,8 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
       mu_row <- as.numeric(nf * 2^(x %*% p))
       logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
       logPrior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
-      -1 * (logLike + logPrior)
+      negLogPost <- -1 * (logLike + logPrior)
+      if (is.finite(negLogPost)) negLogPost else 10^300
     }
     o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-large, upper=large)
     ridge <- if (length(lambdaLogScale) > 1) {
