@@ -518,7 +518,7 @@ specify fitType='local' or 'mean' to avoid this message next time.")
   }
   if (fitType == "mean") {
     useForMean <- mcols(objectNZ)$dispGeneEst > 10*minDisp
-    meanDisp <- mean(mcols(objectNZ)$dispGeneEst[useForMean],na.rm=TRUE,trim=.05)
+    meanDisp <- mean(mcols(objectNZ)$dispGeneEst[useForMean],na.rm=TRUE,trim=0.001)
     dispFunction <- function(means) meanDisp
     attr( dispFunction, "mean" ) <- meanDisp
     dispFit <- rep(meanDisp,nrow(objectNZ))
@@ -869,15 +869,14 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   attr(object,"modelMatrix") <- modelMatrix
   attr(object,"modelMatrixType") <- modelMatrixType
   attr(object,"test") <- "Wald"
-  
-  m <- nrow(modelMatrix)
-  p <- ncol(modelMatrix)
 
   # calculate Cook's distance
-  cooks <- calculateCooksDistance(objectNZ, H, p, modelMatrix)
+  dispModelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+  attr(object,"dispModelMatrix") <- dispModelMatrix
+  cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
 
   # record maximum Cook's
-  maxCooks <- recordMaxCooks(design(object), colData(object), fit$modelMatrix, cooks, nrow(objectNZ))
+  maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
 
   # store Cook's distance for each sample
   assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
@@ -1130,20 +1129,20 @@ has not been implemented")
   attr(object,"reducedModelMatrix") <- reducedModel$modelMatrix
   attr(object,"modelMatrixType") <- modelMatrixType
   attr(object,"test") <- "LRT"
-  
-  p <- ncol(modelMatrix)
-  m <- nrow(modelMatrix)
-  H <- fullModel$hat_diagonals
 
   # store mu in case the user did not call estimateDispersionsGeneEst
   assays(objectNZ)[["mu"]] <- fullModel$mu
   assays(object)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
+
+  H <- fullModel$hat_diagonals
   
   # calculate Cook's distance
-  cooks <- calculateCooksDistance(objectNZ, H, p, modelMatrix)
-
+  dispModelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+  attr(object,"dispModelMatrix") <- dispModelMatrix
+  cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
+  
   # record maximum of Cook's
-  maxCooks <- recordMaxCooks(design(object), colData(object), modelMatrix, cooks, nrow(objectNZ))
+  maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
 
   # store Cook's distance for each sample
   assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
@@ -1792,7 +1791,8 @@ medianCellVariance <- function(cnts, cells) {
 }
 
 
-calculateCooksDistance <- function(object, H, p, modelMatrix) {
+calculateCooksDistance <- function(object, H, modelMatrix) {
+  p <- ncol(modelMatrix)
   dispersions <- robustMethodOfMomentsDisp(object, modelMatrix)
   V <- assays(object)[["mu"]] + dispersions * assays(object)[["mu"]]^2
   PearsonResSq <- (counts(object) - assays(object)[["mu"]])^2 / V
@@ -2371,7 +2371,7 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
       replaceCooks <- assays(object)[["cooks"]]
       replaceCooks[,object$replaceable] <- 0
       mcols(object)$maxCooks <- recordMaxCooks(design(object), colData(object),
-                                               attr(object,"modelMatrix"), replaceCooks, nrow(object))
+                                               attr(object,"dispModelMatrix"), replaceCooks, nrow(object))
     }
   }
   

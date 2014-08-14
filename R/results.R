@@ -374,8 +374,8 @@ Likelihood ratio test p-values are overwritten")
   }
   
   # calculate Cook's cutoff
-  m <- nrow(attr(object,"modelMatrix"))
-  p <- ncol(attr(object,"modelMatrix"))
+  m <- nrow(attr(object,"dispModelMatrix"))
+  p <- ncol(attr(object,"dispModelMatrix"))
   
   # only if more samples than parameters:
   if (m > p) {
