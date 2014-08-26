@@ -925,11 +925,9 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   WaldResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
   
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
-  coefInfo <- if (betaPrior) {
-    paste("log2 fold change (MAP):",modelMatrixNamesSpaces)
-  } else {
-    paste("log2 fold change:",modelMatrixNamesSpaces)
-  }
+
+  lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
+  coefInfo <- paste(paste0("log2 fold change (",lfcType,"):"),modelMatrixNamesSpaces)
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
   mleInfo <- if (betaPrior) {
     gsub("_"," ",colnames(mleBetaMatrix))
@@ -1183,7 +1181,8 @@ has not been implemented")
 
   modelMatrixNames <- colnames(fullModel$betaMatrix)
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
-  coefInfo <- paste("log2 fold change:",modelMatrixNamesSpaces)
+  lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
+  coefInfo <- paste(paste0("log2 fold change (",lfcType,"):"),modelMatrixNamesSpaces)
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
   mleInfo <- if (betaPrior) {
     gsub("_"," ",colnames(mleBetaMatrix))

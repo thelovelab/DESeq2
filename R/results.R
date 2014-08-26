@@ -306,7 +306,7 @@ see the manual page of ?results for more information")
 see the manual page of ?results for more information")
     }
     # pass down whether the model matrix type was "expanded"
-    res <- cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues)
+    res <- cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues, test=test)
   } else {
     # if not performing a contrast
     # pull relevant columns from mcols(object)
@@ -317,6 +317,7 @@ see the manual page of ?results for more information")
     res <- cbind(mcols(object)["baseMean"],log2FoldChange,lfcSE,stat,pvalue)
     names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
   }
+  
   rownames(res) <- rownames(object)
 
   # add unshrunken MLE coefficients to the results table
@@ -581,7 +582,7 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
 # this function takes a desired contrast as specified by results(),
 # performs checks, and then either returns the already existing contrast
 # or generates the contrast by calling getContrast() using a numeric vector
-cleanContrast <- function(object, contrast, expanded=FALSE, listValues) {
+cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
   # get the names of columns in the beta matrix
   resNames <- resultsNames(object)
   
@@ -651,7 +652,7 @@ or the denominator (second element of contrast list), but not both")
       # check that the desired contrast is already
       # available in mcols(object), and then we can either
       # take it directly or multiply the log fold
-      # changes and stat by -1
+      # changes and Wald stat by -1
       if ( contrastDenomLevel == contrastBaseLevel ) {
         cleanName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
         # the results can be pulled directly from mcols(object)
@@ -664,16 +665,15 @@ or the denominator (second element of contrast list), but not both")
           stop(paste("as",contrastDenomLevel,"is the base level, was expecting",
                      name,"to be present in 'resultsNames(object)'"))
         }
-        test <- "Wald"
         log2FoldChange <- getCoef(object, name)
         lfcSE <- getCoefSE(object, name)
         stat <- getStat(object, test, name)
         pvalue <- getPvalue(object, test, name)
         res <- cbind(mcols(object)["baseMean"],log2FoldChange,lfcSE,stat,pvalue)
         names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
-        contrastDescriptions <- paste(c("log2 fold change:","standard error:",
-                                        "Wald statistic:","Wald test p-value:"), cleanName)
-        mcols(res)$description[mcols(res)$type == "results"] <- contrastDescriptions
+        lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
+        lfcDesc <- paste0("log2 fold change (",lfcType,"): ",cleanName)
+        mcols(res,use.names=TRUE)["log2FoldChange","description"] <- lfcDesc
         return(res)
       } else if ( contrastNumLevel == contrastBaseLevel ) {
         # fetch the results for denom vs num 
@@ -688,7 +688,6 @@ or the denominator (second element of contrast list), but not both")
           stop(paste("as",contrastNumLevel,"is the base level, was expecting",
                      swapName,"to be present in 'resultsNames(object)'"))
         }
-        test <- "Wald"
         log2FoldChange <- getCoef(object, swapName)
         lfcSE <- getCoefSE(object, swapName)
         stat <- getStat(object, test, swapName)
@@ -696,10 +695,21 @@ or the denominator (second element of contrast list), but not both")
         res <- cbind(mcols(object)["baseMean"],log2FoldChange,lfcSE,stat,pvalue)
         names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
         res$log2FoldChange <- -1 * res$log2FoldChange
-        res$stat <- -1 * res$stat
-        contrastDescriptions <- paste(c("log2 fold change:","standard error:",
-                                        "Wald statistic:","Wald test p-value:"), cleanName)
-        mcols(res)$description[mcols(res)$type == "results"] <- contrastDescriptions
+        if (test == "Wald") res$stat <- -1 * res$stat
+        lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
+        # rename some of the columns using the flipped contrast
+        if (test == "Wald") {
+          contrastDescriptions <- paste(c(paste0("log2 fold change (",lfcType,"):"),
+                                          "standard error:",
+                                          "Wald statistic:","Wald test p-value:"), cleanName)
+          mcols(res,use.names=TRUE)[c("log2FoldChange","lfcSE","stat","pvalue"),
+                      "description"] <- contrastDescriptions
+        } else {
+          contrastDescriptions <- paste(c(paste0("log2 fold change (",lfcType,"):"),
+                                          "standard error:"), cleanName)
+          mcols(res,use.names=TRUE)[c("log2FoldChange","lfcSE"),
+                      "description"] <- contrastDescriptions
+        }
         return(res)
       }
       # check for the case where neither are present
@@ -764,7 +774,8 @@ or the denominator (second element of contrast list), but not both")
   }
   
   contrastResults <- getContrast(object, contrast, useT=FALSE, df)
-  contrastDescriptions <- paste(c("log2 fold change (MAP):",
+  lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
+  contrastDescriptions <- paste(c(paste0("log2 fold change (",lfcType,"):"),
                                   "standard error:",
                                   "Wald statistic:",
                                   "Wald test p-value:"),
@@ -773,6 +784,14 @@ or the denominator (second element of contrast list), but not both")
                                       description=contrastDescriptions)
   res <- cbind(mcols(object)["baseMean"],
                contrastResults)
+
+  if (test == "LRT") {
+    stat <- getStat(object, test, name=NULL)
+    pvalue <- getPvalue(object, test, name=NULL)
+    res <- cbind(res[c("baseMean","log2FoldChange","lfcSE")],stat,pvalue)
+    names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
+  }
+  
   res
 }
 
