@@ -1721,10 +1721,9 @@ matrixToList <- function(m) {
 }
 
 
-# calculate a robust method of moments dispersion
-# using the squared MAD and the row mean.
-# the point is to estimate the dispersion excluding
-# individual outlier counts which would raise the variance
+# calculate a robust method of moments dispersion,
+# in order to estimate the dispersion excluding
+# individual outlier counts which would raise the variance estimate
 robustMethodOfMomentsDisp <- function(object, modelMatrix) {
   cnts <- counts(object,normalized=TRUE)
   # if there are 3 or more replicates in any cell
@@ -1739,7 +1738,7 @@ robustMethodOfMomentsDisp <- function(object, modelMatrix) {
     cellsSub <- factor(cells[idx])
     trimmedCellVariance(cntsSub, cellsSub)
   } else {
-    rowMAD(cnts)^2
+    trimmedVariance(cnts)
   }
   m <- rowMeans(cnts)
   alpha <- ( v - m ) / m^2
@@ -1748,14 +1747,16 @@ robustMethodOfMomentsDisp <- function(object, modelMatrix) {
   alpha
 }
 
-rowMAD <- function(x) {
-  med <- rowMedians(x)
-  1/qnorm(3/4) * rowMedians(abs(x - med))
+trimmedVariance <- function(x) {
+  rm <-  apply(x,1,mean,trim=1/8)
+  sqerror <- (x - rm)^2
+  1.51 * apply(sqerror,1,mean,trim=1/8)
 }
 
 trimmedCellVariance <- function(cnts, cells) {
   # how much to trim at different n
   trimratio <- c(1/3, 1/4, 1/8)
+  # returns an index for the vector above for three sample size bins
   trimfn <- function(n) as.integer(cut(n, breaks=c(0,3.5,23.5,Inf)))
   cellMeans <- matrix(sapply(levels(cells), function(lvl) {
     n <- sum(cells==lvl)
@@ -1803,16 +1804,11 @@ calculateCooksDistance <- function(object, H, modelMatrix) {
 # this function breaks out the logic for calculating the max Cook's distance:
 # the samples over which max Cook's distance is calculated:
 #
-# if all the variables in the design are factors, then those samples with 3 or more replicates per cell
-# if one or more are not factor, then those samples such that the matrix is full rank after removing the row
+# Cook's distance is considered for those samples with 3 or more replicates per cell
 #
 # if m == p or there are no samples over which to calculate max Cook's, then give NA
 recordMaxCooks <- function(design, colData, modelMatrix, cooks, numRow) {
-    samplesForCooks <- if (allFactors(design, colData)) {
-      nOrMoreInCell(modelMatrix, n=3)
-    } else {
-      leaveOneOutFullRank(modelMatrix)
-    }
+    samplesForCooks <- nOrMoreInCell(modelMatrix, n=3)
     p <- ncol(modelMatrix)
     m <- nrow(modelMatrix)
     maxCooks <- if ((m > p) & any(samplesForCooks)) {
@@ -2327,7 +2323,7 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
   if ( nrefit > 0 && nrefit > length(newAllZero) ) {
     if (!quiet) message(paste("-- replacing outliers and refitting for", nrefit,"genes
 -- DESeq argument 'minReplicatesForReplace' =",minReplicatesForReplace,"
--- original counts are preserved in counts(dds))"))
+-- original counts are preserved in counts(dds)"))
     
     # refit on those rows which had replacement
     refitReplace <- which(mcols(object)$replace & !mcols(object)$allZero)

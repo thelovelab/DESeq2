@@ -116,8 +116,7 @@
 #' The default cutoff is the .99 quantile of the F(p, m-p) distribution,
 #' where p is the number of coefficients being fitted and m is the number of samples.
 #' Set to Inf or FALSE to disable the resetting of p-values to NA.
-#' Note: this test excludes the Cook's distance of samples whose removal
-#' would result in rank deficient design matrix and samples belonging to experimental
+#' Note: this test excludes the Cook's distance of samples belonging to experimental
 #' groups with only 2 samples.
 #' @param independentFiltering logical, whether independent filtering should be
 #' applied automatically
