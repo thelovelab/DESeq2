@@ -124,12 +124,23 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
   }
   if (blind) {
     design(object) <- ~ 1
-    object <- estimateDispersionsGeneEst(object, quiet=TRUE)
-    object <- estimateDispersionsFit(object, quiet=TRUE)
   }
-  if (is.null(mcols(object)$dispFit)) {
-    object <- estimateDispersionsGeneEst(object, quiet=TRUE)
-    object <- estimateDispersionsFit(object, quiet=TRUE)
+  if (blind | is.null(mcols(object)$dispFit)) {
+    # estimate the dispersions on all genes, or if fast=TRUE subset to 1000 non-zero genes
+    baseMean <- rowMeans(counts(object,normalized=TRUE))
+    if (!fast | sum(baseMean > 0) <= 1000) {
+      object <- estimateDispersionsGeneEst(object, quiet=TRUE)
+      object <- estimateDispersionsFit(object, quiet=TRUE)
+    } else {
+      # select 1000 genes along the range of non-zero base means
+      idx <- order(baseMean)[round(seq(from=(sum(baseMean==0) + 1), to=length(baseMean), length=1000))]      
+      objectSub <- object[idx,]
+      objectSub <- estimateDispersionsGeneEst(objectSub, quiet=TRUE)
+      objectSub <- estimateDispersionsFit(objectSub, quiet=TRUE)
+      # fill in the fitted dispersions for all genes
+      mcols(object)$dispFit <- dispersionFunction(objectSub)(baseMean)
+      mcols(object)$baseMean <- baseMean
+    }
   }
   if (!missing(intercept)) {
     if (length(intercept) != nrow(object)) {
@@ -173,7 +184,7 @@ rlogTransformation <- rlog
 
 rlogData <- function(object, intercept, betaPriorVar) {
   if (is.null(mcols(object)$dispFit)) {
-    stop("first estimate dispersion with a design of formula(~ 1)")
+    stop("first estimate dispersion")
   }
   samplesVector <- as.character(seq_len(ncol(object)))
   if (!missing(intercept)) {
@@ -275,11 +286,9 @@ rlogData <- function(object, intercept, betaPriorVar) {
   normalizedData
 }
 
-
-
 rlogDataFast <- function(object, intercept, betaPriorVar, B) {
   if (is.null(mcols(object)$dispFit)) {
-    stop("first estimate dispersion with a design of formula(~ 1)")
+    stop("first estimate dispersion")
   }
   if (!"allZero" %in% names(mcols(object))) {
     mcols(object)$allZero <- rowSums(counts(object)) == 0
@@ -358,12 +367,10 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     # evaluate over a grid of B (shrinkage amount)
     optimalFromGrid <- as.numeric(rlogGrid(counts(objectNZ)[idx,], nf[idx,], logFoldChangeMatrix[idx,],
                                      dispersion[idx], interceptNZ[idx], bgrid, betaPriorVar)$Bvec)
-    plot(optimalFromGrid ~ lbm[idx])
     fit <- loess(optimalFromGrid ~ lbm, data=data.frame(optimalFromGrid,lbm=lbm[idx]),
                  control=loess.control(trace.hat="approximate"), span=.1)
     pred <- predict(fit, newdata=data.frame(lbm))
     optimalB <- pmax(0, pmin(1, pred))
-    points(lbm, optimalB, col="blue", cex=.1)
 
     if (exists("oldRandomSeed")) {
       .Random.seed <<- oldRandomSeed

@@ -122,10 +122,8 @@ varianceStabilizingTransformation <- function (object, blind=TRUE) {
   }
   if (blind) {
     design(object) <- ~ 1
-    object <- estimateDispersionsGeneEst(object, quiet=TRUE)
-    object <- estimateDispersionsFit(object, quiet=TRUE)
   }
-  if (is.null(attr(dispersionFunction(object),"fitType"))) {
+  if (blind | is.null(attr(dispersionFunction(object),"fitType"))) {
     object <- estimateDispersionsGeneEst(object, quiet=TRUE)
     object <- estimateDispersionsFit(object, quiet=TRUE)
   }

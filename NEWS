@@ -1,9 +1,9 @@
-CHANGES IN VERSION 1.5.48
+CHANGES IN VERSION 1.5.49
 -------------------------
 
     o The fast=TRUE implementation of rlog is even faster, subsetting
-      genes along the range of base mean and fitting the optimal amount 
-      of shrinkage.
+      genes along the range of base mean to estimate the dispersion
+      trend and for fitting the optimal amount of shrinkage.
 
 CHANGES IN VERSION 1.5.40
 -------------------------
