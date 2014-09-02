@@ -312,16 +312,28 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
 
   logCounts <- log2(counts(objectNZ,normalized=TRUE) + 0.5)
   logFoldChangeMatrix <- logCounts - interceptNZ
-
+  
   if (missing(B)) {
     # if a prior sigma squared notq provided, estimate this
     # by the matching upper quantiles of the
     # log2 counts plus a pseudocount
+
+    if (exists(".Random.seed")) {
+      oldRandomSeed <- .Random.seed
+    }
+    set.seed(2)
+    
     if (missing(betaPriorVar)) {
       logFoldChangeVector <- as.numeric(logFoldChangeMatrix)
       varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
       weights <- 1/varlogk
-      betaPriorVar <- matchWeightedUpperQuantileForVariance(logFoldChangeVector, rep(weights,ncol(objectNZ)))
+      # subsample to speed up the weighted quantile matching
+      idx <- if (length(logFoldChangeVector) > 10000) {
+        sample(length(logFoldChangeVector), 10000, replace=FALSE)
+      } else {
+        seq_along(logFoldChangeVector)
+      }
+      betaPriorVar <- matchWeightedUpperQuantileForVariance(logFoldChangeVector[idx], rep(weights,ncol(objectNZ))[idx])
     }
     stopifnot(length(betaPriorVar)==1)
     if (!is.null(normalizationFactors(object))) {
@@ -334,15 +346,29 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
 
     delta <- .05
     bgrid <- seq(from=delta, to=1-delta, by=delta)
-    # evaluate over a grid of B (shrinkage amount)
-    optimalB <- as.numeric(rlogGrid(counts(objectNZ), nf, logFoldChangeMatrix,
-                                    dispersion, interceptNZ, bgrid, betaPriorVar)$Bvec)
-    # cap the B using a local average value for genes with base mean > 10
+
+    # find a subset of rows which covers the dynamic range
     lbm <- log(mcols(objectNZ)$baseMean)
-    fit <- loess(optimalB ~ lbm,control=loess.control(trace.hat="approximate"),span=.1)
-    fitted <- pmin(pmax(fit$fitted, 0), 1)
-    idx <- lbm > log(10)
-    optimalB[idx] <- pmin(optimalB[idx], fitted[idx] + .1)
+    idx <- if (nrow(objectNZ) > 1000) {
+      order(lbm)[round(seq(from=1, to=nrow(objectNZ), length=1000))]
+    } else {
+      seq_len(nrow(objectNZ))
+    }
+
+    # evaluate over a grid of B (shrinkage amount)
+    optimalFromGrid <- as.numeric(rlogGrid(counts(objectNZ)[idx,], nf[idx,], logFoldChangeMatrix[idx,],
+                                     dispersion[idx], interceptNZ[idx], bgrid, betaPriorVar)$Bvec)
+    plot(optimalFromGrid ~ lbm[idx])
+    fit <- loess(optimalFromGrid ~ lbm, data=data.frame(optimalFromGrid,lbm=lbm[idx]),
+                 control=loess.control(trace.hat="approximate"), span=.1)
+    pred <- predict(fit, newdata=data.frame(lbm))
+    optimalB <- pmax(0, pmin(1, pred))
+    points(lbm, optimalB, col="blue", cex=.1)
+
+    if (exists("oldRandomSeed")) {
+      .Random.seed <<- oldRandomSeed
+    }
+      
   } else {
     Bout <- B
     optimalB <- B[!mcols(object)$allZero]
