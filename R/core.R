@@ -343,8 +343,12 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
 #'
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
+#' \code{estimateDispersionsPriorVar} is called inside of \code{estimateDispersionsMAP}
+#' and stores the dispersion prior variance as an attribute of
+#' \code{dispersionFunction(dds)}, which can be manually provided to
+#' \code{estimateDispersionsMAP} for parallel execution.
 #'
-#' @aliases estimateDispersionsGeneEst estimateDispersionsFit estimateDispersionsMAP
+#' @aliases estimateDispersionsGeneEst estimateDispersionsFit estimateDispersionsMAP estimateDispersionsPriorVar
 #'
 #' @examples
 #'
@@ -353,15 +357,22 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
 #' dds <- estimateDispersionsGeneEst(dds)
 #' dds <- estimateDispersionsFit(dds)
 #' dds <- estimateDispersionsMAP(dds)
-#' plotDispEsts(dds)
+#' plotDispEsts(dds) 
 #'
+#' # after having run estimateDispersionsFit()
+#' # the dispersion prior variance over all genes
+#' # can be obtained like so:
+#' 
+#' dds <- estimateDispersionsPriorVar(dds)
+#' dispPriorVar <- attr(dispersionFunction(dds),"dispPriorVar")
+#' 
 #' @seealso \code{\link{estimateDispersions}}
 #'
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        dispTol=1e-6, maxit=100, quiet=FALSE,
                                        modelMatrix, niter=1) {
-  if (is.null(mcols(object)$dispGeneEst)) {
+  if (!is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst")
     mcols(object) <- mcols(object)[,!names(mcols(object)) %in% removeCols,drop=FALSE]
@@ -479,7 +490,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 #' @export
 estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),
                                    minDisp=1e-8, quiet=FALSE) {
-  if (is.null(mcols(object)$dispFit)) {
+  if (!is.null(mcols(object)$dispFit)) {
     if (!quiet) message("found already estimated fitted dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit",drop=FALSE]
   }
@@ -549,7 +560,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   stopifnot(length(kappa_0)==1)
   stopifnot(length(dispTol)==1)
   stopifnot(length(maxit)==1)
-  if (is.null(mcols(object)$dispersion)) {
+  if (!is.null(mcols(object)$dispersion)) {
     if (!quiet) message("found already estimated dispersions, removing these")
     removeCols <- c("dispersion","dispOutlier","dispMAP","dispIter","dispConv")
     mcols(object) <- mcols(object)[,!names(mcols(object)) %in% removeCols,drop=FALSE]
@@ -561,12 +572,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
     message("using supplied model matrix")
   }
   
-  objectNZ <- object[!mcols(object)$allZero,]
-
   # fill in the calculated dispersion prior variance
   if (missing(dispPriorVar)) {
-    aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
-    if (sum(aboveMinDisp,na.rm=TRUE) == 0) {
+    if (sum(mcols(object)$dispGeneEst >= minDisp*100,na.rm=TRUE) == 0) {
       warning(paste0("all genes have dispersion estimates < ",minDisp*10,
                      ", returning disp = ",minDisp*10))
       resultsList <- list(dispersion = minDisp*10)
@@ -577,23 +585,25 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
       attr( dispersionFunction(object), "dispPriorVar" ) <- 0.25
       return(object)
     }
-    resList <- estimateDispersionPriorVar(objectNZ, aboveMinDisp, modelMatrix)
-    dispPriorVar <- resList$dispPriorVar
-    varLogDispEsts <- resList$varLogDispEsts
-    expVarLogDisp <- resList$expVarLogDisp
-    attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
-    attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
+    object <- estimateDispersionsPriorVar(object, modelMatrix=modelMatrix)
+    dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" ) 
+    varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
+    expVarLogDisp <- attr( dispersionFunction(object), "expVarLogDisp" )
+  } else {
+    attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
   }
+  
   stopifnot(length(dispPriorVar)==1)
-  attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
 
+  objectNZ <- object[!mcols(object)$allZero,]
+  
   # could be coming from a previous run, and need to import varLogDispEsts
   # for the calculation of outliers
   if (!is.null(attr(dispersionFunction(object), "varLogDispEsts"))) {
     varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
   } else {
     # provided dispPriorVar, so need to calculate observed varLogDispEsts
-    # this code is copied from estimateDispPriorVar()
+    # this code is copied from estimateDispersionsPriorVar()
     aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
     stopifnot(sum(aboveMinDisp,na.rm=TRUE) > 0)
     dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
@@ -676,6 +686,92 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
   mcols(object) <- cbind(mcols(object), dispDataFrame)
   return(object)
+}
+
+#' @rdname estimateDispersionsGeneEst
+#' @export
+estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
+  objectNZ <- object[!mcols(object)$allZero,]
+  aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
+
+  if (missing(modelMatrix)) {
+    modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+  }
+  
+  # estimate the variance of the distribution of the
+  # log dispersion estimates around the fitted value
+  dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
+
+  if (sum(aboveMinDisp,na.rm=TRUE) == 0) {
+    stop("no data found which is greater than minDisp")
+  }
+
+  varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
+  
+  m <- nrow(modelMatrix)
+  p <- ncol(modelMatrix)
+
+  # if the residual degrees of freedom is between 1 and 3, the distribution
+  # of log dispersions is especially asymmetric and poorly estimated
+  # by the MAD. we then use an alternate estimator, a monte carlo
+  # approach to match the distribution
+  if (((m - p) <= 3) & (m > p)) {
+    # in order to produce identical results we set the seed, 
+    # and so we need to save and restore the .Random.seed value first
+    if (exists(".Random.seed")) {
+      oldRandomSeed <- .Random.seed
+    }
+    set.seed(2)
+    # The residuals are the observed distribution we try to match
+    obsDist <- dispResiduals[aboveMinDisp]
+    brks <- -20:20/2
+    obsDist <- obsDist[obsDist > min(brks) & obsDist < max(brks)]
+    obsVarGrid <- seq(from=0,to=8,length=200)
+    obsDistHist <- hist(obsDist,breaks=brks,plot=FALSE)
+    klDivs <- sapply(obsVarGrid, function(x) {
+      randDist <- log(rchisq(1e4,df=(m-p))) + rnorm(1e4,0,sqrt(x)) - log(m - p)
+      randDist <- randDist[randDist > min(brks) & randDist < max(brks)]
+      randDistHist <- hist(randDist,breaks=brks,plot=FALSE)
+      z <- c(obsDistHist$density,randDistHist$density)
+      small <- min(z[z > 0])
+      kl <- sum(obsDistHist$density * (log(obsDistHist$density + small) - log(randDistHist$density + small)))
+      kl
+    })
+    lofit <- loess(klDivs ~ obsVarGrid, span=.2)
+    obsVarFineGrid <- seq(from=0,to=8,length=1000)
+    lofitFitted <- predict(lofit,obsVarFineGrid)
+    argminKL <- obsVarFineGrid[which.min(lofitFitted)]
+    expVarLogDisp <- trigamma((m - p)/2)
+    dispPriorVar <- pmax(argminKL, 0.25)
+    # finally, restore the .Random.seed if it existed beforehand
+    if (exists("oldRandomSeed")) {
+      .Random.seed <<- oldRandomSeed
+    }
+
+    attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
+    attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
+    attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
+    return(object)
+  }
+
+  # estimate the expected sampling variance of the log estimates
+  # Var(log(cX)) = Var(log(X))
+  # X ~ chi-squared with m - p degrees of freedom
+  if (m > p) {
+    expVarLogDisp <- trigamma((m - p)/2)
+    # set the variance of the prior using these two estimates
+    # with a minimum of .25
+    dispPriorVar <- pmax((varLogDispEsts - expVarLogDisp), 0.25)
+  } else {
+    # we have m = p, so do not try to substract sampling variance
+    dispPriorVar <- varLogDispEsts
+    expVarLogDisp <- 0
+  }
+
+  attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
+  attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
+  attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
+  object
 }
 
 
@@ -1903,20 +1999,20 @@ matchWeightedUpperQuantileForVariance <- function(x, weights, upperQuantile=.05)
 # this function takes a matrix of MLE betas
 # and estimates the beta prior variance from these.
 # it is called within fitGLMsWithPrior()
-estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
+estimateBetaPriorVar <- function(objectNZ, betaMatrix, modelMatrix,
                                  modelMatrixType, priorOnlyInteraction,
                                  betaPriorMethod,
                                  upperQuantile=.05) {
   # estimate the variance of the prior on betas
   # if expanded, first calculate LFC for all possible contrasts
   if (modelMatrixType == "expanded") {
-    betaMatrix <- addAllContrasts(object, betaMatrix)
+    betaMatrix <- addAllContrasts(objectNZ, betaMatrix)
   }
 
   # weighting by 1/Var(log(K))
   # Var(log(K)) ~ Var(K)/mu^2 = 1/mu + alpha
   # and using the fitted alpha
-  varlogk <- 1/mcols(object)$baseMean + mcols(object)$dispFit
+  varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
   weights <- 1/varlogk
   
   betaPriorVar <- if (nrow(betaMatrix) > 1) {
@@ -1943,14 +2039,14 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
   # find the names of betaPriorVar which correspond
   # to non-interaction terms and set these to a wide prior
   if (priorOnlyInteraction) {
-    nonInteractionCols <- getNonInteractionColumnIndices(object, modelMatrix)
+    nonInteractionCols <- getNonInteractionColumnIndices(objectNZ, modelMatrix)
     if (modelMatrixType == "standard") widePrior <- 1e6 else widePrior <- 1e3
     betaPriorVar[nonInteractionCols] <- widePrior
     if (modelMatrixType == "expanded") {
       # also set a wide prior for additional contrasts which were added
       # for calculation of the prior variance in the case of
       # expanded model matrices
-      designFactors <- getDesignFactors(object)
+      designFactors <- getDesignFactors(objectNZ)
       betaPriorVar[which(names(betaPriorVar) %in% paste0(designFactors,"Cntrst"))] <- widePrior
     }
   }
@@ -1963,7 +2059,7 @@ estimateBetaPriorVar <- function(object, betaMatrix, modelMatrix,
     # bring over beta priors from the GLM fit without prior.
     # for factors: prior variance of each level are the average of the
     # prior variances for the levels present in the previous GLM fit
-    betaPriorExpanded <- averagePriorsOverLevels(object, betaPriorVar)
+    betaPriorExpanded <- averagePriorsOverLevels(objectNZ, betaPriorVar)
     betaPriorVar <- betaPriorExpanded
   }
   
@@ -1981,28 +2077,33 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
                              upperQuantile=.05) {
   betaPriorMethod <- match.arg(betaPriorMethod, choices=c("weighted","quantile"))  
 
-  # first, fit the negative binomial GLM without a prior,
-  # used to construct the prior variances
-  # and for the hat matrix diagonals for calculating Cook's distance
-  fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
-                       renameCols = (modelMatrixType == "standard"))
-  modelMatrix <- fit$modelMatrix
-  modelMatrixNames <- colnames(modelMatrix)
-  H <- fit$hat_diagonal
-  betaMatrix <- fit$betaMatrix
-  colnames(betaMatrix) <- modelMatrixNames
+  if (missing(betaPriorVar) | !("H" %in% names(assays(objectNZ)))) {
+    # first, fit the negative binomial GLM without a prior,
+    # used to construct the prior variances
+    # and for the hat matrix diagonals for calculating Cook's distance
+    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
+                         renameCols = (modelMatrixType == "standard"))
+    modelMatrix <- fit$modelMatrix
+    modelMatrixNames <- colnames(modelMatrix)
+    H <- fit$hat_diagonal
+    betaMatrix <- fit$betaMatrix
+    colnames(betaMatrix) <- modelMatrixNames
 
-  # save the MLE log fold changes for lfcType="unshrunken"
-  convertNames <- renameModelMatrixColumns(modelMatrixNames,
-                                           as.data.frame(colData(objectNZ)),
-                                           design(objectNZ))
-  convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
-  modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
-  mleBetaMatrix <- fit$betaMatrix
-  colnames(mleBetaMatrix) <- paste0("MLE_",modelMatrixNames)
- 
+    # save the MLE log fold changes for lfcType="unshrunken"
+    convertNames <- renameModelMatrixColumns(modelMatrixNames,
+                                             as.data.frame(colData(objectNZ)),
+                                             design(objectNZ))
+    convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
+    modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
+    mleBetaMatrix <- fit$betaMatrix
+    colnames(mleBetaMatrix) <- paste0("MLE_",modelMatrixNames)
+  } else {
+    modelMatrix <- model.matrix(design(objectNZ), as.data.frame(colData(objectNZ)))
+    H <- assays(objectNZ)[["H"]]
+  }
+     
   if (missing(betaPriorVar)) {
-    betaPriorVar <- estimateBetaPriorVar(object=objectNZ,
+    betaPriorVar <- estimateBetaPriorVar(objectNZ=objectNZ,
                                          betaMatrix=betaMatrix,
                                          modelMatrix=modelMatrix,
                                          modelMatrixType=modelMatrixType,
@@ -2101,82 +2202,6 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
   return(list(betaMatrix=betaMatrix,betaSE=betaSE,
               betaConv=betaConv,
               mu=mu,logLike=logLike))
-}
-
-
-# estimates the variance of the prior on log dispersions
-estimateDispersionPriorVar <- function(objectNZ, aboveMinDisp, modelMatrix) {
-  # estimate the variance of the distribution of the
-  # log dispersion estimates around the fitted value
-  dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
-
-  if (sum(aboveMinDisp,na.rm=TRUE) == 0) {
-    stop("no data found which is greater than minDisp")
-  }
-
-  varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
-  
-  m <- nrow(modelMatrix)
-  p <- ncol(modelMatrix)
-
-  # if the residual degrees of freedom is between 1 and 3, the distribution
-  # of log dispersions is especially asymmetric and poorly estimated
-  # by the MAD. we then use an alternate estimator, a monte carlo
-  # approach to match the distribution
-  if (((m - p) <= 3) & (m > p)) {
-    # in order to produce identical results we set the seed, 
-    # and so we need to save and restore the .Random.seed value first
-    if (exists(".Random.seed")) {
-      oldRandomSeed <- .Random.seed
-    }
-    set.seed(2)
-    # The residuals are the observed distribution we try to match
-    obsDist <- dispResiduals[aboveMinDisp]
-    brks <- -20:20/2
-    obsDist <- obsDist[obsDist > min(brks) & obsDist < max(brks)]
-    obsVarGrid <- seq(from=0,to=8,length=200)
-    obsDistHist <- hist(obsDist,breaks=brks,plot=FALSE)
-    klDivs <- sapply(obsVarGrid, function(x) {
-      randDist <- log(rchisq(1e4,df=(m-p))) + rnorm(1e4,0,sqrt(x)) - log(m - p)
-      randDist <- randDist[randDist > min(brks) & randDist < max(brks)]
-      randDistHist <- hist(randDist,breaks=brks,plot=FALSE)
-      z <- c(obsDistHist$density,randDistHist$density)
-      small <- min(z[z > 0])
-      kl <- sum(obsDistHist$density * (log(obsDistHist$density + small) - log(randDistHist$density + small)))
-      kl
-    })
-    lofit <- loess(klDivs ~ obsVarGrid, span=.2)
-    obsVarFineGrid <- seq(from=0,to=8,length=1000)
-    lofitFitted <- predict(lofit,obsVarFineGrid)
-    argminKL <- obsVarFineGrid[which.min(lofitFitted)]
-    expVarLogDisp <- trigamma((m - p)/2)
-    dispPriorVar <- pmax(argminKL, 0.25)
-    # finally, restore the .Random.seed if it existed beforehand
-    if (exists("oldRandomSeed")) {
-      .Random.seed <<- oldRandomSeed
-    }
-    return(list(dispPriorVar=dispPriorVar,
-                varLogDispEsts=varLogDispEsts,
-                expVarLogDisp=expVarLogDisp))
-  }
-
-  # estimate the expected sampling variance of the log estimates
-  # Var(log(cX)) = Var(log(X))
-  # X ~ chi-squared with m - p degrees of freedom
-  if (m > p) {
-    expVarLogDisp <- trigamma((m - p)/2)
-    # set the variance of the prior using these two estimates
-    # with a minimum of .25
-    dispPriorVar <- pmax((varLogDispEsts - expVarLogDisp), 0.25)
-  } else {
-    # we have m = p, so do not try to substract sampling variance
-    dispPriorVar <- varLogDispEsts
-    expVarLogDisp <- 0
-  }
-
-  list(dispPriorVar=dispPriorVar,
-       varLogDispEsts=varLogDispEsts,
-       expVarLogDisp=expVarLogDisp)
 }
 
 

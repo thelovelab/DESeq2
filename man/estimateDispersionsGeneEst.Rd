@@ -3,6 +3,7 @@
 \alias{estimateDispersionsFit}
 \alias{estimateDispersionsGeneEst}
 \alias{estimateDispersionsMAP}
+\alias{estimateDispersionsPriorVar}
 \title{Low-level functions to fit dispersion estimates}
 \usage{
 estimateDispersionsGeneEst(object, minDisp = 1e-08, kappa_0 = 1,
@@ -13,6 +14,8 @@ estimateDispersionsFit(object, fitType = c("parametric", "local", "mean"),
 
 estimateDispersionsMAP(object, outlierSD = 2, dispPriorVar, minDisp = 1e-08,
   kappa_0 = 1, dispTol = 1e-06, maxit = 100, modelMatrix, quiet = FALSE)
+
+estimateDispersionsPriorVar(object, minDisp = 1e-08, modelMatrix)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -56,6 +59,10 @@ estimation of dispersion}
 \value{
 a DESeqDataSet with gene-wise, fitted, or final MAP
 dispersion estimates in the metadata columns of the object.
+\code{estimateDispersionsPriorVar} is called inside of \code{estimateDispersionsMAP}
+and stores the dispersion prior variance as an attribute of
+\code{dispersionFunction(dds)}, which can be manually provided to
+\code{estimateDispersionsMAP} for parallel execution.
 }
 \description{
 Normal users should instead use \code{\link{estimateDispersions}}.
@@ -72,6 +79,13 @@ dds <- estimateDispersionsGeneEst(dds)
 dds <- estimateDispersionsFit(dds)
 dds <- estimateDispersionsMAP(dds)
 plotDispEsts(dds)
+
+# after having run estimateDispersionsFit()
+# the dispersion prior variance over all genes
+# can be obtained like so:
+
+dds <- estimateDispersionsPriorVar(dds)
+dispPriorVar <- attr(dispersionFunction(dds),"dispPriorVar")
 }
 \seealso{
 \code{\link{estimateDispersions}}
