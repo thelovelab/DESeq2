@@ -361,7 +361,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        dispTol=1e-6, maxit=100, quiet=FALSE,
                                        modelMatrix, niter=1) {
-  if ("dispGeneEst" %in% names(mcols(object))) {
+  if (is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst")
     mcols(object) <- mcols(object)[,!names(mcols(object)) %in% removeCols,drop=FALSE]
@@ -479,7 +479,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 #' @export
 estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),
                                    minDisp=1e-8, quiet=FALSE) {
-  if ("dispFit" %in% names(mcols(object))) {
+  if (is.null(mcols(object)$dispFit)) {
     if (!quiet) message("found already estimated fitted dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit",drop=FALSE]
   }
@@ -549,7 +549,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   stopifnot(length(kappa_0)==1)
   stopifnot(length(dispTol)==1)
   stopifnot(length(maxit)==1)
-  if ("dispersion" %in% names(mcols(object))) {
+  if (is.null(mcols(object)$dispersion)) {
     if (!quiet) message("found already estimated dispersions, removing these")
     removeCols <- c("dispersion","dispOutlier","dispMAP","dispIter","dispConv")
     mcols(object) <- mcols(object)[,!names(mcols(object)) %in% removeCols,drop=FALSE]
@@ -790,7 +790,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
     if (!quiet) message("found results columns, replacing these")
     object <- removeResults(object)
   }
-  if (!"allZero" %in% names(mcols(object))) {
+  if (is.null(mcols(object)$allZero)) {
     object <- getBaseMeansAndVariances(object)
   }
   
@@ -1044,7 +1044,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
     object <- removeResults(object)
   } 
 
-  if (!"allZero" %in% names(mcols(object))) {
+  if (is.null(mcols(object)$allZero)) {
     object <- getBaseMeansAndVariances(object)
   }
   

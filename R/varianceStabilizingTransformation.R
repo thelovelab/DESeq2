@@ -12,9 +12,7 @@
 #' 
 #' @aliases varianceStabilizingTransformation getVarianceStabilizedData
 #' 
-#' @param object a DESeqDataSet, with \code{design(object) <- formula(~ 1)}
-#' and size factors (or normalization factors) and dispersions estimated
-#' using local or parametric \code{fitType}.
+#' @param object a DESeqDataSet or matrix of counts
 #' @param blind logical, whether to blind the transformation to the experimental
 #' design. blind=TRUE should be used for comparing samples in an manner unbiased by
 #' prior information on samples, for example to perform sample QA (quality assurance).
@@ -23,6 +21,8 @@
 #' If many of genes have large differences in counts due to
 #' the experimental design, it is important to set blind=FALSE for downstream
 #' analysis.
+#' @param fitType in case dispersions have not yet been estimated for \code{object},
+#' this parameter is passed on to \code{\link{estimateDispersions}} (options described there).
 #'
 #' @details For each sample (i.e., column of \code{counts(dds)}), the full variance function
 #' is calculated from the raw variance (by scaling according to the size factor and adding 
@@ -86,10 +86,12 @@
 #' As shown in the vignette, the function \code{meanSdPlot}
 #' from the package \pkg{vsn} can be used to see whether this is a problem.
 #'
-#' @return for \code{varianceStabilizingTransformation}, a \code{\link{SummarizedExperiment}}.
-#' The matrix of transformed values are accessed by \code{assay(vsd)}.
-#' for \code{getVarianceStabilizedData}, a \code{matrix} of the same dimension as the
-#' count data, containing the transformed values.  
+#' @return \code{varianceStabilizingTransformation} returns a
+#' \code{\link{SummarizedExperiment}} if a \code{DESeqDataSet} was provided,
+#' or returns a a matrix if a count matrix was provided.
+#' Note that for \code{\link{SummarizedExperiment}} output, the matrix of
+#' transformed values is stored in \code{assay(vsd)}.
+#' \code{getVarianceStabilizedData} also returns a matrix.
 #' 
 #' @author Simon Anders
 #'
@@ -116,7 +118,14 @@
 #' vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
 #' 
 #' @export
-varianceStabilizingTransformation <- function (object, blind=TRUE) {
+varianceStabilizingTransformation <- function (object, blind=TRUE, fitType="parametric") {
+  if (is.matrix(object)) {
+    matrixIn <- TRUE
+    if (is.null(colnames(object))) colnames(object) <- seq_len(ncol(object))
+    object <- DESeqDataSetFromMatrix(object, DataFrame(row.names=colnames(object)), ~ 1)
+  } else {
+    matrixIn <- FALSE
+  }
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
@@ -125,10 +134,14 @@ varianceStabilizingTransformation <- function (object, blind=TRUE) {
   }
   if (blind | is.null(attr(dispersionFunction(object),"fitType"))) {
     object <- estimateDispersionsGeneEst(object, quiet=TRUE)
-    object <- estimateDispersionsFit(object, quiet=TRUE)
+    object <- estimateDispersionsFit(object, quiet=TRUE, fitType)
+  }
+  vsd <- getVarianceStabilizedData(object)
+  if (matrixIn) {
+    return(vsd)
   }
   SummarizedExperiment(
-    assays = getVarianceStabilizedData(object),
+    assays = vsd,
     colData = colData(object),
     rowData = rowData(object),
     exptData = exptData(object))

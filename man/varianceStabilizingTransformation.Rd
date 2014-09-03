@@ -4,14 +4,13 @@
 \alias{varianceStabilizingTransformation}
 \title{Apply a variance stabilizing transformation (VST) to the count data}
 \usage{
-varianceStabilizingTransformation(object, blind = TRUE)
+varianceStabilizingTransformation(object, blind = TRUE,
+  fitType = "parametric")
 
 getVarianceStabilizedData(object)
 }
 \arguments{
-\item{object}{a DESeqDataSet, with \code{design(object) <- formula(~ 1)}
-and size factors (or normalization factors) and dispersions estimated
-using local or parametric \code{fitType}.}
+\item{object}{a DESeqDataSet or matrix of counts}
 
 \item{blind}{logical, whether to blind the transformation to the experimental
 design. blind=TRUE should be used for comparing samples in an manner unbiased by
@@ -21,12 +20,17 @@ where the full use of the design information should be made.
 If many of genes have large differences in counts due to
 the experimental design, it is important to set blind=FALSE for downstream
 analysis.}
+
+\item{fitType}{in case dispersions have not yet been estimated for \code{object},
+this parameter is passed on to \code{\link{estimateDispersions}} (options described there).}
 }
 \value{
-for \code{varianceStabilizingTransformation}, a \code{\link{SummarizedExperiment}}.
-The matrix of transformed values are accessed by \code{assay(vsd)}.
-for \code{getVarianceStabilizedData}, a \code{matrix} of the same dimension as the
-count data, containing the transformed values.
+\code{varianceStabilizingTransformation} returns a
+\code{\link{SummarizedExperiment}} if a \code{DESeqDataSet} was provided,
+or returns a a matrix if a count matrix was provided.
+Note that for \code{\link{SummarizedExperiment}} output, the matrix of
+transformed values is stored in \code{assay(vsd)}.
+\code{getVarianceStabilizedData} also returns a matrix.
 }
 \description{
 This function calculates a variance stabilizing transformation (VST) from the

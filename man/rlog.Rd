@@ -4,10 +4,11 @@
 \alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
-rlog(object, blind = TRUE, fast = FALSE, intercept, betaPriorVar, B)
+rlog(object, blind = TRUE, fast = FALSE, intercept, betaPriorVar, B,
+  fitType = "parametric")
 
 rlogTransformation(object, blind = TRUE, fast = FALSE, intercept,
-  betaPriorVar, B)
+  betaPriorVar, B, fitType = "parametric")
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -40,15 +41,18 @@ by default, this is not provided and calculated automatically.
 if provided, this should be a vector as long as the number of rows of object.
 this is the amount of shrinkage from 0 to 1 for each row, and takes precedence
 over internal calculation of B using betaPriorVar.}
+
+\item{fitType}{in case dispersions have not yet been estimated for \code{object},
+this parameter is passed on to \code{\link{estimateDispersions}} (options described there).}
 }
 \value{
-\code{rlog}, equivalent to \code{rlogTransformation},
-returns a \code{\link{SummarizedExperiment}}.
-The matrix of transformed values are accessed by \code{assay(rld)}.
-To avoid returning matrices with NA values where there were zeros for all rows of
-the unnormalized counts, the rlog transformation returns instead all
-zeros (essentially adding a pseudocount of one, only to those rows
-in which all samples have zero).
+a \code{\link{SummarizedExperiment}} if a \code{DESeqDataSet} was provided,
+or a matrix if a count matrix was provided.
+Note that for \code{\link{SummarizedExperiment}} output, the matrix of
+transformed values is stored in \code{assay(rld)}.
+To avoid returning matrices with NA values, in the case of a row
+of all zeros, the rlog transformation returns zeros
+(essentially adding a pseudocount of 1 only to these rows).
 }
 \description{
 This function transform the count data to the log2 scale in a way

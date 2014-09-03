@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.5.50
+-------------------------
+
+    o A matrix can be provided to rlog or to the VST and will return 
+      a matrix. Also 'fitType' argument is included, in case dispersions
+      are not estimated which is passed on to estimateDispersions.
+
 CHANGES IN VERSION 1.5.49
 -------------------------
 

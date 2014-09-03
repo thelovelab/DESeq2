@@ -82,14 +82,16 @@
 #' if provided, this should be a vector as long as the number of rows of object.
 #' this is the amount of shrinkage from 0 to 1 for each row, and takes precedence
 #' over internal calculation of B using betaPriorVar.
+#' @param fitType in case dispersions have not yet been estimated for \code{object},
+#' this parameter is passed on to \code{\link{estimateDispersions}} (options described there).
 #' 
-#' @return \code{rlog}, equivalent to \code{rlogTransformation},
-#' returns a \code{\link{SummarizedExperiment}}.
-#' The matrix of transformed values are accessed by \code{assay(rld)}.
-#' To avoid returning matrices with NA values where there were zeros for all rows of
-#' the unnormalized counts, the rlog transformation returns instead all
-#' zeros (essentially adding a pseudocount of one, only to those rows 
-#' in which all samples have zero).
+#' @return a \code{\link{SummarizedExperiment}} if a \code{DESeqDataSet} was provided,
+#' or a matrix if a count matrix was provided.
+#' Note that for \code{\link{SummarizedExperiment}} output, the matrix of
+#' transformed values is stored in \code{assay(rld)}.
+#' To avoid returning matrices with NA values, in the case of a row
+#' of all zeros, the rlog transformation returns zeros
+#' (essentially adding a pseudocount of 1 only to these rows).
 #'
 #' @seealso \code{\link{plotPCA}}, \code{\link{varianceStabilizingTransformation}}
 #' @examples
@@ -118,7 +120,14 @@
 #' 
 #' @export
 rlog <- function(object, blind=TRUE, fast=FALSE,
-                 intercept, betaPriorVar, B) {
+                 intercept, betaPriorVar, B, fitType="parametric") {
+  if (is.matrix(object)) {
+    matrixIn <- TRUE
+    if (is.null(colnames(object))) colnames(object) <- seq_len(ncol(object))
+    object <- DESeqDataSetFromMatrix(object, DataFrame(row.names=colnames(object)), ~ 1)
+  } else {
+    matrixIn <- FALSE
+  }
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
@@ -127,19 +136,21 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
   }
   if (blind | is.null(mcols(object)$dispFit)) {
     # estimate the dispersions on all genes, or if fast=TRUE subset to 1000 non-zero genes
-    baseMean <- rowMeans(counts(object,normalized=TRUE))
-    if (!fast | sum(baseMean > 0) <= 1000) {
+    if (is.null(mcols(object)$baseMean)) {
+      object <- getBaseMeansAndVariances(object)
+    }
+    if (!fast | sum(mcols(object)$baseMean > 0) <= 1000) {
       object <- estimateDispersionsGeneEst(object, quiet=TRUE)
-      object <- estimateDispersionsFit(object, quiet=TRUE)
+      object <- estimateDispersionsFit(object, fitType, quiet=TRUE)
     } else {
       # select 1000 genes along the range of non-zero base means
-      idx <- order(baseMean)[round(seq(from=(sum(baseMean==0) + 1), to=length(baseMean), length=1000))]      
+      idx <- order(mcols(object)$baseMean)[round(seq(from=(sum(mcols(object)$baseMean==0) + 1),
+                                                     to=nrow(object), length=1000))]      
       objectSub <- object[idx,]
       objectSub <- estimateDispersionsGeneEst(objectSub, quiet=TRUE)
-      objectSub <- estimateDispersionsFit(objectSub, quiet=TRUE)
+      objectSub <- estimateDispersionsFit(objectSub, fitType, quiet=TRUE)
       # fill in the fitted dispersions for all genes
-      mcols(object)$dispFit <- dispersionFunction(objectSub)(baseMean)
-      mcols(object)$baseMean <- baseMean
+      mcols(object)$dispFit <- dispersionFunction(objectSub)(mcols(object)$baseMean)
     }
   }
   if (!missing(intercept)) {
@@ -159,6 +170,9 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
     rld <- rlogDataFast(object, intercept, betaPriorVar, B)
   } else {
     rld <- rlogData(object, intercept, betaPriorVar)
+  }
+  if (matrixIn) {
+    return(rld)
   }
   se <- SummarizedExperiment(
            assays = rld,
@@ -192,11 +206,8 @@ rlogData <- function(object, intercept, betaPriorVar) {
       stop("intercept should be as long as the number of rows of object")
     }
   }
-  if (!"allZero" %in% names(mcols(object))) {
-    mcols(object)$allZero <- rowSums(counts(object)) == 0
-  }
-  if (!"baseMean" %in% names(mcols(object))) {
-    mcols(object)$baseMean <- rowMeans(counts(object,normalized=TRUE))
+  if (is.null(mcols(object)$allZero) | is.null(mcols(object)$baseMean)) {
+    object <- getBaseMeansAndVariances(object)
   }
   
   # make a design matrix with a term for every sample
@@ -290,8 +301,8 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
   if (is.null(mcols(object)$dispFit)) {
     stop("first estimate dispersion")
   }
-  if (!"allZero" %in% names(mcols(object))) {
-    mcols(object)$allZero <- rowSums(counts(object)) == 0
+  if (is.null(mcols(object)$allZero) | is.null(mcols(object)$baseMean)) {
+    object <- getBaseMeansAndVariances(object)
   }
   if (!missing(B)) {
     if (length(B) != nrow(object)) {
@@ -326,23 +337,22 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     # if a prior sigma squared notq provided, estimate this
     # by the matching upper quantiles of the
     # log2 counts plus a pseudocount
-
-    if (exists(".Random.seed")) {
-      oldRandomSeed <- .Random.seed
-    }
-    set.seed(2)
     
     if (missing(betaPriorVar)) {
-      logFoldChangeVector <- as.numeric(logFoldChangeMatrix)
-      varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
-      weights <- 1/varlogk
-      # subsample to speed up the weighted quantile matching
-      idx <- if (length(logFoldChangeVector) > 10000) {
-        sample(length(logFoldChangeVector), 10000, replace=FALSE)
+      betaPriorVar <- if (nrow(objectNZ) > 1000) {
+        # subsample 1000 genes along the range of base mean
+        # to speed up the weighted quantile matching      
+        idx <- order(mcols(objectNZ)$baseMean)[round(seq(from=1,to=nrow(objectNZ),length=1000))]
+        logFoldChangeVector <- as.numeric(logFoldChangeMatrix[idx,,drop=FALSE])
+        varlogk <- 1/mcols(objectNZ)$baseMean[idx] + mcols(objectNZ)$dispFit[idx]
+        weights <- 1/varlogk
+        matchWeightedUpperQuantileForVariance(logFoldChangeVector, rep(weights,ncol(objectNZ)))        
       } else {
-        seq_along(logFoldChangeVector)
+        logFoldChangeVector <- as.numeric(logFoldChangeMatrix)
+        varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
+        weights <- 1/varlogk
+        matchWeightedUpperQuantileForVariance(logFoldChangeVector, rep(weights,ncol(objectNZ)))
       }
-      betaPriorVar <- matchWeightedUpperQuantileForVariance(logFoldChangeVector[idx], rep(weights,ncol(objectNZ))[idx])
     }
     stopifnot(length(betaPriorVar)==1)
     if (!is.null(normalizationFactors(object))) {
@@ -371,11 +381,7 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
                  control=loess.control(trace.hat="approximate"), span=.1)
     pred <- predict(fit, newdata=data.frame(lbm))
     optimalB <- pmax(0, pmin(1, pred))
-
-    if (exists("oldRandomSeed")) {
-      .Random.seed <<- oldRandomSeed
-    }
-      
+     
   } else {
     Bout <- B
     optimalB <- B[!mcols(object)$allZero]
