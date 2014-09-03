@@ -1,7 +1,9 @@
-#' Collapse replicates in a SummarizedExperiment or DESeqDataSet
+#' Collapse technical replicates in a SummarizedExperiment or DESeqDataSet
 #'
 #' Collapses the columns in \code{object} by summing within levels
-#' of a grouping factor \code{groupby}.
+#' of a grouping factor \code{groupby}. The purpose of this function
+#' is to sum up read counts from technical replicates to create an object
+#' with a single column of read counts for each sample.
 #' Optionally renames the columns of returned object with the levels of the
 #' grouping factor.
 #' Note: this function is written very simply and
@@ -14,7 +16,6 @@
 #' which pastes together the names of \code{run}
 #' @param renameCols whether to rename the columns of the returned object
 #' using the levels of the grouping factor
-
 #'
 #' @return the \code{object} with as many columns as levels in \code{groupby}.
 #' This object has assay/count data which is summed from the various
