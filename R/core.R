@@ -343,6 +343,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
 #'
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
+#' 
 #' \code{estimateDispersionsPriorVar} is called inside of \code{estimateDispersionsMAP}
 #' and stores the dispersion prior variance as an attribute of
 #' \code{dispersionFunction(dds)}, which can be manually provided to
@@ -363,8 +364,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
 #' # the dispersion prior variance over all genes
 #' # can be obtained like so:
 #' 
-#' dds <- estimateDispersionsPriorVar(dds)
-#' dispPriorVar <- attr(dispersionFunction(dds),"dispPriorVar")
+#' dispPriorVar <- estimateDispersionsPriorVar(dds)
 #' 
 #' @seealso \code{\link{estimateDispersions}}
 #'
@@ -397,7 +397,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   object <- getBaseMeansAndVariances(object)
 
   # only continue on the rows with non-zero row mean
-  objectNZ <- object[!mcols(object)$allZero,]
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   
   # this rough dispersion estimate (alpha_hat)
   # is for estimating mu
@@ -494,7 +494,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
     if (!quiet) message("found already estimated fitted dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit",drop=FALSE]
   }
-  objectNZ <- object[!mcols(object)$allZero,]
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   useForFit <- mcols(objectNZ)$dispGeneEst > 100*minDisp
   if (sum(useForFit) == 0) {
     stop("all gene-wise dispersion estimates are within 2 orders of magnitude
@@ -585,24 +585,20 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
       attr( dispersionFunction(object), "dispPriorVar" ) <- 0.25
       return(object)
     }
-    object <- estimateDispersionsPriorVar(object, modelMatrix=modelMatrix)
-    dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" ) 
-    varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
-    expVarLogDisp <- attr( dispersionFunction(object), "expVarLogDisp" )
-  } else {
-    attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
+    dispPriorVar <- estimateDispersionsPriorVar(object, modelMatrix=modelMatrix)
   }
-  
-  stopifnot(length(dispPriorVar)==1)
 
-  objectNZ <- object[!mcols(object)$allZero,]
-  
-  # could be coming from a previous run, and need to import varLogDispEsts
-  # for the calculation of outliers
+  stopifnot(length(dispPriorVar)==1)
+  attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
+
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+
+  # if coming from DESeq() after a sample replacement...
   if (!is.null(attr(dispersionFunction(object), "varLogDispEsts"))) {
     varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
   } else {
-    # provided dispPriorVar, so need to calculate observed varLogDispEsts
+    # otherwise...
+    # calculate observed varLogDispEsts for calling outliers
     # this code is copied from estimateDispersionsPriorVar()
     aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
     stopifnot(sum(aboveMinDisp,na.rm=TRUE) > 0)
@@ -691,7 +687,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 #' @rdname estimateDispersionsGeneEst
 #' @export
 estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
-  objectNZ <- object[!mcols(object)$allZero,]
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
 
   if (missing(modelMatrix)) {
@@ -748,10 +744,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
       .Random.seed <<- oldRandomSeed
     }
 
-    attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
-    attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
-    attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
-    return(object)
+    return(dispPriorVar)
   }
 
   # estimate the expected sampling variance of the log estimates
@@ -768,10 +761,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
     expVarLogDisp <- 0
   }
 
-  attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
-  attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
-  attr( dispersionFunction(object), "expVarLogDisp" ) <- expVarLogDisp
-  object
+  dispPriorVar
 }
 
 
@@ -846,12 +836,6 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
 #' @param df the degrees of freedom for the t-distribution
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
-#' @param betaPriorMethod the method for calculating the beta prior variance,
-#' either "quanitle" or "weighted":
-#' "quantile" matches a normal distribution using the upper quantile of the finite MLE betas.
-#' "weighted" matches a normal distribution using the upper quantile, but weighting by the variance of the MLE betas.
-#' @param upperQuantile the upper quantile to be used for the
-#' "quantile" or "weighted" method of beta prior variance estimation
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -870,14 +854,12 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
 #' @export
 nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType,
                            maxit=100, useOptim=TRUE, quiet=FALSE,
-                           useT=FALSE, df, useQR=TRUE, betaPriorMethod=c("weighted","quantile"),
-                           upperQuantile=.05) {
+                           useT=FALSE, df, useQR=TRUE) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
   
   stopifnot(length(maxit)==1)
-  betaPriorMethod <- match.arg(betaPriorMethod, choices=c("weighted","quantile"))
   
   # in case the class of the mcols(mcols(object)) are not character
   object <- sanitizeRowData(object)
@@ -891,7 +873,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   }
   
   # only continue on the rows with non-zero row mean
-  objectNZ <- object[!mcols(object)$allZero,]
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   
   # what kind of model matrix to use
   stopifnot(is.logical(betaPrior))
@@ -911,6 +893,9 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
     stop("expanded model matrices require a beta prior")
   }
 
+  # store modelMatrixType so it can be accessed by estimateBetaPriorVar
+  attr(object, "modelMatrixType") <- modelMatrixType
+
   # check for intercept
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
   if (betaPrior & !hasIntercept) {
@@ -925,7 +910,6 @@ i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
 has not been implemented. we recommend instead using a likelihood
 ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   }
-  priorOnlyInteraction <- interactionPresent & betaPrior & missing(betaPriorVar)
 
   if (!betaPrior) {
     # fit the negative binomial GLM without a prior
@@ -936,21 +920,19 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
     modelMatrixNames <- fit$modelMatrixNames
     # record the wide prior variance which was used in fitting
     betaPriorVar <- rep(1e6, ncol(fit$modelMatrix))
-  }
-
-  if (betaPrior) {
-    priorFitList <- fitGLMsWithPrior(objectNZ=objectNZ,
+  } else {
+    priorFitList <- fitGLMsWithPrior(object=object,
                                      maxit=maxit, useOptim=useOptim, useQR=useQR,
-                                     modelMatrixType=modelMatrixType,
-                                     betaPriorVar=betaPriorVar,
-                                     priorOnlyInteraction=priorOnlyInteraction,
-                                     betaPriorMethod=betaPriorMethod,
-                                     upperQuantile=upperQuantile)
+                                     betaPriorVar=betaPriorVar)
     fit <- priorFitList$fit
     H <- priorFitList$H
     betaPriorVar <- priorFitList$betaPriorVar
     modelMatrix <- priorFitList$modelMatrix
     mleBetaMatrix <- priorFitList$mleBetaMatrix
+
+    # will add the MLE betas, so remove any which exist already
+    # (possibly coming from estimateMLEForBetaPriorVar)
+    mcols(object) <- mcols(object)[,grep("MLE_",names(mcols(object)),invert=TRUE)]
   }
 
   # store mu in case the user did not call estimateDispersionsGeneEst
@@ -963,7 +945,6 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   attr(object,"betaPrior") <- betaPrior
   attr(object,"betaPriorVar") <- betaPriorVar
   attr(object,"modelMatrix") <- modelMatrix
-  attr(object,"modelMatrixType") <- modelMatrixType
   attr(object,"test") <- "Wald"
 
   # calculate Cook's distance
@@ -1043,6 +1024,163 @@ ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   mcols(object) <- cbind(mcols(object),WaldResults)
   return(object)
 }
+
+
+
+#' Steps for estimating the beta prior variance
+#'
+#' These lower-level functions are called within \code{\link{DESeq}} or \code{\link{nbinomWaldTest}}.
+#' End users should use those higher-level function instead.
+#' For advanced users to use this function, first run \code{estimateMLEForBetaPriorVar}
+#' and then run \code{estimateBetaPriorVar}.
+#'
+#' @param object a DESeqDataSet
+#'
+#' @param maxit as defined in \code{link{nbinomWaldTest}}
+#' @param useOptim as defined in \code{link{nbinomWaldTest}}
+#' @param useQR as defined in \code{link{nbinomWaldTest}}
+#' 
+#' @param betaPriorMethod the method for calculating the beta prior variance,
+#' either "quanitle" or "weighted":
+#' "quantile" matches a normal distribution using the upper quantile of the finite MLE betas.
+#' "weighted" matches a normal distribution using the upper quantile, but weighting by the variance of the MLE betas.
+#' @param upperQuantile the upper quantile to be used for the
+#' "quantile" or "weighted" method of beta prior variance estimation
+#'
+#' 
+#' @return for \code{estimateMLEForBetaPriorVar}, a DESeqDataSet, with the
+#' necessary information stored in order to calculate the prior variance.
+#' for \code{estimateBetaPriorVar}, the vector of variances for the prior
+#' on the betas in the \code{\link{DESeq}} GLM
+#'
+#' @aliases estimateBetaPriorVar estimateMLEForBetaPriorVar
+#' 
+#' @export
+estimateBetaPriorVar <- function(object, 
+                                 betaPriorMethod=c("weighted","quantile"),
+                                 upperQuantile=.05) {
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+
+  betaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_", names(mcols(object))),drop=FALSE])
+  colnames(betaMatrix) <- gsub("MLE_(.*)","\\1",colnames(betaMatrix))
+  # make these standard colnames as from model.matrix()
+  colnames(betaMatrix) <- gsub("(.*)_(.*)_vs_(.*)","\\1\\2",colnames(betaMatrix))
+  
+  # this is the model matrix from an MLE run
+  modelMatrix <- model.matrix(design(objectNZ), as.data.frame(colData(objectNZ)))
+
+  modelMatrixType <- attr(object, "modelMatrixType")
+  
+  betaPriorMethod <- match.arg(betaPriorMethod, choices=c("weighted","quantile"))
+
+  # estimate the variance of the prior on betas
+  # if expanded, first calculate LFC for all possible contrasts
+  if (modelMatrixType == "expanded") {
+    betaMatrix <- addAllContrasts(objectNZ, betaMatrix)
+  }
+
+  # weighting by 1/Var(log(K))
+  # Var(log(K)) ~ Var(K)/mu^2 = 1/mu + alpha
+  # and using the fitted alpha
+  varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
+  weights <- 1/varlogk
+  
+  betaPriorVar <- if (nrow(betaMatrix) > 1) {
+    apply(betaMatrix, 2, function(x) {
+      # this test removes genes which have betas
+      # tending to +/- infinity
+      useFinite <- abs(x) < 10
+      # if no more betas pass test, return wide prior
+      if (sum(useFinite) == 0 ) {
+        return(1e6)
+      } else {
+        if (betaPriorMethod=="quantile") {
+          return(matchUpperQuantileForVariance(x[useFinite],upperQuantile))
+        } else if (betaPriorMethod=="weighted") {
+          return(matchWeightedUpperQuantileForVariance(x[useFinite],weights[useFinite],upperQuantile))
+        }
+      }
+    })
+  } else {
+    (betaMatrix)^2
+  }
+  names(betaPriorVar) <- colnames(betaMatrix)
+
+  # find the names of betaPriorVar which correspond
+  # to non-interaction terms and set these to a wide prior
+  termsOrder <- attr(terms.formula(design(object)),"order")
+  interactionPresent <- any(termsOrder > 1)  
+  if (interactionPresent) {
+    nonInteractionCols <- getNonInteractionColumnIndices(objectNZ, modelMatrix)
+    if (modelMatrixType == "standard") widePrior <- 1e6 else widePrior <- 1e3
+    betaPriorVar[nonInteractionCols] <- widePrior
+    if (modelMatrixType == "expanded") {
+      # also set a wide prior for additional contrasts which were added
+      # for calculation of the prior variance in the case of
+      # expanded model matrices
+      designFactors <- getDesignFactors(objectNZ)
+      betaPriorVar[which(names(betaPriorVar) %in% paste0(designFactors,"Cntrst"))] <- widePrior
+    }
+  }
+  # intercept set to wide prior
+  if ("Intercept" %in% names(betaPriorVar)) {
+    betaPriorVar[which(names(betaPriorVar) == "Intercept")] <- 1e6
+  }
+  
+  if (modelMatrixType == "expanded") {
+    # bring over beta priors from the GLM fit without prior.
+    # for factors: prior variance of each level are the average of the
+    # prior variances for the levels present in the previous GLM fit
+    betaPriorExpanded <- averagePriorsOverLevels(objectNZ, betaPriorVar)
+    betaPriorVar <- betaPriorExpanded
+  }
+  
+  betaPriorVar
+}
+
+#' @rdname estimateBetaPriorVar
+#' @export
+estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=TRUE) {
+  # this function copies code from other functions,
+  # in order to allow parallelization  
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+
+  # this code copied from nbinomWaldTest()
+  termsOrder <- attr(terms.formula(design(object)),"order")
+  interactionPresent <- any(termsOrder > 1)
+  blindDesign <- design(object) == formula(~ 1)
+  twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
+  mmTypeTest <- !blindDesign & !twoLevelsInteraction
+  modelMatrixType <- if (mmTypeTest) {
+    "expanded"
+  } else {
+    "standard"
+  }
+  attr(object, "modelMatrixType") <- modelMatrixType
+
+  # this code copied from fitGLMsWithPrior()
+  fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
+                       renameCols = (modelMatrixType == "standard"))
+  modelMatrix <- fit$modelMatrix
+  modelMatrixNames <- colnames(modelMatrix)
+  H <- fit$hat_diagonal
+  betaMatrix <- fit$betaMatrix
+  colnames(betaMatrix) <- modelMatrixNames
+  convertNames <- renameModelMatrixColumns(modelMatrixNames,
+                                           as.data.frame(colData(objectNZ)),
+                                           design(objectNZ))
+  convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
+  modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
+  mleBetaMatrix <- fit$betaMatrix
+  colnames(mleBetaMatrix) <- paste0("MLE_",modelMatrixNames)
+  # remove any MLE columns if they exist
+  mcols(object) <- mcols(object)[,grep("MLE_",names(mcols(object)),invert=TRUE)]
+  mcols(object) <- cbind(mcols(object), buildDataFrameWithNARows(DataFrame(mleBetaMatrix), mcols(object)$allZero))
+  assays(object)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
+  object
+}
+
+
 
 
 #' Likelihood ratio test (chi-squared test) for GLMs
@@ -1166,10 +1304,12 @@ i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
     stop("interactions higher than 2nd order and usage of expanded model matrices
 has not been implemented")
   }
-  priorOnlyInteraction <- interactionPresent & betaPrior & missing(betaPriorVar)
+
+  # store modelMatrixType so it can be accessed by estimateBetaPriorVar
+  attr(object,"modelMatrixType") <- modelMatrixType
 
   # only continue on the rows with non-zero row mean
-  objectNZ <- object[!mcols(object)$allZero,]
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
   if (!betaPrior) {
     if (modelsAsFormula) {
@@ -1189,12 +1329,9 @@ has not been implemented")
     }
     betaPriorVar <- rep(1e6, ncol(modelMatrix))
   } else {
-    priorFull <- fitGLMsWithPrior(objectNZ=objectNZ,
+    priorFull <- fitGLMsWithPrior(object=object,
                                   maxit=maxit, useOptim=useOptim, useQR=useQR,
-                                  modelMatrixType=modelMatrixType,
-                                  betaPriorVar=betaPriorVar,
-                                  priorOnlyInteraction=priorOnlyInteraction,
-                                  upperQuantile=.05)
+                                  betaPriorVar=betaPriorVar)
     fullModel <- priorFull$fit
     modelMatrix <- fullModel$modelMatrix
     betaPriorVar <- priorFull$betaPriorVar
@@ -1221,7 +1358,6 @@ has not been implemented")
   attr(object,"betaPriorVar") <- betaPriorVar
   attr(object,"modelMatrix") <- modelMatrix
   attr(object,"reducedModelMatrix") <- reducedModel$modelMatrix
-  attr(object,"modelMatrixType") <- modelMatrixType
   attr(object,"test") <- "LRT"
 
   # store mu in case the user did not call estimateDispersionsGeneEst
@@ -1996,87 +2132,18 @@ matchWeightedUpperQuantileForVariance <- function(x, weights, upperQuantile=.05)
 }
 
 
-# this function takes a matrix of MLE betas
-# and estimates the beta prior variance from these.
-# it is called within fitGLMsWithPrior()
-estimateBetaPriorVar <- function(objectNZ, betaMatrix, modelMatrix,
-                                 modelMatrixType, priorOnlyInteraction,
-                                 betaPriorMethod,
-                                 upperQuantile=.05) {
-  # estimate the variance of the prior on betas
-  # if expanded, first calculate LFC for all possible contrasts
-  if (modelMatrixType == "expanded") {
-    betaMatrix <- addAllContrasts(objectNZ, betaMatrix)
-  }
 
-  # weighting by 1/Var(log(K))
-  # Var(log(K)) ~ Var(K)/mu^2 = 1/mu + alpha
-  # and using the fitted alpha
-  varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
-  weights <- 1/varlogk
-  
-  betaPriorVar <- if (nrow(betaMatrix) > 1) {
-    apply(betaMatrix, 2, function(x) {
-      # this test removes genes which have betas
-      # tending to +/- infinity
-      useFinite <- abs(x) < 10
-      # if no more betas pass test, return wide prior
-      if (sum(useFinite) == 0 ) {
-        return(1e6)
-      } else {
-        if (betaPriorMethod=="quantile") {
-          return(matchUpperQuantileForVariance(x[useFinite],upperQuantile))
-        } else if (betaPriorMethod=="weighted") {
-          return(matchWeightedUpperQuantileForVariance(x[useFinite],weights[useFinite],upperQuantile))
-        }
-      }
-    })
-  } else {
-    (betaMatrix)^2
-  }
-  names(betaPriorVar) <- colnames(betaMatrix)
-
-  # find the names of betaPriorVar which correspond
-  # to non-interaction terms and set these to a wide prior
-  if (priorOnlyInteraction) {
-    nonInteractionCols <- getNonInteractionColumnIndices(objectNZ, modelMatrix)
-    if (modelMatrixType == "standard") widePrior <- 1e6 else widePrior <- 1e3
-    betaPriorVar[nonInteractionCols] <- widePrior
-    if (modelMatrixType == "expanded") {
-      # also set a wide prior for additional contrasts which were added
-      # for calculation of the prior variance in the case of
-      # expanded model matrices
-      designFactors <- getDesignFactors(objectNZ)
-      betaPriorVar[which(names(betaPriorVar) %in% paste0(designFactors,"Cntrst"))] <- widePrior
-    }
-  }
-  # intercept set to wide prior
-  if ("Intercept" %in% colnames(modelMatrix)) {
-    betaPriorVar[which(names(betaPriorVar) == "Intercept")] <- 1e6
-  }
-  
-  if (modelMatrixType == "expanded") {
-    # bring over beta priors from the GLM fit without prior.
-    # for factors: prior variance of each level are the average of the
-    # prior variances for the levels present in the previous GLM fit
-    betaPriorExpanded <- averagePriorsOverLevels(objectNZ, betaPriorVar)
-    betaPriorVar <- betaPriorExpanded
-  }
-  
-  betaPriorVar
-}
 
 
 # this function calls fitNbinomGLMs() twice:
 # 1 - without the beta prior, in order to calculate the
 #     beta prior variance and hat matrix
 # 2 - again but with the prior in order to get beta matrix and standard errors
-fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
-                             modelMatrixType, betaPriorVar,
-                             priorOnlyInteraction, betaPriorMethod=c("weighted","quantile"),
-                             upperQuantile=.05) {
-  betaPriorMethod <- match.arg(betaPriorMethod, choices=c("weighted","quantile"))  
-
+fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
+  
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+  modelMatrixType <- attr(object, "modelMatrixType")
+  
   if (missing(betaPriorVar) | !("H" %in% names(assays(objectNZ)))) {
     # first, fit the negative binomial GLM without a prior,
     # used to construct the prior variances
@@ -2089,7 +2156,7 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
     betaMatrix <- fit$betaMatrix
     colnames(betaMatrix) <- modelMatrixNames
 
-    # save the MLE log fold changes for lfcType="unshrunken"
+    # save the MLE log fold changes for addMLE argument of results
     convertNames <- renameModelMatrixColumns(modelMatrixNames,
                                              as.data.frame(colData(objectNZ)),
                                              design(objectNZ))
@@ -2097,19 +2164,19 @@ fitGLMsWithPrior <- function(objectNZ, maxit, useOptim, useQR,
     modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
     mleBetaMatrix <- fit$betaMatrix
     colnames(mleBetaMatrix) <- paste0("MLE_",modelMatrixNames)
+
+    # store for use in estimateBetaPriorVar below
+    mcols(objectNZ) <- cbind(mcols(objectNZ), DataFrame(mleBetaMatrix))
   } else {
+    # we can skip the first MLE fit because the
+    # beta prior variance and hat matrix diagonals were provided
     modelMatrix <- model.matrix(design(objectNZ), as.data.frame(colData(objectNZ)))
     H <- assays(objectNZ)[["H"]]
+    mleBetaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_",names(mcols(objectNZ))),drop=FALSE])
   }
      
   if (missing(betaPriorVar)) {
-    betaPriorVar <- estimateBetaPriorVar(objectNZ=objectNZ,
-                                         betaMatrix=betaMatrix,
-                                         modelMatrix=modelMatrix,
-                                         modelMatrixType=modelMatrixType,
-                                         priorOnlyInteraction=priorOnlyInteraction,
-                                         betaPriorMethod=betaPriorMethod,
-                                         upperQuantile=upperQuantile)
+    betaPriorVar <- estimateBetaPriorVar(objectNZ)
   } else {
     # else we are provided the prior variance:
     # check if the lambda is the correct length

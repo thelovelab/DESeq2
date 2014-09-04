@@ -59,6 +59,7 @@ estimation of dispersion}
 \value{
 a DESeqDataSet with gene-wise, fitted, or final MAP
 dispersion estimates in the metadata columns of the object.
+
 \code{estimateDispersionsPriorVar} is called inside of \code{estimateDispersionsMAP}
 and stores the dispersion prior variance as an attribute of
 \code{dispersionFunction(dds)}, which can be manually provided to
@@ -84,8 +85,7 @@ plotDispEsts(dds)
 # the dispersion prior variance over all genes
 # can be obtained like so:
 
-dds <- estimateDispersionsPriorVar(dds)
-dispPriorVar <- attr(dispersionFunction(dds),"dispPriorVar")
+dispPriorVar <- estimateDispersionsPriorVar(dds)
 }
 \seealso{
 \code{\link{estimateDispersions}}

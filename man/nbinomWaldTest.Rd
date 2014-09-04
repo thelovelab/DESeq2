@@ -5,8 +5,7 @@
 \usage{
 nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
   maxit = 100, useOptim = TRUE, quiet = FALSE, useT = FALSE, df,
-  useQR = TRUE, betaPriorMethod = c("weighted", "quantile"),
-  upperQuantile = 0.05)
+  useQR = TRUE)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -43,14 +42,6 @@ If FALSE, a standard normal null distribution is used.}
 
 \item{useQR}{whether to use the QR decomposition on the design
 matrix X while fitting the GLM}
-
-\item{betaPriorMethod}{the method for calculating the beta prior variance,
-either "quanitle" or "weighted":
-"quantile" matches a normal distribution using the upper quantile of the finite MLE betas.
-"weighted" matches a normal distribution using the upper quantile, but weighting by the variance of the MLE betas.}
-
-\item{upperQuantile}{the upper quantile to be used for the
-"quantile" or "weighted" method of beta prior variance estimation}
 }
 \value{
 a DESeqDataSet with results columns accessible

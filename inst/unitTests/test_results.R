@@ -7,7 +7,7 @@ test_contrasts <- function() {
   
   design(dds) <- ~ group + condition
   dds <- DESeq(dds)
- 
+  
   # check to see if the contrasts with expanded model matrix
   # are close to expected (although shrunk due to the beta prior)
   lfc31 <- results(dds,contrast=c("condition","3","1"))[1,2]
@@ -43,6 +43,9 @@ test_contrasts <- function() {
   results(dds, contrast=list("condition3",character()), listValues=c(.5,-.5))
   results(dds, contrast=list(character(),"condition1"))
   results(dds, contrast=list(character(),"condition1"), listValues=c(.5,-.5))
+
+  # test no prior on intercept
+  checkEqualsNumeric(attr(dds,"betaPriorVar")[1], 1e6)  
 }
 
 
