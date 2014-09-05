@@ -80,15 +80,12 @@ test_dispersionFitting <- function() {
 test_alternativeDispersions <- function() {
   dds <- makeExampleDESeqDataSet()
   dds <- estimateSizeFactors(dds)
-  
   ddsLocal <- estimateDispersions(dds, fitType="local")
-  
   ddsMean <- estimateDispersions(dds, fitType="mean")
-  
   ddsMed <- estimateDispersionsGeneEst(dds)
   useForMedian <- mcols(ddsMed)$dispGeneEst > 1e-7
   medianDisp <- median(mcols(ddsMed)$dispGeneEst[useForMedian],na.rm=TRUE)
-  mcols(ddsMed)$dispFit <- medianDisp
+  dispersionFunction(ddsMed) <- function(mu) medianDisp
   ddsMed <- estimateDispersionsMAP(ddsMed)
 }
 

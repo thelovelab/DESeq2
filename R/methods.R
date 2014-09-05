@@ -103,7 +103,7 @@ setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"),
 #' @usage
 #' \S4method{dispersionFunction}{DESeqDataSet}(object)
 #'
-#' \S4method{dispersionFunction}{DESeqDataSet,function}(object)<-value
+#' \S4method{dispersionFunction}{DESeqDataSet,function}(object,estimateVar)<-value
 #'
 #' @docType methods
 #' @name dispersionFunction
@@ -111,6 +111,11 @@ setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"),
 #' @aliases dispersionFunction dispersionFunction,DESeqDataSet-method dispersionFunction<-,DESeqDataSet,function-method
 #' @param object a \code{DESeqDataSet} object.
 #' @param value a \code{function}
+#' @param estimateVar whether to estimate the variance of dispersion residuals.
+#' setting to FALSE is needed, e.g. within \code{estimateDispersionsMAP} when
+#' called on a subset of the full dataset in parallel execution.
+#' @param ... additional arguments
+#'
 #' @examples
 #'
 #' example("estimateDispersions")
@@ -122,9 +127,33 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 #' @export
 setMethod("dispersionFunction", signature(object="DESeqDataSet"),
           dispersionFunction.DESeqDataSet)
-setReplaceMethod("dispersionFunction", signature(object="DESeqDataSet", value="function"),
-  function( object, value ) {  
-    object@dispersionFunction <- value
+setReplaceMethod("dispersionFunction",
+                 signature(object="DESeqDataSet", value="function"),
+                 function(object, value, estimateVar=TRUE) {
+
+    if (estimateVar) {
+      if (is.null(mcols(object)$baseMean) | is.null(mcols(object)$allZero)) {
+        mcols(object)$baseMean <- rowMeans(counts(object,normalized=TRUE))
+        mcols(object)$allZero <- mcols(object)$baseMean == 0
+      }
+      idx <- !mcols(object)$allZero
+      mcols(object)$dispFit[idx] <- value(mcols(object)$baseMean[idx])
+                 
+      # need to estimate variance of log dispersion residuals
+      objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+      minDisp <- 1e-8
+      aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
+      if (sum(aboveMinDisp,na.rm=TRUE) > 0) {
+        dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
+        varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
+        attr( value, "varLogDispEsts" ) <- varLogDispEsts
+      } else {
+        message("variance of dispersion residuals not estimated
+(necessary only for differential expression calling)")
+      }
+    }
+
+    object@dispersionFunction <- value   
     validObject(object)
     object
 })   
@@ -146,6 +175,7 @@ setReplaceMethod("dispersionFunction", signature(object="DESeqDataSet", value="f
 #' @aliases dispersions dispersions,DESeqDataSet-method dispersions<-,DESeqDataSet,numeric-method
 #' @param object a \code{DESeqDataSet} object.
 #' @param value the dispersions to use for the Negative Binomial modeling
+#' @param ... additional arguments
 #'
 #' @author Simon Anders
 #' @seealso \code{\link{estimateDispersions}}
@@ -264,6 +294,7 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
 #' @aliases normalizationFactors normalizationFactors,DESeqDataSet-method normalizationFactors<-,DESeqDataSet,matrix-method
 #' @param object a \code{DESeqDataSet} object.
 #' @param value the matrix of normalization factors
+#' @param ... additional arguments
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet()

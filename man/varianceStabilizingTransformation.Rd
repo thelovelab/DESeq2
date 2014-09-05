@@ -122,6 +122,7 @@ dds <- estimateDispersions(dds)
 
 # use the previous dispersion function for a new sample
 ddsNew <- makeExampleDESeqDataSet(m=1)
+ddsNew <- estimateSizeFactors(ddsNew)
 dispersionFunction(ddsNew) <- dispersionFunction(dds)
 vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
 }

@@ -9,9 +9,9 @@
 \title{Accessor functions for the normalization factors in a DESeqDataSet
 object.}
 \usage{
-normalizationFactors(object)
+normalizationFactors(object, ...)
 
-normalizationFactors(object) <- value
+normalizationFactors(object, ...) <- value
 
 \S4method{normalizationFactors}{DESeqDataSet}(object)
 
@@ -23,6 +23,8 @@ normalizationFactors(object) <- value
 \item{object}{a \code{DESeqDataSet} object.}
 
 \item{value}{the matrix of normalization factors}
+
+\item{...}{additional arguments}
 }
 \description{
 Gene-specific normalization factors for each sample can be provided as a matrix,

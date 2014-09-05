@@ -537,8 +537,8 @@ specify fitType='local' or 'mean' to avoid this message next time.")
   if (!(fitType %in% c("parametric","local","mean"))) {
     stop("unknown fitType")
   }
-
-  # store the dispersion function
+ 
+  # store the dispersion function and attributes
   attr( dispFunction, "fitType" ) <- fitType
   dispersionFunction(object) <- dispFunction
   
@@ -582,30 +582,25 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
       mcols(dispDataFrame) <- DataFrame(type="intermediate",
                                         description="final estimates of dispersion")
       mcols(object) <- cbind(mcols(object), dispDataFrame)
-      attr( dispersionFunction(object), "dispPriorVar" ) <- 0.25
+      dispFn <- dispersionFunction(object)
+      attr( dispFn, "dispPriorVar" ) <- 0.25
+      dispersionFunction(object) <- dispFn
       return(object)
     }
     dispPriorVar <- estimateDispersionsPriorVar(object, modelMatrix=modelMatrix)
+    dispFn <- dispersionFunction(object)
+    attr( dispFn, "dispPriorVar" ) <- dispPriorVar
+    dispersionFunction(object) <- dispFn
+  } else {
+    dispFn <- dispersionFunction(object)
+    attr( dispFn, "dispPriorVar" ) <- dispPriorVar
+    dispersionFunction(object, estimateVar=FALSE) <- dispFn
   }
 
   stopifnot(length(dispPriorVar)==1)
-  attr( dispersionFunction(object), "dispPriorVar" ) <- dispPriorVar
 
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
-
-  # if coming from DESeq() after a sample replacement...
-  if (!is.null(attr(dispersionFunction(object), "varLogDispEsts"))) {
-    varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
-  } else {
-    # otherwise...
-    # calculate observed varLogDispEsts for calling outliers
-    # this code is copied from estimateDispersionsPriorVar()
-    aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
-    stopifnot(sum(aboveMinDisp,na.rm=TRUE) > 0)
-    dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
-    varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
-    attr( dispersionFunction(object), "varLogDispEsts" ) <- varLogDispEsts
-  }
+  varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
   
   # set prior variance for fitting dispersion
   log_alpha_prior_sigmasq <- dispPriorVar
@@ -654,7 +649,6 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispMAP <- pmin(pmax(dispMAP, minDisp), maxDisp)
   
   dispersionFinal <- dispMAP
-
   
   # detect outliers which have gene-wise estimates
   # outlierSD * standard deviation of log gene-wise estimates
@@ -689,20 +683,17 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
-
   if (missing(modelMatrix)) {
     modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
   }
-  
   # estimate the variance of the distribution of the
   # log dispersion estimates around the fitted value
   dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
-
   if (sum(aboveMinDisp,na.rm=TRUE) == 0) {
     stop("no data found which is greater than minDisp")
   }
-
-  varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
+  
+  varLogDispEsts <- attr(dispersionFunction(object), "varLogDispEsts")
   
   m <- nrow(modelMatrix)
   p <- ncol(modelMatrix)

@@ -8,13 +8,13 @@
 \alias{dispersionFunction<-,DESeqDataSet,function-method}
 \title{Accessors for the 'dispersionFunction' slot of a DESeqDataSet object.}
 \usage{
-dispersionFunction(object)
+dispersionFunction(object, ...)
 
-dispersionFunction(object) <- value
+dispersionFunction(object, ...) <- value
 
 \S4method{dispersionFunction}{DESeqDataSet}(object)
 
-\S4method{dispersionFunction}{DESeqDataSet,function}(object)<-value
+\S4method{dispersionFunction}{DESeqDataSet,function}(object,estimateVar)<-value
 
 \S4method{dispersionFunction}{DESeqDataSet}(object)
 }
@@ -22,6 +22,12 @@ dispersionFunction(object) <- value
 \item{object}{a \code{DESeqDataSet} object.}
 
 \item{value}{a \code{function}}
+
+\item{estimateVar}{whether to estimate the variance of dispersion residuals.
+setting to FALSE is needed, e.g. within \code{estimateDispersionsMAP} when
+called on a subset of the full dataset in parallel execution.}
+
+\item{...}{additional arguments}
 }
 \description{
 The dispersion function is calculated by \code{\link{estimateDispersions}} and

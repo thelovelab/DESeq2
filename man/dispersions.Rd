@@ -9,9 +9,9 @@
 \title{Accessor functions for the dispersion estimates in a DESeqDataSet
 object.}
 \usage{
-dispersions(object)
+dispersions(object, ...)
 
-dispersions(object) <- value
+dispersions(object, ...) <- value
 
 \S4method{dispersions}{DESeqDataSet}(object)
 
@@ -23,6 +23,8 @@ dispersions(object) <- value
 \item{object}{a \code{DESeqDataSet} object.}
 
 \item{value}{the dispersions to use for the Negative Binomial modeling}
+
+\item{...}{additional arguments}
 }
 \description{
 The dispersions for each row of the DESeqDataSet.  Generally,

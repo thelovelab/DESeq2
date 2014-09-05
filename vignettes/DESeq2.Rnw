@@ -1012,16 +1012,17 @@ the lower-level functions described in the manual page for
 store the gene-wise estimates which were already calculated and saved 
 in the metadata column \Robject{dispGeneEst}. Then we calculate the
 median value of the dispersion estimates above a threshold, and save
-these values as the fitted dispersions. In the last line, the function
+these values as the fitted dispersions, using the replacement function
+for \Rfunction{dispersionFunction}. In the last line, the function
 \Rfunction{estimateDispersionsMAP}, uses the 
-column \Robject{dispFit} to generate maximum \textit{a posteriori} (MAP)
+fitted dispersions to generate maximum \textit{a posteriori} (MAP)
 estimates of dispersion. 
 
 <<dispFitCustom, eval=FALSE>>=
 ddsCustom <- dds
 useForMedian <- mcols(ddsCustom)$dispGeneEst > 1e-7
 medianDisp <- median(mcols(ddsCustom)$dispGeneEst[useForMedian],na.rm=TRUE)
-mcols(ddsCustom)$dispFit <- medianDisp
+dispersionFunction(ddsCustom) <- function(mu) medianDisp
 ddsCustom <- estimateDispersionsMAP(ddsCustom)
 @
 
