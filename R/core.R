@@ -94,6 +94,9 @@
 #' the full model with a term or terms of interest removed,
 #' only used by the likelihood ratio test
 #' @param quiet whether to print messages at each step
+#' @param parallel if 0, no parallelization, if an integer greater
+#' than 1, the number of groups to split the genes into for parallel
+#' execution with BiocParallel
 #' @param minReplicatesForReplace the minimum number of replicates required
 #' in order to use \code{\link{replaceOutliers}} on a
 #' sample. If there are samples with so many replicates, the model will
@@ -120,7 +123,7 @@
 #' 
 #' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #'
-#' @import BiocGenerics GenomicRanges IRanges Biobase Rcpp RcppArmadillo methods ggplot2 
+#' @import BiocGenerics BiocParallel GenomicRanges IRanges Biobase Rcpp RcppArmadillo methods ggplot2 
 #'
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars filtered_p
@@ -142,7 +145,7 @@
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
                   full=design(object), reduced, quiet=FALSE,
-                  minReplicatesForReplace=7, modelMatrixType) {
+                  parallel = 0, minReplicatesForReplace=7, modelMatrixType) {
   if (missing(test)) {
     test <- match.arg(test, choices=c("Wald","LRT"))
   }
@@ -158,6 +161,9 @@ DESeq <- function(object, test=c("Wald","LRT"),
 i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
   }
   attr(object, "betaPrior") <- betaPrior
+  stopifnot(length(parallel) == 1 & is.numeric(parallel) &
+            parallel >= 0 & parallel == round(parallel))
+  
   if (!is.null(sizeFactors(object)) || !is.null(normalizationFactors(object))) {
     if (!quiet) {
       if (!is.null(normalizationFactors(object))) {
@@ -170,25 +176,36 @@ i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
     if (!quiet) message("estimating size factors")
     object <- estimateSizeFactors(object)
   }
-  if (!quiet) message("estimating dispersions")
-  object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
-  if (!quiet) message("fitting model and testing")
-  if (test == "Wald") {
-    object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
-                             modelMatrixType=modelMatrixType)
-  } else if (test == "LRT") {
-    if (missing(modelMatrixType)) {
-      modelMatrixType <- "standard"
+  
+  if (parallel <= 1) {    
+    if (!quiet) message("estimating dispersions")
+    object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
+    if (!quiet) message("fitting model and testing")
+    if (test == "Wald") {
+      object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
+                               modelMatrixType=modelMatrixType)
+    } else if (test == "LRT") {
+      if (missing(modelMatrixType)) {
+        modelMatrixType <- "standard"
+      }
+      object <- nbinomLRT(object, full=full, reduced=reduced,
+                          betaPrior=betaPrior, quiet=quiet,
+                          modelMatrixType=modelMatrixType)
     }
-    object <- nbinomLRT(object, full=full, reduced=reduced,
-                        betaPrior=betaPrior, quiet=quiet,
-                        modelMatrixType=modelMatrixType)
+  } else if (parallel > 1) {
+    object <- DESeqParallel(object, test=test, fitType=fitType,
+                            betaPrior=betaPrior, full=full, reduced=reduced,
+                            quiet=quiet, modelMatrixType=modelMatrixType,
+                            parallel=parallel)
   }
 
   # if there are sufficient replicates, then pass through to refitting function
-  if (any(nOrMoreInCell(attr(object,"modelMatrix"),minReplicatesForReplace))) {
-    object <- refitWithoutOutliers(object, test, betaPrior, full, reduced,
-                                   quiet, minReplicatesForReplace, modelMatrixType)
+  sufficientReps <- any(nOrMoreInCell(attr(object,"modelMatrix"),minReplicatesForReplace))
+  if (sufficientReps) {
+    object <- refitWithoutOutliers(object, test=test, betaPrior=betaPrior,
+                                   full=full, reduced=reduced, quiet=quiet,
+                                   minReplicatesForReplace=minReplicatesForReplace,
+                                   modelMatrixType=modelMatrixType)
   }
   
   object
@@ -870,7 +887,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   stopifnot(is.logical(betaPrior))
   termsOrder <- attr(terms.formula(design(object)),"order")
   interactionPresent <- any(termsOrder > 1)
-  if (missing(modelMatrixType)) {
+  if (missing(modelMatrixType) || is.null(modelMatrixType)) {
     blindDesign <- design(object) == formula(~ 1)
     twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
     mmTypeTest <- betaPrior & !blindDesign & !twoLevelsInteraction
@@ -1278,6 +1295,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
   termsOrder <- attr(terms.formula(design(object)),"order")
   interactionPresent <- any(termsOrder > 1)
 
+  if (is.null(modelMatrixType)) {
+    modelMatrixType <- "standard"
+  }
+  
   if (modelMatrixType == "expanded" & !betaPrior) {
     stop("expanded model matrices require a beta prior")
   }

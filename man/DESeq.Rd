@@ -5,7 +5,7 @@
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
-  minReplicatesForReplace = 7, modelMatrixType)
+  parallel = 0, minReplicatesForReplace = 7, modelMatrixType)
 }
 \arguments{
 \item{object}{a DESeqDataSet object, see the constructor functions
@@ -36,6 +36,10 @@ the full model with a term or terms of interest removed,
 only used by the likelihood ratio test}
 
 \item{quiet}{whether to print messages at each step}
+
+\item{parallel}{if 0, no parallelization, if an integer greater
+than 1, the number of groups to split the genes into for parallel
+execution with BiocParallel}
 
 \item{minReplicatesForReplace}{the minimum number of replicates required
 in order to use \code{\link{replaceOutliers}} on a

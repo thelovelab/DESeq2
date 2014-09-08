@@ -256,3 +256,104 @@ summarizeResults <- function(res, alpha=.1) {
   cat("** see 'independentFiltering' argument of results()\n")
   cat("\n")
 }
+
+
+#####################
+# unexported
+#####################
+
+DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet, modelMatrixType, parallel) {
+
+  # size factors already estimated or supplied
+  # break up the object into equal sized chunks
+  # to be fed to the different workers
+  object <- getBaseMeansAndVariances(object)
+  objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+  idx <- factor(sort(rep(seq_len(parallel),length=nrow(objectNZ))))
+
+  if (missing(modelMatrixType)) {
+    modelMatrixType <- NULL
+  }
+  
+  # first parallel execution: gene-wise dispersion estimates
+  if (!quiet) message("estimating dispersions")
+  if (!quiet) message(paste("gene-wise dispersion estimates:",parallel,"workers"))
+  objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
+    estimateDispersionsGeneEst(objectNZ[idx == l,,drop=FALSE], quiet=TRUE)
+  }))
+
+  # the dispersion fit and dispersion prior are estimated over all rows
+  if (!quiet) message("mean-dispersion relationship") 
+  objectNZ <- estimateDispersionsFit(objectNZ, fitType=fitType)
+  dispPriorVar <- estimateDispersionsPriorVar(objectNZ)
+
+  # need to condition on whether a beta prior needs to be fit
+  if (betaPrior) {
+
+    # if so,
+
+    # second parallel execution: fit the final dispersion estimates and MLE betas 
+    if (!quiet) message(paste("final dispersion estimates, MLE betas:",parallel,"workers"))
+    objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
+      objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
+                                            dispPriorVar=dispPriorVar, quiet=TRUE)
+      estimateMLEForBetaPriorVar(objectNZSub)
+    }))
+
+    # the beta prior is estimated over all rows
+    betaPriorVar <- estimateBetaPriorVar(objectNZ)
+
+    # the third parallel execution: the final GLM and statistics
+    if (!quiet) message(paste("fitting model and testing:",parallel,"workers"))
+    if (test == "Wald") {
+      objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
+        nbinomWaldTest(objectNZ[idx == l,,drop=FALSE], betaPriorVar=betaPriorVar,
+                       quiet=TRUE, modelMatrixType=modelMatrixType)
+      }))
+    } else if (test == "LRT") {
+      if (missing(modelMatrixType)) {
+        modelMatrixType <- "standard"
+      }
+      objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
+        nbinomLRT(objectNZ[idx == l,,drop=FALSE], full=full, reduced=reduced,
+                  betaPrior=betaPrior, betaPriorVar=betaPriorVar,
+                  quiet=TRUE, modelMatrixType=modelMatrixType)
+      }))
+    }
+    
+  } else {
+    
+    # or, if no beta prior to fit,
+ 
+    # second parallel execution: fit the final dispersion estimates and the final GLM and statistics
+    if (!quiet) message(paste("final dispersion estimates, fitting model and testing:",parallel,"workers"))
+    if (test == "Wald") {
+      objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
+        objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
+                                              dispPriorVar=dispPriorVar, quiet=TRUE)
+        nbinomWaldTest(objectNZSub, betaPrior=betaPrior,
+                       quiet=TRUE, modelMatrixType="standard")
+      }))
+    } else if (test == "LRT") {
+      objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
+        objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
+                                              dispPriorVar=dispPriorVar, quiet=TRUE)
+        nbinomLRT(objectNZSub, full=full, reduced=reduced,
+                  quiet=TRUE, modelMatrixType="standard")
+      }))
+    }
+    
+  }
+
+  outMcols <- buildDataFrameWithNARows(mcols(objectNZ), mcols(object)$allZero)
+  outMu <- buildMatrixWithNARows(assays(objectNZ)[["mu"]], mcols(object)$allZero)
+  outCooks <- buildMatrixWithNARows(assays(objectNZ)[["cooks"]], mcols(object)$allZero)
+  
+  mcols(object) <- outMcols
+  assays(object)[["mu"]] <- outMu
+  assays(object)[["cooks"]] <- outCooks
+
+  attributes(object) <- attributes(objectNZ)
+  
+  object
+}
