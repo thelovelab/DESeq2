@@ -1204,13 +1204,13 @@ $$ \mu_{ij} = NF_{ij} q_{ij} $$
 
 with normalization factor matrix $NF$ having the same dimensions
 as the counts matrix $K$. This matrix can be incorporated as shown
-below. We recommend providing a matrix with row means of $1$, 
+below. We recommend providing a matrix with row-wise geometric means of $1$, 
 so that the mean of normalized counts for a gene is close to the mean
 of the unnormalized counts.
-This can be accomplished by dividing out the current row means.
+This can be accomplished by dividing out the current row geometric means.
 
 <<normFactors, eval=FALSE>>=
-normFactors <- normFactors / rowMeans(normFactors)
+normFactors <- normFactors / exp(rowMeans(log(normFactors)))
 normalizationFactors(dds) <- normFactors
 @
 

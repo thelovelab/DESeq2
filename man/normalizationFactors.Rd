@@ -44,7 +44,7 @@ counts \eqn{K_{ij}}{K_ij} and normalization factors \eqn{NF_{ij}}{NF_ij} for gen
 Normalization factors are on the scale of the counts (similar to \code{\link{sizeFactors}})
 and unlike offsets, which are typically on the scale of the predictors (in this case, log counts).
 Normalization factors should include library size normalization. They should have
-a row mean near 1, as is the case with size factors, such that the mean of normalized
+row-wise geometric mean near 1, as is the case with size factors, such that the mean of normalized
 counts is close to the mean of unnormalized counts.
 }
 \examples{

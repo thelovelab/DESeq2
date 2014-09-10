@@ -28,18 +28,18 @@
 #' head(counts(dds))
 #'
 counts.DESeqDataSet <- function(object, normalized=FALSE) {
-            if (!normalized) {
-              return(assays(object)[["counts"]])
-            } else {
-              if (!is.null(normalizationFactors(object))) {
-                return( assays(object)[["counts"]]/normalizationFactors(object) )
-              } else if (is.null(sizeFactors(object)) || any(is.na(sizeFactors(object)))) {
-                stop("first calculate size factors, add normalizationFactors, or set normalized=FALSE")
-              } else {
-                return( t( t( assays(object)[["counts"]] ) / sizeFactors(object) ) )
-              }
-            }
-          }
+  if (!normalized) {
+    return(assays(object)[["counts"]])
+  } else {
+    if (!is.null(normalizationFactors(object))) {
+      return( assays(object)[["counts"]]/normalizationFactors(object) )
+    } else if (is.null(sizeFactors(object)) || any(is.na(sizeFactors(object)))) {
+      stop("first calculate size factors, add normalizationFactors, or set normalized=FALSE")
+    } else {
+      return( t( t( assays(object)[["counts"]] ) / sizeFactors(object) ) )
+    }
+  }
+}
 
 #' @rdname counts
 #' @export
@@ -49,11 +49,11 @@ setMethod("counts", signature(object="DESeqDataSet"), counts.DESeqDataSet)
 #' @rdname counts
 #' @exportMethod "counts<-"
 setReplaceMethod("counts", signature(object="DESeqDataSet", value="matrix"),
-  function( object, value ) {
-   assays(object)[["counts"]] <- value
-   validObject(object)
-   object
-})   
+                 function( object, value ) {
+                   assays(object)[["counts"]] <- value
+                   validObject(object)
+                   object
+                 })   
 
 
 #' Accessors for the 'design' slot of a DESeqDataSet object.
@@ -87,11 +87,11 @@ setMethod("design", signature(object="DESeqDataSet"), design.DESeqDataSet)
 #' @rdname design
 #' @exportMethod "design<-"
 setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"),
-  function( object, value ) {  
-    object@design <- value
-    validObject(object)
-    object
-})
+                 function( object, value ) {  
+                   object@design <- value
+                   validObject(object)
+                   object
+                 })
 
 
 #' Accessors for the 'dispersionFunction' slot of a DESeqDataSet object.
@@ -131,32 +131,31 @@ setReplaceMethod("dispersionFunction",
                  signature(object="DESeqDataSet", value="function"),
                  function(object, value, estimateVar=TRUE) {
 
-    if (estimateVar) {
-      if (is.null(mcols(object)$baseMean) | is.null(mcols(object)$allZero)) {
-        mcols(object)$baseMean <- rowMeans(counts(object,normalized=TRUE))
-        mcols(object)$allZero <- mcols(object)$baseMean == 0
-      }
-      idx <- !mcols(object)$allZero
-      mcols(object)$dispFit[idx] <- value(mcols(object)$baseMean[idx])
-                 
-      # need to estimate variance of log dispersion residuals
-      objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
-      minDisp <- 1e-8
-      aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
-      if (sum(aboveMinDisp,na.rm=TRUE) > 0) {
-        dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
-        varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
-        attr( value, "varLogDispEsts" ) <- varLogDispEsts
-      } else {
-        message("variance of dispersion residuals not estimated
-(necessary only for differential expression calling)")
-      }
-    }
-
-    object@dispersionFunction <- value   
-    validObject(object)
-    object
-})   
+                   if (estimateVar) {
+                     if (is.null(mcols(object)$baseMean) | is.null(mcols(object)$allZero)) {
+                       mcols(object)$baseMean <- rowMeans(counts(object,normalized=TRUE))
+                       mcols(object)$allZero <- mcols(object)$baseMean == 0
+                     }
+                     idx <- !mcols(object)$allZero
+                     mcols(object)$dispFit[idx] <- value(mcols(object)$baseMean[idx])
+                     
+                     # need to estimate variance of log dispersion residuals
+                     objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+                     minDisp <- 1e-8
+                     aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
+                     if (sum(aboveMinDisp,na.rm=TRUE) > 0) {
+                       dispResiduals <- log(mcols(objectNZ)$dispGeneEst) - log(mcols(objectNZ)$dispFit)
+                       varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
+                       attr( value, "varLogDispEsts" ) <- varLogDispEsts
+                     } else {
+                       message("variance of dispersion residuals not estimated (necessary only for differential expression calling)")
+                     }
+                   }
+                   
+                   object@dispersionFunction <- value   
+                   validObject(object)
+                   object
+                 })
 
 #' Accessor functions for the dispersion estimates in a DESeqDataSet
 #' object.
@@ -281,7 +280,7 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
 #' @note Normalization factors are on the scale of the counts (similar to \code{\link{sizeFactors}})
 #' and unlike offsets, which are typically on the scale of the predictors (in this case, log counts).
 #' Normalization factors should include library size normalization. They should have
-#' a row mean near 1, as is the case with size factors, such that the mean of normalized
+#' row-wise geometric mean near 1, as is the case with size factors, such that the mean of normalized
 #' counts is close to the mean of unnormalized counts.
 #'
 #' @usage
@@ -351,7 +350,7 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' which provides more details on the calculation.
 #'
 #' @usage
-#' \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans)
+#' \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans,controlGenes,normMatrix)
 #'
 #' @docType methods
 #' @name estimateSizeFactors
@@ -365,6 +364,14 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' geometric means of the counts are calculated within the function.
 #' A vector of geometric means from another count matrix can be provided
 #' for a "frozen" size factor calculation
+#' @param controlGenes optional, numeric or logical index vector specifying those genes to
+#' use for size factor estimation (e.g. housekeeping or spike-in genes)
+#' @param normMatrix optional, a matrix of normalization factors which do not
+#' control for library size (e.g. average transcript length of genes for each
+#' sample). Providing \code{normMatrix} will estimate size factors on the
+#' count matrix divided by \code{normMatrix} and store the product of the
+#' size factors and \code{normMatrix} as \code{\link{normalizationFactors}}.
+#' 
 #' @return The DESeqDataSet passed as parameters, with the size factors filled
 #' in.
 #' @author Simon Anders
@@ -376,16 +383,34 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' 
 #' @examples
 #' 
-#' dds <- makeExampleDESeqDataSet()
+#' dds <- makeExampleDESeqDataSet(n=1000, m=12)
 #' dds <- estimateSizeFactors(dds)
 #' sizeFactors(dds)
+#'
+#' dds <- estimateSizeFactors(dds, controlGenes=1:200)
+#'
+#' m <- matrix(runif(1000 * 12, .5, 1.5), ncol=12)
+#' dds <- estimateSizeFactors(dds, normMatrix=m)
+#' normalizationFactors(dds)[1:3,1:3]
+#' 
 #' geoMeans <- exp(rowMeans(log(counts(dds))))
 #' dds <- estimateSizeFactors(dds,geoMeans=geoMeans)
 #' sizeFactors(dds)
+#'
 #' 
-estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median, geoMeans) {
+estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median, geoMeans, controlGenes, normMatrix) {
   object <- sanitizeColData(object)
-  sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc, geoMeans=geoMeans)
+  if (missing(normMatrix)) {
+    sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc=locfunc,
+                                                        geoMeans=geoMeans,
+                                                        controlGenes=controlGenes)
+  } else {
+    normalizationFactors(object) <- estimateNormFactors(counts(object), normMatrix=normMatrix,
+                                                        locfunc=locfunc,
+                                                        geoMeans=geoMeans,
+                                                        controlGenes=controlGenes)
+    message("adding normalization factors which account for library size")
+  }
   object
 }
   

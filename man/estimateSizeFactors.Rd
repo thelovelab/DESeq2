@@ -6,10 +6,10 @@
 \alias{estimateSizeFactors.DESeqDataSet}
 \title{Estimate the size factors for a DESeqDataSet}
 \usage{
-\S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans)
+\S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans,controlGenes,normMatrix)
 
 \S4method{estimateSizeFactors}{DESeqDataSet}(object, locfunc = median,
-  geoMeans)
+  geoMeans, controlGenes, normMatrix)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -22,6 +22,15 @@ median is used. However, especially for low counts, the
 geometric means of the counts are calculated within the function.
 A vector of geometric means from another count matrix can be provided
 for a "frozen" size factor calculation}
+
+\item{controlGenes}{optional, numeric or logical index vector specifying those genes to
+use for size factor estimation (e.g. housekeeping or spike-in genes)}
+
+\item{normMatrix}{optional, a matrix of normalization factors which do not
+control for library size (e.g. average transcript length of genes for each
+sample). Providing \code{normMatrix} will estimate size factors on the
+count matrix divided by \code{normMatrix} and store the product of the
+size factors and \code{normMatrix} as \code{\link{normalizationFactors}}.}
 }
 \value{
 The DESeqDataSet passed as parameters, with the size factors filled
@@ -52,9 +61,16 @@ Internally, the function calls \code{\link{estimateSizeFactorsForMatrix}},
 which provides more details on the calculation.
 }
 \examples{
-dds <- makeExampleDESeqDataSet()
+dds <- makeExampleDESeqDataSet(n=1000, m=12)
 dds <- estimateSizeFactors(dds)
 sizeFactors(dds)
+
+dds <- estimateSizeFactors(dds, controlGenes=1:200)
+
+m <- matrix(runif(1000 * 12, .5, 1.5), ncol=12)
+dds <- estimateSizeFactors(dds, normMatrix=m)
+normalizationFactors(dds)[1:3,1:3]
+
 geoMeans <- exp(rowMeans(log(counts(dds))))
 dds <- estimateSizeFactors(dds,geoMeans=geoMeans)
 sizeFactors(dds)

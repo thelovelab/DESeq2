@@ -292,6 +292,8 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' geometric means of the counts are calculated within the function.
 #' A vector of geometric means from another count matrix can be provided
 #' for a "frozen" size factor calculation
+#' @param controlGenes optional, numeric or logical index vector specifying those genes to
+#' use for size factor estimation (e.g. housekeeping or spike-in genes)
 #' @return a vector with the estimates size factors, one element per column
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactors}}
@@ -301,9 +303,9 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' estimateSizeFactorsForMatrix(counts(dds))
 #' geoMeans <- exp(rowMeans(log(counts(dds))))
 #' estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
-#'  
+#' 
 #' @export
-estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
+estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, controlGenes )
 {
   if (missing(geoMeans)) {
     loggeomeans <- rowMeans(log(counts))
@@ -316,9 +318,20 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans )
   if (all(is.infinite(loggeomeans))) {
     stop("every gene contains at least one zero, cannot compute log geometric means")
   }
-  apply(counts, 2, function(cnts) {
-    exp(locfunc((log(cnts) - loggeomeans)[is.finite(loggeomeans) & cnts > 0]))
-  })
+  sf <- if (missing(controlGenes)) {
+    apply(counts, 2, function(cnts) {
+      exp(locfunc((log(cnts) - loggeomeans)[is.finite(loggeomeans) & cnts > 0]))
+    })
+  } else {
+    if (!is.numeric(controlGenes) | is.logical(controlGenes)) {
+      stop("controlGenes should be either a numeric or logical vector")
+    }
+    loggeomeansSub <- loggeomeans[controlGenes]
+    apply(counts[controlGenes,], 2, function(cnts) {
+      exp(locfunc((log(cnts) - loggeomeansSub)[is.finite(loggeomeansSub) & cnts > 0]))
+    })
+  }
+  sf
 }
 
 #' Low-level functions to fit dispersion estimates
@@ -1590,6 +1603,11 @@ getBaseMeansAndVariances <- function(object) {
   return(object)
 }
 
+estimateNormFactors <- function(counts, normMatrix, locfunc=median, geoMeans, controlGenes) {
+  sf <- estimateSizeFactorsForMatrix(counts / normMatrix, locfunc=locfunc, geoMeans=geoMeans, controlGenes=controlGenes)
+  nf <- t( t(normMatrix) * sf )
+  nf / exp(rowMeans(log(nf)))
+}
 
 # Estimate a parametric fit of dispersion to the mean intensity
 parametricDispersionFit <- function( means, disps ) {
@@ -2513,3 +2531,4 @@ sanitizeColData <- function(object) {
   mcols(colData(object))$description[ is.na(mcols(colData(object))$description) ] <- ""
   object
 }
+
