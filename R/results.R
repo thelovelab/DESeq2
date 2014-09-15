@@ -843,7 +843,7 @@ getPvalue <- function(object,test="Wald",name) {
 
 # convenience function to make more descriptive names
 # for factor variables
-renameModelMatrixColumns <- function(modelMatrixNames, data, design) {
+renameModelMatrixColumns <- function(data, design) {
   designVars <- all.vars(design)
   designVarsClass <- sapply(designVars, function(v) class(data[[v]]))
   factorVars <- designVars[designVarsClass == "factor"]

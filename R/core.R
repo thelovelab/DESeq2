@@ -1083,9 +1083,19 @@ estimateBetaPriorVar <- function(object,
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
   betaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_", names(mcols(object))),drop=FALSE])
-  colnames(betaMatrix) <- gsub("MLE_(.*)","\\1",colnames(betaMatrix))
+  colnamesBM <- colnames(betaMatrix)
+  colnamesBM <- gsub("MLE_(.*)","\\1",colnamesBM)
   # make these standard colnames as from model.matrix()
-  colnames(betaMatrix) <- gsub("(.*?)_(.*)_vs_(.*)","\\1\\2",colnames(betaMatrix))
+  convertNames <- renameModelMatrixColumns(as.data.frame(colData(object)),
+                                           design(object))
+  colnamesBM <- sapply(colnamesBM, function(x) {
+    if (x %in% convertNames$to) {
+      convertNames$from[convertNames$to == x]
+    } else {
+      x
+    }
+  })
+  colnames(betaMatrix) <- colnamesBM
   
   # this is the model matrix from an MLE run
   modelMatrix <- model.matrix(design(objectNZ), as.data.frame(colData(objectNZ)))
@@ -1187,8 +1197,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
   H <- fit$hat_diagonal
   betaMatrix <- fit$betaMatrix
   colnames(betaMatrix) <- modelMatrixNames
-  convertNames <- renameModelMatrixColumns(modelMatrixNames,
-                                           as.data.frame(colData(objectNZ)),
+  convertNames <- renameModelMatrixColumns(as.data.frame(colData(objectNZ)),
                                            design(objectNZ))
   convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
   modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
@@ -1698,8 +1707,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   modelMatrixNames <- colnames(modelMatrix)
 
   if (renameCols) {
-    convertNames <- renameModelMatrixColumns(modelMatrixNames,
-                                             as.data.frame(colData(object)),
+    convertNames <- renameModelMatrixColumns(as.data.frame(colData(object)),
                                              modelFormula)
     convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
     modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
@@ -2187,8 +2195,7 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
     colnames(betaMatrix) <- modelMatrixNames
 
     # save the MLE log fold changes for addMLE argument of results
-    convertNames <- renameModelMatrixColumns(modelMatrixNames,
-                                             as.data.frame(colData(objectNZ)),
+    convertNames <- renameModelMatrixColumns(as.data.frame(colData(objectNZ)),
                                              design(objectNZ))
     convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
     modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to

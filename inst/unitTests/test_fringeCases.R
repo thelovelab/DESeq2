@@ -35,6 +35,8 @@ test_metadataInsertion <- function() {
 test_underscores <- function() {
   dds <- makeExampleDESeqDataSet(n=50,m=4)
   levels(dds$condition) <- c("A_1","B_2")
+  dds$exp_cond <- dds$condition
+  design(dds) <- ~ exp_cond
   dds <- DESeq(dds)
   results(dds)
 }

@@ -11,8 +11,8 @@ namesAlgos <- names(algos)
 methods <- c("DESeq2", "DESeq2-noFilt", "DESeq2-noRepl", "edgeR", "edgeR-robust")
 
 set.seed(1)
-padjVector <- seq(from=0, to=1, length=101)
-pvalsVector <- seq(from=0, to=.2, length=101)
+padjVector <- seq(from=0, to=1, length=201)
+pvalsVector <- seq(from=0, to=.4, length=201)
 n <- 4000
 percentOutliers <- seq(from=0,to=.15,length=4)
 ms <- c(10,20)
