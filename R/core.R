@@ -123,7 +123,7 @@
 #' 
 #' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #'
-#' @import BiocGenerics BiocParallel GenomicRanges IRanges Biobase Rcpp RcppArmadillo methods ggplot2 
+#' @import BiocGenerics BiocParallel GenomicRanges IRanges S4Vectors Biobase Rcpp RcppArmadillo methods ggplot2 
 #'
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars filtered_p
@@ -1085,7 +1085,7 @@ estimateBetaPriorVar <- function(object,
   betaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_", names(mcols(object))),drop=FALSE])
   colnames(betaMatrix) <- gsub("MLE_(.*)","\\1",colnames(betaMatrix))
   # make these standard colnames as from model.matrix()
-  colnames(betaMatrix) <- gsub("(.*)_(.*)_vs_(.*)","\\1\\2",colnames(betaMatrix))
+  colnames(betaMatrix) <- gsub("(.*?)_(.*)_vs_(.*)","\\1\\2",colnames(betaMatrix))
   
   # this is the model matrix from an MLE run
   modelMatrix <- model.matrix(design(objectNZ), as.data.frame(colData(objectNZ)))

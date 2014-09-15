@@ -30,5 +30,11 @@ test_metadataInsertion <- function() {
   dds3$test <- 1:ncol(dds3)
   dds3 <- estimateSizeFactors(dds3)
   checkTrue(class(mcols(colData(dds3))$type) == "character")
-  
+}
+
+test_underscores <- function() {
+  dds <- makeExampleDESeqDataSet(n=50,m=4)
+  levels(dds$condition) <- c("A_1","B_2")
+  dds <- DESeq(dds)
+  results(dds)
 }
