@@ -1,4 +1,22 @@
-# Assessment of DESeq2 performance through simulation
+# Assessment of DESeq2 through simulation
+
+Michael Love, Wolfgang Huber, Simon Anders
+
+<!-- this document built with knit() in R -->
+<!-- pandoc -o simulation.pdf simulation.md -->
+
+Document compiled on:
+
+```{r time, echo=FALSE}
+Sys.time()
+```
+
+This document and associated files provide the code and plots for the
+simulation section of the *DESeq2* paper, so that these results can be
+easily updated over time. For more details, read the paper at the
+following URL:
+
+http://dx.doi.org/10.1101/002832
 
 ## Differential expression analysis
 
@@ -23,7 +41,7 @@ levels(res$effSize) <- c("fold change 2","fold change 3","fold change 4")
 res$algorithm <- factor(res$algorithm)
 ```
 
-```{r simulateDE, fig.width=7, fig.height=5, fig.align="center"}
+```{r simulateDE, fig.width=7, fig.height=5, fig.cap="Sensitivity and specificity on simulated datasets."}
 library("ggplot2")
 p <- ggplot(res, aes(y=sensitivity, x=oneminusspecpvals, color=algorithm, shape=algorithm))
 p + geom_point() + theme_bw() + facet_grid(effSize ~ m) +
@@ -45,7 +63,7 @@ the adjusted p-value, as this allows for comparison against the
 expected fraction of p-values less than a critical value given the
 uniformity of p-values under the null hypothesis. 
 
-```{r simulateDEPrec, fig.width=7, fig.height=5, fig.align="center"}
+```{r simulateDEPrec, fig.width=7, fig.height=5, fig.cap="Sensitivity and precision on simulated datasets."}
 library("ggplot2")
 p <- ggplot(res, aes(y=sensitivity, x=oneminusprec, color=algorithm, shape=algorithm))
 p + geom_point() + theme_bw() + facet_grid(effSize ~ m) +
@@ -62,7 +80,7 @@ differences between group means.  The precision was calculated as the
 fraction of genes with true differences between group means among
 those with adjusted p-value less than 0.1.
 
-```{r simulateDESensStratify, fig.width=7, fig.height=5, fig.align="center"}
+```{r simulateDESensStratify, fig.width=7, fig.height=5, fig.cap="Sensitivity dependence on mean count."}
 library("reshape")
 id.vars <- c("algorithm","effSize","m")
 measure.vars <- c("sens0to20","sens20to100","sens100to300","sensmore300")
@@ -119,7 +137,7 @@ resSensPadj <- resSensPadj[!duplicated(with(resSensPadj, paste(algorithm, m, per
 summary(resSensPadj$senspadj)
 ```
 
-```{r simulateOutliersSens, fig.width=8, fig.height=4, fig.align="center"}
+```{r simulateOutliersSens, fig.width=8, fig.height=4, fig.cap="Sensitivity and specificity in presence of outliers."}
 library("ggplot2")
 p <- ggplot(res, aes(x=oneminusspec, y=sensitivity, color=algorithm))
 p + scale_x_continuous(breaks=c(0,.1,.2)) + 
@@ -146,7 +164,7 @@ outliers for samples with 7 or more replicates, hence the filtering
 can be turned off for the top row (m=10) and the replacement can be
 turned off for the bottom row (m=20).
 
-```{r simulateOutliersPrec, fig.width=8, fig.height=4, fig.align="center"}
+```{r simulateOutliersPrec, fig.width=8, fig.height=4, fig.cap="FDR and target FDR in presence of outliers."}
 p <- ggplot(res, aes(x=precpadj, y=oneminusprec, color=algorithm))
 p + scale_x_continuous(breaks=c(0,.1,.2)) + 
   scale_y_continuous(breaks=c(0,.1,.2)) + 
@@ -177,15 +195,16 @@ mean absolute error (MAE). The four methods were chosen for their
 particular focus on the logs fold change estimate. 
 The code to generate these results is in `simulateLFCAccuracy.R`.
 
-```{r lfcAccuracyHist, fig.width=8, fig.height=2.5, fig.align="center"}
-par(mfrow=c(1,4),mar=c(3,3,3,1))
+```{r lfcAccuracyHist, fig.width=6, fig.height=6, fig.cap="Examples of simulated log2 fold changes."}
+par(mfrow=c(2,2),mar=c(3,3,3,1))
 n <- 1000
 brks <- seq(from=-4,to=4,length.out=20)
 trimit <- function(x) x[x > -4 & x < 4] # for visualization only
-hist(trimit(rnorm(n)), breaks=brks, col="black", main="bell", xlab="", ylab="")
-hist(trimit(c(rnorm(n * 8/10), runif(n * 2/10, -4, 4))), breaks=brks, col="black", main="slab bell", xlab="", ylab="")
-hist(c(rep(0, n * 8/10), runif(n * 2/10, -4, 4)), breaks=brks, col="black", main="slab spike",xlab="", ylab="")
-hist(c(rep(0, n * 8/10), sample(c(-2, 2), n * 2/10, TRUE)), breaks=brks, col="black", main="spike spike",xlab="", ylab="")
+myhist <- function(x, ...) hist(x, breaks=brks, border="white", col="blue", xlab="", ylab="", ...)
+myhist(trimit(rnorm(n)), main="bell")
+myhist(trimit(c(rnorm(n * 8/10), runif(n * 2/10, -4, 4))), main="slab bell")
+myhist(c(rep(0, n * 8/10), runif(n * 2/10, -4, 4)), main="slab spike")
+myhist(c(rep(0, n * 8/10), sample(c(-2, 2), n * 2/10, TRUE)), main="spike spike")
 ```
 
 Benchmarking LFC estimation: Models for simulating logarithmic (base
@@ -201,7 +220,7 @@ changes were drawn according to a spike of logarithmic fold changes at
 0 (80%) and a spike randomly sampled from -2 or 2 (20%). These
 spikes represent fold changes of 1/4 and 4, respectively.
 
-```{r lfcAccuracy, fig.width=7, fig.height=5, fig.align="center"}
+```{r lfcAccuracy, fig.width=7, fig.height=5, fig.cap="Root mean squared error in estimating log2 fold changes."}
 load("results_simulateLFCAccuracy.RData")
 library("ggplot2")
 library("Hmisc")
@@ -219,7 +238,7 @@ sample size m. Simulated Negative Binomial counts were generated for
 two groups and for 1000 genes. Points and error bars are drawn for the
 mean and 95% confidence interval over 10 replications.
 
-```{r lfcAccuracyDE, fig.width=6, fig.height=2.5, fig.align="center"}
+```{r lfcAccuracyDE, fig.width=6, fig.height=2.5, fig.cap="Root mean squared error for only differentially expressed genes."}
 p <- ggplot(data=res[grepl("spike",res$type),], aes(x=m, y=DiffRMSE, color=method, shape=method))
 p + stat_summary(fun.y=mean, geom="point") + 
   stat_summary(fun.y=mean, geom="line") + 
@@ -235,7 +254,7 @@ the same simulation, shown here is the error only for the 20% of
 genes with non-zero true logarithmic fold changes (for bell and slab
 bell all genes have non-zero logarithmic fold change).
 
-```{r lfcAccuracyMAE, fig.width=7, fig.height=5, fig.align="center"}
+```{r lfcAccuracyMAE, fig.width=7, fig.height=5, fig.cap="Mean absolute error in estimating log2 fold changes."}
 p <- ggplot(data=res, aes(x=m, y=MAE, color=method, shape=method))
 p + stat_summary(fun.y=mean, geom="point") + 
   stat_summary(fun.y=mean, geom="line") + 
@@ -250,7 +269,7 @@ estimates. Results for the same simulation, however here using median
 absolute error in place of root mean squared error. Mean absolute
 error places less weight on the largest errors.
 
-```{r lfcAccuracyDiffMAE, fig.width=6, fig.height=2.5, fig.align="center"}
+```{r lfcAccuracyDiffMAE, fig.width=6, fig.height=2.5, fig.cap="Mean absolute error for only differentially expressed genes."}
 p <- ggplot(data=res[grepl("spike",res$type),], aes(x=m, y=DiffMAE, color=method, shape=method))
 p + stat_summary(fun.y=mean, geom="point") + 
   stat_summary(fun.y=mean, geom="line") + 
@@ -290,7 +309,7 @@ conditions were equal and one in which the size factors within each
 group were [1, 1, 1/3, 3].
 The code to generate these results is in `simulateCluster.R`.
 
-```{r simulateCluster, fig.width=8, fig.height=5, fig.align="center"}
+```{r simulateCluster, fig.width=8, fig.height=5, fig.cap="Clustering accuracy over the size of group differences ."}
 load("results_simulateCluster.RData")
 library("ggplot2")
 library("Hmisc")

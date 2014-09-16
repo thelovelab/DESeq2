@@ -14,19 +14,24 @@ medianPercentShrinkage <- function(res,...) {
           ...)
 }
 
-summarizeDESeqRun <- function(x) {
+summarizeDESeqRun <- function(x,Wald=TRUE) {
   name <- x$name
   time <- x$time
   res <- x$res
   dds <- x$dds
   cat(name,"\n")
+  cat(paste(as.character(design(dds)),collapse=""),"\n")
   cat(paste(nrow(dds),"genes",ncol(dds),"samples \n"))
   cat(paste(round(unname(time[3])),"seconds \n"))
   summarizeResults(res)
-  par(mfrow=c(2,2))
-  yext <- max(abs(res$log2FoldChange),na.rm=TRUE)
-  plotMA(res,ylim=c(-yext,yext),main=name)
-  medianPercentShrinkage(res,main=name)
+  if (Wald) {
+    par(mfrow=c(2,2))
+    yext <- max(abs(res$log2FoldChange),na.rm=TRUE)
+    plotMA(res,ylim=c(-yext,yext),main=name)
+    medianPercentShrinkage(res,main=name)
+  } else {
+    par(mfrow=c(1,2))
+  }
   plotDispEsts(dds,main=name)
   hist(res$pvalue[res$baseMean > 10],col="grey",main="p-values | base-mean > 10",xlab="")
 }
@@ -48,20 +53,16 @@ recount2SE <- function(name) {
 ```
 
 
-```{r runParathyroid, cache=TRUE}
-library("DESeq2")
-library("parathyroidSE")
-data(parathyroidGenesSE)
-se <- parathyroidGenesSE
-dds0 <- DESeqDataSet(se, ~ patient + treatment)
-dds0 <- dds0[,dds0$treatment != "OHT" & dds0$time == "48h"]
-dds <- collapseReplicates(dds0, groupby = dds0$sample, run = dds0$run)
-dds$treatment <- factor(dds$treatment, levels=c("Control","DPN"))
+```{r runAirway, cache=TRUE}
+library("airway")
+data(airway)
+dds <- DESeqDataSet(airway, ~ cell + dex)
 time <- system.time({ dds <- DESeq(dds) })
 res <- results(dds,addMLE=TRUE)
-parathyroidRes <- list(name="parathyroid", time=time, res=res, dds=dds)
+airwayRes <- list(name="airway", time=time, res=res, dds=dds)
 rm(time, res, dds)
 ```
+
 
 ```{r runPasilla, cache=TRUE}
 library("pasilla")
@@ -101,8 +102,36 @@ rm(time, res, dds)
 ```
 
 
-```{r plotParathryoid, fig.width=9, fig.height=9}
-summarizeDESeqRun(parathyroidRes)
+```{r runParathyroid, cache=TRUE}
+library("DESeq2")
+library("parathyroidSE")
+data(parathyroidGenesSE)
+se <- parathyroidGenesSE
+dds0 <- DESeqDataSet(se, ~ patient + treatment)
+dds0 <- dds0[,dds0$treatment != "OHT" & dds0$time == "48h"]
+dds <- collapseReplicates(dds0, groupby = dds0$sample, run = dds0$run)
+dds$treatment <- factor(dds$treatment, levels=c("Control","DPN"))
+time <- system.time({ dds <- DESeq(dds) })
+res <- results(dds,addMLE=TRUE)
+parathyroidRes <- list(name="parathyroid", time=time, res=res, dds=dds)
+rm(time, res, dds)
+```
+
+```{r runFission, cache=TRUE}
+library("fission")
+data(fission)
+dds <- DESeqDataSet(fission, ~ strain + minute + strain:minute)
+time <- system.time({ dds <- DESeq(dds, test="LRT", reduced= ~ strain + minute) })
+res <- results(dds)
+fissionRes <- list(name="fission", time=time, res=res, dds=dds)
+rm(time, res, dds)
+```
+
+
+
+
+```{r plotAirway, fig.width=9, fig.height=9}
+summarizeDESeqRun(airwayRes)
 ```
 
 ```{r plotPasilla, fig.width=9, fig.height=9}
@@ -117,3 +146,21 @@ summarizeDESeqRun(hammerRes)
 summarizeDESeqRun(bottomlyRes)
 ```
 
+
+```{r plotParathryoid, fig.width=9, fig.height=9}
+summarizeDESeqRun(parathyroidRes)
+```
+
+```{r plotFission, fig.width=9, fig.height=4}
+summarizeDESeqRun(fissionRes, Wald=FALSE)
+```
+
+```{r, fig.width=5, fig.height=5}
+gene <- rownames(fissionRes$res)[which.min(fissionRes$res$pvalue)]
+data <- plotCounts(fissionRes$dds, gene, intgroup=c("minute","strain"),
+                   returnData=TRUE, transform=TRUE)
+library("ggplot2")
+ggplot(data, aes(minute, count, color=strain, group=strain)) +
+  ylab("log2 count") + geom_point() + geom_smooth(se=FALSE,method="loess") +
+  ggtitle(gene)
+```
