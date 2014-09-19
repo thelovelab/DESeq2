@@ -163,7 +163,7 @@ count matrices, as described in the following section.
 
 \subsection{Example BAM files}
 
-Besides tha main count table, which we will use later, the \Biocexptpkg{parathyroidSE} package also
+Besides the main count table, which we will use later, the \Biocexptpkg{parathyroidSE} package also
 contains a small subset of the raw data 
 from the Haglund et al.\ experiment, namely three BAM file
 each with a subset of the reads from three of the samples. We will use these files to demonstrate

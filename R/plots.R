@@ -189,7 +189,7 @@ plotPCA = function(x, intgroup="condition", ntop=500, returnData=FALSE)
   pca <- prcomp(t(assay(x)[select,]))
 
   # the contribution to the total variance for each component
-  percvar <- pca$sdev^2 / sum( pca$sdev^2 )
+  percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
 
   if (!all(intgroup %in% names(colData(x)))) {
     stop("the argument 'intgroup' should specify columns of colData(dds)")
@@ -202,11 +202,14 @@ plotPCA = function(x, intgroup="condition", ntop=500, returnData=FALSE)
   # assembly the data for the plot
   d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group, intgroup.df, names=colnames(x))
 
-  if (returnData) return(d)
+  if (returnData) {
+    attr(d, "percentVar") <- percentVar[1:2]
+    return(d)
+  }
   
   ggplot(data=d, aes_string(x="PC1", y="PC2", color="group")) + geom_point(size=3) + 
-    xlab(paste0("PC1: ",round(percvar[1] * 100),"% variance")) +
-    ylab(paste0("PC2: ",round(percvar[2] * 100),"% variance"))
+    xlab(paste0("PC1: ",round(percentVar[1] * 100),"% variance")) +
+    ylab(paste0("PC2: ",round(percentVar[2] * 100),"% variance"))
 }
 
 
