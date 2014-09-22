@@ -796,21 +796,28 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
 #' 
 #' The fitting proceeds as follows: standard maximum likelihood estimates
 #' for GLM coefficients (synonymous with beta, log2 fold change)
-#' are calculated; a zero-mean normal prior distribution
-#' is assumed; the variance of the prior distribution for each
+#' are calculated. A zero-mean normal prior distribution
+#' is assumed. The variance of the prior distribution for each
 #' non-intercept coefficient is calculated using the observed
-#' distribution of the maximum likelihood coefficients;
-#' the final coefficients are then maximum a posteriori estimates
+#' distribution of the maximum likelihood coefficients.  
+#' The final coefficients are then maximum a posteriori estimates
 #' (using Tikhonov/ridge regularization) using this prior.
 #' The use of a prior has little effect on genes with high counts and helps to
 #' moderate the large spread in coefficients for genes with low counts.
-#'
 #' For calculating Wald test p-values, the coefficients are scaled by their
-#' standard errors and then compared to a normal distribution. From
-#' examination of Wald statistics for real datasets, the effect of the
-#' prior on dispersion estimates results in a Wald statistic
-#' distribution which is approximately normal.
+#' standard errors and then compared to a normal distribution. 
 #'
+#' The prior variance is calculated by matching the 0.05 upper quantile
+#' of the observed MLE coefficients to a zero-centered Normal distribution.
+#' Furthermore, the weighted upper quantile is calculated using the
+#' \code{wtd.quantile} function from the Hmisc package. The weights are given by
+#' \eqn{1/\bar{\mu} + alpha_{tr}}{1/mu-bar + alpha_tr} using the mean of
+#' normalized counts and the trended dispersion fit. The 
+#' weighting ensures that large log fold changes with small
+#' sampling variance contribute the most to the estimation of the width of the prior.
+#' The prior variance for a factor level is the average over all contrasts
+#' of all factor levels.
+#' 
 #' When a log2 fold change prior is used (betaPrior=TRUE),
 #' then \code{nbinomWaldTest} will by default use expanded model matrices,
 #' as described in the \code{modelMatrixType} argument, unless this argument
@@ -1477,6 +1484,10 @@ has not been implemented")
 #' as calculated by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}
 #' or \code{\link{nbinomLRT}}, with values predicted by the trimmed mean
 #' over all samples (and adjusted by size factor or normalization factor).
+#' Note that this function is called within \code{\link{DESeq}}, so is not
+#' necessary to call on top of a \code{DESeq} call. See the \code{minReplicatesForReplace}
+#' argument documented in \code{link{DESeq}}.
+#' 
 #' This function replaces the counts in the matrix returned by \code{counts(dds)}
 #' and the Cook's distances in \code{assays(dds)[["cooks"]]}. Original counts are
 #' preserved in \code{assays(dds)[["originalCounts"]]}.

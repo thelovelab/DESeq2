@@ -597,6 +597,9 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' form, number of genes by number of parameters, on the log2 scale.
 #' The columns correspond to columns of the model matrix for final GLM fitting, i.e.,
 #' \code{attr(dds, "modelMatrix")}.
+#'
+#' @usage
+#' \method{coef}{DESeqDataSet}(object, SE=FALSE, \dots)
 #' 
 #' @param object a DESeqDataSet returned by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}},
 #' or \code{\link{nbinomLRT}}.

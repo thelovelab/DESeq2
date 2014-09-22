@@ -47,9 +47,9 @@ library("DESeq2")
   incorporate data-driven prior distributions \footnote{Other \Bioconductor{} packages 
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{baySeq} and \Biocpkg{DSS}.}. 
   This vignette explains the use of the package and demonstrates typical work flows.  
-  Another vignette, ``Beginner's guide to using the DESeq2 package'', covers
-  similar material but at a slower pace, including the generation of count tables from
-  FASTQ files.
+  The \deseqtwo{} worklow on the Bioconductor website, covers similar
+  material but at a slower pace, including the generation of count
+  tables from FASTQ files.
 
   \vspace{1em}
   
@@ -158,8 +158,6 @@ ddsSE$treatment <- factor(ddsSE$treatment,
                             levels=c("Control","DPN","OHT"))
 ddsSE
 @
-
-An analysis of this dataset is shown in the ``Beginner's guide'' vignette.
 
 \subsubsection{Count matrix input}
 
@@ -286,8 +284,8 @@ dds$condition <- droplevels(dds$condition)
 
 \deseqtwo{} provides a function \Rfunction{collapseReplicates} which can
 assist in combining the counts from technical replicates into single
-columns. See the manual page and the Beginner's vignette for an
-example of the use of \Rfunction{collapseReplicates}.
+columns. See the manual page for an example of the use of
+\Rfunction{collapseReplicates}. 
 
 \subsubsection{About the pasilla dataset}
 
@@ -386,6 +384,14 @@ plotMA(resNoPrior,
        main=expression(unshrunken~log[2]~fold~changes), 
        ylim=c(-2,2))
 @
+
+After calling \Rfunction{plotMA}, one can use the function
+\Rfunction{identify} to interactively detect the row number of
+individual genes by clicking on the plot.
+
+<<MAidentify, eval=FALSE>>=
+identify(res$baseMean, res$log2FoldChange)
+@ 
 
 \subsubsection{Plot counts}
 
@@ -859,8 +865,7 @@ include a coefficient for each level of the factors in addition to an intercept.
 The \Robject{contrast} argument of \Rfunction{results} function is
 again used to extract test results of log2 fold changes of interest.
 
-Example of the contrast of pairs of three different levels of a factor
-is shown in the ``Beginner's guide'' vignette. Further examples can be found in
+Further examples of the use of contrasts can be found in
 the examples of the help page for the \Rfunction{results} function.
 
 The formula that is used to generate the contrasts can be
@@ -952,27 +957,31 @@ or \Robject{Inf}. The automatic outlier replacement performed by
 \Rfunction{DESeq} can be disabled by setting the \Robject{minReplicatesForReplace}
 argument to \Robject{Inf}.
 
-\Rfunction{DESeq} replaces outliers by internally calling the \Rfunction{replaceOutliers} function,
-which has more arguments for controlling the replacement behavior.
-\Rfunction{DESeq} preserves the original counts in \Robject{counts(dds)} 
-saving the replacement counts as \Robject{replaceCounts} in \Robject{assays(dds)}.
-The function \Rfunction{replaceOutliers} replaces the counts in \Robject{counts(dds)}, 
-saving the original counts as \Robject{originalCounts} in \Robject{assays(dds)}. 
+\Rfunction{DESeq} automatically replaces outliers if there are
+sufficient replicates and a row contains a count with very high Cook's
+distance.  \Rfunction{DESeq} preserves the original counts in
+\Robject{counts(dds)} saving the replacement counts as a matrix named
+\Robject{replaceCounts} in \Robject{assays(dds)}.
 
 \subsection{Likelihood ratio test} \label{sec:LRT}
 
 One reason to use the likelihood ratio test is in order to test the 
 null hypothesis that log2 fold changes for multiple levels of a factor, 
 or for multiple variables, such as all interactions between two variables,
-are equal to zero.
-The likelihood ratio test can also be specified using the \Robject{test}
-argument to \Rfunction{DESeq}, which substitutes \Rfunction{nbinomWaldTest} with
-\Rfunction{nbinomLRT}.  In this case, the
-user needs to provide a reduced formula, e.g. one which does not contain the variable of
-interest. The full formula is the one specified by \Robject{design(dds)}.
+are equal to zero. This is conceptually similar to an analysis of variance (ANOVA)
+calculation for linear regression, except the case of the Negative
+Binomial GLM, we use an analysis of deviance (ANODEV), where the
+\emph{deviance} captures the difference in likelihood between a full
+and a reduced model.
 
-The degrees of freedom for the test is obtained from the difference
-between the number of parameters in the two models. 
+The likelihood ratio test can be specified using the \Robject{test}
+argument to \Rfunction{DESeq}, which substitutes
+\Rfunction{nbinomWaldTest} with \Rfunction{nbinomLRT}.  In this case,
+the user needs to provide a reduced formula, e.g. one which does not
+contain the variable of interest. The full formula is the one
+specified by \Robject{design(dds)}.  The degrees of freedom for the
+test is obtained from the difference between the number of parameters
+in the two models.
 
 \subsection{Dispersion plot and fitting alternatives}
 
@@ -1188,6 +1197,21 @@ results tables with $p$ values and adjusted $p$ values.
 
 <<coef>>=
 head(coef(dds))
+@ 
+
+The beta prior variance $\sigma_r^2$ is stored as an attribute of the
+\Rclass{DESeqDataSet}: 
+
+<<betaPriorVar>>=
+attr(dds, "betaPriorVar")
+@ 
+
+The dispersion prior variance $\sigma_d^2$ is stored as an
+attribute of the dispersion function:
+
+<<dispPriorVar>>=
+dispersionFunction(dds)
+attr(dispersionFunction(dds), "dispPriorVar")
 @ 
 
 \subsection{Sample-/gene-dependent normalization factors} \label{sec:normfactors}
@@ -1566,34 +1590,36 @@ abline(a=0, slope, col="red3", lwd=2)
 
 \section{Frequently asked questions}
 
-\subsection{How should I email a question?}
+\subsection{How can I get support for DESeq2?}
 
-We welcome emails with questions about our software, and want to
+We welcome questions about our software, and want to
 ensure that we eliminate issues if and when they appear. We have a few
 requests to optimize the process:
 
 \begin{itemize}
-\item all emails and follow-up questions should take place over the
-  Bioconductor list, which serves as a repository of information
-  and helps saves the developers' time in responding to similar
-  questions. The subject line should contain ``DESeq2'' and a few
-  words describing the problem. 
-\item first search the Bioconductor list,
-  \url{http://bioconductor.org/help/mailing-list/}, 
-  for past threads which might have answered your question.
-\item if you have a question about the behavior of a function,
-  read the sections of the manual page for this function by typing a
-  question mark and the function name, e.g. \Robject{?results}.
-  We spend a lot of time documenting individual functions
-  and the exact steps that the software is performing.
-\item include all of your R code, especially the creation of 
-  the \Rclass{DESeqDataSet} and the design formula.
-  Include complete warning or error messages, and conclude your
-  message with the full output of \Robject{sessionInfo()}.
-\item if possible, include the output of \Robject{as.data.frame(colData(dds))}, 
-  so that we can have a sense of the experimental setup. If this contains
-  confidential information, you can replace the levels of those
-  factors using \Rfunction{levels()}.
+\item all questions should take place on the Bioconductor support
+  site: \url{https://support.bioconductor.org}, which serves as a
+  repository of questions and answers. This helps to save the
+  developers' time in responding to similar questions. Make sure to
+  tag your post with ``deseq2''. It is often very helpful in addition 
+  to describe the aim of your experiment.
+\item before posting, first search the Bioconductor support site
+  mentioned above for past threads which might have answered your
+  question.
+\item if you have a question about the behavior of a function, read
+  the sections of the manual page for this function by typing a
+  question mark and the function name, e.g. \Robject{?results}.  We
+  spend a lot of time documenting individual functions and the exact
+  steps that the software is performing.
+\item include all of your R code, especially the creation of the
+  \Rclass{DESeqDataSet} and the design formula.  Include complete
+  warning or error messages, and conclude your message with the full
+  output of \Robject{sessionInfo()}.
+\item if possible, include the output of
+  \Robject{as.data.frame(colData(dds))}, so that we can have a sense
+  of the experimental setup. If this contains confidential
+  information, you can replace the levels of those factors using
+  \Rfunction{levels()}.
 \end{itemize}
 
 \subsection{Why are some $p$ values set to \texttt{NA}?}
