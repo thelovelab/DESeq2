@@ -410,7 +410,7 @@ rlogGrid <- function (ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSE
   if (any(na.test)) stop(paste("in call to rlogGrid, the following arguments contain NA:",
                                paste(arg.names[na.test],collapse=", ")))
 
-  .Call("rlogGrid", ySEXP=ySEXP, nfSEXP=nfSEXP, betaSEXP=betaSEXP,
+  .Call("DESeq2_rlogGrid", ySEXP=ySEXP, nfSEXP=nfSEXP, betaSEXP=betaSEXP,
         alphaSEXP=alphaSEXP, interceptSEXP=interceptSEXP,
         bgridSEXP=bgridSEXP, betapriorvarSEXP=betapriorvarSEXP, PACKAGE = "DESeq2")
 }

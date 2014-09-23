@@ -1895,7 +1895,7 @@ fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_me
   if (any(na.test)) stop(paste("in call to fitDisp, the following arguments contain NA:",
                                paste(arg.names[na.test],collapse=", ")))
 
-  .Call("fitDisp", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
+  .Call("DESeq2_fitDisp", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
         log_alphaSEXP=log_alphaSEXP, log_alpha_prior_meanSEXP=log_alpha_prior_meanSEXP,
         log_alpha_prior_sigmasqSEXP=log_alpha_prior_sigmasqSEXP,
         min_log_alphaSEXP=min_log_alphaSEXP, kappa_0SEXP=kappa_0SEXP,
@@ -1932,7 +1932,7 @@ fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
   if (any(na.test)) stop(paste("in call to fitBeta, the following arguments contain NA:",
                                paste(arg.names[na.test],collapse=", ")))
   
-  .Call("fitBeta", ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP,
+  .Call("DESeq2_fitBeta", ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP,
         alpha_hatSEXP=alpha_hatSEXP, contrastSEXP=contrastSEXP,
         beta_matSEXP=beta_matSEXP,
         lambdaSEXP=lambdaSEXP, tolSEXP=tolSEXP, maxitSEXP=maxitSEXP,
@@ -2381,7 +2381,7 @@ fitDispGrid <- function (ySEXP, xSEXP, mu_hatSEXP,
   if (any(na.test)) stop(paste("in call to fitDispGrid, the following arguments contain NA:",
                                paste(arg.names[na.test],collapse=", ")))
  
-  .Call("fitDispGrid", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
+  .Call("DESeq2_fitDispGrid", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
         disp_gridSEXP=disp_gridSEXP,
         log_alpha_prior_meanSEXP=log_alpha_prior_meanSEXP,
         log_alpha_prior_sigmasqSEXP=log_alpha_prior_sigmasqSEXP,
