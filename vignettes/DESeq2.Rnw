@@ -44,12 +44,14 @@ library("DESeq2")
   compared to within-condition variability. The package \deseqtwo{} provides
   methods to test for differential expression by use of negative binomial generalized
   linear models; the estimates of dispersion and logarithmic fold changes 
-  incorporate data-driven prior distributions \footnote{Other \Bioconductor{} packages 
+  incorporate data-driven prior distributions\footnote{Other \Bioconductor{} packages 
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{baySeq} and \Biocpkg{DSS}.}. 
-  This vignette explains the use of the package and demonstrates typical work flows.  
-  The \deseqtwo{} worklow on the Bioconductor website, covers similar
-  material but at a slower pace, including the generation of count
-  tables from FASTQ files.
+  This vignette explains the use of the package and demonstrates typical workflows.  
+  An RNA-Seq workflow on the Bioconductor 
+  website\footnote{\url{http://www.bioconductor.org/help/workflows/rnaseqGene/}}
+  (formerly the Beginner's Guide PDF), covers similar material to this
+  vignette but at a slower pace, including the generation of count
+  matrices from FASTQ files.
 
   \vspace{1em}
   
@@ -746,8 +748,8 @@ are looking in particular for samples whose experimental treatment
 suffered from an anormality that renders the data points obtained from
 these particular samples detrimental to our purpose.
 
-\subsubsection{Heatmap of the count table}\label{sec:hmc}
-To explore a count table, it is often instructive to look at it as a
+\subsubsection{Heatmap of the count matrix}\label{sec:hmc}
+To explore a count matrix, it is often instructive to look at it as a
 heatmap.  Below we show how to produce such a heatmap from the
 raw and transformed data.
 

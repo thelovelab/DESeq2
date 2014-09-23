@@ -32,7 +32,7 @@ these should be set only by \code{\link{estimateDispersions}}.
 }
 \examples{
 example("estimateDispersions")
-dispersions(dds)
+head(dispersions(dds))
 }
 \author{
 Simon Anders

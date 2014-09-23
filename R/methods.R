@@ -181,7 +181,7 @@ setReplaceMethod("dispersionFunction",
 #' @examples
 #'
 #' example("estimateDispersions")
-#' dispersions(dds)
+#' head(dispersions(dds))
 #'
 dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
 

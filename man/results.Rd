@@ -182,59 +182,62 @@ which can be controlled using the \code{name} argument, or by default this will
 be the estimated coefficient for the last element of \code{resultsNames(object)}.
 }
 \examples{
-# minimal example with simple two-group comparison
+## Example 1: simple two-group comparison
+
 example("DESeq")
 results(dds)
 results(dds, format="GRanges")
 resultsNames(dds)
 dds <- removeResults(dds)
 
-# two conditions, two groups, with interaction term
+
+## Example 2: two conditions, two groups, with interaction term
+
 dds <- makeExampleDESeqDataSet(n=100,m=12)
 dds$group <- factor(rep(rep(c("X","Y"),each=3),2))
 design(dds) <- ~ group + condition + group:condition
 dds <- DESeq(dds)
 resultsNames(dds)
+# the condition effect
 results(dds, contrast=c("condition","B","A"))
+# the group effect
 results(dds, contrast=c("group","Y","X"))
-# extract the interaction term simply with 'name'
+# the interaction term
 results(dds, name="groupY.conditionB")
 
-# two conditions, three groups, with interaction term
+
+## Example 3: two conditions, three groups, with interaction terms
+
 dds <- makeExampleDESeqDataSet(n=100,m=18)
 dds$group <- factor(rep(rep(c("X","Y","Z"),each=3),2))
 design(dds) <- ~ group + condition + group:condition
 dds <- DESeq(dds)
 resultsNames(dds)
 
-# results tables for various comparisons:
-
-# the condition effect over all groups
+# the main effect for condition
 results(dds, contrast=c("condition","B","A"))
 # which is equivalent to
 results(dds, contrast=list("conditionB","conditionA"))
-# which is equivalent to
-results(dds, contrast=c(0, 0,0,0, -1,1, 0,0,0, 0,0,0))
 
-# the group Z effect compared to the average of group X and Y
-# here we use 'listValues' to multiply group X and
-# group Y by -1/2 in the numeric contrast
+# the interaction term for condition in group Z.
+# if this term is non-zero, then group Z has a
+# different condition effect than the main effect for condition
+results(dds, contrast=list("groupZ.conditionB","groupZ.conditionA"))
+
+# the condition effect in group Z.
+# this is the sum of the main effect for condition
+# and the interaction effect for condition in group Z
+results(dds, contrast=list(
+               c("conditionB","groupZ.conditionB"),
+               c("conditionA","groupZ.conditionA")))
+
+# the group Z effect compared to the average of group X and Y.
+# here we use 'listValues' to multiply the effect sizes for
+# group X and group Y by -1/2
 results(dds, contrast=list("groupZ",c("groupX","groupY")), listValues=c(1,-1/2))
 
 # the individual effect for group Z, compared to the intercept
 results(dds, name="groupZ")
-
-# the interaction effect of condition for group Z.
-# if this term is non-zero, then group Z has a
-# different condition effect than the overall condition effect
-results(dds, contrast=list("groupZ.conditionB","groupZ.conditionA"))
-
-# the condition effect for group Z:
-# this is the sum of the main effect for condition
-# and the interaction effect for group Z
-results(dds, contrast=list(
-               c("conditionB","groupZ.conditionB"),
-               c("conditionA","groupZ.conditionA")))
 }
 \references{
 Richard Bourgon, Robert Gentleman, Wolfgang Huber: Independent
