@@ -2,10 +2,11 @@ test_vst <- function() {
   dds <- makeExampleDESeqDataSet(n=100, m=4)
   design(dds) <- ~ 1
   dds <- estimateSizeFactors(dds)
-  dds <- estimateDispersions(dds, fitType="parametric")
+  dds <- estimateDispersionsGeneEst(dds)
+  dds <- estimateDispersionsFit(dds, fitType="parametric")
   vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
-  dds <- estimateDispersions(dds, fitType="local")
+  dds <- estimateDispersionsFit(dds, fitType="local")
   vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
-  dds <- estimateDispersions(dds, fitType="mean")
+  dds <- estimateDispersionsFit(dds, fitType="mean")
   vsd <- varianceStabilizingTransformation(dds, blind=FALSE)  
 }

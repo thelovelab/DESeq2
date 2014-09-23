@@ -1,13 +1,14 @@
 test_parallel <- function() {
-  dispMeanRel <- function(x) (4/x + .1) * exp(rnorm(1000,0,sqrt(.5)))
+  n <- 100
+  dispMeanRel <- function(x) (4/x + .1) * exp(rnorm(n,0,sqrt(.5)))
   set.seed(1)
-  dds0 <- makeExampleDESeqDataSet(dispMeanRel=dispMeanRel)
+  dds0 <- makeExampleDESeqDataSet(n=n,dispMeanRel=dispMeanRel)
 
   # the following is an example of a simple parallelizable DESeq() run
   # without outlier replacement. see DESeq2:::DESeqParallel for the code
   # which is actually used in DESeq()
   
-  parallel <- 6
+  parallel <- 3
   idx <- factor(sort(rep(seq_len(parallel),length=nrow(dds0))))
 
   ### BEGINNING ###
@@ -52,6 +53,6 @@ test_parallel <- function() {
 
   library(BiocParallel)
   register(SerialParam())
-  dds <- DESeq(dds0, parallel=6)
+  dds <- DESeq(dds0, parallel=3)
   
 }
