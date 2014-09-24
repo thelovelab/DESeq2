@@ -94,9 +94,8 @@
 #' the full model with a term or terms of interest removed,
 #' only used by the likelihood ratio test
 #' @param quiet whether to print messages at each step
-#' @param parallel if 0, no parallelization, if an integer greater
-#' than 1, the number of groups to split the genes into for parallel
-#' execution with BiocParallel
+#' @param parallel if FALSE, no parallelization. if TRUE, parallel
+#' execution using \code{BiocParallel}
 #' @param minReplicatesForReplace the minimum number of replicates required
 #' in order to use \code{\link{replaceOutliers}} on a
 #' sample. If there are samples with so many replicates, the model will
@@ -110,6 +109,9 @@
 #' see the Description of \code{\link{nbinomWaldTest}}.
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
+#' @param BPPARAM an optional parameter object passed internally to \code{\link{bplapply}}
+#' when \code{parallel} is set to an integer greater than 1. If not specified,
+#' the parameters last registered with \code{\link{register}} will be used.
 #' 
 #' @author Michael Love
 #' 
@@ -145,7 +147,8 @@
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
                   full=design(object), reduced, quiet=FALSE,
-                  parallel = 0, minReplicatesForReplace=7, modelMatrixType) {
+                  parallel = FALSE, minReplicatesForReplace=7, modelMatrixType,
+                  BPPARAM=bpparam()) {
   if (missing(test)) {
     test <- match.arg(test, choices=c("Wald","LRT"))
   }
@@ -161,8 +164,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
 i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
   }
   attr(object, "betaPrior") <- betaPrior
-  stopifnot(length(parallel) == 1 & is.numeric(parallel) &
-            parallel >= 0 & parallel == round(parallel))
+  stopifnot(length(parallel) == 1 & is.logical(parallel))
   
   if (!is.null(sizeFactors(object)) || !is.null(normalizationFactors(object))) {
     if (!quiet) {
@@ -177,7 +179,7 @@ i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
     object <- estimateSizeFactors(object)
   }
   
-  if (parallel <= 1) {    
+  if (!parallel) {    
     if (!quiet) message("estimating dispersions")
     object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
     if (!quiet) message("fitting model and testing")
@@ -192,11 +194,11 @@ i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
                           betaPrior=betaPrior, quiet=quiet,
                           modelMatrixType=modelMatrixType)
     }
-  } else if (parallel > 1) {
+  } else if (parallel) {
     object <- DESeqParallel(object, test=test, fitType=fitType,
                             betaPrior=betaPrior, full=full, reduced=reduced,
                             quiet=quiet, modelMatrixType=modelMatrixType,
-                            parallel=parallel)
+                            BPPARAM=BPPARAM)
   }
 
   # if there are sufficient replicates, then pass through to refitting function
@@ -465,14 +467,14 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
-    dispRes <- fitDisp(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
-                       xSEXP = fit$modelMatrix,
-                       mu_hatSEXP = fitMu,
-                       log_alphaSEXP = log(alpha_hat)[fitidx],
-                       log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
-                       log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
-                       kappa_0SEXP = kappa_0, tolSEXP = dispTol,
-                       maxitSEXP = maxit, use_priorSEXP = FALSE)
+    dispRes <- fitDispWrapper(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
+                              xSEXP = fit$modelMatrix,
+                              mu_hatSEXP = fitMu,
+                              log_alphaSEXP = log(alpha_hat)[fitidx],
+                              log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
+                              log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
+                              kappa_0SEXP = kappa_0, tolSEXP = dispTol,
+                              maxitSEXP = maxit, use_priorSEXP = FALSE)
     dispIter[fitidx] <- dispRes$iter
     alpha_hat_new[fitidx] <- pmin(exp(dispRes$log_alpha), maxDisp)
     # only rerun those rows which moved
@@ -496,12 +498,11 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # by evaluating a grid of posterior evaluations
   refitDisp <- !dispGeneEstConv & dispGeneEst > minDisp*10
   if (sum(refitDisp) > 0) {
-    dispInR <- fitDispGridR(y = counts(objectNZ)[refitDisp,,drop=FALSE],
-                          x = modelMatrix,
-                          mu = mu[refitDisp,,drop=FALSE],
-                          logAlphaPriorMean = rep(0,sum(refitDisp)),
-                          logAlphaPriorSigmaSq = 1,
-                          usePrior=FALSE)
+    dispInR <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE],
+                                  x = modelMatrix, mu = mu[refitDisp,,drop=FALSE],
+                                  logAlphaPriorMean = rep(0,sum(refitDisp)),
+                                  logAlphaPriorSigmaSq = 1,
+                                  usePrior=FALSE)
     dispGeneEst[refitDisp] <- dispInR
   }
   dispGeneEst <- pmin(pmax(dispGeneEst, minDisp), maxDisp)
@@ -648,13 +649,13 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
   
   # run with prior
-  dispResMAP <- fitDisp(ySEXP = counts(objectNZ), xSEXP = modelMatrix, mu_hatSEXP = mu,
-                        log_alphaSEXP = log(dispInit),
-                        log_alpha_prior_meanSEXP = log(mcols(objectNZ)$dispFit),
-                        log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
-                        min_log_alphaSEXP = log(minDisp/10),
-                        kappa_0SEXP = kappa_0, tolSEXP = dispTol,
-                        maxitSEXP = maxit, use_priorSEXP = TRUE)
+  dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ), xSEXP = modelMatrix, mu_hatSEXP = mu,
+                               log_alphaSEXP = log(dispInit),
+                               log_alpha_prior_meanSEXP = log(mcols(objectNZ)$dispFit),
+                               log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
+                               min_log_alphaSEXP = log(minDisp/10),
+                               kappa_0SEXP = kappa_0, tolSEXP = dispTol,
+                               maxitSEXP = maxit, use_priorSEXP = TRUE)
 
   # prepare dispersions for storage in mcols(object)
   dispMAP <- exp(dispResMAP$log_alpha) 
@@ -666,11 +667,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispConv <- dispResMAP$iter < maxit
   refitDisp <- !dispConv
   if (sum(refitDisp) > 0) {
-    dispInR <- fitDispGridR(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
-                          mu = mu[refitDisp,,drop=FALSE],
-                          logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
-                          logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
-                          usePrior=TRUE)
+    dispInR <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
+                                  mu = mu[refitDisp,,drop=FALSE],
+                                  logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
+                                  logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
+                                  usePrior=TRUE)
     dispMAP[refitDisp] <- dispInR
   }
 
@@ -1799,13 +1800,13 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   # conversion factor, log(2)
   lambdaLogScale <- lambda / log(2)^2
 
-  betaRes <- fitBeta(ySEXP = counts(object), xSEXP = modelMatrix,
-                     nfSEXP = normalizationFactors,
-                     alpha_hatSEXP = alpha_hat,
-                     beta_matSEXP = beta_mat,
-                     lambdaSEXP = lambdaLogScale,
-                     tolSEXP = betaTol, maxitSEXP = maxit,
-                     useQRSEXP=useQR)
+  betaRes <- fitBetaWrapper(ySEXP = counts(object), xSEXP = modelMatrix,
+                            nfSEXP = normalizationFactors,
+                            alpha_hatSEXP = alpha_hat,
+                            beta_matSEXP = beta_mat,
+                            lambdaSEXP = lambdaLogScale,
+                            tolSEXP = betaTol, maxitSEXP = maxit,
+                            useQRSEXP=useQR)
   mu <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
   dispersionVector <- rep(dispersions(object), times=ncol(object))
   logLike <- nbinomLogLike(counts(object), mu, dispersions(object))
@@ -1885,22 +1886,19 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
 # use_priorSEXP boolean variable, whether to use a prior or just calculate the MLE
 #
 # return a list with elements: log_alpha, iter, iter_accept, last_change, initial_lp, intial_dlp, last_lp, last_dlp, last_d2lp
-fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP,
-                     log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP,
-                     tolSEXP, maxitSEXP, use_priorSEXP) {
-
+fitDispWrapper <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP,
+                            log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP,
+                            tolSEXP, maxitSEXP, use_priorSEXP) {
   # test for any NAs in arguments
-  arg.names <- names(formals(fitDisp))
+  arg.names <- names(formals(fitDispWrapper))
   na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
   if (any(na.test)) stop(paste("in call to fitDisp, the following arguments contain NA:",
                                paste(arg.names[na.test],collapse=", ")))
-
-  .Call("DESeq2_fitDisp", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
-        log_alphaSEXP=log_alphaSEXP, log_alpha_prior_meanSEXP=log_alpha_prior_meanSEXP,
-        log_alpha_prior_sigmasqSEXP=log_alpha_prior_sigmasqSEXP,
-        min_log_alphaSEXP=min_log_alphaSEXP, kappa_0SEXP=kappa_0SEXP,
-        tolSEXP=tolSEXP, maxitSEXP=maxitSEXP, use_priorSEXP=use_priorSEXP,
-        PACKAGE = "DESeq2")
+  fitDisp(ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
+          log_alphaSEXP=log_alphaSEXP, log_alpha_prior_meanSEXP=log_alpha_prior_meanSEXP,
+          log_alpha_prior_sigmasqSEXP=log_alpha_prior_sigmasqSEXP,
+          min_log_alphaSEXP=min_log_alphaSEXP, kappa_0SEXP=kappa_0SEXP,
+          tolSEXP=tolSEXP, maxitSEXP=maxitSEXP, use_priorSEXP=use_priorSEXP)
 }
 
 
@@ -1920,24 +1918,22 @@ fitDisp <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_me
 # useQRSEXP whether to use QR decomposition
 #
 # Note: at this level the betas are on the natural log scale
-fitBeta <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
-                     beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP) {
+fitBetaWrapper <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
+                            beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP) {
   if ( missing(contrastSEXP) ) {
     # contrast is not required, just give 1,0,0,...
     contrastSEXP <- c(1,rep(0,ncol(xSEXP)-1))
   }
   # test for any NAs in arguments
-  arg.names <- names(formals(fitBeta))
+  arg.names <- names(formals(fitBetaWrapper))
   na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
   if (any(na.test)) stop(paste("in call to fitBeta, the following arguments contain NA:",
                                paste(arg.names[na.test],collapse=", ")))
   
-  .Call("DESeq2_fitBeta", ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP,
-        alpha_hatSEXP=alpha_hatSEXP, contrastSEXP=contrastSEXP,
-        beta_matSEXP=beta_matSEXP,
-        lambdaSEXP=lambdaSEXP, tolSEXP=tolSEXP, maxitSEXP=maxitSEXP,
-        useQRSEXP=useQRSEXP,
-        PACKAGE = "DESeq2")
+  fitBeta(ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP, alpha_hatSEXP=alpha_hatSEXP,
+          contrastSEXP=contrastSEXP, beta_matSEXP=beta_matSEXP,
+          lambdaSEXP=lambdaSEXP, tolSEXP=tolSEXP, maxitSEXP=maxitSEXP,
+          useQRSEXP=useQRSEXP)
 }
 
 
@@ -2320,6 +2316,7 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
 }
 
 
+### DEPRECATED ###
 # backup function in case dispersion doesn't converge
 # this functionality is now implemented in Cpp below
 fitDispInR <- function(y, x, mu, logAlphaPriorMean,
@@ -2369,32 +2366,20 @@ fitDispInR <- function(y, x, mu, logAlphaPriorMean,
 # use_priorSEXP boolean variable, whether to use a prior or just calculate the MLE
 #
 # return a list with elements: 
-fitDispGrid <- function (ySEXP, xSEXP, mu_hatSEXP,
-                         disp_gridSEXP,
-                         log_alpha_prior_meanSEXP,
-                         log_alpha_prior_sigmasqSEXP,
-                         use_priorSEXP) {
-  
+fitDispGridWrapper <- function(y, x, mu, logAlphaPriorMean,
+                               logAlphaPriorSigmaSq, usePrior) {
   # test for any NAs in arguments
-  arg.names <- names(formals(fitDispGrid))
+  arg.names <- names(formals(fitDispGridWrapper))
   na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
-  if (any(na.test)) stop(paste("in call to fitDispGrid, the following arguments contain NA:",
+  if (any(na.test)) stop(paste("in call to fitDispGridWrapper, the following arguments contain NA:",
                                paste(arg.names[na.test],collapse=", ")))
- 
-  .Call("DESeq2_fitDispGrid", ySEXP=ySEXP, xSEXP=xSEXP, mu_hatSEXP=mu_hatSEXP,
-        disp_gridSEXP=disp_gridSEXP,
-        log_alpha_prior_meanSEXP=log_alpha_prior_meanSEXP,
-        log_alpha_prior_sigmasqSEXP=log_alpha_prior_sigmasqSEXP,
-        use_priorSEXP=use_priorSEXP,
-        PACKAGE = "DESeq2")
-}
-
-fitDispGridR <- function(y, x, mu, logAlphaPriorMean,
-                            logAlphaPriorSigmaSq, usePrior) {
   minLogAlpha <- log(1e-8)
   maxLogAlpha <- log(max(10, ncol(y)))
   dispGrid <- seq(from=minLogAlpha, to=maxLogAlpha, length=15)
-  logAlpha <- fitDispGrid(y, x, mu, dispGrid, logAlphaPriorMean, logAlphaPriorSigmaSq, usePrior)$log_alpha
+  logAlpha <- fitDispGrid(ySEXP=y, xSEXP=x, mu_hatSEXP=mu, disp_gridSEXP=dispGrid,
+                          log_alpha_prior_meanSEXP=logAlphaPriorMean,
+                          log_alpha_prior_sigmasqSEXP=logAlphaPriorSigmaSq,
+                          use_priorSEXP=usePrior)$log_alpha
   exp(logAlpha)
 }
 

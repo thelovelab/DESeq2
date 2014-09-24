@@ -8,8 +8,8 @@ test_parallel <- function() {
   # without outlier replacement. see DESeq2:::DESeqParallel for the code
   # which is actually used in DESeq()
   
-  parallel <- 3
-  idx <- factor(sort(rep(seq_len(parallel),length=nrow(dds0))))
+  nworkers <- 3
+  idx <- factor(sort(rep(seq_len(nworkers),length=nrow(dds0))))
 
   ### BEGINNING ###
   
@@ -51,8 +51,8 @@ test_parallel <- function() {
   checkEqualsNumeric(res1$log2FoldChange, res2$log2FoldChange)
   checkEqualsNumeric(res1$pvalue, res2$pvalue)
 
-  library(BiocParallel)
+  library("BiocParallel")
   register(SerialParam())
-  dds <- DESeq(dds0, parallel=3)
+  dds <- DESeq(dds0, parallel=TRUE)
   
 }

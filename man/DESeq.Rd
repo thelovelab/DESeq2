@@ -5,7 +5,8 @@
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
-  parallel = 0, minReplicatesForReplace = 7, modelMatrixType)
+  parallel = FALSE, minReplicatesForReplace = 7, modelMatrixType,
+  BPPARAM = bpparam())
 }
 \arguments{
 \item{object}{a DESeqDataSet object, see the constructor functions
@@ -37,9 +38,8 @@ only used by the likelihood ratio test}
 
 \item{quiet}{whether to print messages at each step}
 
-\item{parallel}{if 0, no parallelization, if an integer greater
-than 1, the number of groups to split the genes into for parallel
-execution with BiocParallel}
+\item{parallel}{if FALSE, no parallelization. if TRUE, parallel
+execution using \code{BiocParallel}}
 
 \item{minReplicatesForReplace}{the minimum number of replicates required
 in order to use \code{\link{replaceOutliers}} on a
@@ -55,6 +55,10 @@ level of factors in addition to an intercept. for more information
 see the Description of \code{\link{nbinomWaldTest}}.
 betaPrior must be set to TRUE in order for expanded model matrices
 to be fit.}
+
+\item{BPPARAM}{an optional parameter object passed internally to \code{\link{bplapply}}
+when \code{parallel} is set to an integer greater than 1. If not specified,
+the parameters last registered with \code{\link{register}} will be used.}
 }
 \value{
 a \code{\link{DESeqDataSet}} object with results stored as

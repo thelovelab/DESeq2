@@ -262,14 +262,20 @@ summarizeResults <- function(res, alpha=.1) {
 # unexported
 #####################
 
-DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet, modelMatrixType, parallel) {
+# function to split up DESeqDataSet by rows during easily parallelizable steps
+
+# TODO: recombining the resulting DESeqDataSets using rbind() is a bit wasteful,
+# as the count matrix and GRanges from the original object are unchanged.
+
+DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet, modelMatrixType, BPPARAM) {
 
   # size factors already estimated or supplied
   # break up the object into equal sized chunks
   # to be fed to the different workers
   object <- getBaseMeansAndVariances(object)
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
-  idx <- factor(sort(rep(seq_len(parallel),length=nrow(objectNZ))))
+  nworkers <- BPPARAM$workers
+  idx <- factor(sort(rep(seq_len(nworkers),length=nrow(objectNZ))))
 
   if (missing(modelMatrixType)) {
     modelMatrixType <- NULL
@@ -277,10 +283,10 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
   
   # first parallel execution: gene-wise dispersion estimates
   if (!quiet) message("estimating dispersions")
-  if (!quiet) message(paste("gene-wise dispersion estimates:",parallel,"workers"))
+  if (!quiet) message(paste("gene-wise dispersion estimates:",nworkers,"workers"))
   objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
     estimateDispersionsGeneEst(objectNZ[idx == l,,drop=FALSE], quiet=TRUE)
-  }))
+  }, BPPARAM=BPPARAM))
 
   # the dispersion fit and dispersion prior are estimated over all rows
   if (!quiet) message("mean-dispersion relationship") 
@@ -293,23 +299,23 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
     # if so,
 
     # second parallel execution: fit the final dispersion estimates and MLE betas 
-    if (!quiet) message(paste("final dispersion estimates, MLE betas:",parallel,"workers"))
+    if (!quiet) message(paste("final dispersion estimates, MLE betas:",nworkers,"workers"))
     objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
       objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                             dispPriorVar=dispPriorVar, quiet=TRUE)
       estimateMLEForBetaPriorVar(objectNZSub)
-    }))
+    }, BPPARAM=BPPARAM))
 
     # the beta prior is estimated over all rows
     betaPriorVar <- estimateBetaPriorVar(objectNZ)
 
     # the third parallel execution: the final GLM and statistics
-    if (!quiet) message(paste("fitting model and testing:",parallel,"workers"))
+    if (!quiet) message(paste("fitting model and testing:",nworkers,"workers"))
     if (test == "Wald") {
       objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
         nbinomWaldTest(objectNZ[idx == l,,drop=FALSE], betaPriorVar=betaPriorVar,
                        quiet=TRUE, modelMatrixType=modelMatrixType)
-      }))
+      }, BPPARAM=BPPARAM))
     } else if (test == "LRT") {
       if (missing(modelMatrixType)) {
         modelMatrixType <- "standard"
@@ -318,7 +324,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
         nbinomLRT(objectNZ[idx == l,,drop=FALSE], full=full, reduced=reduced,
                   betaPrior=betaPrior, betaPriorVar=betaPriorVar,
                   quiet=TRUE, modelMatrixType=modelMatrixType)
-      }))
+      }, BPPARAM=BPPARAM))
     }
     
   } else {
@@ -326,21 +332,21 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
     # or, if no beta prior to fit,
  
     # second parallel execution: fit the final dispersion estimates and the final GLM and statistics
-    if (!quiet) message(paste("final dispersion estimates, fitting model and testing:",parallel,"workers"))
+    if (!quiet) message(paste("final dispersion estimates, fitting model and testing:",nworkers,"workers"))
     if (test == "Wald") {
       objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
         objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                               dispPriorVar=dispPriorVar, quiet=TRUE)
         nbinomWaldTest(objectNZSub, betaPrior=betaPrior,
                        quiet=TRUE, modelMatrixType="standard")
-      }))
+      }, BPPARAM=BPPARAM))
     } else if (test == "LRT") {
       objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
         objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                               dispPriorVar=dispPriorVar, quiet=TRUE)
         nbinomLRT(objectNZSub, full=full, reduced=reduced,
                   quiet=TRUE, modelMatrixType="standard")
-      }))
+      }, BPPARAM=BPPARAM))
     }
     
   }
