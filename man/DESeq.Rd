@@ -39,7 +39,7 @@ only used by the likelihood ratio test}
 \item{quiet}{whether to print messages at each step}
 
 \item{parallel}{if FALSE, no parallelization. if TRUE, parallel
-execution using \code{BiocParallel}}
+execution using \code{BiocParallel}, see \code{BPPARAM} below.}
 
 \item{minReplicatesForReplace}{the minimum number of replicates required
 in order to use \code{\link{replaceOutliers}} on a
@@ -56,9 +56,10 @@ see the Description of \code{\link{nbinomWaldTest}}.
 betaPrior must be set to TRUE in order for expanded model matrices
 to be fit.}
 
-\item{BPPARAM}{an optional parameter object passed internally to \code{\link{bplapply}}
-when \code{parallel} is set to an integer greater than 1. If not specified,
-the parameters last registered with \code{\link{register}} will be used.}
+\item{BPPARAM}{an optional parameter object passed internally
+to \code{\link{bplapply}} when \code{parallel=TRUE}.
+If not specified, the parameters last registered with
+\code{\link{register}} will be used.}
 }
 \value{
 a \code{\link{DESeqDataSet}} object with results stored as

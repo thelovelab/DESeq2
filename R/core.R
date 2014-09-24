@@ -95,7 +95,7 @@
 #' only used by the likelihood ratio test
 #' @param quiet whether to print messages at each step
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
-#' execution using \code{BiocParallel}
+#' execution using \code{BiocParallel}, see \code{BPPARAM} below.
 #' @param minReplicatesForReplace the minimum number of replicates required
 #' in order to use \code{\link{replaceOutliers}} on a
 #' sample. If there are samples with so many replicates, the model will
@@ -109,9 +109,10 @@
 #' see the Description of \code{\link{nbinomWaldTest}}.
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
-#' @param BPPARAM an optional parameter object passed internally to \code{\link{bplapply}}
-#' when \code{parallel} is set to an integer greater than 1. If not specified,
-#' the parameters last registered with \code{\link{register}} will be used.
+#' @param BPPARAM an optional parameter object passed internally
+#' to \code{\link{bplapply}} when \code{parallel=TRUE}.
+#' If not specified, the parameters last registered with
+#' \code{\link{register}} will be used.
 #' 
 #' @author Michael Love
 #' 
