@@ -156,8 +156,10 @@ for individual levels, or individual interaction effects.
 Information on the comparison which was used to build the results table,
 and the statistical test which was used for p-values (Wald test or likelihood ratio test)
 is stored within the object returned by \code{results}. This information is in
-the metadata columns of the results table, which is accessible by calling \code{mcol}
+the metadata columns of the results table, which is accessible by calling \code{mcols}
 on the \code{\link{DESeqResults}} object returned by \code{results}.
+
+\strong{On p-values}:
 
 By default, independent filtering is performed to select a set of genes
 for multiple test correction which will optimize the number of adjusted
@@ -168,11 +170,11 @@ is used to perform this filtering, though other statistics can be provided.
 Several arguments from the \code{filtered_p} function of genefilter
 are provided here to control or turn off the independent filtering behavior.
 
-In addition, \code{results} by default assigns a p-value of \code{NA}
+By default, \code{results} assigns a p-value of \code{NA}
 to genes containing count outliers, as identified using Cook's distance.
 See the \code{cooksCutoff} argument for control of this behavior.
 Cook's distances for each sample are accessible as a matrix "cooks"
-stored in the assays() list. This measure is useful for identifying rows where the
+stored in the \code{assays()} list. This measure is useful for identifying rows where the
 observed counts might not fit to a Negative Binomial distribution.
 
 For analyses using the likelihood ratio test (using \code{\link{nbinomLRT}}),
