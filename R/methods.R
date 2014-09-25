@@ -605,7 +605,7 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' or \code{\link{nbinomLRT}}.
 #' @param SE whether to give the standard errors instead of coefficients.
 #' defaults to FALSE so that the coefficients are given.
-#' @param ... ignored
+#' @param ... additional arguments
 #'
 #' @docType methods
 #' @name coef
@@ -631,4 +631,47 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
   } else {
     as.matrix(mcols(object,use.names=TRUE)[paste0("SE_",resNms)])
   }
+}
+
+#' Summarize DESeq results
+#'
+#' Print a summary of the results from a DESeq analysis.
+#'
+#' @usage
+#' \method{summary}{DESeqResults}(object, alpha=.1, \dots)
+#' 
+#' @param object a \code{\link{DESeqResults}} object
+#' @param alpha the adjusted p-value cutoff
+#' @param ... additional arguments
+#'
+#' @docType methods
+#' @name summary
+#' @rdname summary
+#' @aliases summary summary.DESeqResults
+#' @author Michael Love
+#' 
+#' @examples
+#'
+#' example("DESeq")
+#' summary(res)
+#' 
+#' @export
+summary.DESeqResults <- function(object, alpha=.1, ...) {
+  cat("\n")
+  notallzero <- sum(object$baseMean > 0)
+  up <- sum(object$padj < alpha & object$log2FoldChange > 0, na.rm=TRUE)
+  down <- sum(object$padj < alpha & object$log2FoldChange < 0, na.rm=TRUE)
+  filt <- sum(!is.na(object$pvalue) & is.na(object$padj))
+  outlier <- sum(object$baseMean > 0 & is.na(object$pvalue))
+  printsig <- function(x) format(x, digits=2) 
+  cat("out of",notallzero,"with nonzero total read count\n")
+  cat(paste0("adjusted p-value < ",alpha,"\n"))
+  cat(paste0("LFC > 0 (up)     : ",up,", ",printsig(up/notallzero*100),"% \n"))
+  cat(paste0("LFC < 0 (down)   : ",down,", ",printsig(down/notallzero*100),"% \n"))
+  cat(paste0("outliers [1]     : ",outlier,", ",printsig(outlier/notallzero*100),"% \n"))
+  cat(paste0("low counts [2]   : ",filt,", ",printsig(filt/notallzero*100),"% \n"))
+  cat(paste0("(mean count < ",round(attr(object,"filterThreshold"),1),")\n"))
+  cat("[1] see 'cooksCutoff' argument of ?results\n")
+  cat("[2] see 'independentFiltering' argument of ?results\n")
+  cat("\n")
 }

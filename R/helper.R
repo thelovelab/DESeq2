@@ -222,40 +222,6 @@ fpm <- function(object, robust=TRUE) {
   }
 }
 
-#' Summarize DESeq results
-#'
-#' Print a summary of the results from a DESeq analysis.
-#' 
-#' @param res a \code{\link{DESeqResults}} object
-#' @param alpha the adjusted p-value cutoff
-#'
-#' @examples
-#'
-#' example("DESeq")
-#' summarizeResults(res)
-#' 
-#' @export
-summarizeResults <- function(res, alpha=.1) {
-  cat("\n")
-  notallzero <- sum(res$baseMean > 0)
-  up <- sum(res$padj < alpha & res$log2FoldChange > 0, na.rm=TRUE)
-  down <- sum(res$padj < alpha & res$log2FoldChange < 0, na.rm=TRUE)
-  filt <- sum(!is.na(res$pvalue) & is.na(res$padj))
-  outlier <- sum(res$baseMean > 0 & is.na(res$pvalue))
-
-  printsig <- function(x) format(x, digits=2)
-  
-  cat("out of",notallzero,"with nonzero total read count\n")
-  cat(paste0("adjusted p-value < ",alpha,"\n"))
-  cat(paste0("LFC > 0 (up)     : ",up,", ",printsig(up/notallzero*100),"% \n"))
-  cat(paste0("LFC < 0 (down)   : ",down,", ",printsig(down/notallzero*100),"% \n"))
-  cat(paste0("outliers *       : ",outlier,", ",printsig(outlier/notallzero*100),"% \n"))
-  cat(paste0("low counts **    : ",filt,", ",printsig(filt/notallzero*100),"% \n"))
-  cat(paste0("(mean count < ",round(attr(res,"filterThreshold"),1),")\n"))
-  cat("*  see 'cooksCutoff' argument of results()\n")
-  cat("** see 'independentFiltering' argument of results()\n")
-  cat("\n")
-}
 
 
 #####################

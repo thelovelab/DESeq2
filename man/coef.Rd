@@ -14,7 +14,7 @@ or \code{\link{nbinomLRT}}.}
 \item{SE}{whether to give the standard errors instead of coefficients.
 defaults to FALSE so that the coefficients are given.}
 
-\item{...}{ignored}
+\item{...}{additional arguments}
 }
 \description{
 \strong{Note:} results tables with log2 fold change, p-values, adjusted p-values, etc.

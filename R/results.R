@@ -33,7 +33,7 @@
 #' the metadata columns of the results table, which is accessible by calling \code{mcols}
 #' on the \code{\link{DESeqResults}} object returned by \code{results}.
 #'
-#' \strong{On p-values}:
+#' On p-values:
 #' 
 #' By default, independent filtering is performed to select a set of genes
 #' for multiple test correction which will optimize the number of adjusted

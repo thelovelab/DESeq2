@@ -82,6 +82,8 @@ options(digits=3, width=80, prompt=" ", continue=" ")
 
 \tableofcontents
 
+\newpage
+
 \section{Standard workflow}
 
 \subsection{Quick start}
@@ -122,20 +124,19 @@ class of the \Biocpkg{GenomicRanges} package.
 This facilitates preparation steps and also downstream exploration of results. 
 For counting aligned reads in genes, the \Rfunction{summarizeOverlaps} function of
 \Biocpkg{GenomicAlignments} with \Robject{mode="Union"} is
-encouraged, resulting in a \Rclass{SummarizedExperiment} object (\Biocpkg{easyRNASeq}
-is another \Bioconductor{} package which can prepare \Rclass{SummarizedExperiment}
-objects as input for \deseqtwo{}). An example of the steps to produce
-a \Rclass{SummarizedExperiment} can be found in the data package
-\Biocexptpkg{parathyroidSE}, which summarizes RNA-Seq data from experiments on
-4 human cell cultures \cite{Haglund2012Evidence}.
-In this last line of the following code chunk, note that \Robject{dds\$variable} 
-is equivalent to \Robject{colData(dds)\$variable}.
+encouraged, resulting in a \Rclass{SummarizedExperiment} object.
 
-<<loadSumExp,results="hide",cache=TRUE>>=
-library("parathyroidSE")
-data("parathyroidGenesSE")
-se <- parathyroidGenesSE
-colnames(se) <- se$run
+An example of the steps to produce a \Rclass{SummarizedExperiment} can
+be found in an RNA-Seq workflow on the Bioconductor 
+website\footnote{\url{http://www.bioconductor.org/help/workflows/rnaseqGene/}}
+and in the vignette for the data package \Biocexptpkg{airway}.
+Here we load the \Rclass{SummarizedExperiment} from that package in
+order to build a \Rclass{DESeqDataSet}.
+
+<<loadSumExp,cache=TRUE>>=
+library("airway")
+data("airway")
+se <- airway
 @
 
 A \Rclass{DESeqDataSet} object must have an associated design formula.  
@@ -147,18 +148,17 @@ representing the base mean of counts. The design can be changed later,
 however then all differential analysis steps should be repeated, 
 as the design formula is used to estimate the dispersions and 
 to estimate the log2 fold changes of the model. 
-
 The constructor function below shows the generation of a
 \Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}. 
-Note: In order to benefit from the default settings of the package, 
-you should put the variable of interest at the end
-of the formula and make sure the control level is the first level.  
+
+\emph{Note}: In order to benefit from the default settings of the
+package, you should put the variable of interest at the end of the
+formula and make sure the control level is the first level.
 
 <<sumExpInput, cache=TRUE>>=
 library("DESeq2")
-ddsSE <- DESeqDataSet(se = se, design = ~ patient + treatment)
-ddsSE$treatment <- factor(ddsSE$treatment,
-                            levels=c("Control","DPN","OHT"))
+ddsSE <- DESeqDataSet(se, design = ~ cell + dex)
+ddsSE$dex <- relevel(ddsSE$dex, "untrt")
 ddsSE
 @
 
@@ -168,6 +168,8 @@ Alternatively, if you already have prepared a matrix of read counts,
 you can use the function \Rfunction{DESeqDataSetFromMatrix}.
 For this function you should provide the counts matrix, the column
 information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formula.
+First, we load the \Robject{pasillaGenes} data object, in order to
+extract a count matrix and phenotypic data.
 
 <<loadPasilla>>=
 library("pasilla")
@@ -197,21 +199,6 @@ the gene names are already the rownames of the \Robject{dds}.)
 <<addFeatureData>>=
 featureData <- data.frame(gene=rownames(pasillaGenes))
 mcols(dds) <- DataFrame(mcols(dds), featureData)
-@ 
-
-In order to speed up the total running time of the vignette, 
-here subset to only those genes which have
-total counts over all samples greater than 10 reads. 
-We know that these genes
-have counts which are too small to detect significant differences for
-typical RNA-Seq datasets. However, this step is not necessary
-for the \deseqtwo{} method, as the independent filtering step will
-remove these genes before multiple test correction.
-
-<<ddsSubset>>=
-rs <- rowSums(counts(dds))
-table(cut(rs, c(-1,0,10,Inf)))
-dds <- dds[rs > 10,]
 @ 
 
 \subsubsection{\textit{HTSeq} input}
@@ -321,12 +308,11 @@ resOrdered <- res[order(res$padj),]
 head(resOrdered)
 @
 
-<<deseqNoPrior,cache=TRUE,echo=FALSE>>=
-# this chunk is used to demonstrate the shrinkage
-# of log fold changes 
-# note: betaPrior can also be used as an argument to DESeq()
-ddsNoPrior <- nbinomWaldTest(dds,betaPrior=FALSE)
-resNoPrior <- results(ddsNoPrior)
+We can summarize some basic tallies using the
+\Rfunction{summary} function.
+
+<<sumRes>>=
+summary(res)
 @ 
 
 The \Rfunction{results} function contains a number of arguments to 
@@ -383,9 +369,9 @@ The \Rfunction{plotMA} function can also take the \Robject{DESeqDataSet}
 as its first argument, in which case \Rfunction{results} will be called internally.
 
 <<MANoPrior, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
-plotMA(resNoPrior, 
-       main=expression(unshrunken~log[2]~fold~changes), 
-       ylim=c(-2,2))
+resMLE <- results(dds, addMLE=TRUE)
+df <- data.frame(resMLE$baseMean, resMLE$lfcMLE, ifelse(is.na(res$padj), FALSE, res$padj < .1))
+plotMA(df, main=expression(unshrunken~log[2]~fold~changes), ylim=c(-2,2))
 @
 
 After calling \Rfunction{plotMA}, one can use the function
@@ -412,13 +398,15 @@ plotCounts(dds, gene=rownames(resOrdered)[1], intgroup="condition")
 
 For customized plotting, an argument \Robject{returnData} specifies
 that the function should only return a \Rclass{data.frame} for
-plotting with another library.
+plotting with \Rfunction{ggplot}.
 
 <<plotCountsAdv, dev="pdf", fig.width=3.5, fig.height=3.5>>=
 d <- plotCounts(dds, gene=rownames(resOrdered)[1], intgroup="condition", 
                 returnData=TRUE)
-library(ggplot2)
-ggplot(d, aes(x=condition, y=count)) + geom_point()
+library("ggplot2")
+ggplot(d, aes(x=condition, y=count)) + 
+  geom_point(position=position_jitter(w=0.1,h=0)) + 
+  scale_y_log10(breaks=c(25,100,400))
 @ 
 
 \begin{figure}
@@ -447,10 +435,10 @@ means that the treatment induces a change in observed expression level of $2^{-1
 compared to the untreated condition. If the variable of interest is continuous-valued, 
 then the reported log2 fold change is per unit of change of that variable.
 
-Note that some values in the results table can be set to \texttt{NA}, 
+\emph{Note:} some values in the results table can be set to \texttt{NA}, 
 for either one of the following reasons:
 
-  \begin{enumerate} 
+\begin{enumerate} 
   \item If within a row, all samples have zero counts, 
     the \Robject{baseMean} column will be zero, and the
     log2 fold change estimates, $p$ value and adjusted $p$ value
@@ -465,7 +453,18 @@ for either one of the following reasons:
     based on low mean normalized count, then only the adjusted $p$ value is 
     set to \texttt{NA}. Description and customization of independent filtering is 
     described in Section~\ref{sec:autoFilt}.
-  \end{enumerate}
+\end{enumerate}
+
+The column of \Robject{log2FoldChange} for the default workflow will
+contain shrunken estimates of fold change as mentioned above. It is
+possible to add a column to the results table -- without rerunning the
+analysis -- which contains the unshrunken, or maximum likelihood
+estimates (MLE), log2 fold changes. This will add the column
+\Robject{lfcMLE} directly after \Robject{log2FoldChange}.
+
+<<addMLE>>=
+head(results(dds, addMLE=TRUE),4)
+@ 
 
 \subsubsection{Exporting results to HTML or CSV files}
 
@@ -613,24 +612,20 @@ The two functions return \Rclass{SummarizedExperiment} objects, as the
 data are no longer counts. The \Rfunction{assay} function is used to
 extract the matrix of normalized values:
 
-<<echo=FALSE>>=
-ddsblind <- dds
-design(ddsblind) <- ~ 1
-ddsblind <- estimateDispersions(ddsblind)
-ddsblind <- estimateDispersionsFit(ddsblind)
-# we do blind estimation once, then re-use these for both:
-rld <- rlog(ddsblind, blind=FALSE)
-vsd <- varianceStabilizingTransformation(ddsblind, blind=FALSE)
-rlogMat <- assay(rld)
-vstMat <- assay(vsd)
-@ 
-
-<<defvsd,eval=FALSE>>=
+<<rlogAndVST>>=
 rld <- rlog(dds)
 vsd <- varianceStabilizingTransformation(dds)
 rlogMat <- assay(rld)
 vstMat <- assay(vsd)
 @
+
+Note that if you have many samples, and the \Rfunction{rlog} function
+is taking too long, there is an argument \Robject{fast=TRUE}, which
+will perform an approximation of the rlog: instead of shrinking the
+samples independently, the function will find the optimal amount of
+shrinkage for each gene given the mean counts. The optimization is
+performed on the same likelihood of the data as the original rlog.
+The speed-up for a dataset with 100 samples is around 15x.
 
 \subsubsection{Regularized log transformation}
 
@@ -832,6 +827,23 @@ plotPCA(rld, intgroup=c("condition", "type"))
   plot is useful for visualizing the overall effect of experimental
   covariates and batch effects.
 }
+
+It is also possible to customize the PCA plot using the
+\Rfunction{ggplot} function.
+
+<<figPCA2, dev="pdf", fig.width=5, fig.height=3>>=
+data <- plotPCA(rld, intgroup=c("condition", "type"), returnData=TRUE)
+percentVar <- round(100 * attr(data, "percentVar"))
+ggplot(data, aes(PC1, PC2, color=condition, shape=type)) +
+  geom_point(size=4) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance"))
+@
+
+\incfig{figure/figPCA2}{.7\textwidth}{PCA plot.}{
+  PCA plot customized using the \CRANpkg{ggplot2} library.
+}
+
 
 \newpage
 
@@ -1103,23 +1115,23 @@ specified by the \Robject{name} argument:
  \item \Robject{less} - $\beta < -\textrm{lfcThreshold} $
 \end{itemize}
 
-The test \Robject{altHypothesis="lessAbs"} requires that the user have run
-\Rfunction{DESeq} with the argument \Robject{betaPrior=FALSE}. 
-To understand the reason for this requirement, consider that during
-hypothesis testing, the null hypothesis is favored unless the 
-data provide strong evidence to reject the null.
-For this test, including a zero-centered prior on log fold change would favor 
-the alternative hypothesis, shrinking log fold changes toward zero.
-Removing the prior on log fold changes for tests 
-of small log fold change allows for detection of only those 
-genes where the data alone provides evidence against the null.
+The test \Robject{altHypothesis="lessAbs"} requires that the user have
+run \Rfunction{DESeq} with the argument \Robject{betaPrior=FALSE}.  To
+understand the reason for this requirement, consider that during
+hypothesis testing, the null hypothesis is favored unless the data
+provide strong evidence to reject the null.  For this test, including
+a zero-centered prior on log fold change would favor the alternative
+hypothesis, shrinking log fold changes toward zero.  Removing the
+prior on log fold changes for tests of small log fold change allows
+for detection of only those genes where the data alone provides
+evidence against the null.
 
 The four possible values of \Robject{altHypothesis} are demonstrated
 in the following code and visually by MA-plots in Figure~\ref{figure/lfcThresh}. 
 First we run \Rfunction{DESeq} and specify \Robject{betaPrior=FALSE} in order 
 to demonstrate \Robject{altHypothesis="lessAbs"}.
 
-<<ddsNoPriorNotRun, eval=FALSE>>=
+<<ddsNoPrior>>=
 ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
 @
 
@@ -1688,6 +1700,19 @@ using the function \Rfunction{cut}.
 See the manual page for \Rfunction{DESeq}, which links to the 
 subfunctions which are called in order, where complete details are listed.
 
+\section{Acknowledgments}
+
+We have benefited in the development of \deseqtwo{} from the help and
+feedback of many individuals, including but not limited to: 
+The Bionconductor Core Team,
+Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein,
+Vince Carey,
+Devon Ryan, 
+Steve Lianoglou, Jessica Larson, Christina Chaivorapol, Pan Du, Richard Bourgon,
+Willem Talloen, 
+Elin Videvall, Hanneke van Deutekom,
+Todd Burwell.
+
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=
@@ -1697,8 +1722,6 @@ toLatex(sessionInfo())
 <<resetOptions, results="hide", echo=FALSE>>=
 options(prompt="> ", continue="+ ")
 @ 
-
-
 
 \bibliography{library}
 
