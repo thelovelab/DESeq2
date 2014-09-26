@@ -94,8 +94,6 @@
 #' the full model with a term or terms of interest removed,
 #' only used by the likelihood ratio test
 #' @param quiet whether to print messages at each step
-#' @param parallel if FALSE, no parallelization. if TRUE, parallel
-#' execution using \code{BiocParallel}, see \code{BPPARAM} below.
 #' @param minReplicatesForReplace the minimum number of replicates required
 #' in order to use \code{\link{replaceOutliers}} on a
 #' sample. If there are samples with so many replicates, the model will
@@ -109,6 +107,8 @@
 #' see the Description of \code{\link{nbinomWaldTest}}.
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
+#' @param parallel if FALSE, no parallelization. if TRUE, parallel
+#' execution using \code{BiocParallel}, see next argument \code{BPPARAM}
 #' @param BPPARAM an optional parameter object passed internally
 #' to \code{\link{bplapply}} when \code{parallel=TRUE}.
 #' If not specified, the parameters last registered with
@@ -148,8 +148,8 @@
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
                   full=design(object), reduced, quiet=FALSE,
-                  parallel = FALSE, minReplicatesForReplace=7, modelMatrixType,
-                  BPPARAM=bpparam()) {
+                  minReplicatesForReplace=7, modelMatrixType,
+                  parallel=FALSE, BPPARAM=bpparam()) {
   if (missing(test)) {
     test <- match.arg(test, choices=c("Wald","LRT"))
   }

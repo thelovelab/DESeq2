@@ -53,6 +53,7 @@ test_parallel <- function() {
 
   library("BiocParallel")
   register(SerialParam())
-  dds <- DESeq(dds0, parallel=TRUE)
-  
+  dds3 <- DESeq(dds0, parallel=TRUE)
+  res3 <- results(dds3, parallel=TRUE)
+  checkEqualsNumeric(res2$pvalue, res3$pvalue)
 }

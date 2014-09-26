@@ -142,7 +142,13 @@
 #' of log2 fold change should be added as a column to the results table (default is FALSE).
 #' only applicable when a beta prior was used during the model fitting. only implemented
 #' for 'contrast' for three element character vectors or 'name' for interactions.
-#'
+#' @param parallel if FALSE, no parallelization. if TRUE, parallel
+#' execution using \code{BiocParallel}, see next argument \code{BPPARAM}
+#' @param BPPARAM an optional parameter object passed internally
+#' to \code{\link{bplapply}} when \code{parallel=TRUE}.
+#' If not specified, the parameters last registered with
+#' \code{\link{register}} will be used.
+#' 
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
 #' a simple subclass of DataFrame. This object contains the results columns:
 #' \code{baseMean}, \code{log2FoldChange}, \code{lfcSE}, \code{stat},
@@ -227,8 +233,10 @@ results <- function(object, contrast, name,
                     alpha=0.1, filter, theta,
                     pAdjustMethod="BH",
                     format=c("DataFrame","GRanges","GRangesList"),
-                    test,
-                    addMLE=FALSE) {
+                    test, 
+                    addMLE=FALSE,
+                    parallel=FALSE, BPPARAM=bpparam()) {
+
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call DESeq, nbinomWaldTest, or nbinomLRT")
   }
@@ -309,8 +317,24 @@ see the manual page of ?results for more information")
       stop("'contrast', as a list of length 2, should have character vectors as elements,
 see the manual page of ?results for more information")
     }
-    # pass down whether the model matrix type was "expanded"
-    res <- cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues, test=test)
+
+    ### cleanContrast call ###
+    
+    # need to go back to C++ code in order to build the beta covariance matrix
+    # then this is multiplied by the numeric contrast to get the Wald statistic.
+    # with 100s of samples, this can get slow, so offer parallelization
+    res <- if (!parallel) {
+      cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues, test=test)
+    } else if (parallel) {
+      nworkers <- BPPARAM$workers
+      idx <- factor(sort(rep(seq_len(nworkers),length=nrow(object))))
+      do.call(rbind, bplapply(levels(idx), function(l) {
+        cleanContrast(object[idx == l,,drop=FALSE], contrast,
+                      expanded=isExpanded, listValues=listValues, test=test)
+      }, BPPARAM=BPPARAM))
+    }
+
+
   } else {
     # if not performing a contrast
     # pull relevant columns from mcols(object)

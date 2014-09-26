@@ -9,7 +9,8 @@ results(object, contrast, name, lfcThreshold = 0,
   altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
   listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
   alpha = 0.1, filter, theta, pAdjustMethod = "BH",
-  format = c("DataFrame", "GRanges", "GRangesList"), test, addMLE = FALSE)
+  format = c("DataFrame", "GRanges", "GRangesList"), test, addMLE = FALSE,
+  parallel = FALSE, BPPARAM = bpparam())
 
 resultsNames(object)
 
@@ -111,6 +112,14 @@ will generate Wald statistics and Wald test p-values.}
 of log2 fold change should be added as a column to the results table (default is FALSE).
 only applicable when a beta prior was used during the model fitting. only implemented
 for 'contrast' for three element character vectors or 'name' for interactions.}
+
+\item{parallel}{if FALSE, no parallelization. if TRUE, parallel
+execution using \code{BiocParallel}, see next argument \code{BPPARAM}}
+
+\item{BPPARAM}{an optional parameter object passed internally
+to \code{\link{bplapply}} when \code{parallel=TRUE}.
+If not specified, the parameters last registered with
+\code{\link{register}} will be used.}
 }
 \value{
 For \code{results}: a \code{\link{DESeqResults}} object, which is
