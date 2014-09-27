@@ -8,7 +8,6 @@ using namespace Rcpp;
 // user includes
 #include <R.h>
 #include <Rmath.h>
-#include <stdio.h>
 #include <R_ext/Utils.h>
 
 // this function returns the log posterior of dispersion parameter alpha, for negative binomial variables
