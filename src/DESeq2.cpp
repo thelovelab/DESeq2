@@ -92,6 +92,9 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
   return(res);
 }
 
+// Obtain the MLE or MAP dispersion estimate using line search.
+// fitting occurs on the scale of log(alpha)
+//
 // [[Rcpp::export]]
 Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP use_priorSEXP) {
   Rcpp::NumericMatrix y(ySEXP);
@@ -122,12 +125,12 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
     Rcpp::checkUserInterrupt();
     Rcpp::NumericMatrix::Row yrow = y(i,_);
     Rcpp::NumericMatrix::Row mu_hat_row = mu_hat(i,_);
-    // maximize the log likelihood over the variable a, the log of alpha, the dispersion parameter
+    // maximize the log likelihood over the variable a, the log of alpha, the dispersion parameter.
     // in order to express the optimization in a typical manner, 
     // for calculating theta(kappa) we multiple the log likelihood by -1 and seek a minimum
     a = log_alpha(i);
-    // we use a line search based on the Armijo rule
-    // define a function theta(kappa) = f(a + kappa * d), where d is the search direction
+    // we use a line search based on the Armijo rule.
+    // define a function theta(kappa) = f(a + kappa * d), where d is the search direction.
     // in this case the search direction is taken by the first derivative of the log likelihood
     lp = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
     dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
@@ -203,6 +206,9 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
 			    Rcpp::Named("last_d2lp",last_d2lp));
 }
 
+// fit the Negative Binomial GLM.
+// note: the betas are on the natural log scale
+//
 // [[Rcpp::export]]
 Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP) {
   arma::mat y = Rcpp::as<arma::mat>(ySEXP);
@@ -334,7 +340,7 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
 
 
 // evaluates the log posterior over a grid of values for B
-// note: the calculations here are on the log2 scale
+// note: the betas are on the log2 scale
 //
 // [[Rcpp::export]]
 Rcpp::List rlogGrid(SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP interceptSEXP, SEXP bgridSEXP, SEXP betapriorvarSEXP) {

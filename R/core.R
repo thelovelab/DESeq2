@@ -1,3 +1,44 @@
+############################################################
+#
+# DESeq2 organization of R files
+#
+# core.R ......... most of the statistical code (example call below)
+# methods.R ...... the S4 methods (estimateSizeFactors, etc.)
+# AllClasses.R ... class definitions and object constructors
+# AllGenerics.R .. the generics defined in DESeq2
+# results.R ...... results() function and helpers
+# plots.R ........ all plotting functions
+# helper.R ....... collapseReplicates, fpkm, fpm, DESeqParallel
+# expanded.R ..... helpers for dealing with expanded model matrices
+# RcppExports.R .. the R wrappers for the C++ functions
+# rlogTransformation.R
+# varianceStabilizingTransformation.R
+#
+# general outline of the internal function calls.
+# note: not all of these functions are exported.
+#
+# DESeq
+# |- estimateSizeFactors
+#    |- estimateSizeFactorsForMatrix
+# |- estimateDispersions
+#    |- estimateDispersionsGeneEst
+#       |- fitNbinomGLMs
+#          |- fitBeta (C++)
+#       |- fitDisp (C++)
+#    |- estimateDispersionsFit
+#    |- estimateDispersionsMAP
+#       |- estimateDispersionPriorVar
+#       |- fitDisp (C++)
+# |- nbinomWaldTest
+#    |- fitGLMsWithPrior
+#       |- fitNbinomGLMs
+#          |- fitBeta (C++)
+#       |- estimateBetaPriorVar
+#       |- fitNbinomGLMs
+#          |- fitBeta (C++)
+#
+############################################################
+
 #' Differential expression analysis based on the Negative Binomial (a.k.a. Gamma-Poisson) distribution
 #'
 #' This function performs a default analysis through the steps:
