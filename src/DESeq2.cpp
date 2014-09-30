@@ -240,12 +240,17 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
   double large = 30.0;
   Rcpp::NumericVector iter(y_n);
   Rcpp::NumericVector deviance(y_n);
+  // bound the estimated count, as weights include 1/mu
+  double minmu = 0.1;
   for (int i = 0; i < y_n; i++) {
     Rcpp::checkUserInterrupt();
     nfrow = nf.row(i).t();
     yrow = y.row(i).t();
     beta_hat = beta_mat.row(i).t();
     mu_hat = nfrow % exp(x * beta_hat);
+    for (int j = 0; j < y_m; j++) {
+      mu_hat(j) = fmax(mu_hat(j), minmu);
+    }
     ridge = diagmat(lambda);
     dev = 0.0;
     dev_old = 0.0;
@@ -272,6 +277,9 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
 	  break;
 	}
 	mu_hat = nfrow % exp(x * beta_hat);
+	for (int j = 0; j < y_m; j++) {
+	  mu_hat(j) = fmax(mu_hat(j), minmu);
+	}
 	dev = 0.0;
 	for (int j = 0; j < y_m; j++) {
 	  // note the order for Rf_dnbinom_mu: x, sz, mu, lg
@@ -300,6 +308,9 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
 	  break;
 	}
 	mu_hat = nfrow % exp(x * beta_hat);
+	for (int j = 0; j < y_m; j++) {
+	  mu_hat(j) = fmax(mu_hat(j), minmu);
+	}
 	dev = 0.0;
 	for (int j = 0; j < y_m; j++) {
 	  // note the order for Rf_dnbinom_mu: x, sz, mu, lg

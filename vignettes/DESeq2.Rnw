@@ -158,7 +158,6 @@ formula and make sure the control level is the first level.
 <<sumExpInput, cache=TRUE>>=
 library("DESeq2")
 ddsSE <- DESeqDataSet(se, design = ~ cell + dex)
-ddsSE$dex <- relevel(ddsSE$dex, "untrt")
 ddsSE
 @
 
@@ -186,8 +185,6 @@ we can construct a \Rclass{DESeqDataSet}:
 dds <- DESeqDataSetFromMatrix(countData = countData,
                               colData = colData,
                               design = ~ condition)
-dds$condition <- factor(dds$condition,
-                        levels=c("untreated","treated"))
 dds
 @
 
@@ -198,7 +195,7 @@ the gene names are already the rownames of the \Robject{dds}.)
 
 <<addFeatureData>>=
 featureData <- data.frame(gene=rownames(pasillaGenes))
-mcols(dds) <- DataFrame(mcols(dds), featureData)
+(mcols(dds) <- DataFrame(mcols(dds), featureData))
 @ 
 
 \subsubsection{\textit{HTSeq} input}
@@ -239,8 +236,6 @@ sampleTable <- data.frame(sampleName = sampleFiles,
 ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
                                        directory = directory,
                                        design= ~ condition)
-ddsHTSeq$condition <- factor(ddsHTSeq$condition,
-                             levels=c("untreated","treated"))
 ddsHTSeq
 @
 
@@ -365,11 +360,21 @@ either up or down.
 plotMA(res, main="DESeq2", ylim=c(-2,2))
 @
 
-The \Rfunction{plotMA} function can also take the \Robject{DESeqDataSet}
-as its first argument, in which case \Rfunction{results} will be called internally.
+The MA-plot of log2 fold changes returned by \deseqtwo{} allows us to
+see how the shrinkage of fold changes works for genes with low
+counts. You can still obtain results tables which include the
+``unshrunken'' log2 fold changes (for a simple comparison, the ratio
+of the mean normalized counts in the two groups). A column
+\Robject{lfcMLE} with the unshrunken maximum likelihood estimate (MLE)
+for the log2 fold change will be added with an additional argument to
+\Rfunction{results}:
+
+<<resMLE>>=
+resMLE <- results(dds, addMLE=TRUE)
+head(resMLE, 4)
+@ 
 
 <<MANoPrior, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
-resMLE <- results(dds, addMLE=TRUE)
 df <- data.frame(resMLE$baseMean, resMLE$lfcMLE, ifelse(is.na(res$padj), FALSE, res$padj < .1))
 plotMA(df, main=expression(unshrunken~log[2]~fold~changes), ylim=c(-2,2))
 @
@@ -882,7 +887,6 @@ again used to extract test results of log2 fold changes of interest.
 
 Further examples of the use of contrasts can be found in
 the examples of the help page for the \Rfunction{results} function.
-
 The formula that is used to generate the contrasts can be
 found in Section~\ref{sec:ctrstTheory}.
 
@@ -899,28 +903,20 @@ interaction model are shown in the help page for \Rfunction{results}.
 
 \subsection{Time-series experiments}
 
-As with models containing interaction terms, there are a number of
-ways to analyze time-series experiments, depending on the biological
-question of interest. In order to test for any differences over
-multiple time points, once can use a design including the time factor,
-and then test using the likelihood ratio test as described in
-Section~\ref{sec:LRT}, where the time factor is removed in the reduced
-formula. For a control and treatment time series, one can use a design
-formula containing the condition factor, the time factor, and the
-interaction of the two. In this case, using the likelihood ratio test
-with a reduced model which does not contain the interaction term will
-test whether the condition induces a change in gene expression at any
-time point after the base-level time point (time 0).
-
-Effects at individual time points can also be investigated using
-interactions, however we note that testing all combinations
-of time points and conditions is just one approach to exploring time
-course data. We also suggest that users consider applying
-transformations which stabilize the variance of the count data, as
-described in Section~\ref{sec:transf}. This transformed data can then
-be used for exploratory data analysis, by selecting a subset of genes
-which has the highest variance and then using other packages to
-perform gene clustering.
+There are a number of ways to analyze time-series experiments,
+depending on the biological question of interest. In order to test for
+any differences over multiple time points, once can use a design
+including the time factor, and then test using the likelihood ratio
+test as described in Section~\ref{sec:LRT}, where the time factor is
+removed in the reduced formula. For a control and treatment time
+series, one can use a design formula containing the condition factor,
+the time factor, and the interaction of the two. In this case, using
+the likelihood ratio test with a reduced model which does not contain
+the interaction terms will test whether the condition induces a change
+in gene expression at any time point after the base-level time point
+(time 0). An example of the later analysis is provided in an RNA-Seq
+workflow on the Bioconductor
+website\footnote{\url{http://www.bioconductor.org/help/workflows/rnaseqGene/}}.
 
 \subsection{Approach to count outliers} \label{sec:outlierApproach}
 
@@ -1042,7 +1038,7 @@ for \Rfunction{dispersionFunction}. In the last line, the function
 fitted dispersions to generate maximum \textit{a posteriori} (MAP)
 estimates of dispersion. 
 
-<<dispFitCustom, eval=FALSE>>=
+<<dispFitCustom>>=
 ddsCustom <- dds
 useForMedian <- mcols(ddsCustom)$dispGeneEst > 1e-7
 medianDisp <- median(mcols(ddsCustom)$dispGeneEst[useForMedian],na.rm=TRUE)
@@ -1479,12 +1475,15 @@ It shows how the filtering ameliorates the multiple testing problem
 -- and thus the severity of a multiple testing adjustment -- by
 removing a background set of hypotheses whose $p$ values are distributed
 more or less uniformly in $[0,1]$.
+
 <<histindepfilt, dev="pdf", fig.width=7, fig.height=5>>=
 use <- res$baseMean > attr(res,"filterThreshold")
 table(use)
 h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
 h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
 colori <- c(`do not pass`="khaki", `pass`="powderblue")
+@ 
+
 <<fighistindepfilt>>=
 barplot(height = rbind(h1$counts, h2$counts), beside = FALSE,
         col = colori, space = 0, main = "", ylab="frequency")
@@ -1506,17 +1505,20 @@ The Benjamini-Hochberg multiple testing adjustment
 procedure \cite{BH:1995} has a simple graphical illustration, which we
 produce in the following code chunk. Its result is shown in the left
 panel of Figure \ref{figmulttest}.
-%
+
 <<sortP, cache=TRUE>>=
 resFilt <- res[use & !is.na(res$pvalue),]
 orderInPlot <- order(resFilt$pvalue)
 showInPlot <- (resFilt$pvalue[orderInPlot] <= 0.08)
 alpha <- 0.1
+@ 
+
 <<sortedP, fig.width=4.5, fig.height=4.5>>=
 plot(seq(along=which(showInPlot)), resFilt$pvalue[orderInPlot][showInPlot],
      pch=".", xlab = expression(rank(p[i])), ylab=expression(p[i]))
 abline(a=0, b=alpha/length(resFilt$pvalue), col="red3", lwd=2)
 @
+
 <<doBH, echo=FALSE, results="hide">>=
 whichBH <- which(resFilt$pvalue[orderInPlot] <= alpha * seq(along=resFilt$pvalue)/length(resFilt$pvalue))
 whichBH <- seq_len(max(whichBH))
@@ -1529,16 +1531,16 @@ stopifnot(length(whichBH)>0,
           resFilt$padj[orderInPlot][ whichBH] <= alpha,
           resFilt$padj[orderInPlot][-whichBH]  > alpha)
 @
-%
+
 Schweder and Spj\o{}tvoll \cite{SchwederSpjotvoll1982} suggested a diagnostic plot
 of the observed $p$-values which permits estimation of the fraction of true null
 hypotheses. For a series of hypothesis tests $H_1, \ldots, H_m$ with $p$-values
 $p_i$, they suggested plotting
-%
+
 \begin{equation}
   \left( 1-p_i, N(p_i) \right) \mbox{ for } i \in 1, \ldots, m,
 \end{equation}
-%
+
 where $N(p)$ is the number of $p$-values greater than $p$. An application of
 this diagnostic plot to \Robject{resFilt\$pvalue} is shown in the right panel of
 Figure \ref{figmulttest}.
@@ -1555,24 +1557,25 @@ $F_0$ but shows a steep increase towards 1 as $t$ approaches $1$.
 In practice, we do not know which of the null hypotheses are true, so we can
 only observe a mixture whose cumulative distribution function is expected to be
 close to
-%
+
 \begin{equation}
   F(t) = \frac{m_0}{m} F_0(t) + \frac{m-m_0}{m} F_1(t).
 \end{equation}
-%
+
 Such a situation is shown in the right panel of
 Figure \ref{figmulttest}. If
 $F_1(t)/F_0(t)$ is small for small $t$, then the mixture fraction
 $\frac{m_0}{m}$ can be estimated by fitting a line to the left-hand portion of
 the plot, and then noting its height on the right. Such a fit is shown by the
 red line in the right panel of Figure \ref{figmulttest}.
-%
+
 <<SchwSpjot, echo=FALSE, results="hide">>=
 j  <- round(length(resFilt$pvalue)*c(1, .66))
 px <- (1-resFilt$pvalue[orderInPlot[j]])
 py <- ((length(resFilt$pvalue)-1):0)[j]
 slope <- diff(py)/diff(px)
 @
+
 <<SchwederSpjotvoll, fig.width=4.5, fig.height=4.5>>=
 plot(1-resFilt$pvalue[orderInPlot],
      (length(resFilt$pvalue)-1):0, pch=".",

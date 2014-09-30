@@ -495,16 +495,20 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
   stopifnot(length(niter) == 1 & niter > 0)
 
-  # iterate between mean and dispersion estimation (niter) times
+  # below, iterate between mean and dispersion estimation (niter) times
   fitidx <- rep(TRUE,nrow(objectNZ))
   mu <- matrix(0, nrow=nrow(objectNZ), ncol=ncol(objectNZ))
   dispIter <- numeric(nrow(objectNZ))
+  # bound the estimated count at 0.1.
+  # this helps make the fitting more robust,
+  # because 1/mu occurs in the weights for the NB GLM
+  minmu <- 0.1
   for (iter in seq_len(niter)) {
     fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],
                          alpha_hat=alpha_hat[fitidx],
                          modelMatrix=modelMatrix)
     fitMu <- fit$mu
-    fitMu[fitMu < .01] <- .01
+    fitMu[fitMu < minmu] <- minmu
     mu[fitidx,] <- fitMu
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
