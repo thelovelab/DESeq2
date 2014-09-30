@@ -5,6 +5,10 @@ Michael Love, Wolfgang Huber, Simon Anders
 <!-- this document built with knit() in R -->
 <!-- pandoc -o simulation.pdf simulation.md -->
 
+```{r options, echo=FALSE, results="hide"}
+opts_chunk$set(dev="pdf")
+```
+
 Document compiled on:
 
 ```{r time, echo=FALSE}
