@@ -502,7 +502,7 @@ resSig
 \subsection{Multi-factor designs} \label{sec:multifactor}
 
 Experiments with more than one factor influencing the counts can be 
-easily analyzed using model formula including the additional variables. 
+analyzed using model formula including the additional variables. 
 The data in the \Biocexptpkg{pasilla} package have a condition of interest 
 (the column \Robject{condition}), as well as information on the type of sequencing 
 which was performed (the column \Robject{type}), as we can see below:
@@ -1080,9 +1080,12 @@ of the \Biocpkg{genefilter} package, and all of the arguments of \Rfunction{filt
 can be passed to the \Rfunction{results} function. 
 The filter threshold value and the number of rejections at each quantile
 of the filter statistic are available as attributes of the object 
-returned by \Rfunction{results}. For example, we can easily visualize
+returned by \Rfunction{results}. For example, we can visualize
 the optimization by plotting the \Robject{filterNumRej} attribute of 
-the results object, as seen in Figure \ref{figure/filtByMean}.
+the results object, as seen in Figure \ref{figure/filtByMean}. Note
+that if the maximum number of rejections is very small such that the
+line of rejections over filter threshold appears noisy, the expected
+false discovery rate might not be held exactly for this small set.
 
 <<filtByMean, dev="pdf">>=
 attr(res,"filterThreshold")
@@ -1700,18 +1703,16 @@ manual page for \Rfunction{?DESeq}.
 
 \subsection{How can I include a continuous covariate in the design formula?}
 
-Continuous covariates can be easily included in the design formula 
-in the same manner as factorial covariates. Continuous covariates 
-might make sense in certain experiments, where 
-a constant fold change might be expected for each unit
-of the covariate.
-However, in many cases, more meaningful results can be obtained by
-cutting continuous covariates into a factor defined over a 
-small number of bins (e.g. 3-5).
-In this way, the average effect of each group is controlled for, 
-regardless of the trend over the continuous covariates. 
-In R, \Rclass{numeric} vectors can be converted into \Rclass{factors} 
-using the function \Rfunction{cut}.
+Continuous covariates can be included in the design formula in the
+same manner as factorial covariates. Continuous covariates might make
+sense in certain experiments, where a constant fold change might be
+expected for each unit of the covariate.  However, in many cases, more
+meaningful results can be obtained by cutting continuous covariates
+into a factor defined over a small number of bins (e.g. 3-5).  In this
+way, the average effect of each group is controlled for, regardless of
+the trend over the continuous covariates.  In R, \Rclass{numeric}
+vectors can be converted into \Rclass{factors} using the function
+\Rfunction{cut}.
 
 \subsection{What are the exact steps performed by \Rfunction{DESeq()}?}
 
