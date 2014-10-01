@@ -581,11 +581,26 @@ where $n$ represents the count values and $n_0$ is a positive constant.
 In this section, we discuss two alternative
 approaches that offer more theoretical justification and a rational way
 of choosing the parameter equivalent to $n_0$ above.
-One method incorporates priors on the sample differences \cite{Love:2014:biorxiv},
+The \emph{regularized logarithm} or \emph{rlog} incorporates a prior on
+the sample differences \cite{Love:2014:biorxiv}, 
 and the other uses the concept of variance stabilizing
-transformations \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
+transformations (VST) \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
 Both transformations produce transformed data on the $\log_2$ scale
 which has been normalized with respect to library size.
+
+The point of these two transformations, the \emph{rlog} and the VST,
+is to remove the dependence of the variance on the mean,
+particularly the high variance of the logarithm of count data when the
+mean is low. Both \emph{rlog} and VST use the experiment-wide trend
+of variance over mean, in order to transform the data to remove the
+experiment-wide trend. Note that we do not require or
+desire that all the genes have \emph{exactly} the same variance after
+transformation. Indeed, in Figure~\ref{figvsd2} below, you will see
+that after the transformations the genes with the same mean do not
+have exactly the same standard deviations, but that the
+experiment-wide trend has flattened. It is those genes with row
+variance above the trend which will allow us to cluster samples into
+interesting groups.
 
 \subsubsection{Blind dispersion estimation}
 
@@ -714,7 +729,7 @@ legend("bottomright",
        fill=vstcol)
 @
 
-Figure \ref{figvsd2} plots the standard deviation of the transformed
+Figure~\ref{figvsd2} plots the standard deviation of the transformed
 data, across samples, against the mean, using the shifted
 logarithm transformation (\ref{eq:shiftedlog}), the
 regularized log transformation and the variance stabilizing transformation.
