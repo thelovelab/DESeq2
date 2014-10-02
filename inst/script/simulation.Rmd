@@ -36,6 +36,11 @@ group has m/2 samples). 10,000 genes were simulated, and each
 combination of parameters was repeated 6 times.
 The code to generate these results is in `simulateDE.R`.
 
+Note: in the results *SAMseq* denotes running *SAMseq* with *p* value
+estimation and Benjamini-Hochberg adjustment for FDR, while
+*SAMseq-FDR* denotes the native FDR estimation and no *p* value
+estimation. *EBSeq* likewise only produces FDR. 
+
 ```{r loadDE}
 load("results_simulateDE.RData")
 res$m <- factor(res$m)
@@ -43,11 +48,12 @@ levels(res$m) <- paste0("m=",levels(res$m))
 res$effSize <- factor(res$effSize)
 levels(res$effSize) <- c("fold change 2","fold change 3","fold change 4")
 res$algorithm <- factor(res$algorithm)
+resClean <- res[!is.na(res$oneminusspecpvals),]
 ```
 
 ```{r simulateDE, fig.width=7, fig.height=5, fig.cap="Sensitivity and specificity on simulated datasets."}
 library("ggplot2")
-p <- ggplot(res, aes(y=sensitivity, x=oneminusspecpvals, color=algorithm, shape=algorithm))
+p <- ggplot(resClean, aes(y=sensitivity, x=oneminusspecpvals, color=algorithm, shape=algorithm))
 p + geom_point() + theme_bw() + facet_grid(effSize ~ m) +
   scale_shape_manual(values=1:9) +
   xlab("1 - specificity (false positive rate)") + 
