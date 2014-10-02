@@ -127,9 +127,9 @@ runSAMseqFDR <- function(e) {
   capture.output({samfit <- SAMseq(x, y, resp.type = "Two class unpaired", fdr.output=1)})
   padj <- rep(1,nrow(e))
   idx <- as.numeric(samfit$siggenes.table$genes.up[,"Gene Name"])
-  padj[idx] <- samfit$siggenes.table$genes.up[,"q-value(%)"]
+  padj[idx] <- 1/100 * as.numeric(samfit$siggenes.table$genes.up[,"q-value(%)"])
   idx <- as.numeric(samfit$siggenes.table$genes.lo[,"Gene Name"])
-  padj[idx] <- samfit$siggenes.table$genes.lo[,"q-value(%)"]  
+  padj[idx] <- 1/100 * as.numeric(samfit$siggenes.table$genes.lo[,"q-value(%)"])
   beta <- log2(samfit$samr.obj$foldchange)
   pvals <- rep(NA,nrow(e))
   list(pvals=pvals,padj=padj,beta=beta)
@@ -149,6 +149,7 @@ runEBSeq <- function(e) {
   # we use 1 - PPDE for the FDR cutoff as this is recommended in the EBSeq vignette
   padj[match(rownames(res$PPMat), rownames(e))] <- res$PPMat[,"PPEE"]
   beta <- rep(0, nrow(exprs(e)))
-  list(pvals=padj, padj=padj, beta=beta)
+  pvals <- rep(NA,nrow(e))
+  list(pvals=pvals, padj=padj, beta=beta)
 }
 

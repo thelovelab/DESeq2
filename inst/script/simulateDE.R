@@ -40,7 +40,7 @@ resList <- bplapply(seq_along(ms), function(i) {
   sens <- sapply(resTest, function(z) mean((z$padj < .1)[sensidx]))
   rmf <- cut(rowMeans(mat), c(0, 20, 100, 300, Inf), include.lowest=TRUE)
   levels(rmf) <- paste0("sens",c("0to20","20to100","100to300","more300"))
-  sensStratified <- t(sapply(resTest, function(z) tapply( (z$padj < .1)[sensidx], rmf[sensidx], mean)))
+  sensStratified <- t(sapply(resTest, function(z) tapply((z$padj < .1)[sensidx], rmf[sensidx], mean)))
   oneminusspecpvals <- sapply(resTest, function(z) mean((z$pvals < .01)[beta == 0 & nonzero], na.rm=TRUE))
   oneminusspecpadj <- sapply(resTest, function(z) mean((z$padj < .1)[beta == 0 & nonzero], na.rm=TRUE))
   oneminusprec <- sapply(resTest, function(z) {
