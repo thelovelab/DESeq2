@@ -31,6 +31,7 @@ res <- do.call(rbind, lapply(seq_along(dispScales), function(idx) {
         mdp$disp <- mdp$disp * dispScale
         mat0 <- makeSim(n,m,x,beta,mdp,sf)$mat
         mat <- mat0[,5:20]
+        mode(mat) <- "integer"
         condition <- droplevels(condition0[5:20])
         dds <- DESeqDataSetFromMatrix(mat, DataFrame(condition), ~ 1)
         dds <- estimateSizeFactors(dds)
