@@ -57,5 +57,7 @@ res <- do.call(rbind, resList)
 
 res$algorithm <- factor(res$algorithm, namesAlgos)
 
-save(res, namesAlgos, file="results_simulateDE.RData")
+sessInfo <- sessionInfo()
+
+save(res, namesAlgos, sessInfo, file="results_simulateDE.RData")
 

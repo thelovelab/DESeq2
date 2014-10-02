@@ -23,7 +23,7 @@ summarizeDESeqRun <- function(x,Wald=TRUE) {
   cat(paste(as.character(design(dds)),collapse=""),"\n")
   cat(paste(nrow(dds),"genes",ncol(dds),"samples \n"))
   cat(paste(round(unname(time[3])),"seconds \n"))
-  summarizeResults(res)
+  summary(res)
   if (Wald) {
     par(mfrow=c(2,2))
     yext <- max(abs(res$log2FoldChange),na.rm=TRUE)
@@ -127,9 +127,6 @@ fissionRes <- list(name="fission", time=time, res=res, dds=dds)
 rm(time, res, dds)
 ```
 
-
-
-
 ```{r plotAirway, fig.width=9, fig.height=9}
 summarizeDESeqRun(airwayRes)
 ```
@@ -163,4 +160,14 @@ library("ggplot2")
 ggplot(data, aes(minute, count, color=strain, group=strain)) +
   ylab("log2 count") + geom_point() + geom_smooth(se=FALSE,method="loess") +
   ggtitle(gene)
+```
+
+```{r}
+sapply(list(airway=airwayRes, pasilla=pasillaRes, hammer=hammerRes,
+            bottomly=bottomlyRes, parathyroid=parathyroidRes, fission=fissionRes),
+       function(z) unname(z$time[3]))
+```
+
+```{r}
+sessionInfo()
 ```

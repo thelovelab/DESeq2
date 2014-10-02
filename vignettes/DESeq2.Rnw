@@ -296,9 +296,28 @@ $p$ values. With no arguments to \Rfunction{results}, the results will be for
 the last variable in the design formula, and if this is a factor, 
 the comparison will be the last level of this variable over the first level. 
 
-<<deseq,cache=TRUE>>=
+<<deseq, cache=TRUE>>=
 dds <- DESeq(dds)
 res <- results(dds)
+@ 
+
+These steps should take less than 30 seconds for most analyses. For
+experiments with many samples (e.g. 100 samples), one can take
+advantage of parallelized computation.  Both of the above functions
+have an argument \Robject{parallel} which if set to \Robject{TRUE} can
+be used to distribute computation across cores specified by the
+\Rfunction{register} function of \Biocpkg{BiocParallel}. For example,
+the following chunk (not evaluated here), would register 4 cores, and
+then the two functions above would split computation over these cores.
+
+<<parallel, eval=FALSE>>=
+library("BiocParallel")
+register(MulticoreParam(4))
+@
+
+We can order our results table by the smallest adjusted $p$ value:
+
+<<resOrder>>=
 resOrdered <- res[order(res$padj),]
 head(resOrdered)
 @
@@ -395,10 +414,11 @@ plot is \Rfunction{plotCounts}, which normalizes counts by sequencing depth
 and adds a pseudocount of $\frac{1}{2}$ to allow for log scale plotting.
 The counts are grouped by the variables in \Robject{intgroup}, where
 more than one variable can be specified. Here we specify the gene
-which had the smallest $p$ value from the results table created above.
+which had the smallest $p$ value from the results table created
+above. You can select the gene to plot by rowname or by numeric index.
 
 <<plotCounts, dev="pdf", fig.width=4.5, fig.height=5>>=
-plotCounts(dds, gene=rownames(resOrdered)[1], intgroup="condition")
+plotCounts(dds, gene=which.min(res$padj), intgroup="condition")
 @ 
 
 For customized plotting, an argument \Robject{returnData} specifies
@@ -406,7 +426,7 @@ that the function should only return a \Rclass{data.frame} for
 plotting with \Rfunction{ggplot}.
 
 <<plotCountsAdv, dev="pdf", fig.width=3.5, fig.height=3.5>>=
-d <- plotCounts(dds, gene=rownames(resOrdered)[1], intgroup="condition", 
+d <- plotCounts(dds, gene=which.min(res$padj), intgroup="condition", 
                 returnData=TRUE)
 library("ggplot2")
 ggplot(d, aes(x=condition, y=count)) + 

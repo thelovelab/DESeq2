@@ -340,22 +340,8 @@ bars are 95 percent confidence intervals.
 
 ## Session information
 
-Load the following libraries used in the simulation scripts.
+The session information saved in the `simulateDE` script:
 
 ```{r}
-library("Biobase")
-library("DESeq2")
-library("edgeR")
-library("limma")
-library("samr")
-library("DSS")
-library("EBSeq")
-library("PoiClaClu")
-library("mclust")
+sessInfo
 ```
-
-```{r}
-sessionInfo()
-```
-
-

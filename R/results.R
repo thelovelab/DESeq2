@@ -249,9 +249,13 @@ results <- function(object, contrast, name,
     stop("the LRT requires the user run nbinomLRT or DESeq(dds,test='LRT')")
   }
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
-
   if (addMLE & !attr(object,"betaPrior")) {
     stop("addMLE=TRUE is only for when a beta prior was used. otherwise, the log2 fold changes are already MLE")
+  }
+  if (format == "GRanges" & is(rowData(object),"GRangesList")) {
+    if (any(elementLengths(rowData(object)) == 0)) {
+      stop("rowData is GRangesList and one or more GRanges have length 0. Use format='DataFrame' or 'GRangesList'")
+    }
   }
   
   # check for intercept
