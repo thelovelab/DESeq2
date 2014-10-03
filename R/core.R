@@ -1769,6 +1769,8 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   }
   modelMatrixNames <- colnames(modelMatrix)
 
+  stopifnot(all(colSums(abs(modelMatrix)) > 0))
+  
   if (renameCols) {
     convertNames <- renameModelMatrixColumns(as.data.frame(colData(object)),
                                              modelFormula)
@@ -1906,8 +1908,9 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
     logLike <- resOptim$logLike
   }
 
+  stopifnot(!any(is.na(betaSE)))
   nNonposVar <- sum(rowSums(betaSE == 0) > 0)
-  if (warnNonposVar & nNonposVar > 0) warning(nNonposVar,"rows had non-positive estimates of variance for coefficients, likely due to rank deficient model matrices without betaPrior")
+  if (warnNonposVar & nNonposVar > 0) warning(nNonposVar,"rows had non-positive estimates of variance for coefficients")
   
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
        betaSE = betaSE, mu = mu, betaIter = betaRes$iter,
@@ -2315,6 +2318,7 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
                                beta_mat,
                                mu,logLike) {
   scaleCols <- apply(modelMatrix,2,function(z) max(abs(z)))
+  stopifnot(all(scaleCols > 0))
   x <- sweep(modelMatrix,2,scaleCols,"/")
   lambdaColScale <- lambda / scaleCols^2
   lambdaColScale <- ifelse(lambdaColScale == 0, 1e-6, lambdaColScale)
