@@ -203,7 +203,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
   if (betaPrior & !hasIntercept) {
     stop("betaPrior=TRUE can only be used if the design has an intercept.
-i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
+  if specifying + 0 in the design formula, use betaPrior=FALSE")
   }
   attr(object, "betaPrior") <- betaPrior
   stopifnot(length(parallel) == 1 & is.logical(parallel))
@@ -464,6 +464,11 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
   if (missing(modelMatrix)) {
     modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+    if (qr(modelMatrix)$rank < ncol(modelMatrix)) {
+      stop("the model matrix is not full rank, so the model cannot be fit as specified.
+  one or more variables or interaction terms in the design formula
+  are linear combinations of the others and must be removed")
+    } 
   } else {
     message("using supplied model matrix")
   }
@@ -575,10 +580,10 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
   useForFit <- mcols(objectNZ)$dispGeneEst > 100*minDisp
   if (sum(useForFit) == 0) {
     stop("all gene-wise dispersion estimates are within 2 orders of magnitude
-from the minimum value, and so the standard curve fitting techniques will not work.
-One can instead use the gene-wise estimates as final estimates:
-dds <- estimateDispersionsGeneEst(dds)
-dispersions(dds) <- mcols(dds)$dispGeneEst")
+  from the minimum value, and so the standard curve fitting techniques will not work.
+  One can instead use the gene-wise estimates as final estimates:
+  dds <- estimateDispersionsGeneEst(dds)
+  dispersions(dds) <- mcols(dds)$dispGeneEst")
   }
   
   # take the first fitType
@@ -593,8 +598,8 @@ dispersions(dds) <- mcols(dds)$dispGeneEst")
       dispFit <- dispFunction(mcols(objectNZ)$baseMean)
     } else {
       message("NOTE: fitType='parametric', but the dispersion trend was not well captured by the
-function: y = a/x + b, and a local regression fit was automatically substituted.
-specify fitType='local' or 'mean' to avoid this message next time.")
+  function: y = a/x + b, and a local regression fit was automatically substituted.
+  specify fitType='local' or 'mean' to avoid this message next time.")
       fitType <- "local"
     }
   }
@@ -975,15 +980,15 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
   if (betaPrior & !hasIntercept) {
     stop("betaPrior=TRUE can only be used if the design has an intercept.
-i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
+  if specifying + 0 in the design formula, use betaPrior=FALSE")
   }
   
   # if there are interaction terms present in the design
   # then we should only use the prior on the interaction terms
   if (any(termsOrder > 2) & modelMatrixType == "expanded") {
     stop("interactions higher than 2nd order and usage of expanded model matrices
-has not been implemented. we recommend instead using a likelihood
-ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
+  has not been implemented. we recommend instead using a likelihood
+  ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
   }
 
   if (!betaPrior) {
@@ -1383,14 +1388,14 @@ nbinomLRT <- function(object, full=design(object), reduced,
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
   if (betaPrior & !hasIntercept) {
     stop("betaPrior=TRUE can only be used if the design has an intercept.
-i.e., if specifying + 0 in the design formula, use betaPrior=FALSE")
+  if specifying + 0 in the design formula, use betaPrior=FALSE")
   }
 
   # if there are interaction terms present in the design
   # then we should only use the prior on the interaction terms
   if (any(termsOrder > 2) & modelMatrixType == "expanded") {
     stop("interactions higher than 2nd order and usage of expanded model matrices
-has not been implemented")
+  has not been implemented")
   }
 
   # store modelMatrixType so it can be accessed by estimateBetaPriorVar

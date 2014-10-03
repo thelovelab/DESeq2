@@ -25,16 +25,16 @@ setValidity( "DESeqDataSet", function( object ) {
   designVarsClass <- sapply(designVars, function(v) class(colData(object)[[v]]))
   if (any(designVarsClass == "character")) {
     return("variables in design formula are character vectors.
-convert these columns of colData(object) to factors before including in the design formula")
+  convert these columns of colData(object) to factors before including in the design formula")
   }
   designFactors <- designVars[designVarsClass == "factor"]
   if (any(sapply(designFactors,function(v) any(table(colData(object)[[v]]) == 0)))) {
     return("factors in design formula must have samples for each level.
-this error can arise when subsetting a DESeqDataSet, in which
-all the samples for one or more levels of a factor in the design were removed.
-if this was intentional, use droplevels() to remove these levels, e.g.:
+  this error can arise when subsetting a DESeqDataSet, in which
+  all the samples for one or more levels of a factor in the design were removed.
+  if this was intentional, use droplevels() to remove these levels, e.g.:
 
-dds$condition <- droplevels(dds$condition)
+  dds$condition <- droplevels(dds$condition)
 ")
   }
   TRUE
@@ -148,9 +148,9 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     }
     if (warnIntVars) {
       message(paste0("the design formula contains a numeric variable with integer values,
-specifying a model with increasing fold change for higher values.
-did you mean for this to be a factor? if so, first convert
-this variable to a factor using the factor() function"))
+  specifying a model with increasing fold change for higher values.
+  did you mean for this to be a factor? if so, first convert
+  this variable to a factor using the factor() function"))
     }
   }
 
@@ -166,7 +166,9 @@ this variable to a factor using the factor() function"))
   modelMatrix <- model.matrix(design, data=as.data.frame(colData(se)))
   if (!ignoreRank) {
     if (qr(modelMatrix)$rank < ncol(modelMatrix)) {
-      stop("the model matrix is not full rank, i.e. one or more variables in the design formula are linear combinations of the others")
+      stop("the model matrix is not full rank, so the model cannot be fit as specified.
+  one or more variables or interaction terms in the design formula
+  are linear combinations of the others and must be removed")
     }
   }
 
@@ -180,7 +182,11 @@ this variable to a factor using the factor() function"))
     for (cSyn in controlSynonyms) {
       if (cSyn %in% lastDVLvls) {
         if (cSyn != lastDVLvls[1]) {
-          message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"', has a factor level, '",cSyn,"', which is not the base level. we recommend to use factor(...,levels=...) or relevel() to set this as the base level before proceeding. for more information, please see the 'Note on factor levels' in vignette('DESeq2')."))
+          message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"',
+  has a factor level, '",cSyn,"', which is not the base level. we recommend
+  to use factor(...,levels=...) or relevel() to set this as the base level
+  before proceeding. for more information, please see the 'Note on factor levels'
+  in vignette('DESeq2')."))
         }
       }
     }
@@ -232,9 +238,9 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, ignoreRank=FALSE
     if (all(sort(rownames(colData)) == sort(colnames(countData)))) {
       if (!all(rownames(colData) == colnames(countData))) {
         stop(paste("rownames of the colData:
-",paste(rownames(colData),collapse=","),"
-are not in the same order as the colnames of the countData:
-",paste(colnames(countData),collapse=",")))
+  ",paste(rownames(colData),collapse=","),"
+  are not in the same order as the colnames of the countData:
+  ",paste(colnames(countData),collapse=",")))
       }
     }
   }
