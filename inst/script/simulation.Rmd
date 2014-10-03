@@ -25,23 +25,24 @@ http://dx.doi.org/10.1101/002832
 ## Differential expression analysis
 
 We assessed the sensitivity and specificity of various algorithms
-using simulation to complement on analysis on real data. The following
-Negative Binomial simulation samples mean and dispersions from the joint distribution of
-estimated mean and dispersion from the Pickrell et al dataset. The
-true differences between two groups are drawn from either *z*, *0* or
-*-z*, where the *0* component represents 80% of the genes. The
-absolute value of the effect size *z* for the 20% of genes with differential
-expression is varied, as is the total sample size m (such that each
-group has m/2 samples). 10,000 genes were simulated, and each
-combination of parameters was repeated 6 times.
-The code to generate these results is in `simulateDE.R`.
+using simulation to complement an analysis on real data. The following
+Negative Binomial simulation samples (mean, dispersion) pairs from the
+joint distribution of estimated means and dispersions from the Pickrell
+et al dataset. The true differences between two groups are drawn from
+either *z*, *0* or *-z*, where the *0* component represents 80% of the
+genes. The absolute value of the effect size *z* for the 20% of genes
+with differential expression is varied, as is the total sample size m
+(such that each group has m/2 samples). 10,000 genes were simulated,
+and each combination of parameters was repeated 6 times.  The code to
+generate these results is in `simulateDE.R` and the code to run each
+algorithm is in `runScripts.R`.
 
 Note: *DSS* denotes running *DSS* and then Benjamini-Hochberg
-adjustment on *p* values. *DSS-FDR* denotes the native FDR estimation
+adjustment on *p*-values. *DSS-FDR* denotes the native FDR estimation
 of the *DSS* software. 
-*SAMseq* denotes running *SAMseq* with *p* value
+*SAMseq* denotes running *SAMseq* with *p*-value
 estimation and Benjamini-Hochberg adjustment for FDR.
-*SAMseq-FDR* denotes the native FDR estimation and no *p* value
+*SAMseq-FDR* denotes the native FDR estimation and no *p*-value
 estimation. *EBSeq* likewise only produces FDR.
 
 ```{r loadDE}
@@ -68,13 +69,13 @@ p + geom_point() + theme_bw() + facet_grid(effSize ~ m) +
 Use of simulation to assess the sensitivity and specificity of
 algorithms across combinations of sample size and effect size. The
 sensitivity was calculated as the fraction of genes with adjusted
-p-value less than 0.1 among the genes with true differences between
+*p*-value less than 0.1 among the genes with true differences between
 group means. The specificity was calculated as the fraction of genes
-with p-value greater than 0.01 among the genes with no true
-differences between group means.  The p-value was chosen instead of
-the adjusted p-value, as this allows for comparison against the
-expected fraction of p-values less than a critical value given the
-uniformity of p-values under the null hypothesis. 
+with *p*-value greater than 0.01 among the genes with no true
+differences between group means.  The *p*-value was chosen instead of
+the adjusted *p*-value, as this allows for comparison against the
+expected fraction of *p*-values less than a critical value given the
+uniformity of *p*-values under the null hypothesis. 
 
 ```{r simulateDEPrec, fig.width=7, fig.height=5, fig.cap="Sensitivity and precision on simulated datasets."}
 library("ggplot2")
@@ -88,10 +89,10 @@ p + geom_point() + theme_bw() + facet_grid(effSize ~ m) +
 
 Sensitivity and precision of algorithms across combinations of sample
 size and effect size. The sensitivity was calculated as the fraction
-of genes with adjusted p-value less than 0.1 among the genes with true
+of genes with adjusted *p*-value less than 0.1 among the genes with true
 differences between group means.  The precision was calculated as the
 fraction of genes with true differences between group means among
-those with adjusted p-value less than 0.1.
+those with adjusted *p*-value less than 0.1.
 
 ```{r simulateDESensStratify, fig.width=7, fig.height=5, fig.cap="Sensitivity dependence on mean count."}
 library("reshape")
@@ -141,7 +142,7 @@ levels(res$percentOutlier) <- paste0(levels(res$percentOutlier),"% outlier")
 Because the sensitivity-specificity curve is evaluated using the p
 value, we use fhe following code to pick out the point on the
 sensitivity-specificity curve with largest p value such that the
-nominal adjusted p-value is less than 0.1.
+nominal adjusted *p*-value is less than 0.1.
 
 ```{r}
 resSensPadj <- res[res$senspadj < .1,]
@@ -170,8 +171,8 @@ expression, while for 20% of the genes true logarithmic (base 2)
 fold changes of -1 or 1. The number of genes with simulated outliers
 was increased from 0% to 15%. The outliers were constructed for a
 gene by multiplying the count of a single sample by 100.  Sensitivity
-and specificity were calculated by thresholding on p-values. Points
-indicate an adjusted p-value of 0.1. DESeq2 filters genes with
+and specificity were calculated by thresholding on *p*-values. Points
+indicate an adjusted *p*-value of 0.1. DESeq2 filters genes with
 potential outliers for samples with 3 to 6 replicates, while replacing
 outliers for samples with 7 or more replicates, hence the filtering
 can be turned off for the top row (m=10) and the replacement can be
@@ -184,16 +185,16 @@ p + scale_x_continuous(breaks=c(0,.1,.2)) +
   geom_line() + theme_bw() + 
   facet_grid(m ~ percentOutlier) + 
   geom_abline(intercept=0,slope=1) +
-  xlab("adjusted p-value") + ylab("1 - precision (FDR)") + 
+  xlab("adjusted *p*-value") + ylab("1 - precision (FDR)") + 
   coord_cartesian(xlim=c(-.03, .25), ylim=c(-.05, .25)) + 
   geom_point(aes(x=precpadj, y=oneminusprec, shape=algorithm),
              data=res[res$precpadj == .1,])
 ```
 
 Outlier handling: One minus the precision (false discovery rate)
-plotted over various thresholds of adjusted p-value. Shown is the
+plotted over various thresholds of adjusted *p*-value. Shown is the
 results for the same simulation with outliers described in the
-previous figure. Points indicate an adjusted p-value of 0.1.
+previous figure. Points indicate an adjusted *p*-value of 0.1.
 
 ## Accuracy of log fold change estimates
 
