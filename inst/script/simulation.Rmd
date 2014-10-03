@@ -36,10 +36,13 @@ group has m/2 samples). 10,000 genes were simulated, and each
 combination of parameters was repeated 6 times.
 The code to generate these results is in `simulateDE.R`.
 
-Note: in the results *SAMseq* denotes running *SAMseq* with *p* value
-estimation and Benjamini-Hochberg adjustment for FDR, while
+Note: *DSS* denotes running *DSS* and then Benjamini-Hochberg
+adjustment on *p* values. *DSS-FDR* denotes the native FDR estimation
+of the *DSS* software. 
+*SAMseq* denotes running *SAMseq* with *p* value
+estimation and Benjamini-Hochberg adjustment for FDR.
 *SAMseq-FDR* denotes the native FDR estimation and no *p* value
-estimation. *EBSeq* likewise only produces FDR. 
+estimation. *EBSeq* likewise only produces FDR.
 
 ```{r loadDE}
 load("results_simulateDE.RData")

@@ -92,6 +92,22 @@ runDSS <- function(e) {
   list(pvals=pvals, padj=padj, beta=( log2(exp(1)) * result$lfc ))
 }
 
+runDSSFDR <- function(e) {
+  X <- as.matrix(exprs(e))
+  colnames(X) <- NULL
+  designs <- as.character(pData(e)$condition)
+  seqData <- newSeqCountSet(X, designs)
+  seqData <- estNormFactors(seqData)
+  seqData <- estDispersion(seqData)
+  result <- waldTest(seqData, "B", "A")
+  result <- result[match(rownames(seqData),rownames(result)),]
+  pvals <- result$pval
+  pvals[rowSums(exprs(e)) == 0] <- NA
+  padj <- result$fdr
+  padj[is.na(padj)] <- 1
+  list(pvals=pvals, padj=padj, beta=( log2(exp(1)) * result$lfc ))
+}
+
 runVoom <- function(e) {
   design <- model.matrix(~ condition, pData(e))
   dgel <- DGEList(exprs(e))

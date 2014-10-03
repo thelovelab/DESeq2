@@ -8,8 +8,11 @@ library("samr")
 library("DSS")
 library("EBSeq")
 source("runScripts.R")
-algos <- list("DESeq2"=runDESeq2,"edgeR"=runEdgeR,"edgeR-robust"=runEdgeRRobust,
-              "DSS"=runDSS,"voom"=runVoom,"SAMseq"=runSAMseq,"SAMseq-FDR"=runSAMseqFDR,
+algos <- list("DESeq2"=runDESeq2,
+              "edgeR"=runEdgeR,"edgeR-robust"=runEdgeRRobust,
+              "DSS"=runDSS,"DSS-FDR"=runDSSFDR,
+              "voom"=runVoom,
+              "SAMseq"=runSAMseq,"SAMseq-FDR"=runSAMseqFDR,
               "EBSeq"=runEBSeq)
 namesAlgos <- names(algos)
 

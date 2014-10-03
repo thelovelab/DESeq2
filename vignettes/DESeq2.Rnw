@@ -1681,7 +1681,20 @@ requests to optimize the process:
 \subsection{Why are some $p$ values set to \texttt{NA}?}
   
 See the details in Section~\ref{sec:moreInfo}.  
-  
+
+\subsection{How can I get unfiltered DESeq results?}
+
+Users can obtain unfiltered GLM results, i.e. without outlier removal
+or independent filtering with the following call:
+
+<<vanillaDESeq, eval=FALSE>>=
+dds <- DESeq(dds, minReplicatesForReplace=Inf)
+res <- results(dds, cooksCutoff=FALSE, independentFiltering=FALSE)
+@
+
+In this case, the only $p$ values set to \Robject{NA} are those from
+genes with all counts equal to zero.
+
 \subsection{How do I use the variance stabilized or rlog 
   transformed data for differential testing?}
   
