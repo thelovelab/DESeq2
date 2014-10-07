@@ -186,7 +186,11 @@
 #' results(dds, contrast=c("group","Y","X"))
 #' # the interaction term
 #' results(dds, name="groupY.conditionB")
-#'
+#' # the condition effect in group B
+#' results(dds, contrast=c(0,0,1,1))
+#' # or, equivalently using list:
+#' results(dds, contrast=list(c("condition_B_vs_A","groupY.conditionB"),
+#'                            character()))
 #' 
 #' ## Example 3: two conditions, three groups, with interaction terms
 #' 

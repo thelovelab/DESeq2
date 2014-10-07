@@ -468,7 +468,12 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
       stop("the model matrix is not full rank, so the model cannot be fit as specified.
   one or more variables or interaction terms in the design formula
   are linear combinations of the others and must be removed")
-    } 
+    }
+    if (nrow(modelMatrix) == ncol(modelMatrix)) {
+      stop("the number of samples and the number of model coefficients are equal,
+  i.e., there are no replicates to estimate the dispersion.
+  use an alternate design formula")
+    }
   } else {
     message("using supplied model matrix")
   }
