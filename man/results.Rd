@@ -26,13 +26,15 @@ the \code{object} to build a results table. one of either:
 \itemize{
  \item a character vector with exactly three elements:
 the name of a factor in the design formula,
-the name of the numerator level for the log2 fold change,
-and the name of the denominator level for the log2 fold change
-(most simple case)
- \item a list of two character vectors: the names of the effects
-for the numerator, and the names of the effects for denominator.
+the name of the numerator level for the fold change,
+and the name of the denominator level for the fold change
+(simplest case)
+ \item a list of 2 character vectors: the names of the fold changes
+for the numerator, and the names of the fold changes
+for the denominator.
 these names should be elements of \code{resultsNames(object)}.
-one list element can be the empty vector \code{character()}.
+if the list is length 1, a second element is added which is the
+empty character vector, \code{character()}.
 (more general case, can be to combine interaction terms and main effects)
  \item a numeric contrast vector with one element
 for each element in \code{resultsNames(object)} (most general case)
@@ -69,10 +71,9 @@ p-values are the maximum of the upper and lower tests.
 }}
 
 \item{listValues}{only used if a list is provided to \code{contrast}:
-a numeric of length two, giving the values to assign to the first and
-second elements of the list, which should be positive and negative,
-respectively, to specify the numerator and denominator. by default
-this is \code{c(1,-1)}}
+a numeric of length two: the log2 fold changes in the list are multiplied by these values.
+the first number should be positive and the second negative.
+by default this is \code{c(1,-1)}}
 
 \item{cooksCutoff}{theshold on Cook's distance, such that if one or more
 samples for a row have a distance higher, the p-value for the row is
@@ -217,9 +218,8 @@ results(dds, contrast=c("group","Y","X"))
 results(dds, name="groupY.conditionB")
 # the condition effect in group B
 results(dds, contrast=c(0,0,1,1))
-# or, equivalently using list:
-results(dds, contrast=list(c("condition_B_vs_A","groupY.conditionB"),
-                           character()))
+# or, equivalently using list to add these two effects
+results(dds, contrast=list(c("condition_B_vs_A","groupY.conditionB")))
 
 ## Example 3: two conditions, three groups, with interaction terms
 

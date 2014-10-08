@@ -49,7 +49,7 @@ library("DESeq2")
   \Biocpkg{limma}.}. 
   This vignette explains the use of the package and demonstrates typical workflows.  
   An RNA-Seq workflow on the Bioconductor 
-  website\footnote{\url{http://www.bioconductor.org/help/workflows/rnaseqGene/}}
+  website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}
   (formerly the Beginner's Guide PDF), covers similar material to this
   vignette but at a slower pace, including the generation of count
   matrices from FASTQ files.
@@ -128,7 +128,7 @@ encouraged, resulting in a \Rclass{SummarizedExperiment} object.
 
 An example of the steps to produce a \Rclass{SummarizedExperiment} can
 be found in an RNA-Seq workflow on the Bioconductor 
-website\footnote{\url{http://www.bioconductor.org/help/workflows/rnaseqGene/}}
+website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}
 and in the vignette for the data package \Biocexptpkg{airway}.
 Here we load the \Rclass{SummarizedExperiment} from that package in
 order to build a \Rclass{DESeqDataSet}.
@@ -163,8 +163,8 @@ ddsSE
 
 \subsubsection{Count matrix input}
 
-Alternatively, if you already have prepared a matrix of read counts,
-you can use the function \Rfunction{DESeqDataSetFromMatrix}.
+Alternatively, the function \Rfunction{DESeqDataSetFromMatrix} can be
+used if you already have a matrix of read counts prepared.
 For this function you should provide the counts matrix, the column
 information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formula.
 First, we load the \Robject{pasillaGenes} data object, in order to
@@ -200,13 +200,13 @@ featureData <- data.frame(gene=rownames(pasillaGenes))
 
 \subsubsection{\textit{HTSeq} input}
 
-If you have \texttt{htseq-count} from the \textit{HTSeq} python package\footnote{available from 
-  \url{http://www-huber.embl.de/users/anders/HTSeq}, described in \cite{Anders:2014:htseq}}
-you can use the function \Rfunction{DESeqDataSetFromHTSeqCount}.  For an
-example of using the python scripts, see the \Biocexptpkg{pasilla} or
-\Biocexptpkg{parathyroid} data package. 
-First you will want to specify a variable which points to the 
-directory in which the \textit{HTSeq} output files are located.
+You can use the function \Rfunction{DESeqDataSetFromHTSeqCount} if you
+have \texttt{htseq-count} from the \textit{HTSeq} python  
+package\footnote{available from \url{http://www-huber.embl.de/users/anders/HTSeq}, described in \cite{Anders:2014:htseq}}.  
+For an example of using the python scripts, see the
+\Biocexptpkg{pasilla} data package. First you will want to specify a
+variable which points to the directory in which the \textit{HTSeq}
+output files are located. 
 
 <<htseqDirI, eval=FALSE>>=
 directory <- "/path/to/your/files/"
@@ -308,7 +308,8 @@ have an argument \Robject{parallel} which if set to \Robject{TRUE} can
 be used to distribute computation across cores specified by the
 \Rfunction{register} function of \Biocpkg{BiocParallel}. For example,
 the following chunk (not evaluated here), would register 4 cores, and
-then the two functions above would split computation over these cores.
+then the two functions above, with \Robject{parallel=TRUE}, would
+split computation over these cores. 
 
 <<parallel, eval=FALSE>>=
 library("BiocParallel")
@@ -562,7 +563,8 @@ $p$ values of the \Robject{type} variable. The \Robject{contrast} argument of
 the function \Rfunction{results} takes a character vector of length three:
 the name of the variable, the name of the factor level for the numerator
 of the log2 ratio, and the name of the factor level for the denominator.
-Contrasts are described in more detail in Section~\ref{sec:contrasts}.
+The \Robject{contrast} argument can also take other forms, as
+described in the help page for \Rfunction{results} and in Section~\ref{sec:contrasts}.
 
 <<multiTypeResults>>=
 resMFType <- results(ddsMF, contrast=c("type","single-read","paired-end"))
@@ -903,27 +905,33 @@ dds <- nbinomWaldTest(dds)
 
 \subsection{Contrasts} \label{sec:contrasts}
 
-A contrast is a linear combination of factor level means, which can be
-used to test if differences between groups are actually zero.
-The simplest use case for contrasts is an experimental design 
-containing a factor with three levels, say A, B and C.
-Contrasts enable the user to generate results for all 3
-possible differences: log2 fold change of B vs A, of C vs A,
-and of C vs B (the other three possible pairs will simply have
-$-1 \times$ the log2 fold changes of these three). 
+A contrast is a linear combination of estimated log2 fold changes,
+which can be used to test if differences between groups are equal to
+zero.  The simplest use case for contrasts is an experimental design
+containing a factor with three levels, say A, B and C.  Contrasts
+enable the user to generate results for all 3 possible differences:
+log2 fold change of B vs A, of C vs A, and of C vs B (the other three
+possible pairs will simply have $-1 \times$ the log2 fold changes of
+these three).
 
-In order to fit models with ``shrunken'' log2 fold changes 
-in a manner which is independent to the choice of base level,
-\deseqtwo{} uses ``expanded model matrices'', described further in 
-Section~\ref{sec:expanded}. The expanded model matrices 
-include a coefficient for each level of the factors in addition to an intercept. 
+In order to fit models with ``shrunken'' log2 fold changes in a manner
+which is independent to the choice of base level, \deseqtwo{} uses
+``expanded model matrices'', described further in
+Section~\ref{sec:expanded}. The expanded model matrices include a
+coefficient for each level of the factors in addition to an intercept.
 The \Robject{contrast} argument of \Rfunction{results} function is
 again used to extract test results of log2 fold changes of interest.
 
-Further examples of the use of contrasts can be found in
-the examples of the help page for the \Rfunction{results} function.
-The formula that is used to generate the contrasts can be
-found in Section~\ref{sec:ctrstTheory}.
+Log2 fold changes can also be added and subtracted by providing a
+\Robject{list} to the \Robject{contrast} argument with two elements:
+the names of the log2 fold changes to add, and the names of the log2
+fold changes to subtract.  Alternatively, a numeric vector of the
+length of \Robject{resultsNames(dds)} can be provided, for manually
+specifying the linear combination of terms.  Demonstrations of the use
+of contrasts for various designs can be found in the examples section
+of the help page for the \Rfunction{results} function.  The formula
+that is used to generate the contrasts can be found in
+Section~\ref{sec:ctrstTheory}.
 
 \subsection{Interactions} \label{sec:interaction}
 
@@ -934,7 +942,8 @@ treatment effect of a drug is differs based on another
 grouping variable like sex or species. Interactions
 are specified in R formula using a colon, \Robject{:}, between the two
 variables names. Demonstrations of extracting results from an
-interaction model are shown in the help page for \Rfunction{results}.
+interaction model are shown in the examples section of the help page
+for \Rfunction{results}. 
 
 \subsection{Time-series experiments}
 
@@ -951,7 +960,35 @@ the interaction terms will test whether the condition induces a change
 in gene expression at any time point after the base-level time point
 (time 0). An example of the later analysis is provided in an RNA-Seq
 workflow on the Bioconductor
-website\footnote{\url{http://www.bioconductor.org/help/workflows/rnaseqGene/}}.
+website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}.
+
+\subsection{Likelihood ratio test} \label{sec:LRT}
+
+\deseqtwo{} offers two kinds of hypothesis tests: the Wald test, where
+we use the estimated standard error of a log2 fold change to test if it is
+equal to zero, and the likelihood ratio test (LRT). The LRT examines
+two models for the counts, a \emph{full} model with a certain number
+of terms and a \emph{reduced} model, in which some of the terms of the
+\emph{full} model are removed. The test determines if the increased
+likelihood of the data using the extra terms in the \emph{full} model
+is more than expected if those extra terms are truly zero.
+
+The LRT is therefore useful for testing multiple
+terms at once, for example testing 3 or more levels of a factor at once,
+or all interactions between two variables. 
+The LRT for count data is conceptually similar to an analysis of variance (ANOVA)
+calculation in linear regression, except that in the case of the Negative
+Binomial GLM, we use an analysis of deviance (ANODEV), where the
+\emph{deviance} captures the difference in likelihood between a full
+and a reduced model.
+
+The likelihood ratio test can be specified using the \Robject{test}
+argument to \Rfunction{DESeq}, which substitutes
+\Rfunction{nbinomWaldTest} with \Rfunction{nbinomLRT}.  In this case,
+the user needs to provide a reduced formula, e.g. one in which a
+number of terms from \Robject{design(dds)} are removed.
+The degrees of freedom for the test is obtained from the difference
+between the number of parameters in the two models.
 
 \subsection{Approach to count outliers} \label{sec:outlierApproach}
 
@@ -1008,26 +1045,6 @@ sufficient replicates and a row contains a count with very high Cook's
 distance.  \Rfunction{DESeq} preserves the original counts in
 \Robject{counts(dds)} saving the replacement counts as a matrix named
 \Robject{replaceCounts} in \Robject{assays(dds)}.
-
-\subsection{Likelihood ratio test} \label{sec:LRT}
-
-One reason to use the likelihood ratio test is in order to test the 
-null hypothesis that log2 fold changes for multiple levels of a factor, 
-or for multiple variables, such as all interactions between two variables,
-are equal to zero. This is conceptually similar to an analysis of variance (ANOVA)
-calculation for linear regression, except the case of the Negative
-Binomial GLM, we use an analysis of deviance (ANODEV), where the
-\emph{deviance} captures the difference in likelihood between a full
-and a reduced model.
-
-The likelihood ratio test can be specified using the \Robject{test}
-argument to \Rfunction{DESeq}, which substitutes
-\Rfunction{nbinomWaldTest} with \Rfunction{nbinomLRT}.  In this case,
-the user needs to provide a reduced formula, e.g. one which does not
-contain the variable of interest. The full formula is the one
-specified by \Robject{design(dds)}.  The degrees of freedom for the
-test is obtained from the difference between the number of parameters
-in the two models.
 
 \subsection{Dispersion plot and fitting alternatives}
 
@@ -1336,7 +1353,7 @@ The coefficients $\beta_i$ give the log2 fold changes for gene $i$ for each
 column of the model matrix $X$. 
 
 By default these log2 fold changes are the maximum \emph{a priori} estimates after incorporating a
-zero-centered Normal prior -- in the software referrred to as a $\beta$-prior -- hence \deseqtwo
+zero-centered Normal prior -- in the software referrred to as a $\beta$-prior -- hence \deseqtwo{}
 provides ``moderated'' log2 fold change estimates.  Dispersions are estimated using expected mean
 values from the maximum likelihood estimate of log2 fold changes, and optimizing the Cox-Reid
 adjusted profile likelihood, as first implemented for RNA-Seq data in \Biocpkg{edgeR}
