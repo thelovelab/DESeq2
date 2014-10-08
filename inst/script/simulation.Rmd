@@ -380,7 +380,7 @@ pvals <- sapply(ii, function(i) {
   mat <- matrix(as.integer(c(rep(0,m/2),rep(10^i,m/2))),nrow=1)
   dds <- DESeqDataSetFromMatrix(mat, coldata, ~ x)
   sizeFactors(dds) <- rep(1,m)
-  dispersions(dds) <- 0.5
+  dispersions(dds) <- disp
   results(nbinomWaldTest(dds))$pvalue
 })
 plot(10^ii, -log10(pvals), log="x", type="b", xaxt="n",

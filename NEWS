@@ -1,3 +1,22 @@
+CHANGES IN VERSION 1.6.0
+------------------------
+
+    o DESeq() and results() gets a 'parallel' argument.
+
+    o results() gets an 'addMLE' argument.
+
+    o results() gets a 'test' argument, for constructing Wald tests
+      after DESeq() was run using the likelihood ratio test.
+
+    o results() argument 'format' for GRanges or GRangesList results.
+
+    o new plotCounts() function.
+
+    o Less outlier calling from Cook's distance for analyses with 
+      many samples and many conditions.
+
+    o More robust beta prior variance and log fold change shrinkage.
+
 CHANGES IN VERSION 1.5.70
 -------------------------
 
