@@ -541,7 +541,9 @@ these column could have come in during colData import")
   modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))  
   noReps <- nrow(modelMatrix) == ncol(modelMatrix)
   if (noReps) {
-    if (!quiet) message("same number of samples and coefficients to fit, estimating dispersion by treating samples as replicates")
+    if (!quiet) warning("same number of samples and coefficients to fit,
+  estimating dispersion by treating samples as replicates.
+  read the ?DESeq section on 'Experiments without replicates'")
     designIn <- design(object)
     design(object) <- formula(~ 1)
   }
