@@ -24,7 +24,7 @@ for the type of fitting of dispersions to the mean intensity.
 See \code{\link{estimateDispersions}} for description.}
 
 \item{betaPrior}{whether or not to put a zero-mean normal prior on
-the non-intercept coefficients (Tikhonov/ridge regularization)
+the non-intercept coefficients
 See \code{\link{nbinomWaldTest}} for description of the calculation
 of the beta prior. By default, the beta prior is used only for the
 Wald test, but can also be specified for the likelihood ratio test.}

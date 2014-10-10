@@ -11,7 +11,7 @@ nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
 \item{object}{a DESeqDataSet}
 
 \item{betaPrior}{whether or not to put a zero-mean normal prior on
-the non-intercept coefficients (Tikhonov/ridge regularization)}
+the non-intercept coefficients}
 
 \item{betaPriorVar}{a vector with length equal to the number of
 model terms including the intercept.
@@ -62,7 +62,8 @@ is assumed. The variance of the prior distribution for each
 non-intercept coefficient is calculated using the observed
 distribution of the maximum likelihood coefficients.
 The final coefficients are then maximum a posteriori estimates
-(using Tikhonov/ridge regularization) using this prior.
+using this prior (Tikhonov/ridge regularization). See below for details on the
+prior variance and the Methods section of the DESeq2 manuscript for more detail.
 The use of a prior has little effect on genes with high counts and helps to
 moderate the large spread in coefficients for genes with low counts.
 For calculating Wald test p-values, the coefficients are scaled by their
@@ -73,9 +74,9 @@ of the observed MLE coefficients to a zero-centered Normal distribution.
 Furthermore, the weighted upper quantile is calculated using the
 \code{wtd.quantile} function from the Hmisc package. The weights are given by
 \eqn{1/\bar{\mu} + alpha_{tr}}{1/mu-bar + alpha_tr} using the mean of
-normalized counts and the trended dispersion fit. The
-weighting ensures that large log fold changes with small
-sampling variance contribute the most to the estimation of the width of the prior.
+normalized counts and the trended dispersion fit. The weighting ensures
+that large log fold changes with small sampling variance contribute the
+most to the estimation of the width of the prior.
 The prior variance for a factor level is the average over all contrasts
 of all factor levels.
 

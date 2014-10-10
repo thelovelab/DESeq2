@@ -11,13 +11,15 @@ nbinomLRT(object, full = design(object), reduced, betaPrior = FALSE,
 \item{object}{a DESeqDataSet}
 
 \item{full}{the full model formula, this should be the formula in
-\code{design(object)}}
+\code{design(object)}.
+alternatively, can be a matrix}
 
 \item{reduced}{a reduced formula to compare against, e.g.
-the full model with a term or terms of interest removed}
+the full model with a term or terms of interest removed.
+alternatively, can be a matrix}
 
 \item{betaPrior}{whether or not to put a zero-mean normal prior on
-the non-intercept coefficients (Tikhonov/ridge regularization).
+the non-intercept coefficients
 While the beta prior is used typically, for the Wald test, it can
 also be specified for the likelihood ratio test. For more details
 on the calculation, see \code{\link{nbinomWaldTest}}.}
