@@ -354,8 +354,8 @@ to these values is discussed in Section~\ref{sec:access}.
 
 \begin{figure}
 \centering
-\includegraphics[width=.45\textwidth]{figure/MANoPrior}
-\includegraphics[width=.45\textwidth]{figure/MA}
+\includegraphics[width=.45\textwidth]{figure/MANoPrior-1}
+\includegraphics[width=.45\textwidth]{figure/MA-1}
 \caption{
   \textbf{MA-plot.} 
   These plots show the log2 fold changes from the treatment over
@@ -367,7 +367,7 @@ to these values is discussed in Section~\ref{sec:access}.
   estimates from genes with low counts and high dispersion, 
   as can be seen by the narrowing of spread of leftmost points 
   in the right plot.}
-\label{MA}
+\label{fig:MA}
 \end{figure}
 
 In \deseqtwo{}, the function \Rfunction{plotMA} shows the log2
@@ -437,14 +437,14 @@ ggplot(d, aes(x=condition, y=count)) +
 
 \begin{figure}
 \centering
-\includegraphics[width=.45\textwidth]{figure/plotCounts}
-\includegraphics[width=.45\textwidth]{figure/plotCountsAdv}
+\includegraphics[width=.45\textwidth]{figure/plotCounts-1}
+\includegraphics[width=.45\textwidth]{figure/plotCountsAdv-1}
 \caption{
-  \textbf{Plot of counts} 
+  \textbf{Plot of counts for one gene.} 
   The plot of normalized counts (plus a pseudocount of $\frac{1}{2}$)
   either made using the \Rfunction{plotCounts} function (left)
   or using another plotting library (right, using \CRANpkg{ggplot2}).}
-\label{figplotcounts}
+\label{fig:plotcounts}
 \end{figure}
 
 \subsubsection{More information on results columns} \label{sec:moreInfo}
@@ -617,7 +617,7 @@ mean is low. Both \emph{rlog} and VST use the experiment-wide trend
 of variance over mean, in order to transform the data to remove the
 experiment-wide trend. Note that we do not require or
 desire that all the genes have \emph{exactly} the same variance after
-transformation. Indeed, in Figure~\ref{figvsd2} below, you will see
+transformation. Indeed, in Figure~\ref{figure/vsd2-1} below, you will see
 that after the transformations the genes with the same mean do not
 have exactly the same standard deviations, but that the
 experiment-wide trend has flattened. It is those genes with row
@@ -678,7 +678,7 @@ term for each sample and a prior distribution on the coefficients
 which is estimated from the data. This is the same kind of shrinkage 
 (sometimes referred to as regularization, or moderation) of log fold changes
 used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in
-Figure \ref{MA}. The resulting data contains elements defined as:
+Figure \ref{fig:MA}. The resulting data contains elements defined as:
 
 $$ \log_2(q_{ij}) = \beta_{i0} + \beta_{ij} $$
 
@@ -705,7 +705,7 @@ alongside this vignette. If a local fit is used (option \Robject{fitType="locfit
 to \Rfunction{estimateDispersions}) a numerical integration is used instead.
 
 The resulting variance stabilizing transformation is shown in
-Figure \ref{figure/vsd1}.  The code that produces the figure is hidden from
+Figure \ref{figure/vsd1-1}.  The code that produces the figure is hidden from
 this vignette for the sake of brevity, but can be seen in the
 \texttt{.Rnw} or \texttt{.R} source file. Note that the vertical axis in such
 plots is the square root of the variance over all samples, so including 
@@ -714,25 +714,6 @@ While a flat curve of the square root of variance over the mean
 may seem like the goal of such transformations, 
 this may be unreasonable in the case of datasets with many true 
 differences due to the experimental conditions.
-
-\incfig{figure/vsd1}{.49\textwidth}{VST and log2.}{
-  Graphs of the variance stabilizing transformation for
-  sample 1, in blue, and of the transformation $f(n) = \log_2(n/s_1)$, in
-  black. $n$ are the counts and $s_1$ is the size factor for the first sample.
-}
-
-\subsubsection{Effects of transformations on the variance}
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\textwidth]{figure/vsd2}
-\caption{Per-gene standard deviation (taken across samples), against
-  the rank of the mean, for the shifted logarithm
-  $\log_2(n+1)$ (left), the regularized log transformation (center)
-  and the variance stabilizing transformation (right).
-}
-\label{figvsd2}
-\end{figure}
 
 <<vsd1, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
 px     <- counts(dds)[,1] / sizeFactors(dds)[1]
@@ -751,7 +732,22 @@ legend("bottomright",
        fill=vstcol)
 @
 
-Figure~\ref{figvsd2} plots the standard deviation of the transformed
+\incfig{figure/vsd1-1}{.49\textwidth}{VST and log2.}{
+  Graphs of the variance stabilizing transformation for
+  sample 1, in blue, and of the transformation $f(n) = \log_2(n/s_1)$, in
+  black. $n$ are the counts and $s_1$ is the size factor for the first sample.
+}
+
+\subsubsection{Effects of transformations on the variance}
+
+\incfig{figure/vsd2-1}{\textwidth}{Standard deviation over mean.}{
+  Per-gene standard deviation (taken across samples), against the rank
+  of the mean, for the shifted logarithm $\log_2(n+1)$ (left), the
+  regularized log transformation (center) and the variance stabilizing
+  transformation (right). 
+}
+
+Figure~\ref{figure/vsd2-1} plots the standard deviation of the transformed
 data, across samples, against the mean, using the shifted
 logarithm transformation (\ref{eq:shiftedlog}), the
 regularized log transformation and the variance stabilizing transformation.
@@ -760,7 +756,7 @@ count range, and the regularized log to a lesser extent, while for
 the variance stabilized data the standard deviation is roughly constant
 along the whole dynamic range.
 
-<<vsd2, fig.width=8, fig.height=3, results="hide">>=
+<<vsd2, fig.width=8, fig.height=3>>=
 library("vsn")
 par(mfrow=c(1,3))
 notAllZero <- (rowSums(counts(dds))>0)
@@ -768,6 +764,7 @@ meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1))
 meanSdPlot(assay(rld[notAllZero,]))
 meanSdPlot(assay(vsd[notAllZero,]))
 @
+
 
 %---------------------------------------------------------------
 \subsection{Data quality assessment by sample clustering and visualization}\label{sec:quality}
@@ -818,17 +815,17 @@ heatmap.2(assay(vsd)[select,], col = hmcol,
 
 \begin{figure}
 \centering
-\includegraphics[width=.32\textwidth]{figure/figHeatmap2a}
-\includegraphics[width=.32\textwidth]{figure/figHeatmap2b}
-\includegraphics[width=.32\textwidth]{figure/figHeatmap2c}
+\includegraphics[width=.32\textwidth]{figure/figHeatmap2a-1}
+\includegraphics[width=.32\textwidth]{figure/figHeatmap2b-1}
+\includegraphics[width=.32\textwidth]{figure/figHeatmap2c-1}
 \caption{Heatmaps showing the expression data of the \Sexpr{length(select)}
   most highly expressed genes. The data is of raw counts (left),
   from regularized log transformation (center) and from variance
   stabilizing transformation (right).}
-\label{figHeatmap2}
+\label{fig:heatmap2}
 \end{figure}
 
-\incfig{figure/figHeatmapSamples}{.6\textwidth}{Sample-to-sample distances.}{
+\incfig{figure/figHeatmapSamples-1}{.6\textwidth}{Sample-to-sample distances.}{
   Heatmap showing the Euclidean distances between the samples
   as calculated from the regularized log transformation.
 }
@@ -845,7 +842,7 @@ distsRL <- dist(t(assay(rld)))
 @
 
 A heatmap of this distance matrix gives us an overview over similarities
-and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples}):
+and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples-1}):
 
 <<figHeatmapSamples, dev="pdf", fig.width=7, fig.height=7>>=
 mat <- as.matrix(distsRL)
@@ -857,13 +854,13 @@ heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
 \subsubsection{Principal component plot of the samples}\label{sec:pca}
 
 Related to the distance matrix of Section~\ref{sec:dists} is the PCA
-plot of the samples, which we obtain as follows (Figure \ref{figure/figPCA}).
+plot of the samples, which we obtain as follows (Figure \ref{figure/figPCA-1}).
 
 <<figPCA, dev="pdf", fig.width=5, fig.height=3>>=
 plotPCA(rld, intgroup=c("condition", "type"))
 @
 
-\incfig{figure/figPCA}{.7\textwidth}{PCA plot.}{
+\incfig{figure/figPCA-1}{.7\textwidth}{PCA plot.}{
   PCA plot. The \Sexpr{ncol(rld)} samples shown in the 2D
   plane spanned by their first two principal components. This type of
   plot is useful for visualizing the overall effect of experimental
@@ -877,12 +874,12 @@ It is also possible to customize the PCA plot using the
 data <- plotPCA(rld, intgroup=c("condition", "type"), returnData=TRUE)
 percentVar <- round(100 * attr(data, "percentVar"))
 ggplot(data, aes(PC1, PC2, color=condition, shape=type)) +
-  geom_point(size=4) +
+  geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance"))
 @
 
-\incfig{figure/figPCA2}{.7\textwidth}{PCA plot.}{
+\incfig{figure/figPCA2-1}{.7\textwidth}{PCA plot.}{
   PCA plot customized using the \CRANpkg{ggplot2} library.
 }
 
@@ -1049,7 +1046,7 @@ distance.  \Rfunction{DESeq} preserves the original counts in
 \subsection{Dispersion plot and fitting alternatives}
 
 Plotting the dispersion estimates is a useful diagnostic. The dispersion
-plot in Figure \ref{figure/dispFit} is typical, with the final estimates shrunk
+plot in Figure \ref{figure/dispFit-1} is typical, with the final estimates shrunk
 from the gene-wise estimates towards the fitted estimates. Some gene-wise
 estimates are flagged as outliers and not shrunk towards the fitted value,
 (this outlier detection is described in the man page for \Rfunction{estimateDispersionsMAP}).
@@ -1061,7 +1058,7 @@ and the variability of the gene-wise estimates.
 plotDispEsts(dds)
 @
 
-\incfig{figure/dispFit}{.5\textwidth}{Dispersion plot.}{
+\incfig{figure/dispFit-1}{.5\textwidth}{Dispersion plot.}{
   The dispersion estimate plot shows the gene-wise estimates (black),
   the fitted values (red), and the final maximum \textit{a posteriori}
   estimates used in testing (blue).
@@ -1119,7 +1116,7 @@ The filter threshold value and the number of rejections at each quantile
 of the filter statistic are available as attributes of the object 
 returned by \Rfunction{results}. For example, we can visualize
 the optimization by plotting the \Robject{filterNumRej} attribute of 
-the results object, as seen in Figure \ref{figure/filtByMean}. Note
+the results object, as seen in Figure \ref{figure/filtByMean-1}. Note
 that if the maximum number of rejections is very small such that the
 line of rejections over filter threshold appears noisy, the expected
 false discovery rate might not be held exactly for this small set.
@@ -1130,7 +1127,7 @@ plot(attr(res,"filterNumRej"),type="b",
      ylab="number of rejections")
 @
 
-\incfig{figure/filtByMean}{.5\textwidth}{Independent filtering.}{
+\incfig{figure/filtByMean-1}{.5\textwidth}{Independent filtering.}{
   The \Rfunction{results} function maximizes the 
   number of rejections (adjusted $p$ value less than a 
   significance level), over theta, the quantiles 
@@ -1178,7 +1175,7 @@ for detection of only those genes where the data alone provides
 evidence against the null.
 
 The four possible values of \Robject{altHypothesis} are demonstrated
-in the following code and visually by MA-plots in Figure~\ref{figure/lfcThresh}. 
+in the following code and visually by MA-plots in Figure~\ref{figure/lfcThresh-1}. 
 First we run \Rfunction{DESeq} and specify \Robject{betaPrior=FALSE} in order 
 to demonstrate \Robject{altHypothesis="lessAbs"}.
 
@@ -1208,7 +1205,7 @@ plotMA(resL, ylim=yl)
 abline(h=-.5,col="dodgerblue",lwd=2)
 @ 
 
-\incfig{figure/lfcThresh}{.5\textwidth}{MA-plots of tests of log2 fold
+\incfig{figure/lfcThresh-1}{.5\textwidth}{MA-plots of tests of log2 fold
   change with respect to a threshold value.}{
   Going left to right across rows, the tests are for \Robject{altHypothesis = "greaterAbs"},
   \Robject{"lessAbs"}, \Robject{"greater"}, and \Robject{"less"}.
@@ -1425,7 +1422,7 @@ p <- 3
 abline(h=qf(.99, p, m - p))
 @ 
 
-\incfig{figure/cooksPlot}{.5\textwidth}{Cook's distance.}{
+\incfig{figure/cooksPlot-1}{.5\textwidth}{Cook's distance.}{
   Plot of the maximum Cook's distance per gene over the rank of
   the Wald statistics for the condition. The two regions with small Cook's 
   distances are genes with a single count in one sample. The horizontal 
@@ -1500,7 +1497,7 @@ easy to theoretically imply from first principles, but rarely a problem in pract
 We refer to \cite{Bourgon:2010:PNAS} for further discussion of this topic.
 
 A simple filtering criterion readily available in the results object is the
-mean of normalized counts irrespective of biological condition (Figure \ref{figure/indFilt}). 
+mean of normalized counts irrespective of biological condition (Figure \ref{figure/indFilt-1}). 
 Genes with very low counts are not likely to 
 see significant differences typically due to high
 dispersion. For example, we can plot the $-\log_{10}$ $p$ values from all genes
@@ -1514,7 +1511,7 @@ plot(res$baseMean+1, -log10(res$pvalue),
      cex=.4, col=rgb(0,0,0,.3))
 @
 
-\incfig{figure/indFilt}{.5\textwidth}{Mean counts as a filter statistic.}{
+\incfig{figure/indFilt-1}{.5\textwidth}{Mean counts as a filter statistic.}{
   The mean of normalized counts provides an independent statistic for
   filtering the tests. It is independent because the information about the
   variables in the design formula is not used. By filtering out genes which fall
@@ -1525,7 +1522,7 @@ plot(res$baseMean+1, -log10(res$pvalue),
 \subsubsection{Why does it work?}\label{sec:whyitworks}
 %--------------------------------------------------
 
-Consider the $p$ value histogram in Figure \ref{figure/fighistindepfilt}.
+Consider the $p$ value histogram in Figure \ref{figure/fighistindepfilt-1}.
 It shows how the filtering ameliorates the multiple testing problem
 -- and thus the severity of a multiple testing adjustment -- by
 removing a background set of hypotheses whose $p$ values are distributed
@@ -1547,8 +1544,7 @@ text(x = c(0, length(h1$counts)), y = 0, label = paste(c(0,1)),
 legend("topright", fill=rev(colori), legend=rev(names(colori)))
 @
 
-\incfig{figure/fighistindepfilt}{.5\textwidth}{Histogram of $p$ values}{
-  for all tests (\Robject{res\$pvalue}).
+\incfig{figure/fighistindepfilt-1}{.5\textwidth}{Histogram of p values for all tests.}{
   The area shaded in blue indicates the subset of those that pass the filtering,
   the area in khaki those that do not pass.
 }
@@ -1559,7 +1555,7 @@ legend("topright", fill=rev(colori), legend=rev(names(colori)))
 The Benjamini-Hochberg multiple testing adjustment
 procedure \cite{BH:1995} has a simple graphical illustration, which we
 produce in the following code chunk. Its result is shown in the left
-panel of Figure \ref{figmulttest}.
+panel of Figure \ref{fig:multtest}.
 
 <<sortP, cache=TRUE>>=
 resFilt <- res[use & !is.na(res$pvalue),]
@@ -1598,7 +1594,7 @@ $p_i$, they suggested plotting
 
 where $N(p)$ is the number of $p$-values greater than $p$. An application of
 this diagnostic plot to \Robject{resFilt\$pvalue} is shown in the right panel of
-Figure \ref{figmulttest}.
+Figure \ref{fig:multtest}.
 When all null hypotheses are true, the $p$-values are each uniformly distributed
 in $[0,1]$, Consequently, the cumulative distribution function of $(p_1, \ldots,
 p_m)$ is expected to be close to the line $F(t)=t$. By symmetry, the same
@@ -1618,11 +1614,11 @@ close to
 \end{equation}
 
 Such a situation is shown in the right panel of
-Figure \ref{figmulttest}. If
+Figure \ref{fig:multtest}. If
 $F_1(t)/F_0(t)$ is small for small $t$, then the mixture fraction
 $\frac{m_0}{m}$ can be estimated by fitting a line to the left-hand portion of
 the plot, and then noting its height on the right. Such a fit is shown by the
-red line in the right panel of Figure \ref{figmulttest}.
+red line in the right panel of Figure \ref{fig:multtest}.
 
 <<SchwSpjot, echo=FALSE, results="hide">>=
 j  <- round(length(resFilt$pvalue)*c(1, .66))
@@ -1640,8 +1636,8 @@ abline(a=0, slope, col="red3", lwd=2)
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=.49\textwidth]{figure/sortedP}
-\includegraphics[width=.49\textwidth]{figure/SchwederSpjotvoll}
+\includegraphics[width=.49\textwidth]{figure/sortedP-1}
+\includegraphics[width=.49\textwidth]{figure/SchwederSpjotvoll-1}
 \caption{\emph{Left:} illustration of the Benjamini-Hochberg multiple testing
   adjustment procedure \cite{BH:1995}.  The black line shows the
   $p$-values ($y$-axis) versus their rank ($x$-axis), starting with
@@ -1658,7 +1654,7 @@ abline(a=0, slope, col="red3", lwd=2)
   from Section~\ref{sec:filtbycount} were used as a starting
   point. Analogously, one can produce these types of plots for any set of $p$-values,
   for instance those from the previous sections.}
-\label{figmulttest}
+\label{fig:multtest}
 \end{figure}
 
 \section{Frequently asked questions}
