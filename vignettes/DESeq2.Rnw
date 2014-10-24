@@ -843,12 +843,19 @@ distsRL <- dist(t(assay(rld)))
 
 A heatmap of this distance matrix gives us an overview over similarities
 and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples-1}):
+We have to provide a hierarchical clustering `hc` to the *heatmap.2*
+function based on the sample distances, or else the *heatmap.2*
+function would calculate a clustering based on the distances between
+the rows/columns of the distance matrix.
 
 <<figHeatmapSamples, dev="pdf", fig.width=7, fig.height=7>>=
 mat <- as.matrix(distsRL)
 rownames(mat) <- colnames(mat) <- with(colData(dds),
                                        paste(condition, type, sep=" : "))
-heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
+hc <- hclust(distsRL)
+heatmap.2(mat, Rowv=as.dendrogram(hc),
+          symm=TRUE, trace="none", 
+          col = rev(hmcol), margin=c(13, 13))
 @
 
 \subsubsection{Principal component plot of the samples}\label{sec:pca}
@@ -1776,7 +1783,8 @@ Devon Ryan,
 Steve Lianoglou, Jessica Larson, Christina Chaivorapol, Pan Du, Richard Bourgon,
 Willem Talloen, 
 Elin Videvall, Hanneke van Deutekom,
-Todd Burwell.
+Todd Burwell, 
+Jesse Rowley.
 
 \section{Session Info}
 
