@@ -86,7 +86,7 @@ test_alternativeDispersions <- function() {
   useForMedian <- mcols(ddsMed)$dispGeneEst > 1e-7
   medianDisp <- median(mcols(ddsMed)$dispGeneEst[useForMedian],na.rm=TRUE)
   dispersionFunction(ddsMed) <- function(mu) medianDisp
-  ddsMed <- estimateDispersionsMAP(ddsMed)
+  ddsMed <- estimateDispersionsMAP(ddsMed)  
 }
 
 test_iterativeDispersions <- function() {

@@ -843,8 +843,8 @@ distsRL <- dist(t(assay(rld)))
 
 A heatmap of this distance matrix gives us an overview over similarities
 and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples-1}):
-We have to provide a hierarchical clustering `hc` to the *heatmap.2*
-function based on the sample distances, or else the *heatmap.2*
+We have to provide a hierarchical clustering \Robject{hc} to the \Rfunction{heatmap.2}
+function based on the sample distances, or else the \Rfunction{heatmap.2}
 function would calculate a clustering based on the distances between
 the rows/columns of the distance matrix.
 
@@ -1784,7 +1784,8 @@ Steve Lianoglou, Jessica Larson, Christina Chaivorapol, Pan Du, Richard Bourgon,
 Willem Talloen, 
 Elin Videvall, Hanneke van Deutekom,
 Todd Burwell, 
-Jesse Rowley.
+Jesse Rowley,
+Igor Dolgalev.
 
 \section{Session Info}
 

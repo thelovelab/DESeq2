@@ -577,10 +577,6 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 #' @export
 estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),
                                    minDisp=1e-8, quiet=FALSE) {
-  if (!is.null(mcols(object)$dispFit)) {
-    if (!quiet) message("found already estimated fitted dispersions, removing these")
-    mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit",drop=FALSE]
-  }
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   useForFit <- mcols(objectNZ)$dispGeneEst > 100*minDisp
   if (sum(useForFit) == 0) {
@@ -591,17 +587,14 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
   dispersions(dds) <- mcols(dds)$dispGeneEst")
   }
   
-  # take the first fitType
-  fitType <- fitType[1]
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
   stopifnot(length(fitType)==1)
   stopifnot(length(minDisp)==1)
   if (fitType == "parametric") {
     trial <- try(dispFunction <- parametricDispersionFit(mcols(objectNZ)$baseMean[useForFit],
                                                          mcols(objectNZ)$dispGeneEst[useForFit]),
                  silent=TRUE)
-    if (!inherits(trial,"try-error")) {
-      dispFit <- dispFunction(mcols(objectNZ)$baseMean)
-    } else {
+    if (inherits(trial,"try-error")) {
       message("NOTE: fitType='parametric', but the dispersion trend was not well captured by the
   function: y = a/x + b, and a local regression fit was automatically substituted.
   specify fitType='local' or 'mean' to avoid this message next time.")
@@ -612,14 +605,12 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
     dispFunction <- localDispersionFit(means = mcols(objectNZ)$baseMean[useForFit],
                                        disps = mcols(objectNZ)$dispGeneEst[useForFit],
                                        minDisp = minDisp)
-    dispFit <- dispFunction(mcols(objectNZ)$baseMean)
   }
   if (fitType == "mean") {
     useForMean <- mcols(objectNZ)$dispGeneEst > 10*minDisp
     meanDisp <- mean(mcols(objectNZ)$dispGeneEst[useForMean],na.rm=TRUE,trim=0.001)
     dispFunction <- function(means) meanDisp
     attr( dispFunction, "mean" ) <- meanDisp
-    dispFit <- rep(meanDisp,nrow(objectNZ))
   }
   if (!(fitType %in% c("parametric","local","mean"))) {
     stop("unknown fitType")
@@ -627,13 +618,12 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
  
   # store the dispersion function and attributes
   attr( dispFunction, "fitType" ) <- fitType
-  dispersionFunction(object) <- dispFunction
+  if (quiet) {
+    suppressMessages({ dispersionFunction(object) <- dispFunction })
+  } else {
+    dispersionFunction(object) <- dispFunction
+  }
   
-  dispDataFrame <- buildDataFrameWithNARows(list(dispFit=dispFit),
-                                            mcols(object)$allZero)
-  mcols(dispDataFrame) <- DataFrame(type="intermediate",
-                                    description="fitted values of dispersion")
-  mcols(object) <- cbind(mcols(object), dispDataFrame)
   return(object)
 }
 
@@ -661,6 +651,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   
   # fill in the calculated dispersion prior variance
   if (missing(dispPriorVar)) {
+    # if no gene-wise estimates above minimum
     if (sum(mcols(object)$dispGeneEst >= minDisp*100,na.rm=TRUE) == 0) {
       warning(paste0("all genes have dispersion estimates < ",minDisp*10,
                      ", returning disp = ",minDisp*10))
@@ -671,13 +662,13 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
       mcols(object) <- cbind(mcols(object), dispDataFrame)
       dispFn <- dispersionFunction(object)
       attr( dispFn, "dispPriorVar" ) <- 0.25
-      dispersionFunction(object) <- dispFn
+      dispersionFunction(object, estimateVar=FALSE) <- dispFn
       return(object)
     }
     dispPriorVar <- estimateDispersionsPriorVar(object, modelMatrix=modelMatrix)
     dispFn <- dispersionFunction(object)
     attr( dispFn, "dispPriorVar" ) <- dispPriorVar
-    dispersionFunction(object) <- dispFn
+    dispersionFunction(object, estimateVar=FALSE) <- dispFn
   } else {
     dispFn <- dispersionFunction(object)
     attr( dispFn, "dispPriorVar" ) <- dispPriorVar
@@ -890,9 +881,9 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
 #' The \code{contrast} argument of the \code{\link{results}} function can be used
 #' to generate other comparisons.
 #' 
-#' When interaction terms are present, the prior on log fold changes
-#' the calculated beta prior variance will only be used for the interaction
-#' terms (non-interaction log2 fold changes receive a prior variance of 1e3).
+#' When interaction terms are present, the prior on log fold changes will only
+#' be used for the interaction terms (non-interaction log fold changes
+#' receive a wide prior variance of 1000).
 #'  
 #' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
@@ -1311,7 +1302,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' how the model matrix, X of the formula in \code{\link{DESeq}}, is
 #' formed. "standard" is as created by \code{model.matrix} using the
 #' design formula. "expanded" includes an indicator variable for each
-#' level of factors with 3 or more levels in addition to an intercept,
+#' level of factors in addition to an intercept,
 #' in order to ensure that the log2 fold changes are independent
 #' of the choice of base level.
 #' betaPrior must be set to TRUE in order for expanded model matrices
@@ -1353,8 +1344,8 @@ nbinomLRT <- function(object, full=design(object), reduced,
   object <- sanitizeRowData(object)
   
   # run check on the formula
-  modelsAsFormula <- !(is.matrix(full) & is.matrix(reduced))
-  if (modelsAsFormula) {
+  modelAsFormula <- !(is.matrix(full) & is.matrix(reduced))
+  if (modelAsFormula) {
     checkLRT(full, reduced)
 
     # try to form model matrices, test for difference
@@ -1399,6 +1390,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
   if specifying + 0 in the design formula, use betaPrior=FALSE")
   }
 
+  if (!modelAsFormula & betaPrior & missing(betaPriorVar)) {
+    stop("When full and reduced models passed as matrices, betaPriorVar must be provided")
+  }
+
   # if there are interaction terms present in the design
   # then we should only use the prior on the interaction terms
   if (any(termsOrder > 2) & modelMatrixType == "expanded") {
@@ -1413,7 +1408,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
   if (!betaPrior) {
-    if (modelsAsFormula) {
+    if (modelAsFormula) {
       fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
                                  renameCols=hasIntercept, maxit=maxit,
                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
@@ -1422,10 +1417,11 @@ nbinomLRT <- function(object, full=design(object), reduced,
                                     useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
     } else {
       fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
-                                 renameCols=hasIntercept, maxit=maxit,
+                                 renameCols=FALSE, maxit=maxit,
                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
       modelMatrix <- full
-      reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced, maxit=maxit,
+      reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
+                                    renameCols=FALSE, maxit=maxit,
                                     useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
     }
     betaPriorVar <- rep(1e6, ncol(modelMatrix))
@@ -1505,7 +1501,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
                         maxCooks = maxCooks))
   LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
 
-  modelComparison <- if (modelsAsFormula) {
+  modelComparison <- if (modelAsFormula) {
     paste0("'",paste(as.character(full),collapse=" "),
            "' vs '", paste(as.character(reduced),collapse=" "),"'")
   } else {
@@ -1773,7 +1769,10 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
     modelFormula <- design(object)
   }
   if (missing(modelMatrix)) {
+    modelAsFormula <- TRUE
     modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
+  } else {
+    modelAsFormula <- FALSE
   }
   modelMatrixNames <- colnames(modelMatrix)
 
@@ -1813,7 +1812,12 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   # bypass the beta fitting if the model formula is only intercept and
   # the prior variance is large (1e6)
   # i.e., LRT with reduced ~ 1 and no beta prior
-  if (modelFormula == formula(~ 1) & all(lambda <= 1e-6)) {
+  justIntercept <- if (modelAsFormula) {
+    modelFormula == formula(~ 1)
+  } else {
+    ncol(modelMatrix) == 1 & all(modelMatrix == 1)
+  }
+  if (justIntercept & all(lambda <= 1e-6)) {
       alpha <- alpha_hat
       betaConv <- rep(TRUE, nrow(object))
       betaIter <- rep(1,nrow(object))

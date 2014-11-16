@@ -1,3 +1,12 @@
+CHANGES IN VERSION 1.7.3
+------------------------
+
+    o Fixed two minor bugs: 
+      DESeq() with parallel=TRUE was dropping rows with all zero 
+      counts, instead of propogating NAs.
+      nbinomLRT() with matrices provided to 'full' and 'reduced' and 
+      a design of ~ 1, the matrices were being ignored.
+
 CHANGES IN VERSION 1.6.0
 ------------------------
 

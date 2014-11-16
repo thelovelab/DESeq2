@@ -94,9 +94,9 @@ last level of the last variable in the design formula over the first level.
 The \code{contrast} argument of the \code{\link{results}} function can be used
 to generate other comparisons.
 
-When interaction terms are present, the prior on log fold changes
-the calculated beta prior variance will only be used for the interaction
-terms (non-interaction log2 fold changes receive a prior variance of 1e3).
+When interaction terms are present, the prior on log fold changes will only
+be used for the interaction terms (non-interaction log fold changes
+receive a wide prior variance of 1000).
 
 The Wald test can be replaced with the \code{\link{nbinomLRT}}
 for an alternative test of significance.

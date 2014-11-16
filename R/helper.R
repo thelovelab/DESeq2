@@ -318,14 +318,20 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
   }
 
   outMcols <- buildDataFrameWithNARows(mcols(objectNZ), mcols(object)$allZero)
+  mcols(outMcols) <- mcols(mcols(objectNZ))
   outMu <- buildMatrixWithNARows(assays(objectNZ)[["mu"]], mcols(object)$allZero)
   outCooks <- buildMatrixWithNARows(assays(objectNZ)[["cooks"]], mcols(object)$allZero)
   
   mcols(object) <- outMcols
+  object <- getBaseMeansAndVariances(object)
   assays(object)[["mu"]] <- outMu
   assays(object)[["cooks"]] <- outCooks
 
-  attributes(object) <- attributes(objectNZ)
+  attrNames <- c("dispersionFunction","modelMatrixType","betaPrior",
+                 "betaPriorVar","modelMatrix","test","dispModelMatrix")
+  for (attrName in attrNames) {
+    attr(object, attrName) <- attr(objectNZ, attrName)
+  }
   
   object
 }

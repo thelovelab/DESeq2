@@ -3,7 +3,8 @@ test_parallel <- function() {
   dispMeanRel <- function(x) (4/x + .1) * exp(rnorm(n,0,sqrt(.5)))
   set.seed(1)
   dds0 <- makeExampleDESeqDataSet(n=n,dispMeanRel=dispMeanRel)
-
+  counts(dds0)[51:60,] <- 0L
+  
   # the following is an example of a simple parallelizable DESeq() run
   # without outlier replacement. see DESeq2:::DESeqParallel for the code
   # which is actually used in DESeq()
@@ -55,5 +56,7 @@ test_parallel <- function() {
   register(SerialParam())
   dds3 <- DESeq(dds0, parallel=TRUE)
   res3 <- results(dds3, parallel=TRUE)
+  res4 <- results(dds3)
   checkEqualsNumeric(res2$pvalue, res3$pvalue)
+  checkEqualsNumeric(res3$pvalue, res4$pvalue)  
 }
