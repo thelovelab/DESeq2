@@ -3,14 +3,9 @@
 \name{design}
 \alias{design}
 \alias{design,DESeqDataSet-method}
-\alias{design.DESeqDataSet}
 \alias{design<-,DESeqDataSet,formula-method}
 \title{Accessors for the 'design' slot of a DESeqDataSet object.}
 \usage{
-\S4method{design}{DESeqDataSet}(object)
-
-\S4method{design}{DESeqDataSet,formula}(object)<-value
-
 \S4method{design}{DESeqDataSet}(object)
 
 \S4method{design}{DESeqDataSet,formula}(object) <- value
@@ -22,7 +17,9 @@
 and fitting Negative Binomial GLMs}
 }
 \description{
-Accessors for the 'design' slot of a DESeqDataSet object.
+The design holds the R \code{formula} which expresses how the
+counts depend on the variables in \code{colData}.
+See \code{\link{DESeqDataSet}} for details.
 }
 \examples{
 dds <- makeExampleDESeqDataSet()

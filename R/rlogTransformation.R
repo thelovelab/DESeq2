@@ -57,7 +57,7 @@
 #' @rdname rlog
 #' @name rlog
 #' 
-#' @param object a DESeqDataSet
+#' @param object a DESeqDataSet, or matrix of counts
 #' @param blind logical, whether to blind the transformation to the experimental
 #' design. blind=TRUE should be used for comparing samples in an manner unbiased by
 #' prior information on samples, for example to perform sample QA (quality assurance).
@@ -85,9 +85,9 @@
 #' @param fitType in case dispersions have not yet been estimated for \code{object},
 #' this parameter is passed on to \code{\link{estimateDispersions}} (options described there).
 #' 
-#' @return a \code{\link{SummarizedExperiment}} if a \code{DESeqDataSet} was provided,
-#' or a matrix if a count matrix was provided.
-#' Note that for \code{\link{SummarizedExperiment}} output, the matrix of
+#' @return a \code{\link{DESeqTransform}} if a \code{DESeqDataSet} was provided,
+#' or a matrix if a count matrix was provided as input.
+#' Note that for \code{\link{DESeqTransform}} output, the matrix of
 #' transformed values is stored in \code{assay(rld)}.
 #' To avoid returning matrices with NA values, in the case of a row
 #' of all zeros, the rlog transformation returns zeros
@@ -179,14 +179,15 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
            colData = colData(object),
            rowData = rowData(object),
            exptData = exptData(object))
-  attr(se,"betaPriorVar") <- attr(rld, "betaPriorVar")
+  dt <- DESeqTransform(se)
+  attr(dt,"betaPriorVar") <- attr(rld, "betaPriorVar")
   if (!is.null(attr(rld,"intercept"))) {
-    mcols(se)$rlogIntercept <- attr(rld,"intercept")
+    mcols(dt)$rlogIntercept <- attr(rld,"intercept")
   }
   if (!is.null(attr(rld,"B"))) {
-    attr(se,"B") <- attr(rld,"B")
+    attr(dt,"B") <- attr(rld,"B")
   }
-  se
+  dt
 }
 
 #' @rdname rlog

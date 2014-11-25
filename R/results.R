@@ -168,11 +168,8 @@
 #' ## Example 1: simple two-group comparison
 #' 
 #' example("DESeq")
-#' results(dds)
-#' results(dds, format="GRanges")
-#' resultsNames(dds)
-#' dds <- removeResults(dds)
-#'
+#' res <- results(dds)
+#' res[ order(res$padj), ]
 #' 
 #' ## Example 2: two conditions, two groups, with interaction term
 #' 

@@ -89,3 +89,12 @@ test_LRT_then_Wald <- function() {
   checkTrue(!all(results(dds,name="condition_B_vs_A")$stat ==
                  results(dds,name="condition_B_vs_A",test="Wald")$stat))
 }
+
+test_results_basics <- function() {
+  dds <- makeExampleDESeqDataSet(n=100)
+  dds <- DESeq(dds)
+  res <- results(dds, format="GRanges")
+
+  dds <- removeResults(dds)
+  checkTrue(!any(mcols(mcols(dds))$type == "results"))
+}

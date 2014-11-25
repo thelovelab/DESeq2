@@ -5,7 +5,7 @@
 \alias{coef.DESeqDataSet}
 \title{Extract a matrix of model coefficients/standard errors}
 \usage{
-\method{coef}{DESeqDataSet}(object, SE=FALSE, \dots)
+\method{coef}{DESeqDataSet}(object, SE = FALSE, ...)
 }
 \arguments{
 \item{object}{a DESeqDataSet returned by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}},

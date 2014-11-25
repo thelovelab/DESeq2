@@ -4,12 +4,8 @@
 \alias{plotMA}
 \alias{plotMA,DESeqDataSet-method}
 \alias{plotMA,DESeqResults-method}
-\alias{plotMA.DESeqDataSet}
 \title{MA-plot from base means and log fold changes}
 \usage{
-\S4method{plotMA}{DESeqResults}(object, alpha, main, ylim, ...)
-\S4method{plotMA}{DESeqDataSet}(object, alpha, main, ylim, ...)
-
 \S4method{plotMA}{DESeqDataSet}(object, alpha = 0.1, main = "", ylim, ...)
 
 \S4method{plotMA}{DESeqResults}(object, alpha = 0.1, main = "", ylim, ...)
@@ -28,9 +24,6 @@ individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}}
 \item{...}{further arguments passed to \code{plotMA} if object
 is \code{DESeqResults} or to \code{\link{results}} if object is
 \code{DESeqDataSet}}
-}
-\value{
-A \code{trellis} object.
 }
 \description{
 A simple helper function that makes a so-called "MA-plot", i.e. a

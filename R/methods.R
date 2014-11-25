@@ -1,13 +1,22 @@
+counts.DESeqDataSet <- function(object, normalized=FALSE) {
+  if (!normalized) {
+    return(assays(object)[["counts"]])
+  } else {
+    if (!is.null(normalizationFactors(object))) {
+      return( assays(object)[["counts"]]/normalizationFactors(object) )
+    } else if (is.null(sizeFactors(object)) || any(is.na(sizeFactors(object)))) {
+      stop("first calculate size factors, add normalizationFactors, or set normalized=FALSE")
+    } else {
+      return( t( t( assays(object)[["counts"]] ) / sizeFactors(object) ) )
+    }
+  }
+}
+
 #' Accessors for the 'counts' slot of a DESeqDataSet object.
 #' 
 #' The counts slot holds the count data as a matrix of non-negative integer
 #' count values, one row for each observational unit (gene or the like), and one
 #' column for each sample. 
-#'
-#' @usage
-#' \S4method{counts}{DESeqDataSet}(object,normalized=FALSE)
-#'
-#' \S4method{counts}{DESeqDataSet,matrix}(object)<-value
 #'
 #' @docType methods
 #' @name counts
@@ -27,21 +36,6 @@
 #' dds <- makeExampleDESeqDataSet()
 #' head(counts(dds))
 #'
-counts.DESeqDataSet <- function(object, normalized=FALSE) {
-  if (!normalized) {
-    return(assays(object)[["counts"]])
-  } else {
-    if (!is.null(normalizationFactors(object))) {
-      return( assays(object)[["counts"]]/normalizationFactors(object) )
-    } else if (is.null(sizeFactors(object)) || any(is.na(sizeFactors(object)))) {
-      stop("first calculate size factors, add normalizationFactors, or set normalized=FALSE")
-    } else {
-      return( t( t( assays(object)[["counts"]] ) / sizeFactors(object) ) )
-    }
-  }
-}
-
-#' @rdname counts
 #' @export
 setMethod("counts", signature(object="DESeqDataSet"), counts.DESeqDataSet)
 
@@ -56,15 +50,14 @@ setReplaceMethod("counts", signature(object="DESeqDataSet", value="matrix"),
                  })   
 
 
+design.DESeqDataSet <- function(object) object@design
+
 #' Accessors for the 'design' slot of a DESeqDataSet object.
 #' 
-#' Accessors for the 'design' slot of a DESeqDataSet object.
+#' The design holds the R \code{formula} which expresses how the
+#' counts depend on the variables in \code{colData}.
+#' See \code{\link{DESeqDataSet}} for details.
 #' 
-#' @usage
-#' \S4method{design}{DESeqDataSet}(object)
-#'
-#' \S4method{design}{DESeqDataSet,formula}(object)<-value
-#'
 #' @docType methods
 #' @name design
 #' @rdname design
@@ -77,9 +70,6 @@ setReplaceMethod("counts", signature(object="DESeqDataSet", value="matrix"),
 #' dds <- makeExampleDESeqDataSet()
 #' design(dds) <- formula(~ 1)
 #'
-design.DESeqDataSet <- function(object) object@design
-
-#' @rdname design
 #' @export
 setMethod("design", signature(object="DESeqDataSet"), design.DESeqDataSet)
 
@@ -93,17 +83,13 @@ setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"),
                    object
                  })
 
+dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 
 #' Accessors for the 'dispersionFunction' slot of a DESeqDataSet object.
 #'
 #' The dispersion function is calculated by \code{\link{estimateDispersions}} and
 #' used by \code{\link{varianceStabilizingTransformation}}.  Parametric dispersion
 #' fits store the coefficients of the fit as attributes in this slot.
-#'
-#' @usage
-#' \S4method{dispersionFunction}{DESeqDataSet}(object)
-#'
-#' \S4method{dispersionFunction}{DESeqDataSet,function}(object,estimateVar)<-value
 #'
 #' @docType methods
 #' @name dispersionFunction
@@ -121,12 +107,13 @@ setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"),
 #' example("estimateDispersions")
 #' dispersionFunction(dds)
 #'
-dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
-
-#' @rdname dispersionFunction
 #' @export
 setMethod("dispersionFunction", signature(object="DESeqDataSet"),
           dispersionFunction.DESeqDataSet)
+
+#' @name dispersionFunction
+#' @rdname dispersionFunction
+#' @exportMethod "dispersionFunction<-"
 setReplaceMethod("dispersionFunction",
                  signature(object="DESeqDataSet", value="function"),
                  function(object, value, estimateVar=TRUE) {
@@ -171,17 +158,14 @@ setReplaceMethod("dispersionFunction",
                    object
                  })
 
+dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
+
 #' Accessor functions for the dispersion estimates in a DESeqDataSet
 #' object.
 #' 
 #' The dispersions for each row of the DESeqDataSet.  Generally,
-#' these should be set only by \code{\link{estimateDispersions}}.
+#' these are set by \code{\link{estimateDispersions}}.
 #' 
-#' @usage
-#' \S4method{dispersions}{DESeqDataSet}(object)
-#'
-#' \S4method{dispersions}{DESeqDataSet,numeric}(object)<-value
-#'
 #' @docType methods
 #' @name dispersions
 #' @rdname dispersions
@@ -197,12 +181,13 @@ setReplaceMethod("dispersionFunction",
 #' example("estimateDispersions")
 #' head(dispersions(dds))
 #'
-dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
-
-#' @rdname dispersions
 #' @export
 setMethod("dispersions", signature(object="DESeqDataSet"),
           dispersions.DESeqDataSet)
+
+#' @name dispersions
+#' @rdname dispersions
+#' @exportMethod "dispersions<-"
 setReplaceMethod("dispersions", signature(object="DESeqDataSet", value="numeric"),
                  function(object, value) {
                    firstRowDataColumn <- ncol(mcols(object)) == 0
@@ -216,21 +201,23 @@ setReplaceMethod("dispersions", signature(object="DESeqDataSet", value="numeric"
                  })
 
 
+sizeFactors.DESeqDataSet <- function(object) {
+  if (!"sizeFactor" %in% names(colData(object))) return(NULL)
+  sf <- object$sizeFactor
+  names( sf ) <- colnames( object )
+  sf
+}
 
 #' Accessor functions for the 'sizeFactors' information in a DESeqDataSet
 #' object.
 #' 
 #' The sizeFactors vector assigns to each column of the count matrix a value, the
 #' size factor, such that count values in the columns can be brought to a common
-#' scale by dividing by the corresponding size factor.  See \code{\link{DESeq}}
-#' for a description of the use of size factors. If gene-specific normalization
+#' scale by dividing by the corresponding size factor (as performed by
+#' \code{counts(dds, normalized=TRUE)}).
+#' See \code{\link{DESeq}} for a description of the use of size factors. If gene-specific normalization
 #' is desired for each sample, use \code{\link{normalizationFactors}}.
 #' 
-#' @usage
-#' \S4method{sizeFactors}{DESeqDataSet}(object)
-#'
-#' \S4method{sizeFactors}{DESeqDataSet,numeric}(object)<-value
-#'
 #' @docType methods
 #' @name sizeFactors
 #' @rdname sizeFactors
@@ -245,14 +232,7 @@ setReplaceMethod("dispersions", signature(object="DESeqDataSet", value="numeric"
 #' dds <- makeExampleDESeqDataSet()
 #' dds <- estimateSizeFactors( dds )
 #' sizeFactors(dds)
-sizeFactors.DESeqDataSet <- function(object) {
-  if (!"sizeFactor" %in% names(colData(object))) return(NULL)
-  sf <- object$sizeFactor
-  names( sf ) <- colnames( object )
-  sf
-}
-
-#' @rdname sizeFactors
+#'
 #' @export
 setMethod("sizeFactors", signature(object="DESeqDataSet"),
           sizeFactors.DESeqDataSet)
@@ -276,6 +256,11 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
                    object
                  }) 
 
+normalizationFactors.DESeqDataSet <- function(object) {
+  if (!"normalizationFactors" %in% names(assays(object))) return(NULL)
+  assays(object)[["normalizationFactors"]]
+}
+
 #' Accessor functions for the normalization factors in a DESeqDataSet
 #' object.
 #'
@@ -297,11 +282,6 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
 #' row-wise geometric mean near 1, as is the case with size factors, such that the mean of normalized
 #' counts is close to the mean of unnormalized counts.
 #'
-#' @usage
-#' \S4method{normalizationFactors}{DESeqDataSet}(object)
-#'
-#' \S4method{normalizationFactors}{DESeqDataSet,matrix}(object)<-value
-#'
 #' @docType methods
 #' @name normalizationFactors
 #' @rdname normalizationFactors
@@ -319,15 +299,13 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
 #' dds <- estimateDispersions(dds)
 #' dds <- nbinomWaldTest(dds)
 #'
-normalizationFactors.DESeqDataSet <- function(object) {
-  if (!"normalizationFactors" %in% names(assays(object))) return(NULL)
-  assays(object)[["normalizationFactors"]]
-}
-
-#' @rdname normalizationFactors
 #' @export
 setMethod("normalizationFactors", signature(object="DESeqDataSet"),
           normalizationFactors.DESeqDataSet)
+
+#' @name normalizationFactors
+#' @rdname normalizationFactors
+#' @exportMethod "normalizationFactors<-"
 setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value="matrix"),
                  function(object, value) {
                    if (any(value <= 0)) {
@@ -338,13 +316,26 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
                    object
                  })
 
+estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median, geoMeans, controlGenes, normMatrix) {
+  object <- sanitizeColData(object)
+  if (missing(normMatrix)) {
+    sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc=locfunc,
+                                                        geoMeans=geoMeans,
+                                                        controlGenes=controlGenes)
+  } else {
+    normalizationFactors(object) <- estimateNormFactors(counts(object), normMatrix=normMatrix,
+                                                        locfunc=locfunc,
+                                                        geoMeans=geoMeans,
+                                                        controlGenes=controlGenes)
+    message("adding normalization factors which account for library size")
+  }
+  object
+}
 
 #' Estimate the size factors for a DESeqDataSet
 #' 
-#' Estimate the size factors for a DESeqDataSet
-#' 
 #' This function estimates the size factors using the
-#' "median ratio method" described by Equation 5 in Ander and Huber (2010).
+#' "median ratio method" described by Equation 5 in Anders and Huber (2010).
 #' The estimated size factors can be accessed using \code{\link{sizeFactors}}.
 #' Alternative library size estimators can also be supplied
 #' using \code{\link{sizeFactors}}.
@@ -362,9 +353,6 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #'
 #' Internally, the function calls \code{\link{estimateSizeFactorsForMatrix}}, 
 #' which provides more details on the calculation.
-#'
-#' @usage
-#' \S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans,controlGenes,normMatrix)
 #'
 #' @docType methods
 #' @name estimateSizeFactors
@@ -411,117 +399,10 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 #' dds <- estimateSizeFactors(dds,geoMeans=geoMeans)
 #' sizeFactors(dds)
 #'
-#' 
-estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median, geoMeans, controlGenes, normMatrix) {
-  object <- sanitizeColData(object)
-  if (missing(normMatrix)) {
-    sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc=locfunc,
-                                                        geoMeans=geoMeans,
-                                                        controlGenes=controlGenes)
-  } else {
-    normalizationFactors(object) <- estimateNormFactors(counts(object), normMatrix=normMatrix,
-                                                        locfunc=locfunc,
-                                                        geoMeans=geoMeans,
-                                                        controlGenes=controlGenes)
-    message("adding normalization factors which account for library size")
-  }
-  object
-}
-  
-#' @rdname estimateSizeFactors
 #' @export
 setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
           estimateSizeFactors.DESeqDataSet)
 
-
-#' Estimate the dispersions for a DESeqDataSet
-#' 
-#' This function obtains dispersion estimates for Negative Binomial distributed data.
-#'
-#' Typically the function is called with the idiom:
-#'
-#' \code{dds <- estimateDispersions(dds)}
-#'
-#' The fitting proceeds as follows: for each gene, an estimate of the dispersion
-#' is found which maximizes the Cox Reid-adjusted profile likelihood
-#' (the methods of Cox Reid-adjusted profile likelihood maximization for
-#' estimation of dispersion in RNA-Seq data were developed by McCarthy,
-#' et al. (2012), first implemented in the edgeR package in 2010);
-#' a trend line capturing the dispersion-mean relationship is fit to the maximum likelihood estimates;
-#' a normal prior is determined for the log dispersion estimates centered
-#' on the predicted value from the trended fit
-#' with variance equal to the difference between the observed variance of the
-#' log dispersion estimates and the expected sampling variance;
-#' finally maximum a posteriori dispersion estimates are returned.
-#' This final dispersion parameter is used in subsequent tests.
-#' The final dispersion estimates can be accessed from an object using \code{\link{dispersions}}.
-#' The fitted dispersion-mean relationship is also used in
-#' \code{\link{varianceStabilizingTransformation}}.
-#' All of the intermediate values (gene-wise dispersion estimates, fitted dispersion
-#' estimates from the trended fit, etc.) are stored in \code{mcols(dds)}, with
-#' information about these columns in \code{mcols(mcols(dds))}.
-#'
-#' The log normal prior on the dispersion parameter has been proposed
-#' by Wu, et al. (2012) and is also implemented in the DSS package.
-#'
-#' In DESeq2, the dispersion estimation procedure described above replaces the
-#' different methods of dispersion from the previous version of the DESeq package.
-#' 
-#' \code{estimateDispersions} checks for the case of an analysis
-#' with as many samples as the number of coefficients to fit,
-#' and will temporarily substitute a design formula \code{~ 1} for the
-#' purposes of dispersion estimation.  This treats the samples as 
-#' replicates for the purpose of dispersion estimation. As mentioned in the DESeq paper:
-#' "While one may not want to draw strong conclusions from such an analysis,
-#' it may still be useful for exploration and hypothesis generation."
-#'
-#' The lower-level functions called by \code{estimateDispersions} are:
-#' \code{\link{estimateDispersionsGeneEst}},
-#' \code{\link{estimateDispersionsFit}}, and
-#' \code{\link{estimateDispersionsMAP}}.
-#' 
-#' @usage
-#' \S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100, quiet=FALSE)
-#'
-#' @docType methods
-#' @name estimateDispersions
-#' @rdname estimateDispersions
-#' @aliases estimateDispersions estimateDispersions,DESeqDataSet-method
-#' @param object a DESeqDataSet
-#' @param fitType either "parametric", "local", or "mean"
-#' for the type of fitting of dispersions to the mean intensity.
-#' \itemize{
-#'   \item parametric - fit a dispersion-mean relation of the form:
-#'     \deqn{dispersion = asymptDisp + extraPois / mean}
-#'     via a robust gamma-family GLM. The coefficients \code{asymptDisp} and \code{extraPois}
-#'     are given in the attribute \code{coefficients} of the \code{\link{dispersionFunction}}
-#'     of the object.
-#'   \item local - use the locfit package to fit a local regression
-#'     of log dispersions over log base mean (normal scale means and dispersions
-#'     are input and output for \code{\link{dispersionFunction}}). The points
-#'     are weighted by normalized mean count in the local regression.
-#'   \item mean - use the mean of gene-wise dispersion estimates.
-#' }
-#' @param maxit control parameter: maximum number of iterations to allow for convergence
-#' @param quiet whether to print messages at each step
-#'
-#' @return The DESeqDataSet passed as parameters, with the dispersion information
-#' filled in as metadata columns, accessible via \code{mcols}, or the final dispersions
-#' accessible via \code{\link{dispersions}}.
-#'
-#' @references \itemize{
-#'   \item Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
-#'   \item McCarthy, DJ, Chen, Y, Smyth, GK: Differential expression analysis of multifactor RNA-Seq experiments with respect to biological variation. Nucleic Acids Research 40 (2012), 4288-4297, \url{http://dx.doi.org/10.1093/nar/gks042}
-#'   \item Wu, H., Wang, C. & Wu, Z. A new shrinkage estimator for dispersion improves differential expression detection in RNA-seq data. Biostatistics (2012). \url{http://dx.doi.org/10.1093/biostatistics/kxs033}
-#' }
-#'
-#' @examples
-#' 
-#' dds <- makeExampleDESeqDataSet()
-#' dds <- estimateSizeFactors(dds)
-#' dds <- estimateDispersions(dds)
-#' head(dispersions(dds))
-#'
 estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
                                              maxit=100, quiet=FALSE) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
@@ -575,7 +456,91 @@ these column could have come in during colData import")
   return(object)
 }
 
+#' Estimate the dispersions for a DESeqDataSet
+#' 
+#' This function obtains dispersion estimates for Negative Binomial distributed data.
+#'
+#' Typically the function is called with the idiom:
+#'
+#' \code{dds <- estimateDispersions(dds)}
+#'
+#' The fitting proceeds as follows: for each gene, an estimate of the dispersion
+#' is found which maximizes the Cox Reid-adjusted profile likelihood
+#' (the methods of Cox Reid-adjusted profile likelihood maximization for
+#' estimation of dispersion in RNA-Seq data were developed by McCarthy,
+#' et al. (2012), first implemented in the edgeR package in 2010);
+#' a trend line capturing the dispersion-mean relationship is fit to the maximum likelihood estimates;
+#' a normal prior is determined for the log dispersion estimates centered
+#' on the predicted value from the trended fit
+#' with variance equal to the difference between the observed variance of the
+#' log dispersion estimates and the expected sampling variance;
+#' finally maximum a posteriori dispersion estimates are returned.
+#' This final dispersion parameter is used in subsequent tests.
+#' The final dispersion estimates can be accessed from an object using \code{\link{dispersions}}.
+#' The fitted dispersion-mean relationship is also used in
+#' \code{\link{varianceStabilizingTransformation}}.
+#' All of the intermediate values (gene-wise dispersion estimates, fitted dispersion
+#' estimates from the trended fit, etc.) are stored in \code{mcols(dds)}, with
+#' information about these columns in \code{mcols(mcols(dds))}.
+#'
+#' The log normal prior on the dispersion parameter has been proposed
+#' by Wu, et al. (2012) and is also implemented in the DSS package.
+#'
+#' In DESeq2, the dispersion estimation procedure described above replaces the
+#' different methods of dispersion from the previous version of the DESeq package.
+#' 
+#' \code{estimateDispersions} checks for the case of an analysis
+#' with as many samples as the number of coefficients to fit,
+#' and will temporarily substitute a design formula \code{~ 1} for the
+#' purposes of dispersion estimation.  This treats the samples as 
+#' replicates for the purpose of dispersion estimation. As mentioned in the DESeq paper:
+#' "While one may not want to draw strong conclusions from such an analysis,
+#' it may still be useful for exploration and hypothesis generation."
+#'
+#' The lower-level functions called by \code{estimateDispersions} are:
+#' \code{\link{estimateDispersionsGeneEst}},
+#' \code{\link{estimateDispersionsFit}}, and
+#' \code{\link{estimateDispersionsMAP}}.
+#' 
+#' @docType methods
+#' @name estimateDispersions
 #' @rdname estimateDispersions
+#' @aliases estimateDispersions estimateDispersions,DESeqDataSet-method
+#' @param object a DESeqDataSet
+#' @param fitType either "parametric", "local", or "mean"
+#' for the type of fitting of dispersions to the mean intensity.
+#' \itemize{
+#'   \item parametric - fit a dispersion-mean relation of the form:
+#'     \deqn{dispersion = asymptDisp + extraPois / mean}
+#'     via a robust gamma-family GLM. The coefficients \code{asymptDisp} and \code{extraPois}
+#'     are given in the attribute \code{coefficients} of the \code{\link{dispersionFunction}}
+#'     of the object.
+#'   \item local - use the locfit package to fit a local regression
+#'     of log dispersions over log base mean (normal scale means and dispersions
+#'     are input and output for \code{\link{dispersionFunction}}). The points
+#'     are weighted by normalized mean count in the local regression.
+#'   \item mean - use the mean of gene-wise dispersion estimates.
+#' }
+#' @param maxit control parameter: maximum number of iterations to allow for convergence
+#' @param quiet whether to print messages at each step
+#'
+#' @return The DESeqDataSet passed as parameters, with the dispersion information
+#' filled in as metadata columns, accessible via \code{mcols}, or the final dispersions
+#' accessible via \code{\link{dispersions}}.
+#'
+#' @references \itemize{
+#'   \item Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+#'   \item McCarthy, DJ, Chen, Y, Smyth, GK: Differential expression analysis of multifactor RNA-Seq experiments with respect to biological variation. Nucleic Acids Research 40 (2012), 4288-4297, \url{http://dx.doi.org/10.1093/nar/gks042}
+#'   \item Wu, H., Wang, C. & Wu, Z. A new shrinkage estimator for dispersion improves differential expression detection in RNA-seq data. Biostatistics (2012). \url{http://dx.doi.org/10.1093/biostatistics/kxs033}
+#' }
+#'
+#' @examples
+#' 
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' head(dispersions(dds))
+#'
 #' @export
 setMethod("estimateDispersions", signature(object="DESeqDataSet"),
           estimateDispersions.DESeqDataSet)
@@ -614,9 +579,6 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' The columns correspond to columns of the model matrix for final GLM fitting, i.e.,
 #' \code{attr(dds, "modelMatrix")}.
 #'
-#' @usage
-#' \method{coef}{DESeqDataSet}(object, SE=FALSE, \dots)
-#' 
 #' @param object a DESeqDataSet returned by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}},
 #' or \code{\link{nbinomLRT}}.
 #' @param SE whether to give the standard errors instead of coefficients.
@@ -665,12 +627,12 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
 #' @rdname summary
 #' @aliases summary summary.DESeqResults
 #' @author Michael Love
-#' 
+#'  
 #' @examples
 #'
 #' example("DESeq")
 #' summary(res)
-#' 
+#'
 #' @export
 summary.DESeqResults <- function(object, alpha=.1, ...) {
   cat("\n")

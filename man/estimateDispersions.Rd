@@ -3,11 +3,8 @@
 \name{estimateDispersions}
 \alias{estimateDispersions}
 \alias{estimateDispersions,DESeqDataSet-method}
-\alias{estimateDispersions.DESeqDataSet}
 \title{Estimate the dispersions for a DESeqDataSet}
 \usage{
-\S4method{estimateDispersions}{DESeqDataSet}(object,fitType=c("parametric","local","mean"),maxit=100, quiet=FALSE)
-
 \S4method{estimateDispersions}{DESeqDataSet}(object, fitType = c("parametric",
   "local", "mean"), maxit = 100, quiet = FALSE)
 }

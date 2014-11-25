@@ -3,11 +3,8 @@
 \name{estimateSizeFactors}
 \alias{estimateSizeFactors}
 \alias{estimateSizeFactors,DESeqDataSet-method}
-\alias{estimateSizeFactors.DESeqDataSet}
 \title{Estimate the size factors for a DESeqDataSet}
 \usage{
-\S4method{estimateSizeFactors}{DESeqDataSet}(object,locfunc=median,geoMeans,controlGenes,normMatrix)
-
 \S4method{estimateSizeFactors}{DESeqDataSet}(object, locfunc = median,
   geoMeans, controlGenes, normMatrix)
 }
@@ -37,15 +34,13 @@ The DESeqDataSet passed as parameters, with the size factors filled
 in.
 }
 \description{
-Estimate the size factors for a DESeqDataSet
-}
-\details{
 This function estimates the size factors using the
-"median ratio method" described by Equation 5 in Ander and Huber (2010).
+"median ratio method" described by Equation 5 in Anders and Huber (2010).
 The estimated size factors can be accessed using \code{\link{sizeFactors}}.
 Alternative library size estimators can also be supplied
 using \code{\link{sizeFactors}}.
-
+}
+\details{
 Typically, the function is called with the idiom:
 
 \code{dds <- estimateSizeFactors(dds)}

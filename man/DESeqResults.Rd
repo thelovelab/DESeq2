@@ -15,8 +15,10 @@ baseMean, log2FoldChange, lfcSE, stat, pvalue, padj.}
 a DESeqResults object
 }
 \description{
-This class extends the DataFrame class of the IRanges package
-simply to allow other packages to write methods for results
-objects from the DESeq2 package.
+This constructor function would not typically be used by "end users".
+This simple class extends the DataFrame class of the IRanges package
+to allow other packages to write methods for results
+objects from the DESeq2 package. It is used by \code{\link{results}}
+to wrap up the results table.
 }
 

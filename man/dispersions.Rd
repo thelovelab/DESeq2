@@ -3,7 +3,6 @@
 \name{dispersions}
 \alias{dispersions}
 \alias{dispersions,DESeqDataSet-method}
-\alias{dispersions.DESeqDataSet}
 \alias{dispersions<-}
 \alias{dispersions<-,DESeqDataSet,numeric-method}
 \title{Accessor functions for the dispersion estimates in a DESeqDataSet
@@ -15,9 +14,7 @@ dispersions(object, ...) <- value
 
 \S4method{dispersions}{DESeqDataSet}(object)
 
-\S4method{dispersions}{DESeqDataSet,numeric}(object)<-value
-
-\S4method{dispersions}{DESeqDataSet}(object)
+\S4method{dispersions}{DESeqDataSet,numeric}(object) <- value
 }
 \arguments{
 \item{object}{a \code{DESeqDataSet} object.}
@@ -28,7 +25,7 @@ dispersions(object, ...) <- value
 }
 \description{
 The dispersions for each row of the DESeqDataSet.  Generally,
-these should be set only by \code{\link{estimateDispersions}}.
+these are set by \code{\link{estimateDispersions}}.
 }
 \examples{
 example("estimateDispersions")

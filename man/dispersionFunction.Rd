@@ -3,7 +3,6 @@
 \name{dispersionFunction}
 \alias{dispersionFunction}
 \alias{dispersionFunction,DESeqDataSet-method}
-\alias{dispersionFunction.DESeqDataSet}
 \alias{dispersionFunction<-}
 \alias{dispersionFunction<-,DESeqDataSet,function-method}
 \title{Accessors for the 'dispersionFunction' slot of a DESeqDataSet object.}
@@ -14,9 +13,8 @@ dispersionFunction(object, ...) <- value
 
 \S4method{dispersionFunction}{DESeqDataSet}(object)
 
-\S4method{dispersionFunction}{DESeqDataSet,function}(object,estimateVar)<-value
-
-\S4method{dispersionFunction}{DESeqDataSet}(object)
+\S4method{dispersionFunction}{DESeqDataSet,`function`}(object,
+  estimateVar = TRUE) <- value
 }
 \arguments{
 \item{object}{a \code{DESeqDataSet} object.}

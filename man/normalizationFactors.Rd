@@ -3,7 +3,6 @@
 \name{normalizationFactors}
 \alias{normalizationFactors}
 \alias{normalizationFactors,DESeqDataSet-method}
-\alias{normalizationFactors.DESeqDataSet}
 \alias{normalizationFactors<-}
 \alias{normalizationFactors<-,DESeqDataSet,matrix-method}
 \title{Accessor functions for the normalization factors in a DESeqDataSet
@@ -15,9 +14,7 @@ normalizationFactors(object, ...) <- value
 
 \S4method{normalizationFactors}{DESeqDataSet}(object)
 
-\S4method{normalizationFactors}{DESeqDataSet,matrix}(object)<-value
-
-\S4method{normalizationFactors}{DESeqDataSet}(object)
+\S4method{normalizationFactors}{DESeqDataSet,matrix}(object) <- value
 }
 \arguments{
 \item{object}{a \code{DESeqDataSet} object.}

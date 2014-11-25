@@ -3,14 +3,9 @@
 \name{counts}
 \alias{counts}
 \alias{counts,DESeqDataSet-method}
-\alias{counts.DESeqDataSet}
 \alias{counts<-,DESeqDataSet,matrix-method}
 \title{Accessors for the 'counts' slot of a DESeqDataSet object.}
 \usage{
-\S4method{counts}{DESeqDataSet}(object,normalized=FALSE)
-
-\S4method{counts}{DESeqDataSet,matrix}(object)<-value
-
 \S4method{counts}{DESeqDataSet}(object, normalized = FALSE)
 
 \S4method{counts}{DESeqDataSet,matrix}(object) <- value

@@ -3,19 +3,14 @@
 \name{plotDispEsts}
 \alias{plotDispEsts}
 \alias{plotDispEsts,DESeqDataSet-method}
-\alias{plotDispEsts.DESeqDataSet}
 \title{Plot dispersion estimates}
 \usage{
-\S4method{plotDispEsts}{DESeqDataSet}(object, ymin,
-  genecol = "black", fitcol = "red", finalcol = "dodgerblue",
-  legend=TRUE, xlab, ylab, log = "xy", cex = 0.45, ...)
-
 \S4method{plotDispEsts}{DESeqDataSet}(object, ymin, genecol = "black",
   fitcol = "red", finalcol = "dodgerblue", legend = TRUE, xlab, ylab,
   log = "xy", cex = 0.45, ...)
 }
 \arguments{
-\item{object}{a DESeqDataSet}
+\item{object}{a DESeqDataSet, with dispersions estimated}
 
 \item{ymin}{the lower bound for points on the plot, points beyond this
 are drawn as triangles at ymin}

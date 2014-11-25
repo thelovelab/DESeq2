@@ -11,7 +11,7 @@ rlogTransformation(object, blind = TRUE, fast = FALSE, intercept,
   betaPriorVar, B, fitType = "parametric")
 }
 \arguments{
-\item{object}{a DESeqDataSet}
+\item{object}{a DESeqDataSet, or matrix of counts}
 
 \item{blind}{logical, whether to blind the transformation to the experimental
 design. blind=TRUE should be used for comparing samples in an manner unbiased by
@@ -46,9 +46,9 @@ over internal calculation of B using betaPriorVar.}
 this parameter is passed on to \code{\link{estimateDispersions}} (options described there).}
 }
 \value{
-a \code{\link{SummarizedExperiment}} if a \code{DESeqDataSet} was provided,
-or a matrix if a count matrix was provided.
-Note that for \code{\link{SummarizedExperiment}} output, the matrix of
+a \code{\link{DESeqTransform}} if a \code{DESeqDataSet} was provided,
+or a matrix if a count matrix was provided as input.
+Note that for \code{\link{DESeqTransform}} output, the matrix of
 transformed values is stored in \code{assay(rld)}.
 To avoid returning matrices with NA values, in the case of a row
 of all zeros, the rlog transformation returns zeros

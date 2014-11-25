@@ -26,9 +26,9 @@ this parameter is passed on to \code{\link{estimateDispersions}} (options descri
 }
 \value{
 \code{varianceStabilizingTransformation} returns a
-\code{\link{SummarizedExperiment}} if a \code{DESeqDataSet} was provided,
+\code{\link{DESeqTransform}} if a \code{DESeqDataSet} was provided,
 or returns a a matrix if a count matrix was provided.
-Note that for \code{\link{SummarizedExperiment}} output, the matrix of
+Note that for \code{\link{DESeqTransform}} output, the matrix of
 transformed values is stored in \code{assay(vsd)}.
 \code{getVarianceStabilizedData} also returns a matrix.
 }

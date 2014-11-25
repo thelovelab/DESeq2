@@ -1,39 +1,3 @@
-#' Plot dispersion estimates
-#'
-#' A simple helper function that plots the per-gene dispersion
-#' estimates together with the fitted mean-dispersion relationship.
-#'
-#' @usage
-#' \S4method{plotDispEsts}{DESeqDataSet}(object, ymin,
-#'   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
-#'   legend=TRUE, xlab, ylab, log = "xy", cex = 0.45, ...)
-#'
-#' @docType methods
-#' @name plotDispEsts
-#' @rdname plotDispEsts
-#' @aliases plotDispEsts plotDispEsts,DESeqDataSet-method
-#' 
-#' @param object a DESeqDataSet
-#' @param ymin the lower bound for points on the plot, points beyond this
-#'    are drawn as triangles at ymin
-#' @param genecol the color for gene-wise dispersion estimates
-#' @param fitcol the color of the fitted estimates
-#' @param finalcol the color of the final estimates used for testing
-#' @param legend logical, whether to draw a legend
-#' @param xlab xlab
-#' @param ylab ylab
-#' @param log log
-#' @param cex cex
-#' @param ... further arguments to \code{plot}
-#'
-#' @author Simon Anders
-#'
-#' @examples
-#' 
-#' dds <- makeExampleDESeqDataSet()
-#' dds <- estimateSizeFactors(dds)
-#' dds <- estimateDispersions(dds)
-#' plotDispEsts(dds)
 plotDispEsts.DESeqDataSet <- function( object, ymin,
   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
   legend=TRUE, xlab, ylab, log = "xy", cex = 0.45, ... )
@@ -71,10 +35,56 @@ plotDispEsts.DESeqDataSet <- function( object, ymin,
   }
 }
 
+#' Plot dispersion estimates
+#'
+#' A simple helper function that plots the per-gene dispersion
+#' estimates together with the fitted mean-dispersion relationship.
+#'
+#' @docType methods
+#' @name plotDispEsts
 #' @rdname plotDispEsts
+#' @aliases plotDispEsts plotDispEsts,DESeqDataSet-method
+#' 
+#' @param object a DESeqDataSet, with dispersions estimated
+#' @param ymin the lower bound for points on the plot, points beyond this
+#'    are drawn as triangles at ymin
+#' @param genecol the color for gene-wise dispersion estimates
+#' @param fitcol the color of the fitted estimates
+#' @param finalcol the color of the final estimates used for testing
+#' @param legend logical, whether to draw a legend
+#' @param xlab xlab
+#' @param ylab ylab
+#' @param log log
+#' @param cex cex
+#' @param ... further arguments to \code{plot}
+#'
+#' @author Simon Anders
+#'
+#' @examples
+#' 
+#' dds <- makeExampleDESeqDataSet()
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
+#' plotDispEsts(dds)
+#'
 #' @export
 setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDataSet)
 
+plotMA.DESeqDataSet <- function(object, alpha=.1, main="", ylim, ...) {
+    res <- results(object, ...)
+    plotMA.DESeqResults(res, alpha=alpha, main=main, ylim=ylim)
+}
+
+plotMA.DESeqResults <- function(object, alpha=.1, main="", ylim, ...) {
+    df <- data.frame(mean = object$baseMean,
+                     lfc = object$log2FoldChange,
+                     isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
+    if (missing(ylim)) {
+      plotMA(df, main=main, ...)
+    } else {
+      plotMA(df, main=main, ylim=ylim, ...)
+    }  
+}
 
 #' MA-plot from base means and log fold changes
 #'
@@ -91,11 +101,6 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' it is recommended to build the data.frame in the
 #' same manner and call \code{plotMA}.
 #'
-#' @usage
-#' \S4method{plotMA}{DESeqResults}(object, alpha, main, ylim, ...)
-#' \S4method{plotMA}{DESeqDataSet}(object, alpha, main, ylim, ...)
-#' 
-#'
 #' @docType methods
 #' @name plotMA
 #' @rdname plotMA
@@ -111,8 +116,6 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' is \code{DESeqResults} or to \code{\link{results}} if object is
 #' \code{DESeqDataSet}
 #'
-#' @return A \code{trellis} object.
-#' 
 #' @author Michael Love
 #'
 #' @examples
@@ -124,83 +127,39 @@ setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDa
 #' plotMA(res)
 #'
 #' @importFrom geneplotter plotMA
-plotMA.DESeqDataSet <- function(object, alpha=.1, main="", ylim, ...) {
-    res <- results(object, ...)
-    plotMA.DESeqResults(res, alpha=alpha, main=main, ylim=ylim)
-}
-
-#' @rdname plotMA
+#'
 #' @export
 setMethod("plotMA", signature(object="DESeqDataSet"), plotMA.DESeqDataSet)
 
-plotMA.DESeqResults <- function(object, alpha=.1, main="", ylim, ...) {
-    df <- data.frame(mean = object$baseMean,
-                     lfc = object$log2FoldChange,
-                     isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
-    if (missing(ylim)) {
-      plotMA(df, main=main, ...)
-    } else {
-      plotMA(df, main=main, ylim=ylim, ...)
-    }  
-}
-
+#' @name plotMA
 #' @rdname plotMA
 #' @export
 setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 
-
-#' Sample PCA plot from variance-stabilized data
-#' 
-#' This plot helps to check for batch effects and the like. 
-#' 
-#' @param x a SummarizedExperiment, with data in \code{assay(x)},
-#' produced for example by either \code{\link{varianceStabilizingTransformation}}
-#' or \code{\link{rlogTransformation}}
-#' @param intgroup interesting groups: a character vector of names in \code{colData(x)} to use for grouping
-#' @param ntop number of top genes to use for principal components, selected by highest
-#'    row variance
-#' @param returnData should the function only return the data.frame of PC1 and PC2
-#' with intgroup covariates for custom plotting (default is FALSE)
-#' 
-#' @return An object created by \code{ggplot}, which can be assigned and further customized.
-#' 
-#' @author Wolfgang Huber
-#'
-#' @note See the vignette for an example of variance stabilization and PCA plots.
-#' Note that the source code of plotPCA is very simple and commented.
-#' Users should find it easy to customize this function.
-#' 
-#' @examples
-#'
-#' dds <- makeExampleDESeqDataSet(betaSD=1)
-#' rld <- rlog(dds)
-#' plotPCA(rld)
-#' 
-#' @export
-plotPCA = function(x, intgroup="condition", ntop=500, returnData=FALSE)
+plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, returnData=FALSE)
 {
   # calculate the variance for each gene
-  rv <- rowVars(assay(x))
+  rv <- rowVars(assay(object))
 
   # select the ntop genes by variance
   select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
 
   # perform a PCA on the data in assay(x) for the selected genes
-  pca <- prcomp(t(assay(x)[select,]))
+  pca <- prcomp(t(assay(object)[select,]))
 
   # the contribution to the total variance for each component
   percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
 
-  if (!all(intgroup %in% names(colData(x)))) {
+  if (!all(intgroup %in% names(colData(object)))) {
     stop("the argument 'intgroup' should specify columns of colData(dds)")
   }
   
   # add the intgroup factors together to create a new grouping factor
-  intgroup.df <- as.data.frame(colData(x)[, intgroup, drop=FALSE])
+  intgroup.df <- as.data.frame(colData(object)[, intgroup, drop=FALSE])
   group <- factor(apply( intgroup.df, 1, paste, collapse=" : "))
 
   # assembly the data for the plot
-  d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group, intgroup.df, name=colnames(x))
+  d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group, intgroup.df, name=colnames(object))
 
   if (returnData) {
     attr(d, "percentVar") <- percentVar[1:2]
@@ -212,6 +171,42 @@ plotPCA = function(x, intgroup="condition", ntop=500, returnData=FALSE)
     ylab(paste0("PC2: ",round(percentVar[2] * 100),"% variance"))
 }
 
+#' Sample PCA plot for transformed data
+#' 
+#' This plot helps to check for batch effects and the like. 
+#'
+#' @docType methods
+#' @name plotPCA
+#' @rdname plotPCA
+#' @aliases plotPCA plotPCA,DESeqTransform-method
+#'
+#' @param object a \code{\link{DESeqTransform}} object, with data in \code{assay(x)},
+#' produced for example by either \code{\link{rlog}} or
+#' \code{\link{varianceStabilizingTransformation}}.
+#' @param intgroup interesting groups: a character vector of
+#' names in \code{colData(x)} to use for grouping
+#' @param ntop number of top genes to use for principal components,
+#' selected by highest row variance
+#' @param returnData should the function only return the data.frame of PC1 and PC2
+#' with intgroup covariates for custom plotting (default is FALSE)
+#' 
+#' @return An object created by \code{ggplot}, which can be assigned and further customized.
+#' 
+#' @author Wolfgang Huber
+#'
+#' @note See the vignette for an example of variance stabilization and PCA plots.
+#' Note that the source code of \code{plotPCA} is very simple and commented.
+#' It can be found at \code{DESeq2:::plotPCA.DESeqTransform}.
+#' Users should find it easy to customize this function.
+#' 
+#' @examples
+#'
+#' dds <- makeExampleDESeqDataSet(betaSD=1)
+#' rld <- rlog(dds)
+#' plotPCA(rld)
+#' 
+#' @export
+setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
 
 #' Plot of normalized counts for a single gene on log scale
 #'

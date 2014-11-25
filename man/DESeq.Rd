@@ -137,9 +137,19 @@ described in \code{\link{nbinomWaldTest}} and in the vignette. The
 generating results tables.
 }
 \examples{
-dds <- makeExampleDESeqDataSet(betaSD=1, n=100)
+# see vignette for suggestions on generating
+# count tables from RNA-Seq data
+cnts <- matrix(rnbinom(n=1000, mu=100, size=1/0.5), ncol=10)
+cond <- factor(rep(1:2, each=5))
+
+# object construction
+dds <- DESeqDataSetFromMatrix(cnts, DataFrame(cond), ~ cond)
+
+# standard analysis
 dds <- DESeq(dds)
 res <- results(dds)
+
+# an alternate analysis: likelihood ratio test
 ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)
 resLRT <- results(ddsLRT)
 }

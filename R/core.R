@@ -39,6 +39,35 @@
 #
 ############################################################
 
+#' DESeq2 package for differential analysis of count data
+#' 
+#' The main functions for differential analysis are \code{\link{DESeq}} and
+#' \code{\link{results}}. See the examples at \code{\link{DESeq}} for basic analysis steps.
+#' Two transformations offered for count data are
+#' the "regularized logarithm", \code{\link{rlog}},
+#' and \code{\link{varianceStabilizingTransformation}}.
+#' For more detailed information on usage, see the package vignette, by typing
+#' \code{vignette("DESeq2")}, or the workflow linked to on the first page
+#' of the vignette.
+#'
+#' @references
+#'
+#' DESeq2 reference:
+#' 
+#' Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold change and dispersion for RNA-Seq data with DESeq2. bioRxiv preprint (2014) \url{http://dx.doi.org/10.1101/002832}
+#'
+#' DESeq reference:
+#' 
+#' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+#'
+#' @author Michael Love, Wolfgang Huber, Simon Anders
+#' 
+#' @docType package
+#' @name DESeq2-package
+#' @aliases DESeq2-package
+#' @keywords package
+NULL
+
 #' Differential expression analysis based on the Negative Binomial (a.k.a. Gamma-Poisson) distribution
 #'
 #' This function performs a default analysis through the steps:
@@ -179,9 +208,19 @@
 #'
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(betaSD=1, n=100)
+#' # see vignette for suggestions on generating
+#' # count tables from RNA-Seq data
+#' cnts <- matrix(rnbinom(n=1000, mu=100, size=1/0.5), ncol=10)
+#' cond <- factor(rep(1:2, each=5))
+#'
+#' # object construction
+#' dds <- DESeqDataSetFromMatrix(cnts, DataFrame(cond), ~ cond)
+#'
+#' # standard analysis
 #' dds <- DESeq(dds)
 #' res <- results(dds)
+#'
+#' # an alternate analysis: likelihood ratio test
 #' ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)
 #' resLRT <- results(ddsLRT)
 #'

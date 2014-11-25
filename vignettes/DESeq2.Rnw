@@ -650,9 +650,9 @@ by the information about the samples.
 
 \subsubsection{Extracting transformed values}
 
-The two functions return \Rclass{SummarizedExperiment} objects, as the
-data are no longer counts. The \Rfunction{assay} function is used to
-extract the matrix of normalized values:
+The two functions return an object of class \Rclass{DESeqTransform}
+which is a subclass of \Rclass{SummarizedExperiment}. 
+The \Rfunction{assay} function is used to extract the matrix of normalized values:
 
 <<rlogAndVST>>=
 rld <- rlog(dds)
