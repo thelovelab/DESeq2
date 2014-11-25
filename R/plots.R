@@ -200,7 +200,7 @@ plotPCA = function(x, intgroup="condition", ntop=500, returnData=FALSE)
   group <- factor(apply( intgroup.df, 1, paste, collapse=" : "))
 
   # assembly the data for the plot
-  d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group, intgroup.df, names=colnames(x))
+  d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group, intgroup.df, name=colnames(x))
 
   if (returnData) {
     attr(d, "percentVar") <- percentVar[1:2]

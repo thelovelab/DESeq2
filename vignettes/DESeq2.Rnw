@@ -1785,8 +1785,9 @@ Willem Talloen,
 Elin Videvall, Hanneke van Deutekom,
 Todd Burwell, 
 Jesse Rowley,
-Igor Dolgalev.
-
+Igor Dolgalev,
+Stephen Turner,
+Ryan C Thompson.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=

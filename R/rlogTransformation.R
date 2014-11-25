@@ -1,6 +1,6 @@
 #' Apply a 'regularized log' transformation
 #'
-#' This function transform the count data to the log2 scale in a way 
+#' This function transforms the count data to the log2 scale in a way 
 #' which minimizes differences between samples for rows with small counts,
 #' and which normalizes with respect to library size.
 #' The rlog transformation produces a similar variance stabilizing effect as

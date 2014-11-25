@@ -191,11 +191,16 @@ DESeq <- function(object, test=c("Wald","LRT"),
                   full=design(object), reduced, quiet=FALSE,
                   minReplicatesForReplace=7, modelMatrixType,
                   parallel=FALSE, BPPARAM=bpparam()) {
-  if (missing(test)) {
-    test <- match.arg(test, choices=c("Wald","LRT"))
-  }
+  # check arguments
+  test <- match.arg(test, choices=c("Wald","LRT"))
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
+  stopifnot(is.logical(quiet))
+  stopifnot(is.numeric(minReplicatesForReplace))
+  stopifnot(is.logical(parallel))
   if (missing(betaPrior)) {
     betaPrior <- test == "Wald"
+  } else {
+    stopifnot(is.logical(betaPrior))
   }
   if (test == "LRT") {
     checkLRT(full, reduced)
