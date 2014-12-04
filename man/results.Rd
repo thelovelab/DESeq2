@@ -207,13 +207,13 @@ dds$group <- factor(rep(rep(c("X","Y"),each=3),2))
 design(dds) <- ~ group + condition + group:condition
 dds <- DESeq(dds)
 resultsNames(dds)
-# the condition effect
+# the main condition effect (for group X)
 results(dds, contrast=c("condition","B","A"))
-# the group effect
+# the main group effect (for condition A)
 results(dds, contrast=c("group","Y","X"))
 # the interaction term
 results(dds, name="groupY.conditionB")
-# the condition effect in group B
+# the condition effect in group Y
 results(dds, contrast=c(0,0,1,1))
 # or, equivalently using list to add these two effects
 results(dds, contrast=list(c("condition_B_vs_A","groupY.conditionB")))
@@ -226,7 +226,7 @@ design(dds) <- ~ group + condition + group:condition
 dds <- DESeq(dds)
 resultsNames(dds)
 
-# the main effect for condition
+# the main effect for condition (for all groups)
 results(dds, contrast=c("condition","B","A"))
 # which is equivalent to
 results(dds, contrast=list("conditionB","conditionA"))
