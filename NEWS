@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.7.7
+------------------------
+
+    o Introduced normalizeGeneLength() for correcting for changes
+      in average transcript length across samples.
+
+
 CHANGES IN VERSION 1.7.3
 ------------------------
 

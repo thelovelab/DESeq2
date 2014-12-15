@@ -1607,7 +1607,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' For more information on Cook's distance, please see the two
 #' sections of the vignette: 'Dealing with count outliers' and 'Count outlier detection'.
 #' 
-#' @param dds a DESeqDataSet object, which has already been processed by
+#' @param object a DESeqDataSet object, which has already been processed by
 #' either DESeq, nbinomWaldTest or nbinomLRT, and therefore contains a matrix
 #' contained in \code{assays(dds)[["cooks"]]}. These are the Cook's distances which will
 #' be used to define outlier counts.
@@ -1638,52 +1638,52 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' ddsReplace <- replaceOutliers(dds)
 #'
 #' @export
-replaceOutliers <- function(dds, trim=.2, cooksCutoff, minReplicates=7, whichSamples) {
-  if (is.null(attr(dds,"modelMatrix")) | !("cooks" %in% names(assays(dds)))) {
+replaceOutliers <- function(object, trim=.2, cooksCutoff, minReplicates=7, whichSamples) {
+  if (is.null(attr(object,"modelMatrix")) | !("cooks" %in% names(assays(object)))) {
     stop("first run DESeq, nbinomWaldTest, or nbinomLRT to identify outliers")
   }
   if (minReplicates < 3) {
     stop("at least 3 replicates are necessary in order to indentify a sample as a count outlier")
   }
   stopifnot(is.numeric(minReplicates) & length(minReplicates) == 1)
-  p <- ncol(attr(dds,"modelMatrix"))
-  m <- ncol(dds)
+  p <- ncol(attr(object,"modelMatrix"))
+  m <- ncol(object)
   if (m <= p) {
-    assays(dds)[["originalCounts"]] <- counts(dds)
-    return(dds)
+    assays(object)[["originalCounts"]] <- counts(object)
+    return(object)
   }
   if (missing(cooksCutoff)) {
     cooksCutoff <- qf(.99, p, m - p)
   }
-  idx <- which(assays(dds)[["cooks"]] > cooksCutoff)
-  mcols(dds)$replace <- apply(assays(dds)[["cooks"]], 1, function(row) any(row > cooksCutoff))
-  mcols(mcols(dds),use.names=TRUE)["replace",] <- DataFrame(type="intermediate",description="had counts replaced")
-  trimBaseMean <- apply(counts(dds,normalized=TRUE),1,mean,trim=trim)
+  idx <- which(assays(object)[["cooks"]] > cooksCutoff)
+  mcols(object)$replace <- apply(assays(object)[["cooks"]], 1, function(row) any(row > cooksCutoff))
+  mcols(mcols(object),use.names=TRUE)["replace",] <- DataFrame(type="intermediate",description="had counts replaced")
+  trimBaseMean <- apply(counts(object,normalized=TRUE),1,mean,trim=trim)
   # build a matrix of counts based on the trimmed mean and the size factors
-  replacementCounts <- if (!is.null(normalizationFactors(dds))) {
-    as.integer(matrix(rep(trimBaseMean,ncol(dds)),ncol=ncol(dds)) * 
-               normalizationFactors(dds))
+  replacementCounts <- if (!is.null(normalizationFactors(object))) {
+    as.integer(matrix(rep(trimBaseMean,ncol(object)),ncol=ncol(object)) * 
+               normalizationFactors(object))
   } else {
-    as.integer(outer(trimBaseMean, sizeFactors(dds), "*"))
+    as.integer(outer(trimBaseMean, sizeFactors(object), "*"))
   }
   
   # replace only those values which fall above the cutoff on Cook's distance
-  newCounts <- counts(dds)
+  newCounts <- counts(object)
   newCounts[idx] <- replacementCounts[idx]
   
   if (missing(whichSamples)) {
-    whichSamples <- nOrMoreInCell(attr(dds,"modelMatrix"), n = minReplicates)
+    whichSamples <- nOrMoreInCell(attr(object,"modelMatrix"), n = minReplicates)
   }
   stopifnot(is.logical(whichSamples))
-  dds$replaceable <- whichSamples
-  mcols(colData(dds),use.names=TRUE)["replaceable",] <- DataFrame(type="intermediate",
+  object$replaceable <- whichSamples
+  mcols(colData(object),use.names=TRUE)["replaceable",] <- DataFrame(type="intermediate",
                          description="outliers can be replaced")
-  assays(dds)[["originalCounts"]] <- counts(dds)
+  assays(object)[["originalCounts"]] <- counts(object)
   if (sum(whichSamples) == 0) {
-    return(dds)
+    return(object)
   }
-  counts(dds)[,whichSamples] <- newCounts[,whichSamples,drop=FALSE]
-  dds
+  counts(object)[,whichSamples] <- newCounts[,whichSamples,drop=FALSE]
+  object
 }
 
 #' @export

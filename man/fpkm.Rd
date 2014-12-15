@@ -29,14 +29,19 @@ per kilobase of feature length per million mapped fragments
 as in \code{\link{estimateSizeFactors}}).
 }
 \details{
-Note: the kilobase length of the features is calculated from the \code{rowData}
+The length of the features (e.g. genes) is calculated one of two ways:
+if there is a matrix named "avgTxLength" in \code{assays(dds)}, as created
+by \code{\link{normalizeGeneLength}}, this will take precedence in the
+length normalization. Otherwise, feature length is calculated
+from the \code{rowData} of the dds object,
 if a column \code{basepairs} is not present in \code{mcols(dds)}.
-This is the number of basepairs in the union of all \code{GRanges}
+The calculated length is the number of basepairs in the union of all \code{GRanges}
 assigned to a given row of \code{object}, e.g.,
 the union of all basepairs of exons of a given gene.
-When the read/fragment counting is interfeature dependent, a strict
+
+Note that, when the read/fragment counting has inter-feature dependencies, a strict
 normalization would not incorporate the basepairs of a feature which
-overlap another feature. This interfeature dependence is not taken into
+overlap another feature. This inter-feature dependence is not taken into
 consideration in the internal union basepair calculation.
 }
 \examples{

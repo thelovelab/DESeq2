@@ -4,14 +4,14 @@
 \alias{replaceOutliersWithTrimmedMean}
 \title{Replace outliers with trimmed mean}
 \usage{
-replaceOutliers(dds, trim = 0.2, cooksCutoff, minReplicates = 7,
+replaceOutliers(object, trim = 0.2, cooksCutoff, minReplicates = 7,
   whichSamples)
 
-replaceOutliersWithTrimmedMean(dds, trim = 0.2, cooksCutoff,
+replaceOutliersWithTrimmedMean(object, trim = 0.2, cooksCutoff,
   minReplicates = 7, whichSamples)
 }
 \arguments{
-\item{dds}{a DESeqDataSet object, which has already been processed by
+\item{object}{a DESeqDataSet object, which has already been processed by
 either DESeq, nbinomWaldTest or nbinomLRT, and therefore contains a matrix
 contained in \code{assays(dds)[["cooks"]]}. These are the Cook's distances which will
 be used to define outlier counts.}
