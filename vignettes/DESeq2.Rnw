@@ -65,14 +65,15 @@ library("DESeq2")
       \hline 
       If you use \deseqtwo{} in published research, please cite:  \\
       \\
-      M. I. Love, W. Huber, S. Anders: Moderated estimation of \\
-      fold change and dispersion for RNA-Seq data with DESeq2. \\
-      bioRxiv (2014). doi:10.1101/002832 \cite{Love:2014:biorxiv} \\
+      M. I. Love, W. Huber, S. Anders: \textbf{Moderated estimation of} \\
+      \textbf{fold change and dispersion for RNA-seq data with DESeq2}. \\
+      \emph{Genome Biology} 2014, \textbf{15}:550. \\
+      \url{http://dx.doi.org/10.1186/s13059-014-0550-8}  \\
       \hline 
     \end{tabular}
   \end{center}
 
-  \end{abstract}
+\end{abstract}
 
 <<options, results="hide", echo=FALSE>>=
 options(digits=3, width=80, prompt=" ", continue=" ")
@@ -111,7 +112,7 @@ e.\,g.\ to binding regions (with ChIP-Seq) or peptide sequences (with
 quantitative mass spectrometry).
 
 The count values must be raw counts of sequencing reads. This is important
-for \deseqtwo{}'s statistical model to hold, as only the actual
+for \deseqtwo{}'s statistical model \cite{Love2014} to hold, as only the actual
 counts allow assessing the measurement precision correctly. Hence, please
 do not supply other quantities, such as (rounded) normalized counts, or
 counts of covered base pairs -- this will only lead to nonsensical results.
@@ -604,7 +605,7 @@ In this section, we discuss two alternative
 approaches that offer more theoretical justification and a rational way
 of choosing the parameter equivalent to $n_0$ above.
 The \emph{regularized logarithm} or \emph{rlog} incorporates a prior on
-the sample differences \cite{Love:2014:biorxiv}, 
+the sample differences \cite{Love2014}, 
 and the other uses the concept of variance stabilizing
 transformations (VST) \cite{Tibshirani1988,sagmb2003,Anders:2010:GB}.
 Both transformations produce transformed data on the $\log_2$ scale
@@ -1336,7 +1337,7 @@ EDASeqNormFactors <- exp(-1 * EDASeqOffset)
 \subsection{The DESeq2 model} \label{sec:glm}
 
 The \deseqtwo{} model and all the steps taken in the software
-are described in detail in our pre-print \cite{Love:2014:biorxiv},
+are described in detail in our pre-print \cite{Love2014},
 and we include the formula and descriptions in this section as well.
 The differential expression analysis in \deseqtwo{} uses a generalized
 linear model of the form:

@@ -1,5 +1,7 @@
-CHANGES IN VERSION 1.7.8
+CHANGES IN VERSION 1.7.9
 ------------------------
+
+    o Added Genome Biology citation for the DESeq2 methods.
 
     o Introduced type="iterate" for estimateSizeFactors, 
       an alternative estimator for the size factors, which

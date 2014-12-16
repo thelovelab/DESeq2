@@ -83,9 +83,9 @@ sizeFactors(dds)
 Simon Anders
 }
 \references{
-\itemize{
-  \item Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
-}
+Reference for the median ratio method:
+
+Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 2010, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 }
 \seealso{
 \code{\link{estimateSizeFactorsForMatrix}}

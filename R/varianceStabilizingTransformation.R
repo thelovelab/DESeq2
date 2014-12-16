@@ -92,6 +92,12 @@
 #' Note that for \code{\link{DESeqTransform}} output, the matrix of
 #' transformed values is stored in \code{assay(vsd)}.
 #' \code{getVarianceStabilizedData} also returns a matrix.
+#'
+#' @references
+#'
+#' Reference for the variance stabilizing transformation for counts with a dispersion trend:
+#' 
+#' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 2010, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #' 
 #' @author Simon Anders
 #'
