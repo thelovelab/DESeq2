@@ -5,11 +5,20 @@
 \alias{estimateSizeFactors,DESeqDataSet-method}
 \title{Estimate the size factors for a DESeqDataSet}
 \usage{
-\S4method{estimateSizeFactors}{DESeqDataSet}(object, locfunc = median,
-  geoMeans, controlGenes, normMatrix)
+\S4method{estimateSizeFactors}{DESeqDataSet}(object, type = c("ratio",
+  "iterate"), locfunc = median, geoMeans, controlGenes, normMatrix)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
+
+\item{type}{either "ratio" or "iterate". "ratio" uses the standard
+median ratio method introduced in DESeq. The size factor is the
+median ratio of the sample over a pseudosample: for each gene, the geometric mean
+of all samples. "iterate" offers an alternative estimator, which can be
+used even when all genes contain a sample with a zero. This estimator
+iterates between estimating the dispersion with a design of ~1, and
+finding a size factor vector by numerically optimizing the likelihood
+of the ~1 model.}
 
 \item{locfunc}{a function to compute a location for a sample. By default, the
 median is used. However, especially for low counts, the

@@ -4,9 +4,8 @@
 \title{Differential expression analysis based on the Negative Binomial (a.k.a. Gamma-Poisson) distribution}
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
-  "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
-  minReplicatesForReplace = 7, modelMatrixType, parallel = FALSE,
-  BPPARAM = bpparam())
+  "mean"), betaPrior, reduced, quiet = FALSE, minReplicatesForReplace = 7,
+  modelMatrixType, parallel = FALSE, BPPARAM = bpparam())
 }
 \arguments{
 \item{object}{a DESeqDataSet object, see the constructor functions
@@ -29,11 +28,8 @@ See \code{\link{nbinomWaldTest}} for description of the calculation
 of the beta prior. By default, the beta prior is used only for the
 Wald test, but can also be specified for the likelihood ratio test.}
 
-\item{full}{the full model formula, this should be the formula in
-\code{design(object)}, only used by the likelihood ratio test}
-
 \item{reduced}{a reduced formula to compare against, e.g.
-the full model with a term or terms of interest removed,
+the full model, which is \code{design(dds)}, with a term or terms of interest removed,
 only used by the likelihood ratio test}
 
 \item{quiet}{whether to print messages at each step}

@@ -316,18 +316,24 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
                    object
                  })
 
-estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median, geoMeans, controlGenes, normMatrix) {
+estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","iterate"),
+                                             locfunc=median, geoMeans, controlGenes, normMatrix) {
+  type <- match.arg(type, c("ratio","iterate"))
   object <- sanitizeColData(object)
-  if (missing(normMatrix)) {
-    sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc=locfunc,
-                                                        geoMeans=geoMeans,
-                                                        controlGenes=controlGenes)
+  if (type == "iterate") {
+    sizeFactors(object) <- estimateSizeFactorsIterate(object)
   } else {
-    normalizationFactors(object) <- estimateNormFactors(counts(object), normMatrix=normMatrix,
-                                                        locfunc=locfunc,
-                                                        geoMeans=geoMeans,
-                                                        controlGenes=controlGenes)
-    message("adding normalization factors which account for library size")
+    if (missing(normMatrix)) {
+      sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc=locfunc,
+                                                          geoMeans=geoMeans,
+                                                          controlGenes=controlGenes)
+    } else {
+      normalizationFactors(object) <- estimateNormFactors(counts(object), normMatrix=normMatrix,
+                                                          locfunc=locfunc,
+                                                          geoMeans=geoMeans,
+                                                          controlGenes=controlGenes)
+      message("adding normalization factors which account for library size")
+    }
   }
   object
 }
@@ -358,7 +364,16 @@ estimateSizeFactors.DESeqDataSet <- function(object, locfunc=median, geoMeans, c
 #' @name estimateSizeFactors
 #' @rdname estimateSizeFactors
 #' @aliases estimateSizeFactors estimateSizeFactors,DESeqDataSet-method
+#' 
 #' @param object a DESeqDataSet
+#' @param type either "ratio" or "iterate". "ratio" uses the standard
+#' median ratio method introduced in DESeq. The size factor is the
+#' median ratio of the sample over a pseudosample: for each gene, the geometric mean
+#' of all samples. "iterate" offers an alternative estimator, which can be
+#' used even when all genes contain a sample with a zero. This estimator
+#' iterates between estimating the dispersion with a design of ~1, and
+#' finding a size factor vector by numerically optimizing the likelihood
+#' of the ~1 model.
 #' @param locfunc a function to compute a location for a sample. By default, the
 #' median is used. However, especially for low counts, the
 #' \code{\link[genefilter]{shorth}} function from the genefilter package may give better results.
@@ -641,6 +656,11 @@ summary.DESeqResults <- function(object, alpha=.1, ...) {
   down <- sum(object$padj < alpha & object$log2FoldChange < 0, na.rm=TRUE)
   filt <- sum(!is.na(object$pvalue) & is.na(object$padj))
   outlier <- sum(object$baseMean > 0 & is.na(object$pvalue))
+  ft <- if (is.null(attr(object, "filterThreshold"))) {
+    0
+  } else {
+    round(attr(object,"filterThreshold"), 1)
+  }
   printsig <- function(x) format(x, digits=2) 
   cat("out of",notallzero,"with nonzero total read count\n")
   cat(paste0("adjusted p-value < ",alpha,"\n"))
@@ -648,7 +668,7 @@ summary.DESeqResults <- function(object, alpha=.1, ...) {
   cat(paste0("LFC < 0 (down)   : ",down,", ",printsig(down/notallzero*100),"% \n"))
   cat(paste0("outliers [1]     : ",outlier,", ",printsig(outlier/notallzero*100),"% \n"))
   cat(paste0("low counts [2]   : ",filt,", ",printsig(filt/notallzero*100),"% \n"))
-  cat(paste0("(mean count < ",round(attr(object,"filterThreshold"),1),")\n"))
+  cat(paste0("(mean count < ",ft,")\n"))
   cat("[1] see 'cooksCutoff' argument of ?results\n")
   cat("[2] see 'independentFiltering' argument of ?results\n")
   cat("\n")

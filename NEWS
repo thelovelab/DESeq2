@@ -1,3 +1,11 @@
+CHANGES IN VERSION 1.7.8
+------------------------
+
+    o Introduced type="iterate" for estimateSizeFactors, 
+      an alternative estimator for the size factors, which
+      can be used even when all genes have a sample with a 
+      count of zero. See man page for details.
+
 CHANGES IN VERSION 1.7.7
 ------------------------
 

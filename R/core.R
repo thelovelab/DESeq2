@@ -158,10 +158,8 @@ NULL
 #' See \code{\link{nbinomWaldTest}} for description of the calculation
 #' of the beta prior. By default, the beta prior is used only for the
 #' Wald test, but can also be specified for the likelihood ratio test.
-#' @param full the full model formula, this should be the formula in
-#' \code{design(object)}, only used by the likelihood ratio test
 #' @param reduced a reduced formula to compare against, e.g.
-#' the full model with a term or terms of interest removed,
+#' the full model, which is \code{design(dds)}, with a term or terms of interest removed,
 #' only used by the likelihood ratio test
 #' @param quiet whether to print messages at each step
 #' @param minReplicatesForReplace the minimum number of replicates required
@@ -227,7 +225,7 @@ NULL
 #' @export
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
-                  full=design(object), reduced, quiet=FALSE,
+                  reduced, quiet=FALSE,
                   minReplicatesForReplace=7, modelMatrixType,
                   parallel=FALSE, BPPARAM=bpparam()) {
   # check arguments
@@ -241,6 +239,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   } else {
     stopifnot(is.logical(betaPrior))
   }
+  full <- design(object)
   if (test == "LRT") {
     checkLRT(full, reduced)
   }
@@ -2646,3 +2645,37 @@ sanitizeColData <- function(object) {
   object
 }
 
+estimateSizeFactorsIterate <- function(object, niter=10, Q=0.05) {
+  design(object) <- ~ 1
+  sf <- rep(1, ncol(object))
+  idx <- rowSums(counts(object)) > 0
+  cts <- counts(object)[idx,]
+  for (i in seq_len(niter)) {
+    sizeFactors(object) <- sf
+    object <- estimateDispersions(object, fitType="mean", quiet=TRUE)
+    q <- t(t(assays(object)[["mu"]])/sf)[idx,]
+    disps <- dispersions(object)[idx]
+    sf.old <- sf
+    fn <- function(p) {
+      sf <- exp(p - mean(p))
+      mu.new <- t(t(q) * sf)
+      ll <- matrix(dnbinom(cts, mu=mu.new, size=1/disps, log=TRUE), ncol=ncol(cts))
+      gene.ll <- rowSums(ll)
+      sum(gene.ll[ gene.ll > quantile(gene.ll, Q) ])
+    }
+    res <- optim(log(sf.old), fn, control=list(fnscale=-1), method="L-BFGS-B")
+    if (res$convergence != 0) {
+      stop("iterative size factor normalization did not converge within an iteration")
+    }
+    sf <- exp(res$par - mean(res$par))
+    # loop more than once, and test for convergence
+    if (i > 1 & sum((log(sf.old) - log(sf))^2) < 1e-4) {
+      break
+    } else {
+      if (i == niter) {
+        stop("iterative size factor normalization did not converge")
+      }
+    }
+  }
+  sf
+}
