@@ -158,6 +158,8 @@ NULL
 #' See \code{\link{nbinomWaldTest}} for description of the calculation
 #' of the beta prior. By default, the beta prior is used only for the
 #' Wald test, but can also be specified for the likelihood ratio test.
+#' @param full the full model formula, this should be the formula in
+#' \code{design(object)}, only used by the likelihood ratio test
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model, which is \code{design(dds)}, with a term or terms of interest removed,
 #' only used by the likelihood ratio test
@@ -225,7 +227,7 @@ NULL
 #' @export
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
-                  reduced, quiet=FALSE,
+                  full=design(object), reduced, quiet=FALSE,
                   minReplicatesForReplace=7, modelMatrixType,
                   parallel=FALSE, BPPARAM=bpparam()) {
   # check arguments
@@ -239,7 +241,9 @@ DESeq <- function(object, test=c("Wald","LRT"),
   } else {
     stopifnot(is.logical(betaPrior))
   }
-  full <- design(object)
+  if (class(full) == "formula" & (full != design(object))) {
+    stop("'full' specified as formula should equal design(object)")
+  }
   if (test == "LRT") {
     checkLRT(full, reduced)
   }
