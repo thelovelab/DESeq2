@@ -8,15 +8,17 @@
 \title{Low-level functions to fit dispersion estimates}
 \usage{
 estimateDispersionsGeneEst(object, minDisp = 1e-08, kappa_0 = 1,
-  dispTol = 1e-06, maxit = 100, quiet = FALSE, modelMatrix, niter = 1)
+  dispTol = 1e-06, maxit = 100, quiet = FALSE, modelMatrix = NULL,
+  niter = 1)
 
 estimateDispersionsFit(object, fitType = c("parametric", "local", "mean"),
   minDisp = 1e-08, quiet = FALSE)
 
 estimateDispersionsMAP(object, outlierSD = 2, dispPriorVar, minDisp = 1e-08,
-  kappa_0 = 1, dispTol = 1e-06, maxit = 100, modelMatrix, quiet = FALSE)
+  kappa_0 = 1, dispTol = 1e-06, maxit = 100, modelMatrix = NULL,
+  quiet = FALSE)
 
-estimateDispersionsPriorVar(object, minDisp = 1e-08, modelMatrix)
+estimateDispersionsPriorVar(object, minDisp = 1e-08, modelMatrix = NULL)
 }
 \arguments{
 \item{object}{a DESeqDataSet}

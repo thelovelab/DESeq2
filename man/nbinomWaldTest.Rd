@@ -4,9 +4,9 @@
 \alias{nbinomWaldTest}
 \title{Wald test for the GLM coefficients}
 \usage{
-nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrixType,
-  maxit = 100, useOptim = TRUE, quiet = FALSE, useT = FALSE, df,
-  useQR = TRUE)
+nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrix = NULL,
+  modelMatrixType, maxit = 100, useOptim = TRUE, quiet = FALSE,
+  useT = FALSE, df, useQR = TRUE)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -18,6 +18,9 @@ the non-intercept coefficients}
 model terms including the intercept.
 betaPriorVar gives the variance of the prior on the sample betas
 on the log2 scale. if missing (default) this is estimated from the data}
+
+\item{modelMatrix}{an optional matrix, typically this is set to NULL
+and created within the function. only can be supplied if betaPrior=FALSE}
 
 \item{modelMatrixType}{either "standard" or "expanded", which describe
 how the model matrix, X of the formula in \code{\link{DESeq}}, is

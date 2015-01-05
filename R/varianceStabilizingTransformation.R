@@ -126,9 +126,11 @@
 #' 
 #' @export
 varianceStabilizingTransformation <- function (object, blind=TRUE, fitType="parametric") {
+  if (is.null(colnames(object))) {
+    colnames(object) <- seq_len(ncol(object))
+  }
   if (is.matrix(object)) {
     matrixIn <- TRUE
-    if (is.null(colnames(object))) colnames(object) <- seq_len(ncol(object))
     object <- DESeqDataSetFromMatrix(object, DataFrame(row.names=colnames(object)), ~ 1)
   } else {
     matrixIn <- FALSE
@@ -161,7 +163,7 @@ getVarianceStabilizedData <- function(object) {
   if (is.null(attr(dispersionFunction(object),"fitType"))) {
     stop("call estimateDispersions before calling getVarianceStabilizedData")
   }
-  ncounts <- counts(object,normalized=TRUE)
+  ncounts <- counts(object, normalized=TRUE)
   if( attr( dispersionFunction(object), "fitType" ) == "parametric" ) {
     coefs <- attr( dispersionFunction(object), "coefficients" )
     vst <- function( q ) {

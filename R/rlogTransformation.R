@@ -127,9 +127,11 @@
 #' @export
 rlog <- function(object, blind=TRUE, fast=FALSE,
                  intercept, betaPriorVar, B, fitType="parametric") {
+  if (is.null(colnames(object))) {
+    colnames(object) <- seq_len(ncol(object))
+  }
   if (is.matrix(object)) {
     matrixIn <- TRUE
-    if (is.null(colnames(object))) colnames(object) <- seq_len(ncol(object))
     object <- DESeqDataSetFromMatrix(object, DataFrame(row.names=colnames(object)), ~ 1)
   } else {
     matrixIn <- FALSE

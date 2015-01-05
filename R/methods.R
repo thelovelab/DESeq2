@@ -421,7 +421,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
           estimateSizeFactors.DESeqDataSet)
 
 estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
-                                             maxit=100, quiet=FALSE) {
+                                             maxit=100, quiet=FALSE, modelMatrix=NULL) {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     stop("first call estimateSizeFactors or provide a normalizationFactor matrix before estimateDispersions")
   }
@@ -450,10 +450,15 @@ these column could have come in during colData import")
   # with as many samples as columns 
   # e.g., 2 samples and 2 groups,
   # we supply a design formula of ~ 1 for dispersion estimation
-  modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))  
-  noReps <- nrow(modelMatrix) == ncol(modelMatrix)
+  noReps <- if (is.null(modelMatrix)) {
+    mmtest <- model.matrix(design(object), data=as.data.frame(colData(object)))
+    nrow(mmtest) == ncol(mmtest)
+  } else {
+    nrow(modelMatrix) == ncol(modelMatrix)
+  }
   if (noReps) {
-    if (!quiet) warning("same number of samples and coefficients to fit,
+    if (!is.null(modelMatrix)) stop("same number of samples and coefficients to fit with supplied model matrix")
+    warning("same number of samples and coefficients to fit,
   estimating dispersion by treating samples as replicates.
   read the ?DESeq section on 'Experiments without replicates'")
     designIn <- design(object)
@@ -461,11 +466,11 @@ these column could have come in during colData import")
   }
   
   if (!quiet) message("gene-wise dispersion estimates")
-  object <- estimateDispersionsGeneEst(object, maxit=maxit, quiet=quiet)
+  object <- estimateDispersionsGeneEst(object, maxit=maxit, quiet=quiet, modelMatrix=modelMatrix)
   if (!quiet) message("mean-dispersion relationship")
   object <- estimateDispersionsFit(object, fitType=fitType, quiet=quiet)
   if (!quiet) message("final dispersion estimates")
-  object <- estimateDispersionsMAP(object, maxit=maxit, quiet=quiet)
+  object <- estimateDispersionsMAP(object, maxit=maxit, quiet=quiet, modelMatrix=modelMatrix)
 
   # replace the previous design
   if (noReps) design(object) <- designIn
@@ -540,6 +545,8 @@ these column could have come in during colData import")
 #' }
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #' @param quiet whether to print messages at each step
+#' @param modelMatrix an optional matrix which will be used for fitting the expected counts.
+#' by default, the model matrix is constructed from \code{design(object)}
 #'
 #' @return The DESeqDataSet passed as parameters, with the dispersion information
 #' filled in as metadata columns, accessible via \code{mcols}, or the final dispersions

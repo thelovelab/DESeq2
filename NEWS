@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.7.11
+-------------------------
+
+    o Added support for user-supplied model matrices to DESeq(),
+      estimateDispersions() and nbinomWaldTest().
+
 CHANGES IN VERSION 1.7.9
 ------------------------
 

@@ -241,17 +241,44 @@ DESeq <- function(object, test=c("Wald","LRT"),
   } else {
     stopifnot(is.logical(betaPrior))
   }
-  if (class(full) == "formula" & (full != design(object))) {
-    stop("'full' specified as formula should equal design(object)")
-  }
+  modelAsFormula <- !is.matrix(full)
+
   if (test == "LRT") {
-    checkLRT(full, reduced)
+    if (missing(reduced)) {
+      stop("likelihood ratio test requires a 'reduced' design, see ?DESeq")
+    }
+    if (is.matrix(full) | is.matrix(reduced)) {
+      if (!(is.matrix(full) & is.matrix(reduced))) {
+        stop("if one of 'full' and 'reduced' is a matrix, the other must be also a matrix")
+      }
+    }
+    if (modelAsFormula) {
+      checkLRT(full, reduced)
+    } else {
+      if (ncol(full) <= ncol(reduced)) {
+        stop("the number of columns of 'full' should be more than the number of columns of 'reduced'")
+      }
+    }
   }
-  hasIntercept <- attr(terms(design(object)),"intercept") == 1
-  if (betaPrior & !hasIntercept) {
-    stop("betaPrior=TRUE can only be used if the design has an intercept.
+  
+  if (modelAsFormula) {
+    if (full != design(object)) {
+      stop("'full' specified as formula should equal design(object)")
+    }
+    modelMatrix <- NULL
+    hasIntercept <- attr(terms(design(object)),"intercept") == 1
+    if (betaPrior & !hasIntercept) {
+      stop("betaPrior=TRUE can only be used if the design has an intercept.
   if specifying + 0 in the design formula, use betaPrior=FALSE")
+    }
+  } else {
+    if (betaPrior == TRUE) {
+      stop("betaPrior=TRUE is not supported for user-provided model matrices")
+    }
+    # this will be used for dispersion estimation and testing
+    modelMatrix <- full
   }
+ 
   attr(object, "betaPrior") <- betaPrior
   stopifnot(length(parallel) == 1 & is.logical(parallel))
   
@@ -268,12 +295,13 @@ DESeq <- function(object, test=c("Wald","LRT"),
     object <- estimateSizeFactors(object)
   }
   
-  if (!parallel) {    
+  if (!parallel) {
     if (!quiet) message("estimating dispersions")
-    object <- estimateDispersions(object, fitType=fitType, quiet=quiet)
+    object <- estimateDispersions(object, fitType=fitType, quiet=quiet, modelMatrix=modelMatrix)
     if (!quiet) message("fitting model and testing")
     if (test == "Wald") {
       object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
+                               modelMatrix=modelMatrix,
                                modelMatrixType=modelMatrixType)
     } else if (test == "LRT") {
       if (missing(modelMatrixType)) {
@@ -286,7 +314,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
   } else if (parallel) {
     object <- DESeqParallel(object, test=test, fitType=fitType,
                             betaPrior=betaPrior, full=full, reduced=reduced,
-                            quiet=quiet, modelMatrixType=modelMatrixType,
+                            quiet=quiet, modelMatrix=modelMatrix,
+                            modelMatrixType=modelMatrixType,
                             BPPARAM=BPPARAM)
   }
 
@@ -296,6 +325,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
     object <- refitWithoutOutliers(object, test=test, betaPrior=betaPrior,
                                    full=full, reduced=reduced, quiet=quiet,
                                    minReplicatesForReplace=minReplicatesForReplace,
+                                   modelMatrix=modelMatrix,
                                    modelMatrixType=modelMatrixType)
   }
   
@@ -331,7 +361,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
                                     dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
   beta <- cbind(rnorm(n,interceptMean,interceptSD),rnorm(n,0,betaSD))
   dispersion <- dispMeanRel(2^(beta[,1]))
-  colData <- DataFrame(sample = paste("sample",1:m,sep=""),
+  colData <- DataFrame(row.names = paste("sample",1:m,sep=""),
                        condition=factor(rep(c("A","B"),times=c(ceiling(m/2),floor(m/2)))))
   x <- if (m > 1) {
     model.matrix(~ colData$condition)
@@ -492,7 +522,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, co
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        dispTol=1e-6, maxit=100, quiet=FALSE,
-                                       modelMatrix, niter=1) {
+                                       modelMatrix=NULL, niter=1) {
   if (!is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst")
@@ -509,12 +539,13 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # in case the class of the mcols(mcols(object)) are not character
   object <- sanitizeRowData(object)
 
-  if (missing(modelMatrix)) {
-    modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+  if (is.null(modelMatrix)) {
+    modelMatrix <- model.matrix(design(object), data=colData(object))
     if (qr(modelMatrix)$rank < ncol(modelMatrix)) {
       stop("the model matrix is not full rank, so the model cannot be fit as specified.
-  one or more variables or interaction terms in the design formula
-  are linear combinations of the others and must be removed")
+  Either one or more variables or interaction terms in the design formula are linear
+  combinations of the others and must be removed, or levels without any samples have
+  resulted in columns of zeros in the model matrix.")
     }
     if (nrow(modelMatrix) == ncol(modelMatrix)) {
       stop("the number of samples and the number of model coefficients are equal,
@@ -678,7 +709,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
 #' @export
 estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    minDisp=1e-8, kappa_0=1, dispTol=1e-6,
-                                   maxit=100, modelMatrix, quiet=FALSE) {
+                                   maxit=100, modelMatrix=NULL, quiet=FALSE) {
   stopifnot(length(outlierSD)==1)
   stopifnot(length(minDisp)==1)
   stopifnot(length(kappa_0)==1)
@@ -690,8 +721,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
     mcols(object) <- mcols(object)[,!names(mcols(object)) %in% removeCols,drop=FALSE]
   }
 
-  if (missing(modelMatrix)) {
-    modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+  if (is.null(modelMatrix)) {
+    modelMatrix <- model.matrix(design(object), data=colData(object))
   } else {
     message("using supplied model matrix")
   }
@@ -805,11 +836,11 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
+estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) {
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
-  if (missing(modelMatrix)) {
-    modelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+  if (is.null(modelMatrix)) {
+    modelMatrix <- model.matrix(design(object), data=colData(object))
   }
   # estimate the variance of the distribution of the
   # log dispersion estimates around the fitted value
@@ -942,6 +973,8 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
 #' model terms including the intercept.
 #' betaPriorVar gives the variance of the prior on the sample betas
 #' on the log2 scale. if missing (default) this is estimated from the data
+#' @param modelMatrix an optional matrix, typically this is set to NULL
+#' and created within the function. only can be supplied if betaPrior=FALSE
 #' @param modelMatrixType either "standard" or "expanded", which describe
 #' how the model matrix, X of the formula in \code{\link{DESeq}}, is
 #' formed. "standard" is as created by \code{model.matrix} using the
@@ -976,14 +1009,17 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix) {
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType,
+nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
+                           modelMatrix=NULL, modelMatrixType,
                            maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df, useQR=TRUE) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
-  
   stopifnot(length(maxit)==1)
+  if (!is.null(modelMatrix) & betaPrior) {
+    stop("the model matrix can only be user-supplied if betaPrior=FALSE")
+  }
   
   # in case the class of the mcols(mcols(object)) are not character
   object <- sanitizeRowData(object)
@@ -998,47 +1034,53 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
-  
-  # what kind of model matrix to use
-  stopifnot(is.logical(betaPrior))
-  termsOrder <- attr(terms.formula(design(object)),"order")
-  interactionPresent <- any(termsOrder > 1)
-  if (missing(modelMatrixType) || is.null(modelMatrixType)) {
-    blindDesign <- design(object) == formula(~ 1)
-    twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
-    mmTypeTest <- betaPrior & !blindDesign & !twoLevelsInteraction
-    modelMatrixType <- if (mmTypeTest) {
-      "expanded"
-    } else {
-      "standard"
+
+  if (is.null(modelMatrix)) {
+    modelAsFormula <- TRUE
+    # what kind of model matrix to use
+    stopifnot(is.logical(betaPrior))
+    termsOrder <- attr(terms.formula(design(object)),"order")
+    interactionPresent <- any(termsOrder > 1)
+    if (missing(modelMatrixType) || is.null(modelMatrixType)) {
+      blindDesign <- design(object) == formula(~ 1)
+      twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
+      mmTypeTest <- betaPrior & !blindDesign & !twoLevelsInteraction
+      modelMatrixType <- if (mmTypeTest) {
+        "expanded"
+      } else {
+        "standard"
+      }
     }
-  }
-  if (modelMatrixType == "expanded" & !betaPrior) {
-    stop("expanded model matrices require a beta prior")
-  }
-
-  # store modelMatrixType so it can be accessed by estimateBetaPriorVar
-  attr(object, "modelMatrixType") <- modelMatrixType
-
-  # check for intercept
-  hasIntercept <- attr(terms(design(object)),"intercept") == 1
-  if (betaPrior & !hasIntercept) {
-    stop("betaPrior=TRUE can only be used if the design has an intercept.
+    if (modelMatrixType == "expanded" & !betaPrior) {
+      stop("expanded model matrices require a beta prior")
+    }
+    # store modelMatrixType so it can be accessed by estimateBetaPriorVar
+    attr(object, "modelMatrixType") <- modelMatrixType
+    # check for intercept
+    hasIntercept <- attr(terms(design(object)),"intercept") == 1
+    if (betaPrior & !hasIntercept) {
+      stop("betaPrior=TRUE can only be used if the design has an intercept.
   if specifying + 0 in the design formula, use betaPrior=FALSE")
-  }
-  
-  # if there are interaction terms present in the design
-  # then we should only use the prior on the interaction terms
-  if (any(termsOrder > 2) & modelMatrixType == "expanded") {
-    stop("interactions higher than 2nd order and usage of expanded model matrices
+    }
+    renameCols <- hasIntercept
+    # if there are interaction terms present in the design
+    # then we should only use the prior on the interaction terms
+    if (any(termsOrder > 2) & modelMatrixType == "expanded") {
+      stop("interactions higher than 2nd order and usage of expanded model matrices
   has not been implemented. we recommend instead using a likelihood
   ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
+    }
+  } else {
+    modelAsFormula <- FALSE
+    attr(object, "modelMatrixType") <- "user-supplied"
+    renameCols <- FALSE
   }
 
   if (!betaPrior) {
     # fit the negative binomial GLM without a prior
     # (in actuality a very wide prior with standard deviation 1e3 on log2 fold changes)
-    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR, renameCols=hasIntercept)
+    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
+                         renameCols=renameCols, modelMatrix=modelMatrix)
     H <- fit$hat_diagonals
     modelMatrix <- fit$modelMatrix
     modelMatrixNames <- fit$modelMatrixNames
@@ -1072,7 +1114,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar, modelMatrixType
   attr(object,"test") <- "Wald"
 
   # calculate Cook's distance
-  dispModelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+  dispModelMatrix <- if (modelAsFormula) {
+    model.matrix(design(object), data=colData(object))
+  } else {
+    modelMatrix
+  }
   attr(object,"dispModelMatrix") <- dispModelMatrix
   cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
 
@@ -1189,7 +1235,7 @@ estimateBetaPriorVar <- function(object,
   colnamesBM <- colnames(betaMatrix)
   colnamesBM <- gsub("MLE_(.*)","\\1",colnamesBM)
   # make these standard colnames as from model.matrix()
-  convertNames <- renameModelMatrixColumns(as.data.frame(colData(object)),
+  convertNames <- renameModelMatrixColumns(colData(object),
                                            design(object))
   colnamesBM <- sapply(colnamesBM, function(x) {
     if (x %in% convertNames$to) {
@@ -1201,7 +1247,7 @@ estimateBetaPriorVar <- function(object,
   colnames(betaMatrix) <- colnamesBM
   
   # this is the model matrix from an MLE run
-  modelMatrix <- model.matrix(design(objectNZ), as.data.frame(colData(objectNZ)))
+  modelMatrix <- model.matrix(design(objectNZ), colData(object))
 
   modelMatrixType <- attr(object, "modelMatrixType")
   
@@ -1300,7 +1346,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
   H <- fit$hat_diagonal
   betaMatrix <- fit$betaMatrix
   colnames(betaMatrix) <- modelMatrixNames
-  convertNames <- renameModelMatrixColumns(as.data.frame(colData(objectNZ)),
+  convertNames <- renameModelMatrixColumns(colData(object),
                                            design(objectNZ))
   convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
   modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
@@ -1398,11 +1444,14 @@ nbinomLRT <- function(object, full=design(object), reduced,
     # try to form model matrices, test for difference
     # in residual degrees of freedom
     fullModelMatrix <- model.matrix(full,
-                                    data=as.data.frame(colData(object)))
+                                    data=colData(object))
     reducedModelMatrix <- model.matrix(reduced,
-                                       data=as.data.frame(colData(object)))
+                                       data=colData(object))
     df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
   } else {
+    if (betaPrior) {
+      stop("user-supplied model matrices require betaPrior=FALSE")
+    }
     df <- ncol(full) - ncol(reduced)
   }
   
@@ -1422,30 +1471,29 @@ nbinomLRT <- function(object, full=design(object), reduced,
   termsOrder <- attr(terms.formula(design(object)),"order")
   interactionPresent <- any(termsOrder > 1)
 
-  if (is.null(modelMatrixType)) {
-    modelMatrixType <- "standard"
-  }
-  
-  if (modelMatrixType == "expanded" & !betaPrior) {
-    stop("expanded model matrices require a beta prior")
-  }
-
-  # check for intercept
-  hasIntercept <- attr(terms(design(object)),"intercept") == 1
-  if (betaPrior & !hasIntercept) {
-    stop("betaPrior=TRUE can only be used if the design has an intercept.
+  if (modelAsFormula) {
+    if (is.null(modelMatrixType)) {
+      modelMatrixType <- "standard"
+    }
+    # check for intercept
+    hasIntercept <- attr(terms(design(object)),"intercept") == 1
+    if (betaPrior & !hasIntercept) {
+      stop("betaPrior=TRUE can only be used if the design has an intercept.
   if specifying + 0 in the design formula, use betaPrior=FALSE")
-  }
-
-  if (!modelAsFormula & betaPrior & missing(betaPriorVar)) {
-    stop("When full and reduced models passed as matrices, betaPriorVar must be provided")
-  }
-
-  # if there are interaction terms present in the design
-  # then we should only use the prior on the interaction terms
-  if (any(termsOrder > 2) & modelMatrixType == "expanded") {
-    stop("interactions higher than 2nd order and usage of expanded model matrices
+    }
+    renameCols <- hasIntercept
+    if (modelMatrixType == "expanded" & !betaPrior) {
+      stop("expanded model matrices require a beta prior")
+    }
+    # if there are interaction terms present in the design
+    # then we should only use the prior on the interaction terms
+    if (any(termsOrder > 2) & modelMatrixType == "expanded") {
+      stop("interactions higher than 2nd order and usage of expanded model matrices
   has not been implemented")
+    }
+  } else {
+    modelMatrixType <- "user-supplied"
+    renameCols <- FALSE
   }
 
   # store modelMatrixType so it can be accessed by estimateBetaPriorVar
@@ -1457,7 +1505,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
   if (!betaPrior) {
     if (modelAsFormula) {
       fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
-                                 renameCols=hasIntercept, maxit=maxit,
+                                 renameCols=renameCols, maxit=maxit,
                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
       modelMatrix <- fullModel$modelMatrix
       reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
@@ -1509,9 +1557,13 @@ nbinomLRT <- function(object, full=design(object), reduced,
   assays(object)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
 
   H <- fullModel$hat_diagonals
-  
+
   # calculate Cook's distance
-  dispModelMatrix <- model.matrix(design(object), data=as.data.frame(colData(object)))
+  dispModelMatrix <- if (modelMatrixType == "expanded") {
+    model.matrix(design(object), data=colData(object))
+  } else {
+    modelMatrix
+  }
   attr(object,"dispModelMatrix") <- dispModelMatrix
   cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
   
@@ -1809,15 +1861,15 @@ nbinomLogLike <- function(counts, mu, disp) {
 #
 # return a list of results, with coefficients and standard
 # errors on the log2 scale
-fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
+fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lambda,
                           renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=TRUE,
                           useQR=TRUE, forceOptim=FALSE, warnNonposVar=TRUE) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
-  if (missing(modelMatrix)) {
+  if (is.null(modelMatrix)) {
     modelAsFormula <- TRUE
-    modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
+    modelMatrix <- model.matrix(modelFormula, data=colData(object))
   } else {
     modelAsFormula <- FALSE
   }
@@ -1826,7 +1878,7 @@ fitNbinomGLMs <- function(object, modelMatrix, modelFormula, alpha_hat, lambda,
   stopifnot(all(colSums(abs(modelMatrix)) > 0))
   
   if (renameCols) {
-    convertNames <- renameModelMatrixColumns(as.data.frame(colData(object)),
+    convertNames <- renameModelMatrixColumns(colData(object),
                                              modelFormula)
     convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
     modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
@@ -2248,7 +2300,7 @@ covarianceMatrix <- function(object, rowNumber) {
   # convert coefficients to log scale
   coefColumns <- names(mcols(object))[grep("log2 fold change",mcols(mcols(object))$description)]
   beta <- log(2) * as.numeric(as.data.frame(mcols(object)[rowNumber,coefColumns,drop=FALSE]))
-  x <- model.matrix(design(object), as.data.frame(colData(object)))
+  x <- model.matrix(design(object), colData(object))
   y <- counts(object)[rowNumber,]
   sf <- sizeFactors(object)
   alpha <- dispersions(object)[rowNumber]
@@ -2315,7 +2367,7 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
     colnames(betaMatrix) <- modelMatrixNames
 
     # save the MLE log fold changes for addMLE argument of results
-    convertNames <- renameModelMatrixColumns(as.data.frame(colData(objectNZ)),
+    convertNames <- renameModelMatrixColumns(colData(object),
                                              design(objectNZ))
     convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
     modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
@@ -2327,7 +2379,7 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
   } else {
     # we can skip the first MLE fit because the
     # beta prior variance and hat matrix diagonals were provided
-    modelMatrix <- model.matrix(design(objectNZ), as.data.frame(colData(objectNZ)))
+    modelMatrix <- model.matrix(design(objectNZ), colData(object))
     H <- assays(objectNZ)[["H"]]
     mleBetaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_",names(mcols(objectNZ))),drop=FALSE])
   }
@@ -2547,7 +2599,7 @@ checkLRT <- function(full, reduced) {
 
 # bulky code separated from DESeq()
 refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
-                                 quiet, minReplicatesForReplace, modelMatrixType) {
+                                 quiet, minReplicatesForReplace, modelMatrix, modelMatrixType) {
   cooks <- assays(object)[["cooks"]]
   object <- replaceOutliers(object, minReplicates=minReplicatesForReplace)
 
@@ -2570,19 +2622,19 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
     intermediateOrResults <- which(mcols(mcols(objectSub))$type %in% c("intermediate","results"))
     mcols(objectSub) <- mcols(objectSub)[,-intermediateOrResults,drop=FALSE]
     if (!quiet) message("estimating dispersions")
-    objectSub <- estimateDispersionsGeneEst(objectSub, quiet=quiet)
+    objectSub <- estimateDispersionsGeneEst(objectSub, quiet=quiet, modelMatrix=modelMatrix)
     # need to redo fitted dispersion due to changes in base mean
     mcols(objectSub)$dispFit <- dispersionFunction(objectSub)(mcols(objectSub)$baseMean)
     mcols(mcols(objectSub),use.names=TRUE)["dispFit",] <- DataFrame(type="intermediate",
                              description="fitted values of dispersion")
     dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" )
     objectSub <- estimateDispersionsMAP(objectSub, quiet=quiet,
-                                        dispPriorVar=dispPriorVar)
+                                        dispPriorVar=dispPriorVar, modelMatrix=modelMatrix)
     if (!quiet) message("fitting model and testing")
     if (test == "Wald") {
       betaPriorVar <- attr(object, "betaPriorVar")
       objectSub <- nbinomWaldTest(objectSub, betaPrior=betaPrior,
-                                  betaPriorVar=betaPriorVar, quiet=quiet)
+                                  betaPriorVar=betaPriorVar, quiet=quiet, modelMatrix=modelMatrix)
     } else if (test == "LRT") {
       if (!betaPrior) {
         objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet,

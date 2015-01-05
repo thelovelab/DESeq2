@@ -7,7 +7,7 @@
 \title{Estimate the dispersions for a DESeqDataSet}
 \usage{
 \S4method{estimateDispersions}{DESeqDataSet}(object, fitType = c("parametric",
-  "local", "mean"), maxit = 100, quiet = FALSE)
+  "local", "mean"), maxit = 100, quiet = FALSE, modelMatrix = NULL)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -30,6 +30,9 @@ for the type of fitting of dispersions to the mean intensity.
 \item{maxit}{control parameter: maximum number of iterations to allow for convergence}
 
 \item{quiet}{whether to print messages at each step}
+
+\item{modelMatrix}{an optional matrix which will be used for fitting the expected counts.
+by default, the model matrix is constructed from \code{design(object)}}
 }
 \value{
 The DESeqDataSet passed as parameters, with the dispersion information

@@ -258,6 +258,11 @@ results <- function(object, contrast, name,
       stop("rowData is GRangesList and one or more GRanges have length 0. Use format='DataFrame' or 'GRangesList'")
     }
   }
+  if (!missing(contrast)) {
+    if (attr(object,"modelMatrixType") == "user-supplied" & is.character(contrast)) {
+      stop("only list- and numeric-type contrasts are supported for user-supplied model matrices")
+    }
+  }
   
   # check for intercept
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
@@ -881,6 +886,7 @@ getPvalue <- function(object,test="Wald",name) {
 # convenience function to make more descriptive names
 # for factor variables
 renameModelMatrixColumns <- function(data, design) {
+  data <- as.data.frame(data)
   designVars <- all.vars(design)
   designVarsClass <- sapply(designVars, function(v) class(data[[v]]))
   factorVars <- designVars[designVarsClass == "factor"]
