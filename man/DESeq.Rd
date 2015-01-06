@@ -30,12 +30,15 @@ See \code{\link{nbinomWaldTest}} for description of the calculation
 of the beta prior. By default, the beta prior is used only for the
 Wald test, but can also be specified for the likelihood ratio test.}
 
-\item{full}{the full model formula, this should be the formula in
-\code{design(object)}, only used by the likelihood ratio test}
+\item{full}{for \code{test="LRT"}, the full model formula,
+which is restricted to the formula in \code{design(object)}.
+alternatively, it can be a model matrix constructed by the user.
+advanced use: specifying a model matrix for full and \code{test="Wald"}
+is possible if \code{betaPrior=FALSE}}
 
-\item{reduced}{a reduced formula to compare against, e.g.
-the full model, which is \code{design(dds)}, with a term or terms of interest removed,
-only used by the likelihood ratio test}
+\item{reduced}{for \code{test="LRT"}, a reduced formula to compare against,
+i.e., the full formula with the term(s) of interest removed.
+alternatively, it can be a model matrix constructed by the user}
 
 \item{quiet}{whether to print messages at each step}
 

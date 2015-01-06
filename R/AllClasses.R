@@ -169,11 +169,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   
   modelMatrix <- model.matrix(design, data=as.data.frame(colData(se)))
   if (!ignoreRank) {
-    if (qr(modelMatrix)$rank < ncol(modelMatrix)) {
-      stop("the model matrix is not full rank, so the model cannot be fit as specified.
-  one or more variables or interaction terms in the design formula
-  are linear combinations of the others and must be removed")
-    }
+    checkFullRank(modelMatrix)
   }
 
   # if the last variable in the design formula is a

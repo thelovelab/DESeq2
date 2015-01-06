@@ -222,7 +222,7 @@ directory <- system.file("extdata", package="pasilla", mustWork=TRUE)
 @ 
 
 We specify which files to read in using \Rfunction{list.files},
-and select those files which contain the string \Rcode{"treated"} 
+and select those files which contain the string \Robject{"treated"} 
 using \Rfunction{grep}. The \Rfunction{sub} function is used to 
 chop up the sample filename to obtain the condition status, or 
 you might alternatively read in a phenotypic table 
@@ -1327,6 +1327,120 @@ cqnOffset <- cqnObject$glm.offset
 cqnNormFactors <- exp(cqnOffset)
 EDASeqNormFactors <- exp(-1 * EDASeqOffset)
 @
+
+\subsection{Model matrix not full rank}
+
+While most experimental designs run easily using design formula, some design formulas can
+cause problems and result in the \Rfunction{DESeq} function returning an error with the text:
+``the model matrix is not full rank, so the model cannot be fit as specified.''
+There are two reasons for this problem, either one or more columns in the model matrix
+are linear combinations of other columns, or there are levels of factors or combinations of levels
+of multiple factors which are missing samples. We address these problems below and discuss possible
+solutions: 
+
+\subsubsection{Linear combinations}
+
+The simplest case of the linear combination, or linear dependency problem, is if two variables contain
+exactly the same information, such as in the following sample table. The software cannot fit an
+effect for \Robject{batch} and \Robject{condition}, because they produce identical columns in the model
+matrix. This is also referred to as ``confounding''. A unique solution of coefficients (the
+$\beta_i$ in the following Section \ref{sec:glm}) is not possible.
+
+<<lineardep, echo=FALSE>>=
+data.frame(batch=factor(c(1,1,2,2)), condition=factor(c("A","A","B","B")))
+@ 
+
+Another situation which will cause problems is when the variables are not identical, but one
+variable can be formed by the combination of other factor levels. In the following example, the
+effect of batch 2 vs 1 cannot be fit because it is identical to a column in the model matrix which
+represents the condition C vs A effect.
+
+<<lineardep2, echo=FALSE>>=
+data.frame(batch=factor(c(1,1,1,1,2,2)), condition=factor(c("A","A","B","B","C","C")))
+@ 
+
+In both of these cases, the batch effect cannot be fit and must be removed from the model
+formula. The options are either to assume there is no batch effect (which we know is highly unlikely
+given the literature on batch effects in sequencing datasets) or to repeat the experiment and
+properly balance the conditions across batches, for example: 
+
+<<lineardep3, echo=FALSE>>=
+data.frame(batch=factor(c(1,1,1,2,2,2)), condition=factor(c("A","B","C","A","B","C")))
+@ 
+
+Finally, there is the case of an experiment with grouped individuals, where a group-specific effect
+of some treatment is sought. This design requires a bit of refactoring in order to fit the model
+terms. Here we use a trick from the \Biocpkg{edgeR} user guide, from the section 
+``Comparisons Both Between and Within Subjects''. An example of such an experimental design is:
+
+<<groupeffect>>=
+(coldata <- data.frame(grp=factor(rep(c("X","Y"),each=4)),
+                       ind=factor(rep(1:4,each=2)),
+                       cnd=factor(rep(c("A","B"),4))))
+@
+
+If we try to analyze with a formula such as, \Rcode{$\sim$ ind + grp*cnd}, we will
+obtain an error, because the effect for group is a linear combination of the individuals.
+
+However, the following steps allow for an analysis of group-specific condition effects, while
+controlling for differences in individual. 
+For object construction, use a dummy design, such as \Rcode{$\sim$ 1}. Then add a column
+\Robject{ind.n} which distinguishes the individuals ``nested'' within a group. Here, we add this
+column to coldata, but in practice you would add this column to \Rcode{dds}.
+
+<<groupeffect2>>=
+coldata$ind.n <- factor(rep(rep(1:2,each=2),2))
+coldata
+@ 
+
+Now we can reassign our \Rclass{DESeqDataSet} a design of \Rcode{$\sim$ grp + grp:ind.n + grp:cnd},
+before we call \Rfunction{DESeq}. This new design will result in the following model matrix:
+
+<<groupeffect3>>=
+model.matrix(~ grp + grp:ind.n + grp:cnd, coldata)
+@ 
+
+where the terms \Robject{grpX.cndB} and \Robject{grpY.cndB} give the group-specific condition
+effects.
+
+\subsubsection{Levels without samples}
+
+The base R function for creating model matrices will produce a column of zeros if a level is missing
+from a factor or a combination of levels is missing from an interaction of factors. The solution to
+the first case is to call \Rfunction{droplevels} on the column, which will remove levels without
+samples. This was shown in the beginning of this vignette.
+
+The second case is also solvable, by manually editing the model matrix, and then providing this to
+\Rfunction{DESeq}. Here we construct an example dataset to illustrate:
+
+<<missingcombo>>=
+group <- factor(rep(1:3,each=6))
+condition <- factor(rep(rep(c("A","B","C"),each=2),3))
+(d <- data.frame(group, condition)[-c(17,18),])
+@ 
+
+Note that if we try to estimate all interaction terms, we introduce a column with all zeros, as
+there are no condition C samples for group 3. (Here, \Rfunction{unname} is used to display the
+matrix concisely.)
+
+<<missingcombo2>>=
+m1 <- model.matrix(~ condition*group, d)
+colnames(m1)
+unname(m1)
+@ 
+
+We can remove this column like so:
+
+<<missingcombo3>>=
+m1 <- m1[,-9]
+unname(m1)
+@ 
+
+Now this matrix \Robject{m1} can be provided to the \Robject{full} argument of \Rfunction{DESeq}.
+For a likelihood ratio test of interactions, a model matrix using a reduced design such as
+\Rcode{$\sim$ condition + group} can be given to the \Robject{reduced} argument. Wald tests can also be generated
+instead of the likelihood ratio test, but for user-supplied model matrices, the argument
+\Robject{betaPrior} must be set to \Robject{FALSE}.
 
 \newpage
 

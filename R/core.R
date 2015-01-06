@@ -158,11 +158,14 @@ NULL
 #' See \code{\link{nbinomWaldTest}} for description of the calculation
 #' of the beta prior. By default, the beta prior is used only for the
 #' Wald test, but can also be specified for the likelihood ratio test.
-#' @param full the full model formula, this should be the formula in
-#' \code{design(object)}, only used by the likelihood ratio test
-#' @param reduced a reduced formula to compare against, e.g.
-#' the full model, which is \code{design(dds)}, with a term or terms of interest removed,
-#' only used by the likelihood ratio test
+#' @param full for \code{test="LRT"}, the full model formula,
+#' which is restricted to the formula in \code{design(object)}.
+#' alternatively, it can be a model matrix constructed by the user.
+#' advanced use: specifying a model matrix for full and \code{test="Wald"}
+#' is possible if \code{betaPrior=FALSE}
+#' @param reduced for \code{test="LRT"}, a reduced formula to compare against,
+#' i.e., the full formula with the term(s) of interest removed.
+#' alternatively, it can be a model matrix constructed by the user
 #' @param quiet whether to print messages at each step
 #' @param minReplicatesForReplace the minimum number of replicates required
 #' in order to use \code{\link{replaceOutliers}} on a
@@ -541,12 +544,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
   if (is.null(modelMatrix)) {
     modelMatrix <- model.matrix(design(object), data=colData(object))
-    if (qr(modelMatrix)$rank < ncol(modelMatrix)) {
-      stop("the model matrix is not full rank, so the model cannot be fit as specified.
-  Either one or more variables or interaction terms in the design formula are linear
-  combinations of the others and must be removed, or levels without any samples have
-  resulted in columns of zeros in the model matrix.")
-    }
+    checkFullRank(modelMatrix)
     if (nrow(modelMatrix) == ncol(modelMatrix)) {
       stop("the number of samples and the number of model coefficients are equal,
   i.e., there are no replicates to estimate the dispersion.
@@ -1071,6 +1069,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
     }
   } else {
+    message("using supplied model matrix")
     modelAsFormula <- FALSE
     attr(object, "modelMatrixType") <- "user-supplied"
     renameCols <- FALSE
@@ -1452,6 +1451,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
     if (betaPrior) {
       stop("user-supplied model matrices require betaPrior=FALSE")
     }
+    message("using supplied model matrix")
     df <- ncol(full) - ncol(reduced)
   }
   
@@ -2734,4 +2734,20 @@ estimateSizeFactorsIterate <- function(object, niter=10, Q=0.05) {
     }
   }
   sf
+}
+
+checkFullRank <- function(modelMatrix) {
+  if (qr(modelMatrix)$rank < ncol(modelMatrix)) {
+    if (any(apply(modelMatrix, 2, function(col) all(col == 0)))) {
+      stop("the model matrix is not full rank, so the model cannot be fit as specified.
+  Levels or combinations of levels without any samples have resulted in
+  column(s) of zeros in the model matrix.
+See the section 'Model matrix not full rank' in vignette('DESeq2')")
+    } else {
+      stop("the model matrix is not full rank, so the model cannot be fit as specified.
+  One or more variables or interaction terms in the design formula are linear
+  combinations of the others and must be removed.
+See the section 'Model matrix not full rank' in vignette('DESeq2')")
+    }
+  }
 }
