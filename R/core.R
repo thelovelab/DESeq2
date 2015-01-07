@@ -936,7 +936,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' of the observed MLE coefficients to a zero-centered Normal distribution.
 #' Furthermore, the weighted upper quantile is calculated using the
 #' \code{wtd.quantile} function from the Hmisc package. The weights are given by
-#' \eqn{1/\bar{\mu} + alpha_{tr}}{1/mu-bar + alpha_tr} using the mean of
+#' \eqn{1/\bar{\mu} + \alpha_{tr}}{1/mu-bar + alpha_tr} using the mean of
 #' normalized counts and the trended dispersion fit. The weighting ensures
 #' that large log fold changes with small sampling variance contribute the
 #' most to the estimation of the width of the prior.
