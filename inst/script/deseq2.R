@@ -1,18 +1,23 @@
-## A command-line interface to DESeq2 for use with Galaxy
-## written by Bjoern Gruening and modified by Michael Love 2015.01.07
+# A command-line interface to DESeq2 for use with Galaxy
+# written by Bjoern Gruening and modified by Michael Love 2015.01.11
+#
+# one of these arguments is required:
+#
+#   'factors' a JSON list object from Galaxy
+#
+#   'sample_table' is a sample table as described in ?DESeqDataSetFromHTSeq
+#   with columns: sample name, filename, then factors (variables)
+#
+# the first variable in 'factors' and first column in 'sample_table' will be the primary factor.
+# the levels of the primary factor are used in the order of appearance in factors or in sample_table.
+# e.g., factors in order A,B,C produces comparisons C vs A, B vs A, C vs B
+#
+# fit_type is an integer valued argument, with the options from ?estimateDisperions
+#   1 "parametric"
+#   2 "local"
+#   3 "mean"
 
-# most important:
-#
-# 'sample_table' is a sample table as described in ?DESeqDataSetFromHTSeq
-# with columns: sample name, filename, then factors (variables)
-#
-# 'factors' is a comma separated list of factors to use in the design
-# where the *last* factor is the primary factor for comparisons
-#
-# 'reference_level' is the level of the primary factor which will be
-# compared against, e.g. the control or untreated samples
-
-# Setup R error handling to go to stderr
+# setup R error handling to go to stderr
 options( show.error.messages=F, error = function () { cat( geterrmessage(), file=stderr() ); q( "no", 1, F ) } )
 
 # we need that to not crash galaxy with an UTF8 error on German LC settings.
@@ -28,14 +33,15 @@ spec <- matrix(c(
   "verbose", "v", 0, "logical",
   "help", "h", 0, "logical",
   "outfile_prefix", "o", 1, "character",
-  "sample_table", "s", 1, "character",
   "factors", "f", 1, "character",
-  "reference_level", "r", 1, "character",
+  "sample_table", "s", 1, "character",
   "plots" , "p", 1, "character",
+  "fit_type", "t", 1, "integer",
   "outlier_replace_off" , "a", 0, "logical",
   "outlier_filter_off" , "b", 0, "logical",
-  "auto_mean_filter_off", "c", 0, "logical"
-  ), byrow=TRUE, ncol=4)
+  "auto_mean_filter_off", "c", 0, "logical",
+  "beta_prior_off", "d", 0, "logical"),
+  byrow=TRUE, ncol=4)
 opt <- getopt(spec)
 
 # if help was asked for print a friendly message
@@ -50,15 +56,10 @@ if (is.null(opt$outfile_prefix)) {
   print("'outfile_prefix' is required")
   q(status=1)
 }
-if (is.null(opt$sample_table)) {
-  print("'sample_table' is required")
+if (is.null(opt$sample_table) & is.null(opt$factors)) {
+  print("'factors' or 'sample_table' is required")
   q(status=1)
 }
-if (is.null(opt$factors)) {
-  print("'factors' is required")
-  q(status=1)
-}
-
 verbose <- if (is.null(opt$verbose)) {
   FALSE
 } else {
@@ -70,6 +71,47 @@ suppressPackageStartupMessages({
   library("RColorBrewer")
   library("gplots")
 })
+
+# build or read sample table
+
+trim <- function (x) gsub("^\\s+|\\s+$", "", x)
+
+# switch on if 'factors' was provided:
+if (!is.null(opt$factors)) {
+  library("rjson")
+  parser <- newJSONParser()
+  parser$addData(opt$factors)
+  factorList <- parser$getObject()
+  factors <- sapply(factorList, function(x) x[[1]])
+  primaryFactor <- factors[1]
+  filenamesIn <- unname(unlist(factorList[[1]][[2]]))
+  sampleTable <- data.frame(sample=basename(filenamesIn), filename=filenamesIn, row.names=filenamesIn)
+  for (factor in factorList) {
+    factorName <- trim(factor[[1]])
+    sampleTable[[factorName]] <- character(nrow(sampleTable))
+    lvls <- sapply(factor[[2]], function(x) names(x))
+    for (i in seq_along(factor[[2]])) {
+      files <- factor[[2]][[i]][[1]]
+      sampleTable[files,factorName] <- trim(lvls[i])
+    }
+    sampleTable[[factorName]] <- factor(sampleTable[[factorName]], levels=lvls)
+  }
+  rownames(sampleTable) <- sampleTable$sample
+} else {
+  # read the sample_table argument
+  # this table is described in ?DESeqDataSet
+  # one column for the sample name, one for the filename, and
+  # the remaining columns for factors in the analysis
+  sampleTable <- read.delim(opt$sample_table)
+  factors <- colnames(sampleTable)[-c(1:2)]
+  for (factor in factors) {
+    lvls <- unique(as.character(sampleTable[[factor]]))
+    sampleTable[[factor]] <- factor(sampleTable[[factor]], levels=lvls)
+  }
+}
+
+primaryFactor <- factors[1]
+designFormula <- as.formula(paste("~", paste(rev(factors), collapse=" + ")))
 
 # these are plots which are made once for each analysis
 generateGenericPlots <- function(dds, factors) {
@@ -99,50 +141,22 @@ generateSpecificPlots <- function(res, threshold, title_suffix) {
   plotMA(res, main= paste("MA-plot for",title_suffix), ylim=range(res$log2FoldChange, na.rm=TRUE))
 }
 
-# trim whitespace on the factors input
-trim <- function (x) gsub("^\\s+|\\s+$", "", x)
-factors <- unname(sapply(strsplit(opt$factors, ",")[[1]], trim))
-
-# read the sample_table argument
-# this table is described in ?DESeqDataSet
-# one column for the sample name, one for the filename, and
-# the remaining columns for factors in the analysis
-sampleTable <- read.delim(opt$sample_table)
-designFormula <- as.formula(paste("~", paste(factors, collapse=" + ")))
-
-# make sure the factors listed are columns of sample_table
-# and ensure they are interpreted as factors
-for (factor in factors) {
-  if (!factor %in% colnames(sampleTable)) {
-    message(paste(factor,"is not a column of 'sample_table'"))
-    q(status=1)
-  }
-  sampleTable[[factor]] <- factor(sampleTable[[factor]])
-}
-
-# the primary factor is the *last* one in the list (to accord with DESeq2, edgeR, limma, etc.)
-# the reference level is the *first level alphabetically*, or the one set by argument
-primaryFactor <- factors[length(factors)]
-if (!is.null(opt$reference_level)) {
-  ref <- opt$reference_level
-  if (! ref %in% levels(sampleTable[[primaryFactor]])) {
-    message(paste(ref,"is not a level of",primaryFactor))
-    q(status=1)
-  }
-  sampleTable[[primaryFactor]] <- relevel(sampleTable[[primaryFactor]], ref=ref)
-} else {
-  ref <- levels(sampleTable[[primaryFactor]])[1]
-}
-
 if (verbose) message(paste("primary factor:",primaryFactor))
-if (verbose) message(paste("comparisons against reference level:",ref))
 if (length(factors) > 1) {
   if (verbose) message(paste("other factors in design:",paste(factors[-length(factors)],collapse=",")))
 }
 
+# if JSON input from Galaxy, path is absolute
+# otherwise, from sample_table, assume it is relative
+dir <- if (is.null(opt$factors)) {
+  "."
+} else {
+  ""
+}
+
 # construct the object
 dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
-                                  directory = ".",
+                                  directory = dir,
                                   design =  designFormula)
 
 if (verbose) message(paste(ncol(dds), "samples with counts over", nrow(dds), "genes"))
@@ -169,8 +183,20 @@ if (is.null(opt$auto_mean_filter_off)) {
   if (verbose) message("automatic filtering on the mean off")
 }
 
+if (is.null(opt$beta_prior_off)) {
+  betaPrior <- TRUE
+} else {
+  betaPrior <- FALSE
+}
+
+if (is.null(opt$fit_type)) {
+  fitType <- "parametric"
+} else {
+  fitType <- c("parametric","local","mean")[opt$fit_type]
+}
+
 # run the analysis
-dds <- DESeq(dds, minReplicatesForReplace=minRep, quiet=!verbose)
+dds <- DESeq(dds, fitType=fitType, betaPrior=betaPrior, minReplicatesForReplace=minRep, quiet=!verbose)
 
 # create the generic plots and leave the device open
 if (!is.null(opt$plots)) {
@@ -180,31 +206,39 @@ if (!is.null(opt$plots)) {
 }
 
 n <- nlevels(colData(dds)[[primaryFactor]])
-contrastLevels <- levels(colData(dds)[[primaryFactor]])[-1]
+allLevels <- levels(colData(dds)[[primaryFactor]])
 
-# rotate through the n-1 contrasts of the primary factor
+# rotate through the possible contrasts of the primary factor
 # write out a sorted table of results with the contrast as a suffix
 # add contrast specific plots to the device
-for (lvl in contrastLevels) {
-  res <- results(dds, contrast=c(primaryFactor, lvl, ref),
-                 cooksCutoff=cooksCutoff,
-                 independentFiltering=independentFiltering)
-  resSorted <- res[order(res$padj),]
-  outDF <- as.data.frame(resSorted)
-  outDF$geneID <- rownames(outDF)
-  outDF <- outDF[,c("geneID", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj")]
-  filename <- paste0(opt$outfile_prefix,".",primaryFactor,"_",lvl,"_vs_",ref)
-  write.table(outDF, file=filename, sep="\t", quote=FALSE)
-  if (independentFiltering) {
-    threshold <- unname(attr(res, "filterThreshold"))
-  } else {
-    threshold <- 0
-  }
-  title_suffix <- paste0(primaryFactor,": ",lvl," vs ",ref)
-  if (!is.null(opt$plots)) {
-    generateSpecificPlots(res, threshold, title_suffix)
+for (i in seq_len(n-1)) {
+  ref <- allLevels[i]
+  contrastLevels <- allLevels[(i+1):n]
+  for (lvl in contrastLevels) {
+    res <- results(dds, contrast=c(primaryFactor, lvl, ref),
+                   cooksCutoff=cooksCutoff,
+                   independentFiltering=independentFiltering)
+    resSorted <- res[order(res$padj),]
+    outDF <- as.data.frame(resSorted)
+    outDF$geneID <- rownames(outDF)
+    outDF <- outDF[,c("geneID", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj")]
+    filename <- paste0(opt$outfile_prefix,".",primaryFactor,"_",lvl,"_vs_",ref)
+    write.table(outDF, file=filename, sep="\t", quote=FALSE)
+    if (independentFiltering) {
+      threshold <- unname(attr(res, "filterThreshold"))
+    } else {
+      threshold <- 0
+    }
+    title_suffix <- paste0(primaryFactor,": ",lvl," vs ",ref)
+    if (!is.null(opt$plots)) {
+      generateSpecificPlots(res, threshold, title_suffix)
+    }
   }
 }
+
+# write out the sample table for record keeping
+# write.table(sampleTable, file=paste0(opt$outfile_prefix,".sampleTable"), sep="\t", quote=FALSE)
+write.table(sampleTable, file=opt$outfile_prefix, sep="\t", quote=FALSE)
 
 # close the plot device
 if (!is.null(opt$plots)) {

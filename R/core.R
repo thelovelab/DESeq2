@@ -671,9 +671,9 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
                                                          mcols(objectNZ)$dispGeneEst[useForFit]),
                  silent=TRUE)
     if (inherits(trial,"try-error")) {
-      message("NOTE: fitType='parametric', but the dispersion trend was not well captured by the
-  function: y = a/x + b, and a local regression fit was automatically substituted.
-  specify fitType='local' or 'mean' to avoid this message next time.")
+      message("-- note: fitType='parametric', but the dispersion trend was not well captured by the
+   function: y = a/x + b, and a local regression fit was automatically substituted.
+   specify fitType='local' or 'mean' to avoid this message next time.")
       fitType <- "local"
     }
   }
@@ -1048,6 +1048,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
       } else {
         "standard"
       }
+    }
+    if (modelMatrixType == "standard" & betaPrior & !blindDesign) {
+      message("-- standard model matrices are used for factors with two levels and an interaction,
+   where the main effects are for the base level of other factors.
+   see the 'Interactions' section of the vignette for more details: vignette('DESeq2')")
     }
     if (modelMatrixType == "expanded" & !betaPrior) {
       stop("expanded model matrices require a beta prior")
