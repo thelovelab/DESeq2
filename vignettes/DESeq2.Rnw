@@ -1628,6 +1628,19 @@ version \Biocpkg{DESeq}, are as follows:
 \item Automatic outlier detection and handling (Section \ref{sec:cooks}).
 \end{itemize}
 
+\subsection{Methods changes since the 2014 DESeq2 paper}
+
+\begin{itemize}
+  \item For the calculation of the beta prior variance, instead of
+    simply matching the empirical quantile to the quantile of a Normal distribution,
+    we use the weighted quantile function of the \CRANpkg{Hmisc}
+    package. The weighting is described in the man page for \Rfunction{nbinomWaldTest}.
+    The weights used are the inverse of the expected variance of log counts (as used
+    in the diagonals of the matrix $W$ in the GLM). The effect is that
+    the estimated prior variance is robust against noisy
+    estimates of log fold change from genes with very small counts.
+\end{itemize}
+
 \subsection{Count outlier detection} \label{sec:cooks}
 
 \deseqtwo{} relies on the negative binomial distribution to make

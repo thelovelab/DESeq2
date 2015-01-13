@@ -76,13 +76,14 @@ standard errors and then compared to a normal distribution.
 The prior variance is calculated by matching the 0.05 upper quantile
 of the observed MLE coefficients to a zero-centered Normal distribution.
 Furthermore, the weighted upper quantile is calculated using the
-\code{wtd.quantile} function from the Hmisc package. The weights are given by
+\code{wtd.quantile} function from the Hmisc package. The weights are
+the inverse of the expected variance of log counts, so the inverse of
 \eqn{1/\bar{\mu} + \alpha_{tr}}{1/mu-bar + alpha_tr} using the mean of
 normalized counts and the trended dispersion fit. The weighting ensures
-that large log fold changes with small sampling variance contribute the
-most to the estimation of the width of the prior.
-The prior variance for a factor level is the average over all contrasts
-of all factor levels.
+that noisy estimates of log fold changes from small count genes do not
+overly influence the calculation of the prior variance.
+The final prior variance for a factor level is the average of the
+estimated prior variance over all contrasts of all levels of the factor.
 
 When a log2 fold change prior is used (betaPrior=TRUE),
 then \code{nbinomWaldTest} will by default use expanded model matrices,
