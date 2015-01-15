@@ -142,6 +142,14 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     }
   }
 
+  if (length(designVars) == 1) {
+    var <- colData(se)[[designVars]]
+    if (all(var == var[1])) {
+      stop("design has a single variable, with all samples having the same value.
+  use instead a design of '~ 1'. estimateSizeFactors, rlog and the VST can then be used")
+    }
+  }
+
   designVarsNumeric <- sapply(designVars, function(v) is.numeric(colData(se)[[v]]))
   if (any(designVarsNumeric)) {
     warnIntVars <- FALSE

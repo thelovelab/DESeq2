@@ -1040,8 +1040,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
     stopifnot(is.logical(betaPrior))
     termsOrder <- attr(terms.formula(design(object)),"order")
     interactionPresent <- any(termsOrder > 1)
+    blindDesign <- design(object) == formula(~ 1)
     if (missing(modelMatrixType) || is.null(modelMatrixType)) {
-      blindDesign <- design(object) == formula(~ 1)
       twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
       mmTypeTest <- betaPrior & !blindDesign & !twoLevelsInteraction
       modelMatrixType <- if (mmTypeTest) {
@@ -1239,6 +1239,8 @@ estimateBetaPriorVar <- function(object,
   betaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_", names(mcols(object))),drop=FALSE])
   colnamesBM <- colnames(betaMatrix)
   colnamesBM <- gsub("MLE_(.*)","\\1",colnamesBM)
+
+  # renaming in reverse:
   # make these standard colnames as from model.matrix()
   convertNames <- renameModelMatrixColumns(colData(object),
                                            design(object))
@@ -1350,7 +1352,11 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
   modelMatrixNames <- colnames(modelMatrix)
   H <- fit$hat_diagonal
   betaMatrix <- fit$betaMatrix
+ 
+  modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
+  modelMatrixNames <- make.names(modelMatrixNames)
   colnames(betaMatrix) <- modelMatrixNames
+  
   convertNames <- renameModelMatrixColumns(colData(object),
                                            design(objectNZ))
   convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
@@ -1879,9 +1885,14 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   } else {
     modelAsFormula <- FALSE
   }
-  modelMatrixNames <- colnames(modelMatrix)
 
   stopifnot(all(colSums(abs(modelMatrix)) > 0))
+
+  # rename columns, for use as columns in DataFrame
+  # and to emphasize the base level comparison
+  modelMatrixNames <- colnames(modelMatrix)
+  modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
+  modelMatrixNames <- make.names(modelMatrixNames)
   
   if (renameCols) {
     convertNames <- renameModelMatrixColumns(colData(object),
@@ -1889,9 +1900,6 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
     convertNames <- convertNames[convertNames$from %in% modelMatrixNames,,drop=FALSE]
     modelMatrixNames[match(convertNames$from, modelMatrixNames)] <- convertNames$to
   }
-
-  modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
-  modelMatrixNames <- make.names(modelMatrixNames)
   colnames(modelMatrix) <- modelMatrixNames
   
   normalizationFactors <- if (!is.null(normalizationFactors(object))) {
@@ -2370,8 +2378,11 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
     modelMatrixNames <- colnames(modelMatrix)
     H <- fit$hat_diagonal
     betaMatrix <- fit$betaMatrix
-    colnames(betaMatrix) <- modelMatrixNames
 
+    modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
+    modelMatrixNames <- make.names(modelMatrixNames)
+    colnames(betaMatrix) <- modelMatrixNames
+    
     # save the MLE log fold changes for addMLE argument of results
     convertNames <- renameModelMatrixColumns(colData(object),
                                              design(objectNZ))
