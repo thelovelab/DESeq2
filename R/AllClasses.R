@@ -99,6 +99,8 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     names(assays(se, withDimnames=FALSE))[1] <- "counts"
   }
   # before validity check, try to convert assay to integer mode
+  if (any(is.na(assay(se))))
+    stop("NA values are not allowed in the count matrix")
   if (any(assay(se) < 0)) {
     stop("some values in assay are negative")
   }
