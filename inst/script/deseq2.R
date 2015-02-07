@@ -8,6 +8,15 @@
 #   'sample_table' is a sample table as described in ?DESeqDataSetFromHTSeq
 #   with columns: sample name, filename, then factors (variables)
 #
+# the output file has columns:
+# 
+#   baseMean (mean normalized count)
+#   log2FoldChange (by default a moderated LFC estimate)
+#   lfcSE (the standard error)
+#   stat (the Wald statistic)
+#   pvalue (p-value from comparison of Wald statistic to a standard Normal)
+#   padj (adjusted p-value, Benjamini Hochberg correction on genes which pass the mean count filter)
+# 
 # the first variable in 'factors' and first column in 'sample_table' will be the primary factor.
 # the levels of the primary factor are used in the order of appearance in factors or in sample_table.
 #
@@ -133,11 +142,15 @@ if (verbose) {
 generateGenericPlots <- function(dds, factors) {
   rld <- rlog(dds)
   print(plotPCA(rld, intgroup=rev(factors)))
-  distsRL <- dist(t(assay(rld)))
+  # need meaningful labels, because from Galaxy, sample names are random
+  labs <- paste0(seq_len(ncol(dds)), ": ", do.call(paste, as.list(colData(dds)[factors])))
+  dat <- assay(rld)
+  colnames(dat) <- labs
+  distsRL <- dist(t(dat))
   mat <- as.matrix(distsRL)
   hc <- hclust(distsRL)
   hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
-  heatmap.2(mat, Rowv=as.dendrogram(hc), trace="none", col = rev(hmcol),
+  heatmap.2(mat, Rowv=as.dendrogram(hc), symm=TRUE, trace="none", col = rev(hmcol),
             main="Sample-to-sample distances", margin=c(13,13))
   plotDispEsts(dds, main="Dispersion estimates")
 }
@@ -257,9 +270,7 @@ if (is.null(opt$many_contrasts)) {
   outDF$geneID <- rownames(outDF)
   outDF <- outDF[,c("geneID", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj")]
   filename <- opt$outfile
-  write(paste0("# DESeq2 results table. ",primaryFactor,": ",lvl," vs ",ref), file=filename)
-  # suppress the warning that we are appending column names to a file
-  suppressWarnings({ write.table(outDF, file=filename, sep="\t", quote=FALSE, append=TRUE) })
+  write.table(outDF, file=filename, sep="\t", quote=FALSE, row.names=FALSE, col.names=FALSE)
   if (independentFiltering) {
     threshold <- unname(attr(res, "filterThreshold"))
   } else {
@@ -285,7 +296,7 @@ if (is.null(opt$many_contrasts)) {
       outDF$geneID <- rownames(outDF)
       outDF <- outDF[,c("geneID", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj")]
       filename <- paste0(opt$outfile,".",primaryFactor,"_",lvl,"_vs_",ref)
-      write.table(outDF, file=filename, sep="\t", quote=FALSE)
+      write.table(outDF, file=filename, sep="\t", quote=FALSE, row.names=FALSE, col.names=FALSE)
       if (independentFiltering) {
         threshold <- unname(attr(res, "filterThreshold"))
       } else {
