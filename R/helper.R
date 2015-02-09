@@ -59,7 +59,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
   if (renameCols) {
     colnames(collapsed) <- levels(groupby)
   }
-  stopifnot(sum(assay(object)) == sum(assay(collapsed)))
+  stopifnot(sum(as.numeric(assay(object))) == sum(as.numeric(assay(collapsed))))
   collapsed
 }
 

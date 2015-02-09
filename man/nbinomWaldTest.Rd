@@ -88,7 +88,7 @@ estimated prior variance over all contrasts of all levels of the factor.
 When a log2 fold change prior is used (betaPrior=TRUE),
 then \code{nbinomWaldTest} will by default use expanded model matrices,
 as described in the \code{modelMatrixType} argument, unless this argument
-is used to override the default behavior or unless there the design
+is used to override the default behavior or unless the design
 contains 2 level factors and an interaction term.
 This ensures that log2 fold changes will be independent of the choice
 of base level. In this case, the beta prior variance for each factor
