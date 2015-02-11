@@ -99,6 +99,9 @@ dds <- DESeq(dds)
 res <- results(dds)
 @
 
+If you have a count matrix and sample information table, the first
+line would instead use \Rfunction{DESeqDataSetFromMatrix}, shown below.
+
 \subsection{Input data} \label{sec:prep}
 
 \subsubsection{Why raw counts?}
@@ -168,8 +171,9 @@ Alternatively, the function \Rfunction{DESeqDataSetFromMatrix} can be
 used if you already have a matrix of read counts prepared.
 For this function you should provide the counts matrix, the column
 information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formula.
-First, we load the \Robject{pasillaGenes} data object, in order to
-extract a count matrix and phenotypic data.
+To demonstate the use of this function, we first load the \Robject{pasillaGenes} 
+data object, to pull out the count matrix, \Robject{countData}, and sample
+information, \Robject{colData}.
 
 <<loadPasilla>>=
 library("pasilla")
@@ -179,8 +183,8 @@ countData <- counts(pasillaGenes)
 colData <- pData(pasillaGenes)[,c("condition","type")]
 @ 
 
-Now that we have a matrix of counts and the column information,
-we can construct a \Rclass{DESeqDataSet}:
+With the count matrix, \Robject{countData}, and the sample
+information, \Robject{colData}, we can construct a \Rclass{DESeqDataSet}:
 
 <<matrixInput>>=
 dds <- DESeqDataSetFromMatrix(countData = countData,
