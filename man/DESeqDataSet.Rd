@@ -29,8 +29,9 @@ See \code{\link{results}} for a variety of designs and how to extract results ta
 By default, the functions in this package will use
 the last variable in the formula for building results tables and plotting.}
 
-\item{ignoreRank}{for advanced use only, allows creation of a
-DESeqDataSet which is not of full rank}
+\item{ignoreRank}{use of this argument is reserved for DEXSeq developers only.
+Users will immediately encounter an error upon trying to estimate dispersion
+using a design with a model matrix which is not full rank.}
 
 \item{countData}{for matrix input: a matrix of non-negative integers}
 
