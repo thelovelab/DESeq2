@@ -451,7 +451,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, co
       stop("controlGenes should be either a numeric or logical vector")
     }
     loggeomeansSub <- loggeomeans[controlGenes]
-    apply(counts[controlGenes,], 2, function(cnts) {
+    apply(counts[controlGenes,,drop=FALSE], 2, function(cnts) {
       exp(locfunc((log(cnts) - loggeomeansSub)[is.finite(loggeomeansSub) & cnts > 0]))
     })
   }
