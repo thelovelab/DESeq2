@@ -91,12 +91,13 @@ options(digits=3, width=80, prompt=" ", continue=" ")
 
 Here we show the most basic steps for a differential expression analysis.
 These steps imply you have a \Rclass{SummarizedExperiment} object
-\Robject{se} with a column \Robject{condition} in \Robject{colData(se)}.
+\Robject{se} with columns \Robject{batch} and \Robject{condition} in \Robject{colData(se)},
+and that \Robject{condition} has levels ``untreat'' and ``treat''.
 
 <<quick, eval=FALSE>>=
-dds <- DESeqDataSet(se = se, design = ~ condition)
+dds <- DESeqDataSet(se, ~ batch + condition)
 dds <- DESeq(dds)
-res <- results(dds)
+res <- results(dds, contrast=c("condition","treat","untreat"))
 @
 
 If you have a count matrix and sample information table, the first
