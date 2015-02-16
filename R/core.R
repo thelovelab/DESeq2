@@ -660,7 +660,8 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
   from the minimum value, and so the standard curve fitting techniques will not work.
   One can instead use the gene-wise estimates as final estimates:
   dds <- estimateDispersionsGeneEst(dds)
-  dispersions(dds) <- mcols(dds)$dispGeneEst")
+  dispersions(dds) <- mcols(dds)$dispGeneEst
+  ...then continue with testing using nbinomWaldTest or nbinomLRT")
   }
   
   fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
