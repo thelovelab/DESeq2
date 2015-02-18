@@ -377,14 +377,19 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   rownames(colData) <- colData$sample
   rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
   names(rowData) <- paste0("gene",1:n)
-  designFormula <- if (m > 1) {
-    as.formula("~ condition",env=new.env())
+
+  # set environment to global environment,
+  # to avoid the formula carrying with it all the objects
+  # here including 'object' itself.
+  design <- if (m > 1) {
+    as.formula("~ condition", env=.GlobalEnv)
   } else {
-    as.formula("~ 1",env=new.env())
+    as.formula("~ 1", env=.GlobalEnv)
   }
+  
   object <- DESeqDataSetFromMatrix(countData = countData,
                                    colData = colData,
-                                   design = designFormula,
+                                   design = design,
                                    rowData = rowData)
   trueVals <- DataFrame(trueIntercept = beta[,1],
                         trueBeta = beta[,2],
@@ -394,7 +399,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
                                  "simulated beta values",
                                  "simulated dispersion values"))
   mcols(object) <- cbind(mcols(object),trueVals)
-  object
+  return(object)
 }
 
 
@@ -447,7 +452,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, co
       exp(locfunc((log(cnts) - loggeomeans)[is.finite(loggeomeans) & cnts > 0]))
     })
   } else {
-    if (!is.numeric(controlGenes) | is.logical(controlGenes)) {
+    if ( !( is.numeric(controlGenes) | is.logical(controlGenes) ) ) {
       stop("controlGenes should be either a numeric or logical vector")
     }
     loggeomeansSub <- loggeomeans[controlGenes]
