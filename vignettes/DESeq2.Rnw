@@ -1592,7 +1592,7 @@ proportional to the expected true concentration of fragments for sample $j$.
 The coefficients $\beta_i$ give the log2 fold changes for gene $i$ for each 
 column of the model matrix $X$. 
 
-By default these log2 fold changes are the maximum \emph{a priori} estimates after incorporating a
+By default these log2 fold changes are the maximum \emph{a posteriori} estimates after incorporating a
 zero-centered Normal prior -- in the software referrred to as a $\beta$-prior -- hence \deseqtwo{}
 provides ``moderated'' log2 fold change estimates.  Dispersions are estimated using expected mean
 values from the maximum likelihood estimate of log2 fold changes, and optimizing the Cox-Reid
