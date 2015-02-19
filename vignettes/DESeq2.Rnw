@@ -252,7 +252,8 @@ to the column of interest in \Robject{colData}, supplying a character
 vector of levels. It is important to supply levels (otherwise the
 levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
 level as the first element ("base level"), so that the log2 fold changes
-produced by default will be the expected comparison against the base level. 
+produced by default will be the expected comparison against the base
+level, that is $\log_2 ( \textrm{treated} / \textrm{untreated} )$.
 An \R{} function for easily changing the base level is 
 \Rfunction{relevel}. An example of setting the base level of a factor
 with \Rfunction{relevel} is:
@@ -301,10 +302,14 @@ extracts a results table with log2 fold changes, $p$ values and adjusted
 $p$ values. With no arguments to \Rfunction{results}, the results will be for
 the last variable in the design formula, and if this is a factor, 
 the comparison will be the last level of this variable over the first level. 
+Details about the comparison are printed to the console. The text, \texttt{condition}
+\texttt{treated vs untreated}, tells you that the estimates are of the logarithmic
+fold change $\log_2 ( \textrm{treated} / \textrm{untreated} )$.
 
 <<deseq, cache=TRUE>>=
 dds <- DESeq(dds)
 res <- results(dds)
+res
 @ 
 
 These steps should take less than 30 seconds for most analyses. For

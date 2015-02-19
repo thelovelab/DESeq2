@@ -136,12 +136,15 @@ usually a combination of the variable name and a level
 For \code{removeResults}: the original \code{DESeqDataSet} with results metadata columns removed
 }
 \description{
-\code{results} extracts results from a DESeq analysis giving base means across samples,
+\code{results} extracts a result table from a DESeq analysis giving base means across samples,
 log2 fold changes, standard errors, test statistics, p-values and adjusted p-values;
 \code{resultsNames} returns the names of the estimated effects (coefficents) of the model;
 \code{removeResults} returns a \code{DESeqDataSet} object with results columns removed.
 }
 \details{
+The results table when printed will provide the information about
+the comparison, e.g. "log2 fold change (MAP): condition treated vs untreated", meaning
+that the estimates are of log2(treated / untreated).
 Multiple results can be returned for analyses beyond a simple two group comparison,
 so \code{results} takes arguments \code{contrast} and \code{name} to help
 the user pick out the comparison of interest for printing the results table.
