@@ -109,12 +109,9 @@ from the package \pkg{vsn} can be used to see whether this is a problem.
 }
 \examples{
 dds <- makeExampleDESeqDataSet(m=6)
-vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
-par(mfrow=c(1,2))
-plot(rank(rowMeans(counts(dds))), genefilter::rowVars(log2(counts(dds)+1)),
-     main="log2(x+1) transform")
-plot(rank(rowMeans(assay(vsd))), genefilter::rowVars(assay(vsd)),
-     main="VST")
+vsd <- varianceStabilizingTransformation(dds)
+dists <- dist(t(assay(vsd)))
+plot(hclust(dists))
 
 # learn the dispersion function of a dataset
 design(dds) <- ~ 1

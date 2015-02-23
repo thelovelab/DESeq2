@@ -19,7 +19,9 @@
 Print a summary of the results from a DESeq analysis.
 }
 \examples{
-example("DESeq")
+dds <- makeExampleDESeqDataSet(m=4)
+dds <- DESeq(dds)
+res <- results(dds)
 summary(res)
 }
 \author{

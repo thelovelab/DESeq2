@@ -29,7 +29,8 @@ The columns correspond to columns of the model matrix for final GLM fitting, i.e
 \code{attr(dds, "modelMatrix")}.
 }
 \examples{
-example("DESeq")
+dds <- makeExampleDESeqDataSet(m=4)
+dds <- DESeq(dds)
 coef(dds)[1,]
 coef(dds, SE=TRUE)[1,]
 }

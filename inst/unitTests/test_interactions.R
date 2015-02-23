@@ -6,3 +6,12 @@ test_interactions <- function() {
   design(dds) <- ~ condition + group + condition:group
   dds <- DESeq(dds)
 }
+
+test_interactions_third_order <- function() {
+  dds <- makeExampleDESeqDataSet(n=100,m=16)
+  dds$x <- factor(rep(1:2,each=8))
+  dds$y <- factor(rep(rep(1:2,2),each=4))
+  dds$z <- factor(rep(rep(1:2,4),each=2))
+  design(dds) <- ~ x*y*z
+  checkException(DESeq(dds))
+}

@@ -1,4 +1,4 @@
-test_oneRow <- function() {
+test_edge_case_oneRow <- function() {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=1)
   sizeFactors(dds) <- rep(1,ncol(dds))
@@ -9,7 +9,7 @@ test_oneRow <- function() {
   res <- results(dds)
 }
 
-test_onlyIntercept <- function() {
+test_edge_case_onlyIntercept <- function() {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=100)
   design(dds) <- ~ 1
@@ -17,7 +17,7 @@ test_onlyIntercept <- function() {
   res <- results(dds)
 }
 
-test_metadataInsertion <- function() {
+test_edge_case_metadataInsertion <- function() {
   dds <- makeExampleDESeqDataSet(n=50,m=4)
   
   dds2 <- DESeqDataSetFromMatrix( counts(dds), colData(dds), design(dds) )
@@ -32,7 +32,7 @@ test_metadataInsertion <- function() {
   checkTrue(class(mcols(colData(dds3))$type) == "character")
 }
 
-test_underscores <- function() {
+test_edge_case_underscores <- function() {
   dds <- makeExampleDESeqDataSet(n=50,m=4)
   levels(dds$condition) <- c("A_1","B_2")
   dds$exp_cond <- dds$condition

@@ -23,7 +23,7 @@ counts depend on the variables in \code{colData}.
 See \code{\link{DESeqDataSet}} for details.
 }
 \examples{
-dds <- makeExampleDESeqDataSet()
+dds <- makeExampleDESeqDataSet(m=4)
 design(dds) <- formula(~ 1)
 }
 

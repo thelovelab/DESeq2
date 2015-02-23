@@ -43,14 +43,20 @@ Normalization factors are on the scale of the counts (similar to \code{\link{siz
 and unlike offsets, which are typically on the scale of the predictors (in this case, log counts).
 Normalization factors should include library size normalization. They should have
 row-wise geometric mean near 1, as is the case with size factors, such that the mean of normalized
-counts is close to the mean of unnormalized counts.
+counts is close to the mean of unnormalized counts. See example code below.
 }
 \examples{
-dds <- makeExampleDESeqDataSet()
+dds <- makeExampleDESeqDataSet(m=4)
+
 normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
                       ncol=ncol(dds),nrow=nrow(dds))
-normFactors <- normFactors / rowMeans(normFactors)
+
+# the normalization factors matrix should not have 0's in it
+# it should have geometric mean near 1 for each row
+
+normFactors <- normFactors / exp(rowMeans(log(normFactors)))
 normalizationFactors(dds) <- normFactors
+
 dds <- estimateDispersions(dds)
 dds <- nbinomWaldTest(dds)
 }

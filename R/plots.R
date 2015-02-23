@@ -203,7 +203,8 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
 #'
 #' dds <- makeExampleDESeqDataSet(betaSD=1)
 #' rld <- rlog(dds)
-#' plotPCA(rld)
+#' plt <- plotPCA(rld)
+#' print(plt)
 #' 
 #' @export
 setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)

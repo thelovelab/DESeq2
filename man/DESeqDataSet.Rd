@@ -64,8 +64,8 @@ the python package HTSeq.  See the vignette for examples of construction
 from all three input types.
 }
 \examples{
-countData <- matrix(1:4,ncol=2)
-condition <- factor(c("a","b"))
+countData <- matrix(1:100,ncol=4)
+condition <- factor(c("A","A","B","B"))
 dds <- DESeqDataSetFromMatrix(countData, DataFrame(condition), ~ condition)
 }
 \references{

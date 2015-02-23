@@ -38,7 +38,8 @@ Users should find it easy to customize this function.
 \examples{
 dds <- makeExampleDESeqDataSet(betaSD=1)
 rld <- rlog(dds)
-plotPCA(rld)
+plt <- plotPCA(rld)
+print(plt)
 }
 \author{
 Wolfgang Huber

@@ -1,4 +1,4 @@
-test_frozenTransformations <- function() {
+test_frozen_transform <- function() {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=100)
   design(dds) <- ~ 1

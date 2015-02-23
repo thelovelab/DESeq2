@@ -38,15 +38,15 @@ a DESeqDataSet with replaced counts in the slot returned by
 \code{assays(dds)[["originalCounts"]]}
 }
 \description{
-This function replaces outlier counts flagged by extreme Cook's distances,
-as calculated by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}
-or \code{\link{nbinomLRT}}, with values predicted by the trimmed mean
-over all samples (and adjusted by size factor or normalization factor).
 Note that this function is called within \code{\link{DESeq}}, so is not
 necessary to call on top of a \code{DESeq} call. See the \code{minReplicatesForReplace}
 argument documented in \code{link{DESeq}}.
 }
 \details{
+This function replaces outlier counts flagged by extreme Cook's distances,
+as calculated by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}
+or \code{\link{nbinomLRT}}, with values predicted by the trimmed mean
+over all samples (and adjusted by size factor or normalization factor).
 This function replaces the counts in the matrix returned by \code{counts(dds)}
 and the Cook's distances in \code{assays(dds)[["cooks"]]}. Original counts are
 preserved in \code{assays(dds)[["originalCounts"]]}.
@@ -65,11 +65,6 @@ for the user, for samples which have at least \code{minReplicates} number
 of replicates (including that sample).
 For more information on Cook's distance, please see the two
 sections of the vignette: 'Dealing with count outliers' and 'Count outlier detection'.
-}
-\examples{
-dds <- makeExampleDESeqDataSet(n=100)
-dds <- DESeq(dds)
-ddsReplace <- replaceOutliers(dds)
 }
 \seealso{
 \code{\link{DESeq}}

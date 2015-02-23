@@ -170,7 +170,8 @@
 #'
 #' ## Example 1: simple two-group comparison
 #' 
-#' example("DESeq")
+#' dds <- makeExampleDESeqDataSet(m=4)
+#' dds <- DESeq(dds)
 #' res <- results(dds)
 #' res[ order(res$padj), ]
 #' 

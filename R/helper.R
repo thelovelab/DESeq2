@@ -179,34 +179,27 @@ which will be used to produce FPKM values")
 #' @examples
 #'
 #' # generate a dataset with size factors: .5, 1, 1, 2
-#' dds <- makeExampleDESeqDataSet(m = 4, n = 1e3,
+#' dds <- makeExampleDESeqDataSet(m = 4, n = 1000,
 #'                                interceptMean=log2(1e3),
 #'                                interceptSD=0,
 #'                                sizeFactors=c(.5,1,1,2),
 #'                                dispMeanRel=function(x) .01)
 #'
-#' # examine the column sums
-#' # then add 1 million counts over rows 11:15 for each sample
-#' colSums(counts(dds))/1e6
 #' counts(dds)[11:15,] <- 2e5L
-#' colSums(counts(dds))/1e6
-#'
-#' # the robust FPM treats the samples
-#' # relatively equally
+#' 
 #' head(fpm(dds), 3)
-#'
-#' # the non-robust version is thrown
-#' # off by the 5 rows with large counts
 #' head(fpm(dds, robust=FALSE), 3)
 #'
 #' # the column sums of the robust version
 #' # are not equal to 1e6, but the
 #' # column sums of the non-robust version
 #' # are equal to 1e6 by definition
+#' 
 #' colSums(fpm(dds))/1e6
 #' colSums(fpm(dds, robust=FALSE))/1e6
 #'
 #' # the total sum is equal for both methods
+#' 
 #' sum(fpm(dds))
 #' sum(fpm(dds, robust=FALSE))
 #'
@@ -315,8 +308,8 @@ normalizeGeneLength <- function(object, files, level=c("tx","gene"),
                                 dropGenes=FALSE, importer, ...) {
   stopifnot(length(files) == ncol(object))
   message("assuming: 'files' and colnames of the dds in same order:
-  files:    ",paste(files,collapse=", "),"
-  colnames: ",paste(colnames(object),collapse=", "))
+  files:    ",paste(head(files,4),collapse=", "),"...
+  colnames: ",paste(head(colnames(object),4),collapse=", "),"...")
   dataList <- list()
   level <- match.arg(level, c("tx","gene"))
   for (i in seq_along(files)) {

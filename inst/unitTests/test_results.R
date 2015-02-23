@@ -1,4 +1,4 @@
-test_contrasts <- function() {
+test_results_contrasts <- function() {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=200,m=12)
   dds$condition <- factor(rep(1:3,each=4))
@@ -49,7 +49,7 @@ test_contrasts <- function() {
 }
 
 
-test_designs_zero_intercept <- function() {
+test_results_designs_zero_intercept <- function() {
   # test some special cases for results()
   # using designs with a + 0 
   set.seed(1)
@@ -80,7 +80,7 @@ test_designs_zero_intercept <- function() {
   checkEqualsNumeric(results(dds, contrast=c("condition","2","3"))[1,2], -1, tolerance=.1)
 }
 
-test_LRT_then_Wald <- function() {
+test_results_LRT_then_Wald <- function() {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=200)
   dds$group <- factor(rep(1:2,6))

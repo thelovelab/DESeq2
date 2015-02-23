@@ -1,7 +1,7 @@
 # test the optimization of the logarithm of dispersion (alpha)
 # parameter with Cox-Reid adjustment and prior distribution.
 # also test the derivatives of the log posterior w.r.t. log alpha
-test_dispersionFitting <- function() {
+test_disp_fit <- function() {
   m <- 10
   set.seed(1)
   y <- rpois(m,20)
@@ -77,7 +77,7 @@ test_dispersionFitting <- function() {
 }
 
 
-test_alternativeDispersions <- function() {
+test_disp_fit_alternative <- function() {
   dds <- makeExampleDESeqDataSet()
   dds <- estimateSizeFactors(dds)
   ddsLocal <- estimateDispersions(dds, fitType="local")
@@ -89,7 +89,7 @@ test_alternativeDispersions <- function() {
   ddsMed <- estimateDispersionsMAP(ddsMed)  
 }
 
-test_iterativeDispersions <- function() {
+test_disp_fit_iterative <- function() {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(m=50,n=100,betaSD=1,interceptMean=8)
   dds <- estimateSizeFactors(dds)
@@ -98,7 +98,7 @@ test_iterativeDispersions <- function() {
        checkEqualsNumeric(log(trueDisp), log(dispGeneEst),tol=0.2))
 }
 
-test_dispInR <- function() {
+test_disp_fit_in_R <- function() {
   set.seed(1)
   trueDisp <- c(.005,.01,.05,.1,.2,.5)
   trueMu <- 1000

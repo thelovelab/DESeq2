@@ -66,15 +66,15 @@ Internally, the function calls \code{\link{estimateSizeFactorsForMatrix}},
 which provides more details on the calculation.
 }
 \examples{
-dds <- makeExampleDESeqDataSet(n=1000, m=12)
+dds <- makeExampleDESeqDataSet(n=1000, m=4)
 dds <- estimateSizeFactors(dds)
 sizeFactors(dds)
 
 dds <- estimateSizeFactors(dds, controlGenes=1:200)
 
-m <- matrix(runif(1000 * 12, .5, 1.5), ncol=12)
+m <- matrix(runif(1000 * 4, .5, 1.5), ncol=4)
 dds <- estimateSizeFactors(dds, normMatrix=m)
-normalizationFactors(dds)[1:3,1:3]
+normalizationFactors(dds)[1:3,]
 
 geoMeans <- exp(rowMeans(log(counts(dds))))
 dds <- estimateSizeFactors(dds,geoMeans=geoMeans)

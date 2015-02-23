@@ -1,4 +1,4 @@
-test_replace <- function() {
+test_outlier_replace <- function() {
   # test filtering and replacement
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=100, m=12, dispMeanRel = function(x) 4/x + .5)

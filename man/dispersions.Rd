@@ -28,10 +28,6 @@ dispersions(object, ...) <- value
 The dispersions for each row of the DESeqDataSet.  Generally,
 these are set by \code{\link{estimateDispersions}}.
 }
-\examples{
-example("estimateDispersions")
-head(dispersions(dds))
-}
 \author{
 Simon Anders
 }

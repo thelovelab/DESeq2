@@ -26,8 +26,11 @@ count values, one row for each observational unit (gene or the like), and one
 column for each sample.
 }
 \examples{
-dds <- makeExampleDESeqDataSet()
+dds <- makeExampleDESeqDataSet(m=4)
 head(counts(dds))
+
+dds <- estimateSizeFactors(dds) # run this or DESeq() first
+head(counts(dds, normalized=TRUE))
 }
 \author{
 Simon Anders

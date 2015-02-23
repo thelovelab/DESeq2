@@ -112,7 +112,7 @@ and running \code{rlog} with 'blind' set to FALSE
 }
 \examples{
 dds <- makeExampleDESeqDataSet(m=6,betaSD=1)
-rld <- rlog(dds, blind=TRUE)
+rld <- rlog(dds)
 dists <- dist(t(assay(rld)))
 plot(hclust(dists))
 

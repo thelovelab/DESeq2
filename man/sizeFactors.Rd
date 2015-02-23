@@ -26,11 +26,6 @@ scale by dividing by the corresponding size factor (as performed by
 See \code{\link{DESeq}} for a description of the use of size factors. If gene-specific normalization
 is desired for each sample, use \code{\link{normalizationFactors}}.
 }
-\examples{
-dds <- makeExampleDESeqDataSet()
-dds <- estimateSizeFactors( dds )
-sizeFactors(dds)
-}
 \author{
 Simon Anders
 }

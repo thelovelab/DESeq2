@@ -265,6 +265,10 @@ DESeq <- function(object, test=c("Wald","LRT"),
   }
   
   if (modelAsFormula) {
+
+    # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
+    designAndArgChecker(object, betaPrior)
+    
     if (full != design(object)) {
       stop("'full' specified as formula should equal design(object)")
     }
@@ -364,8 +368,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
                                     dispMeanRel=function(x) 4/x + .1,sizeFactors=rep(1,m)) {
   beta <- cbind(rnorm(n,interceptMean,interceptSD),rnorm(n,0,betaSD))
   dispersion <- dispMeanRel(2^(beta[,1]))
-  colData <- DataFrame(row.names = paste("sample",1:m,sep=""),
-                       condition=factor(rep(c("A","B"),times=c(ceiling(m/2),floor(m/2)))))
+  colData <- DataFrame(condition=factor(rep(c("A","B"),times=c(ceiling(m/2),floor(m/2)))))
   x <- if (m > 1) {
     model.matrix(~ colData$condition)
   } else {
@@ -374,7 +377,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   mu <- t(2^(x %*% t(beta)) * sizeFactors)
   countData <- matrix(rnbinom(m*n, mu=mu, size=1/dispersion), ncol=m)
   mode(countData) <- "integer"
-  rownames(colData) <- colData$sample
+  colnames(countData) <- paste("sample",1:m,sep="")
   rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
   names(rowData) <- paste0("gene",1:n)
 
@@ -1042,6 +1045,10 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
 
   if (is.null(modelMatrix)) {
     modelAsFormula <- TRUE
+
+    # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
+    designAndArgChecker(object, betaPrior)
+    
     # what kind of model matrix to use
     stopifnot(is.logical(betaPrior))
     termsOrder <- attr(terms.formula(design(object)),"order")
@@ -1066,20 +1073,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
     }
     # store modelMatrixType so it can be accessed by estimateBetaPriorVar
     attr(object, "modelMatrixType") <- modelMatrixType
-    # check for intercept
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
-    if (betaPrior & !hasIntercept) {
-      stop("betaPrior=TRUE can only be used if the design has an intercept.
-  if specifying + 0 in the design formula, use betaPrior=FALSE")
-    }
     renameCols <- hasIntercept
-    # if there are interaction terms present in the design
-    # then we should only use the prior on the interaction terms
-    if (any(termsOrder > 2) & modelMatrixType == "expanded") {
-      stop("interactions higher than 2nd order and usage of expanded model matrices
-  has not been implemented. we recommend instead using a likelihood
-  ratio test, i.e. DESeq with argument test='LRT' and betaPrior=FALSE.")
-    }
   } else {
     message("using supplied model matrix")
     modelAsFormula <- FALSE
@@ -1458,6 +1453,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
   if (modelAsFormula) {
     checkLRT(full, reduced)
 
+    # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
+    designAndArgChecker(object, betaPrior)
+    
     # try to form model matrices, test for difference
     # in residual degrees of freedom
     fullModelMatrix <- model.matrix(full,
@@ -1495,19 +1493,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
     }
     # check for intercept
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
-    if (betaPrior & !hasIntercept) {
-      stop("betaPrior=TRUE can only be used if the design has an intercept.
-  if specifying + 0 in the design formula, use betaPrior=FALSE")
-    }
     renameCols <- hasIntercept
     if (modelMatrixType == "expanded" & !betaPrior) {
       stop("expanded model matrices require a beta prior")
-    }
-    # if there are interaction terms present in the design
-    # then we should only use the prior on the interaction terms
-    if (any(termsOrder > 2) & modelMatrixType == "expanded") {
-      stop("interactions higher than 2nd order and usage of expanded model matrices
-  has not been implemented")
     }
   } else {
     modelMatrixType <- "user-supplied"
@@ -1653,14 +1641,14 @@ nbinomLRT <- function(object, full=design(object), reduced,
 
 #' Replace outliers with trimmed mean
 #'
-#' This function replaces outlier counts flagged by extreme Cook's distances,
-#' as calculated by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}
-#' or \code{\link{nbinomLRT}}, with values predicted by the trimmed mean
-#' over all samples (and adjusted by size factor or normalization factor).
 #' Note that this function is called within \code{\link{DESeq}}, so is not
 #' necessary to call on top of a \code{DESeq} call. See the \code{minReplicatesForReplace}
 #' argument documented in \code{link{DESeq}}.
 #' 
+#' This function replaces outlier counts flagged by extreme Cook's distances,
+#' as calculated by \code{\link{DESeq}}, \code{\link{nbinomWaldTest}}
+#' or \code{\link{nbinomLRT}}, with values predicted by the trimmed mean
+#' over all samples (and adjusted by size factor or normalization factor).
 #' This function replaces the counts in the matrix returned by \code{counts(dds)}
 #' and the Cook's distances in \code{assays(dds)[["cooks"]]}. Original counts are
 #' preserved in \code{assays(dds)[["originalCounts"]]}.
@@ -1704,12 +1692,6 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' \code{\link{counts}} and the original counts preserved in
 #' \code{assays(dds)[["originalCounts"]]}
 #' 
-#' @examples
-#'
-#' dds <- makeExampleDESeqDataSet(n=100)
-#' dds <- DESeq(dds)
-#' ddsReplace <- replaceOutliers(dds)
-#'
 #' @export
 replaceOutliers <- function(object, trim=.2, cooksCutoff, minReplicates=7, whichSamples) {
   if (is.null(attr(object,"modelMatrix")) | !("cooks" %in% names(assays(object)))) {
@@ -2772,5 +2754,19 @@ See the section 'Model matrix not full rank' in vignette('DESeq2')")
   combinations of the others and must be removed.
 See the section 'Model matrix not full rank' in vignette('DESeq2')")
     }
+  }
+}
+
+designAndArgChecker <- function(object, betaPrior) {
+  termsOrder <- attr(terms.formula(design(object)),"order")
+  hasIntercept <- attr(terms(design(object)),"intercept") == 1
+  if (betaPrior & !hasIntercept) {
+    stop("betaPrior=TRUE can only be used if the design has an intercept.
+  if specifying + 0 in the design formula, use betaPrior=FALSE")
+  }
+  if (any(termsOrder > 2) & betaPrior) {
+    stop("interactions higher than 1st order with log fold change shrinkage
+  has not been implemented. Either combine factors into individual groups using
+  factor(paste(...)) and use a design of ~group, or set betaPrior=FALSE")
   }
 }

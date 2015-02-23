@@ -33,8 +33,11 @@ counts.DESeqDataSet <- function(object, normalized=FALSE) {
 #'
 #' @examples
 #' 
-#' dds <- makeExampleDESeqDataSet()
+#' dds <- makeExampleDESeqDataSet(m=4)
 #' head(counts(dds))
+#'
+#' dds <- estimateSizeFactors(dds) # run this or DESeq() first
+#' head(counts(dds, normalized=TRUE))
 #'
 #' @export
 setMethod("counts", signature(object="DESeqDataSet"), counts.DESeqDataSet)
@@ -67,7 +70,7 @@ design.DESeqDataSet <- function(object) object@design
 #' and fitting Negative Binomial GLMs
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet()
+#' dds <- makeExampleDESeqDataSet(m=4)
 #' design(dds) <- formula(~ 1)
 #'
 #' @export
@@ -91,6 +94,9 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 #' used by \code{\link{varianceStabilizingTransformation}}.  Parametric dispersion
 #' fits store the coefficients of the fit as attributes in this slot.
 #'
+#' Setting this will also overwrite \code{mcols(object)$dispFit} and the estimate
+#' the variance of dispersion residuals, see \code{estimateVar} below.
+#'
 #' @docType methods
 #' @name dispersionFunction
 #' @rdname dispersionFunction
@@ -101,10 +107,14 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 #' setting to FALSE is needed, e.g. within \code{estimateDispersionsMAP} when
 #' called on a subset of the full dataset in parallel execution.
 #' @param ... additional arguments
+#' 
+#' @seealso \code{\link{estimateDispersions}}
 #'
 #' @examples
 #'
-#' example("estimateDispersions")
+#' dds <- makeExampleDESeqDataSet(m=4)
+#' dds <- estimateSizeFactors(dds)
+#' dds <- estimateDispersions(dds)
 #' dispersionFunction(dds)
 #'
 #' @export
@@ -176,11 +186,7 @@ dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
 #'
 #' @author Simon Anders
 #' @seealso \code{\link{estimateDispersions}}
-#' @examples
-#'
-#' example("estimateDispersions")
-#' head(dispersions(dds))
-#'
+#' 
 #' @export
 setMethod("dispersions", signature(object="DESeqDataSet"),
           dispersions.DESeqDataSet)
@@ -227,11 +233,6 @@ sizeFactors.DESeqDataSet <- function(object) {
 #' data.
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactors}}
-#' @examples
-#' 
-#' dds <- makeExampleDESeqDataSet()
-#' dds <- estimateSizeFactors( dds )
-#' sizeFactors(dds)
 #'
 #' @export
 setMethod("sizeFactors", signature(object="DESeqDataSet"),
@@ -280,7 +281,7 @@ normalizationFactors.DESeqDataSet <- function(object) {
 #' and unlike offsets, which are typically on the scale of the predictors (in this case, log counts).
 #' Normalization factors should include library size normalization. They should have
 #' row-wise geometric mean near 1, as is the case with size factors, such that the mean of normalized
-#' counts is close to the mean of unnormalized counts.
+#' counts is close to the mean of unnormalized counts. See example code below.
 #'
 #' @docType methods
 #' @name normalizationFactors
@@ -291,11 +292,17 @@ normalizationFactors.DESeqDataSet <- function(object) {
 #' @param ... additional arguments
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet()
+#' dds <- makeExampleDESeqDataSet(m=4)
+#' 
 #' normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
 #'                       ncol=ncol(dds),nrow=nrow(dds))
-#' normFactors <- normFactors / rowMeans(normFactors)
+#'
+#' # the normalization factors matrix should not have 0's in it
+#' # it should have geometric mean near 1 for each row
+#' 
+#' normFactors <- normFactors / exp(rowMeans(log(normFactors)))
 #' normalizationFactors(dds) <- normFactors
+#'
 #' dds <- estimateDispersions(dds)
 #' dds <- nbinomWaldTest(dds)
 #'
@@ -402,15 +409,15 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","iterate"),
 #' 
 #' @examples
 #' 
-#' dds <- makeExampleDESeqDataSet(n=1000, m=12)
+#' dds <- makeExampleDESeqDataSet(n=1000, m=4)
 #' dds <- estimateSizeFactors(dds)
 #' sizeFactors(dds)
 #'
 #' dds <- estimateSizeFactors(dds, controlGenes=1:200)
 #'
-#' m <- matrix(runif(1000 * 12, .5, 1.5), ncol=12)
+#' m <- matrix(runif(1000 * 4, .5, 1.5), ncol=4)
 #' dds <- estimateSizeFactors(dds, normMatrix=m)
-#' normalizationFactors(dds)[1:3,1:3]
+#' normalizationFactors(dds)[1:3,]
 #' 
 #' geoMeans <- exp(rowMeans(log(counts(dds))))
 #' dds <- estimateSizeFactors(dds,geoMeans=geoMeans)
@@ -618,7 +625,8 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #'
 #' @examples
 #'
-#' example("DESeq")
+#' dds <- makeExampleDESeqDataSet(m=4)
+#' dds <- DESeq(dds)
 #' coef(dds)[1,]
 #' coef(dds, SE=TRUE)[1,]
 #' 
@@ -654,7 +662,9 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
 #'  
 #' @examples
 #'
-#' example("DESeq")
+#' dds <- makeExampleDESeqDataSet(m=4)
+#' dds <- DESeq(dds)
+#' res <- results(dds)
 #' summary(res)
 #'
 #' @export
