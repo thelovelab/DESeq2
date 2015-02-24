@@ -374,7 +374,7 @@ rlogDataFast <- function(object, intercept, betaPriorVar, B) {
     dispersion <- mcols(objectNZ)$dispFit
 
     delta <- .05
-    bgrid <- seq(from=delta, to=1-delta, by=delta)
+    bgrid <- seq(from=0, to=1, by=delta)
 
     # find a subset of rows which covers the dynamic range
     lbm <- log(mcols(objectNZ)$baseMean)
