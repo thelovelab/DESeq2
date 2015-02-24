@@ -958,7 +958,10 @@ grouping variable like species. Interactions
 are specified in R formula using a colon, \Robject{:}, between the two
 variables names. Demonstrations of extracting results for many different kinds of
 interaction model are shown in the examples section of the help page
-for \Rfunction{results}. 
+for \Rfunction{results}. When interations are present in the design,
+and a prior is used for the log2 fold changes, then only the interaction terms 
+are moderated, and the main effect terms are not moderated. 
+See \Rcode{?nbinomWaldTest} for more details.
 
 It is important to remember that interactions are \textit{additional terms} 
 (addition in the log scale), beyond the \textit{main effect}
@@ -972,7 +975,7 @@ and the interaction term is equal to zero tests if there is a
 condition effect in group Y. This is shown in more detail in the
 examples section of the help page for \Rfunction{results}.
 
-Designs with factors with two levels and an interaction term present a
+Designs with factors with only two levels and an interaction term present a
 special case to the normal \deseqtwo{} methods, because we change the
 type of model matrix used in the fitting, using what we call R's
 ``standard model matrix''. For all other designs, we use 

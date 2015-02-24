@@ -7,10 +7,14 @@
 #'
 #' The results table when printed will provide the information about
 #' the comparison, e.g. "log2 fold change (MAP): condition treated vs untreated", meaning
-#' that the estimates are of log2(treated / untreated).
+#' that the estimates are of log2(treated / untreated), as would be returned by
+#' \code{contrast=c("condition","treated","untreated")}.
 #' Multiple results can be returned for analyses beyond a simple two group comparison,
 #' so \code{results} takes arguments \code{contrast} and \code{name} to help
-#' the user pick out the comparison of interest for printing the results table. 
+#' the user pick out the comparisons of interest for printing a results table.
+#' The use of the \code{contrast} argument is recommended for exact specification
+#' of the levels which should be compared and their order.
+#' 
 #' If \code{results} is run without specifying \code{contrast} or \code{name},
 #' it will return the comparison of the last level of the last variable in the
 #' design formula over the first level of this variable. For example, for a simple two-group

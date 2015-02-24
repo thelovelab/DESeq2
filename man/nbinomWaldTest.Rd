@@ -60,9 +60,10 @@ and dispersion estimates.  See \code{\link{DESeq}} for the GLM formula.
 }
 \details{
 The fitting proceeds as follows: standard maximum likelihood estimates
-for GLM coefficients (synonymous with beta, log2 fold change)
-are calculated. A zero-mean normal prior distribution
-is assumed. The variance of the prior distribution for each
+for GLM coefficients (synonymous with "beta", "log2 fold change", "effect size")
+are calculated. A zero-centered Normal prior distribution
+is assumed for the coefficients other than the intercept.
+The variance of the prior distribution for each
 non-intercept coefficient is calculated using the observed
 distribution of the maximum likelihood coefficients.
 The final coefficients are then maximum a posteriori estimates
@@ -71,11 +72,12 @@ prior variance and the Methods section of the DESeq2 manuscript for more detail.
 The use of a prior has little effect on genes with high counts and helps to
 moderate the large spread in coefficients for genes with low counts.
 For calculating Wald test p-values, the coefficients are scaled by their
-standard errors and then compared to a normal distribution.
+standard errors and then compared to a standard Normal distribution.
 
 The prior variance is calculated by matching the 0.05 upper quantile
 of the observed MLE coefficients to a zero-centered Normal distribution.
-Furthermore, the weighted upper quantile is calculated using the
+In a change since the publication of the paper,
+the weighted upper quantile is calculated using the
 \code{wtd.quantile} function from the Hmisc package. The weights are
 the inverse of the expected variance of log counts, so the inverse of
 \eqn{1/\bar{\mu} + \alpha_{tr}}{1/mu-bar + alpha_tr} using the mean of

@@ -63,9 +63,10 @@
 #' prior information on samples, for example to perform sample QA (quality assurance).
 #' blind=FALSE should be used for transforming data for downstream analysis,
 #' where the full use of the design information should be made.
+#' blind=FALSE will skip re-estimation of the dispersion trend, if this has already been calculated.
 #' If many of genes have large differences in counts due to
 #' the experimental design, it is important to set blind=FALSE for downstream
-#' analysis.
+#' analysis. 
 #' @param fast if TRUE, an approximation to the rlog transformation is made,
 #' wherein an optimal amount of shrinkage of sample-wise log fold changes
 #' is calculated for each gene. optimal is defined by maximizing the same

@@ -103,9 +103,11 @@ The coefficients \eqn{\beta_i}{beta_i} give the log2 fold changes for gene i for
 column of the model matrix \eqn{X}{X}.
 The sample-specific size factors can be replaced by
 gene-specific normalization factors for each sample using
-\code{\link{normalizationFactors}}.  For details on the fitting of the log2
-fold changes and calculation of p-values see \code{\link{nbinomWaldTest}}
-(or \code{\link{nbinomLRT}} if using \code{test="LRT"}).
+\code{\link{normalizationFactors}}.
+
+For details on the fitting of the log2 fold changes and calculation of p-values,
+see \code{\link{nbinomWaldTest}} if using \code{test="Wald"},
+or \code{\link{nbinomLRT}} if using \code{test="LRT"}.
 
 Experiments without replicates do not allow for estimation of the dispersion
 of counts around the expected value for each group, which is critical for
