@@ -245,19 +245,31 @@ results <- function(object, contrast, name,
                     test, 
                     addMLE=FALSE,
                     parallel=FALSE, BPPARAM=bpparam()) {
-
+  # match args
+  format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
+  altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
+  
+  # initial argument testing
+  stopifnot(lfcThreshold >= 0)
+  stopifnot(length(lfcThreshold)==1)
+  stopifnot(length(alpha)==1)
+  stopifnot(length(pAdjustMethod)==1)
+  stopifnot(length(listValues)==2 & is.numeric(listValues))
+  stopifnot(listValues[1] > 0 & listValues[2] < 0)
   if (!"results" %in% mcols(mcols(object))$type) {
     stop("cannot find results columns in object, first call DESeq, nbinomWaldTest, or nbinomLRT")
   }
   if (missing(test)) {
     test <- attr(object, "test")
   } else if (test == "Wald" & attr(object, "test") == "LRT") {
-    # need to add Wald statistics and p-values
+    # initially test was LRT, now need to add Wald statistics and p-values
     object <- makeWaldTest(object)
   } else if (test == "LRT" & attr(object, "test") == "Wald") {
     stop("the LRT requires the user run nbinomLRT or DESeq(dds,test='LRT')")
   }
-  format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
+  if (lfcThreshold == 0 & altHypothesis == "lessAbs") {
+    stop("when testing altHypothesis='lessAbs', set the argument lfcThreshold to a positive value")
+  }  
   if (addMLE & !attr(object,"betaPrior")) {
     stop("addMLE=TRUE is only for when a beta prior was used. otherwise, the log2 fold changes are already MLE")
   }
@@ -272,44 +284,29 @@ results <- function(object, contrast, name,
     }
   }
   
-  # check for intercept
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
-
-  # check for expanded model matrix
   isExpanded <- attr(object, "modelMatrixType") == "expanded"
-  
   termsOrder <- attr(terms.formula(design(object)),"order")
 
   # if neither 'contrast' nor 'name' were specified, create the default result table:
   # the last level / first level for the last variable in design.
   # (unless there are interactions, in which case the lastCoefName is pulled below)
-  if ((test == "Wald") & (isExpanded | !hasIntercept) & missing(contrast) & all(termsOrder < 2)) {
-    if (missing(name)) {
-      designVars <- all.vars(design(object))
-      lastVarName <- designVars[length(designVars)]
-      lastVar <- colData(object)[[lastVarName]]
-      if (is.factor(lastVar)) {
-        nlvls <- nlevels(lastVar)
-        contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
-      }
+  if ((test == "Wald") & (isExpanded | !hasIntercept) & missing(contrast) & missing(name) & all(termsOrder < 2)) {
+    designVars <- all.vars(design(object))
+    lastVarName <- designVars[length(designVars)]
+    lastVar <- colData(object)[[lastVarName]]
+    if (is.factor(lastVar)) {
+      nlvls <- nlevels(lastVar)
+      contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
     }
   }
+  
   if (missing(name)) {
     name <- lastCoefName(object)
-  }
-  altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
-  stopifnot(lfcThreshold >= 0)
-  stopifnot(length(lfcThreshold)==1)
-  stopifnot(length(altHypothesis)==1)
-  stopifnot(length(alpha)==1)
-  stopifnot(length(pAdjustMethod)==1)
-  stopifnot(length(listValues)==2 & is.numeric(listValues))
-  stopifnot(listValues[1] > 0 & listValues[2] < 0)
-  if (length(name) != 1 | !is.character(name)) {
-    stop("the argument 'name' should be a character vector of length 1")
-  }
-  if (lfcThreshold == 0 & altHypothesis == "lessAbs") {
-    stop("when testing altHypothesis='lessAbs', set the argument lfcThreshold to a positive value")
+  } else { 
+    if (length(name) != 1 | !is.character(name)) {
+      stop("the argument 'name' should be a character vector of length 1")
+    }
   }
   
   # check to see at least one of these are present
@@ -322,25 +319,11 @@ possibly nbinomWaldTest or nbinomLRT has not yet been run.")
   
   # if performing a contrast call the function cleanContrast()
   if (!missing(contrast)) {
-    if (is.character(contrast) & length(contrast) != 3) {
-      stop("'contrast', as a character vector of length 3, should have the form:
-contrast = c('factorName','numeratorLevel','denominatorLevel'),
-see the manual page of ?results for more information")
-    }
-    if (is.list(contrast) & length(contrast) == 1) {
-      contrast <- list(contrast[[1]], character())
-    }
-    if (is.list(contrast) & length(contrast) != 2) {
-      stop("'contrast', as a list, should have length 2,
-see the manual page of ?results for more information")
-    }
-    if (is.list(contrast) & !(is.character(contrast[[1]]) & is.character(contrast[[2]]))) {
-      stop("'contrast', as a list of length 2, should have character vectors as elements,
-see the manual page of ?results for more information")
-    }
+    resNames <- resultsNames(object)
+    # do some arg checking/cleaning
+    contrast <- checkContrast(contrast, resNames)
 
-    ### cleanContrast call ###
-    
+    ### cleanContrast call ###   
     # need to go back to C++ code in order to build the beta covariance matrix
     # then this is multiplied by the numeric contrast to get the Wald statistic.
     # with 100s of samples, this can get slow, so offer parallelization
@@ -354,7 +337,6 @@ see the manual page of ?results for more information")
                       expanded=isExpanded, listValues=listValues, test=test)
       }, BPPARAM=BPPARAM))
     }
-
 
   } else {
     # if not performing a contrast
@@ -385,6 +367,8 @@ see the manual page of ?results for more information")
       res <- cbind(res, mleColumn)
     }
     res <- res[,c("baseMean","log2FoldChange","lfcMLE","lfcSE","stat","pvalue")]
+    # if an all zero contrast, also zero out the lfcMLE
+    res$lfcMLE[ which(res$log2FoldChange == 0 & res$stat == 0) ] <- 0
   }
   
   # only if we need to generate new p-values
@@ -457,43 +441,23 @@ Likelihood ratio test p-values are overwritten")
     res$stat[nowZero] <- 0
     res$pvalue[nowZero] <- 1
   }
-  
-  # perform independent filtering
-  if (independentFiltering) {
-    if (missing(filter)) {
-      filter <- res$baseMean
-    }
-    if (missing(theta)) {
-      lowerQuantile <- mean(filter == 0)
-      if (lowerQuantile < .95) upperQuantile <- .95 else upperQuantile <- 1
-      theta <- seq(lowerQuantile, upperQuantile, length=20)
-    }
-    stopifnot(length(theta) > 1)
-    stopifnot(length(filter) == nrow(object))
-    filtPadj <- filtered_p(filter=filter, test=res$pvalue,
-                           theta=theta, method=pAdjustMethod) 
-    numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
-    j <- which.max(numRej)
-    res$padj <- filtPadj[, j, drop=TRUE]
-    cutoffs <- quantile(filter, theta)
-    filterThreshold <- cutoffs[j]
-    filterNumRej <- data.frame(theta=theta, numRej=numRej)
-  } else {
-    # regular p-value adjustment
-    # which does not include those rows which were removed
-    # by maximum Cook's distance
-    res$padj <- p.adjust(res$pvalue,method=pAdjustMethod)
-  }
-  
+
+  # p-value adjustment
+  paRes <- pvalueAdjustment(res, independentFiltering, filter, theta, alpha, pAdjustMethod)
+  res$padj <- paRes$padj
+
+  # adding metadata columns for padj
   mcols(res)$type[names(res)=="padj"] <- "results"
   mcols(res)$description[names(res)=="padj"] <- paste(pAdjustMethod,"adjusted p-values")
 
+  # make results object
   deseqRes <- DESeqResults(res)
+
+  # finalize object / add attributes / make GRanges
   if (independentFiltering) {
-    attr(deseqRes, "filterThreshold") <- filterThreshold
-    attr(deseqRes, "filterNumRej") <- filterNumRej
+    attr(deseqRes, "filterThreshold") <- paRes$filterThreshold
+    attr(deseqRes, "filterNumRej") <- paRes$filterNumRej
   }
- 
   if (format == "DataFrame") {
     return(deseqRes)
   } else if (format == "GRangesList") {
@@ -572,7 +536,6 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   if (missing(contrast)) {
     stop("must provide a contrast")
   }
-
   if (is.null(attr(object,"modelMatrix"))) {
     stop("was expecting a model matrix stored as an attribute of the DESeqDataSet")
   }
@@ -634,43 +597,14 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
 cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
   # get the names of columns in the beta matrix
   resNames <- resultsNames(object)
-  
-  if (!(is.numeric(contrast) | !is.character(contrast) | !is.list(contrast))) {
-    stop("'contrast' vector should be either a character vector of length 3,
-a list of length 2 containing character vectors,
-or a numeric vector, see the argument description in ?results")
-  }
-  
-  # check contrast validity, and if possible, return the results
+  # if possible, return pre-computed columns, which are
   # already stored in mcols(dds). this will be the case using
   # results() with 'name', or if expanded model matrices were not
   # run and the contrast contains the base level as numerator or denominator
-  #
-  # ...if numeric
-  if (is.numeric(contrast)) {
-    if (length(contrast) != length(resNames) )
-      stop("numeric contrast vector should have one element for every element of 'resultsNames(object)'")
-    if (all(contrast==0)) {
-      stop("numeric contrast vector cannot have all elements equal to 0")
-    }
-    # ...if list
-  } else if (is.list(contrast)) {
-    if (!all(c(contrast[[1]],contrast[[2]]) %in% resNames)) {
-      stop("all elements of the contrast as a list of length 2 should be elements of 'resultsNames(object)'")
-    }
-    if (length(intersect(contrast[[1]], contrast[[2]])) > 0) {
-      stop("elements in the contrast list should only appear in the numerator (first element of contrast list)
-or the denominator (second element of contrast list), but not both")
-    }
-    if (length(c(contrast[[1]],contrast[[2]])) == 0) {
-      stop("one of the two elements in the list should be a character vector of non-zero length")
-    }
-    # ...if character
-  } else if (is.character(contrast)) {
-    # check if the appropriate columns are in the resultsNames
-    if (contrast[2] == contrast[3]) {
-      stop(paste(contrast[2],"and",contrast[3],"should be different level names"))
-    }
+
+  resReady <- FALSE
+  
+  if (is.character(contrast)) {
     contrastFactor <- contrast[1]
     if (!contrastFactor %in% names(colData(object))) {
       stop(paste(contrastFactor,"should be the name of a factor in the colData of the DESeqDataSet"))
@@ -678,6 +612,9 @@ or the denominator (second element of contrast list), but not both")
     contrastNumLevel <- contrast[2]
     contrastDenomLevel <- contrast[3]
     contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
+
+    # check if both levels have all zero counts
+    contrastAllZero <- contrastAllZeroCharacter(object, contrastFactor, contrastNumLevel, contrastDenomLevel)
     
     # check for intercept
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
@@ -697,7 +634,6 @@ or the denominator (second element of contrast list), but not both")
       # the same as created by DataFrame in mcols(object).
       contrastNumColumn <- make.names(paste0(contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel))
       contrastDenomColumn <- make.names(paste0(contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel))
-      resNames <- resultsNames(object)
       # check that the desired contrast is already
       # available in mcols(object), and then we can either
       # take it directly or multiply the log fold
@@ -723,7 +659,8 @@ or the denominator (second element of contrast list), but not both")
         lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
         lfcDesc <- paste0("log2 fold change (",lfcType,"): ",cleanName)
         mcols(res,use.names=TRUE)["log2FoldChange","description"] <- lfcDesc
-        return(res)
+        resReady <- TRUE
+        
       } else if ( contrastNumLevel == contrastBaseLevel ) {
         # fetch the results for denom vs num 
         # and mutiply the log fold change and stat by -1
@@ -759,15 +696,17 @@ or the denominator (second element of contrast list), but not both")
           mcols(res,use.names=TRUE)[c("log2FoldChange","lfcSE"),
                       "description"] <- contrastDescriptions
         }
-        return(res)
-      }
-      # check for the case where neither are present
-      # as comparisons against base level
-      if ( ! (contrastNumColumn %in% resNames &
-              contrastDenomColumn %in% resNames) ) {
-        stop(paste(contrastNumLevel,"and",contrastDenomLevel,"should be levels of",contrastFactor,
-                   "such that",contrastNumColumn,"and",contrastDenomColumn,
-                   "are contained in 'resultsNames(object)'"))
+        resReady <- TRUE
+        
+      } else {
+        # check for the case where neither are present
+        # as comparisons against base level
+        if ( ! (contrastNumColumn %in% resNames &
+                  contrastDenomColumn %in% resNames) ) {
+          stop(paste(contrastNumLevel,"and",contrastDenomLevel,"should be levels of",contrastFactor,
+                     "such that",contrastNumColumn,"and",contrastDenomColumn,
+                     "are contained in 'resultsNames(object)'"))
+        }
       }
       # case 2: expanded model matrices or no intercept and first variable
       # need to then build the appropriate contrast.
@@ -784,56 +723,75 @@ or the denominator (second element of contrast list), but not both")
     }
   }
 
-  # make name for numeric contrast
-  if (is.numeric(contrast)) {
-    signMap <- c("","","+")
-    contrastSigns <- signMap[sign(contrast)+2]
-    contrastName <- paste(paste0(contrastSigns,as.character(contrast)),collapse=",")
-  } else if (is.list(contrast)) {
-    # interpret list contrast into numeric
-    # and make a name for the contrast
-    lc1 <- length(contrast[[1]])
-    lc2 <- length(contrast[[2]])
-    # these just for naming
-    listvalname1 <- round(listValues[1],3)
-    listvalname2 <- round(listValues[2],3)
-    if (lc1 > 0 & lc2 > 0) {
-      listvalname2 <- abs(listvalname2)
-      listvalname1 <- if (listvalname1 == 1) "" else paste0(listvalname1," ")
-      listvalname2 <- if (listvalname2 == 1) "" else paste0(listvalname2," ")
-      contrastName <- paste0(listvalname1,paste(contrast[[1]],collapse="+")," vs ",listvalname2,paste(contrast[[2]],collapse="+"))
-    } else if (lc1 > 0 & lc2 == 0) {
-      listvalname1 <- if (listvalname1 == 1) "" else paste0(listvalname1," ")
-      contrastName <- paste0(listvalname1,paste(contrast[[1]],collapse="+")," effect")
-    } else if (lc1 == 0 & lc2 > 0) {
-      contrastName <- paste(listvalname2,paste(contrast[[2]],collapse="+"),"effect")
+  # if the result table not already built in the above code...
+  if (!resReady) {
+    
+    # here, a numeric / list / character contrast which will be converted
+    # into a numeric contrast and run through getContrast()
+    if (is.numeric(contrast)) {
+      # make name for numeric contrast
+      signMap <- c("","","+")
+      contrastSigns <- signMap[sign(contrast)+2]
+      contrastName <- paste(paste0(contrastSigns,as.character(contrast)),collapse=",")
+    } else if (is.list(contrast)) {
+      # interpret list contrast into numeric and make a name for the contrast
+      lc1 <- length(contrast[[1]])
+      lc2 <- length(contrast[[2]])
+      # these just used for naming
+      listvalname1 <- round(listValues[1],3)
+      listvalname2 <- round(listValues[2],3)
+      if (lc1 > 0 & lc2 > 0) {
+        listvalname2 <- abs(listvalname2)
+        listvalname1 <- if (listvalname1 == 1) "" else paste0(listvalname1," ")
+        listvalname2 <- if (listvalname2 == 1) "" else paste0(listvalname2," ")
+        contrastName <- paste0(listvalname1,paste(contrast[[1]],collapse="+")," vs ",listvalname2,paste(contrast[[2]],collapse="+"))
+      } else if (lc1 > 0 & lc2 == 0) {
+        listvalname1 <- if (listvalname1 == 1) "" else paste0(listvalname1," ")
+        contrastName <- paste0(listvalname1,paste(contrast[[1]],collapse="+")," effect")
+      } else if (lc1 == 0 & lc2 > 0) {
+        contrastName <- paste(listvalname2,paste(contrast[[2]],collapse="+"),"effect")
+      }
+      contrastNumeric <- rep(0,length(resNames))
+      contrastNumeric[resNames %in% contrast[[1]]] <- listValues[1]
+      contrastNumeric[resNames %in% contrast[[2]]] <- listValues[2]
+      contrast <- contrastNumeric
+    } else if (is.character(contrast)) {
+      # interpret character contrast into numeric and make a name for the contrast
+      contrastNumeric <- rep(0,length(resNames))
+      contrastNumeric[resNames == contrastNumColumn] <- 1
+      contrastNumeric[resNames == contrastDenomColumn] <- -1
+      contrast <- contrastNumeric
+      contrastName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
     }
-    contrastNumeric <- rep(0,length(resNames))
-    contrastNumeric[resNames %in% contrast[[1]]] <- listValues[1]
-    contrastNumeric[resNames %in% contrast[[2]]] <- listValues[2]
-    contrast <- contrastNumeric
-  } else if (is.character(contrast)) {
-    # interpret character contrast into numeric
-    # and make a name for the contrast
-    contrastNumeric <- rep(0,length(resNames))
-    contrastNumeric[resNames == contrastNumColumn] <- 1
-    contrastNumeric[resNames == contrastDenomColumn] <- -1
-    contrast <- contrastNumeric
-    contrastName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
+
+    contrastAllZero <- contrastAllZeroNumeric(object, contrast)
+    
+    # now get the contrast
+    contrastResults <- getContrast(object, contrast, useT=FALSE, df)
+    lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
+    contrastDescriptions <- paste(c(paste0("log2 fold change (",lfcType,"):"),
+                                    "standard error:",
+                                    "Wald statistic:",
+                                    "Wald test p-value:"),
+                                  contrastName)
+    mcols(contrastResults) <- DataFrame(type=rep("results",ncol(contrastResults)),
+                                        description=contrastDescriptions)
+    res <- cbind(mcols(object)["baseMean"],
+                 contrastResults)
+    
+  }
+
+  # if the counts in all samples included in contrast are zero
+  # then zero out the LFC, Wald stat and p-value set to 1
+  contrastAllZero <- contrastAllZero & !mcols(object)$allZero
+  if (sum(contrastAllZero) > 0) {
+    res$log2FoldChange[contrastAllZero] <- 0
+    res$stat[contrastAllZero] <- 0
+    res$pvalue[contrastAllZero] <- 1
   }
   
-  contrastResults <- getContrast(object, contrast, useT=FALSE, df)
-  lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
-  contrastDescriptions <- paste(c(paste0("log2 fold change (",lfcType,"):"),
-                                  "standard error:",
-                                  "Wald statistic:",
-                                  "Wald test p-value:"),
-                                contrastName)
-  mcols(contrastResults) <- DataFrame(type=rep("results",ncol(contrastResults)),
-                                      description=contrastDescriptions)
-  res <- cbind(mcols(object)["baseMean"],
-               contrastResults)
-
+  # if test is "LRT", overwrite the statistic and p-value
+  # (we only ran contrast for the coefficient)
   if (test == "LRT") {
     stat <- getStat(object, test, name=NULL)
     pvalue <- getPvalue(object, test, name=NULL)
@@ -841,7 +799,7 @@ or the denominator (second element of contrast list), but not both")
     names(res) <- c("baseMean","log2FoldChange","lfcSE","stat","pvalue")
   }
   
-  res
+  return(res)
 }
 
 
@@ -950,4 +908,114 @@ mleContrast <- function(object, contrast) {
   names(lfcMLE) <- "lfcMLE"
   mcols(lfcMLE)$description <- cleanName
   lfcMLE
+}
+
+pvalueAdjustment <- function(res, independentFiltering, filter, theta, alpha, pAdjustMethod) {
+  # perform independent filtering
+  if (independentFiltering) {
+    if (missing(filter)) {
+      filter <- res$baseMean
+    }
+    if (missing(theta)) {
+      lowerQuantile <- mean(filter == 0)
+      if (lowerQuantile < .95) upperQuantile <- .95 else upperQuantile <- 1
+      theta <- seq(lowerQuantile, upperQuantile, length=20)
+    }
+    stopifnot(length(theta) > 1)
+    stopifnot(length(filter) == nrow(res))
+    filtPadj <- filtered_p(filter=filter, test=res$pvalue,
+                           theta=theta, method=pAdjustMethod) 
+    numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
+    j <- which.max(numRej)
+    padj <- filtPadj[, j, drop=TRUE]
+    cutoffs <- quantile(filter, theta)
+    filterThreshold <- cutoffs[j]
+    filterNumRej <- data.frame(theta=theta, numRej=numRej)
+    return(list(padj=padj, filterThreshold=filterThreshold, filterNumRej=filterNumRej))
+  } else {
+    # regular p-value adjustment
+    # which does not include those rows which were removed
+    # by maximum Cook's distance
+    padj <- p.adjust(res$pvalue,method=pAdjustMethod)
+    return(list(padj=padj))
+  }
+}
+
+checkContrast <- function(contrast, resNames) {
+  if (!(is.numeric(contrast) | !is.character(contrast) | !is.list(contrast))) {
+    stop("'contrast' vector should be either a character vector of length 3,
+a list of length 2 containing character vectors,
+or a numeric vector, see the argument description in ?results")
+  }
+
+  # character
+  if (is.character(contrast)) {
+    if (length(contrast) != 3) {
+      stop("'contrast', as a character vector of length 3, should have the form:
+contrast = c('factorName','numeratorLevel','denominatorLevel'),
+see the manual page of ?results for more information")
+    }
+    if (contrast[2] == contrast[3]) {
+      stop(paste(contrast[2],"and",contrast[3],"should be different level names"))
+    }
+  }
+
+  # list
+  if (is.list(contrast)) {
+    if (length(contrast) == 1) {
+      contrast <- list(contrast[[1]], character())
+    }
+    if (length(contrast) != 2) {
+      stop("'contrast', as a list, should have length 2,
+or, if length 1, an empty vector will be added for the second element.
+see the manual page of ?results for more information")
+    }
+    if (!(is.character(contrast[[1]]) & is.character(contrast[[2]]))) {
+      stop("'contrast', as a list of length 2, should have character vectors as elements,
+see the manual page of ?results for more information")
+    }
+    if (!all(c(contrast[[1]],contrast[[2]]) %in% resNames)) {
+      stop("all elements of the contrast as a list of length 2 should be elements of 'resultsNames(object)'")
+    }
+    if (length(intersect(contrast[[1]], contrast[[2]])) > 0) {
+      stop("elements in the contrast list should only appear in the numerator (first element of contrast list)
+or the denominator (second element of contrast list), but not both")
+    }
+    if (length(c(contrast[[1]],contrast[[2]])) == 0) {
+      stop("one of the two elements in the list should be a character vector of non-zero length")
+    }    
+  }
+
+  # numeric
+  if (is.numeric(contrast)) {
+    if (length(contrast) != length(resNames) )
+      stop("numeric contrast vector should have one element for every element of 'resultsNames(object)'")
+    if (all(contrast==0)) {
+      stop("numeric contrast vector cannot have all elements equal to 0")
+    }
+  }
+
+  return(contrast)
+}
+
+
+contrastAllZeroCharacter <- function(object, contrastFactor, contrastNumLevel, contrastDenomLevel) {
+  cts <- counts(object)
+  f <- colData(object)[[contrastFactor]]
+  cts.sub <- cts[ , f %in% c(contrastNumLevel, contrastDenomLevel), drop=FALSE ]
+  rowSums( cts.sub == 0 ) == ncol(cts.sub)
+}
+
+contrastAllZeroNumeric <- function(object, contrast) {
+  if (is.null(attr(object,"modelMatrix"))) {
+    stop("was expecting a model matrix stored as an attribute of the DESeqDataSet")
+  }
+  modelMatrix <- attr(object, "modelMatrix")
+  if (all(contrast >= 0) | all(contrast <= 0)) {
+    return( rep(FALSE, nrow(object)) )
+  }
+  contrastBinary <- ifelse(contrast == 0, 0, 1)
+  whichSamples <- ifelse(modelMatrix %*% contrastBinary == 0, 0, 1)
+  zeroTest <- counts(object) %*% whichSamples
+  zeroTest == 0
 }

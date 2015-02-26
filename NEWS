@@ -1,3 +1,12 @@
+CHANGES IN VERSION 1.7.32
+-------------------------
+
+    o Added logic to results() which will zero out the LFC, Wald
+      statistic and set p-value to 1, for 'contrast' argument
+      results tables where the contrasted groups all have zero count.
+      Non-zero LFCs were otherwise occuring due to large differences
+      in the size factors.
+
 CHANGES IN VERSION 1.7.11
 -------------------------
 
