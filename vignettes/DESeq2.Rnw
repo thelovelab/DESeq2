@@ -2039,7 +2039,8 @@ Todd Burwell,
 Jesse Rowley,
 Igor Dolgalev,
 Stephen Turner,
-Ryan C Thompson.
+Ryan C Thompson,
+Tyr Wiesner-Hanks.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=
