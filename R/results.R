@@ -19,7 +19,7 @@
 #' it will return the comparison of the last level of the last variable in the
 #' design formula over the first level of this variable. For example, for a simple two-group
 #' comparison, this would return the log2 fold changes of the second group over the
-#' first group (the base level). Please see examples below and in the vignette. 
+#' first group (the reference level). Please see examples below and in the vignette. 
 #'
 #' The argument \code{contrast} can be used to generate results tables for
 #' any comparison of interest, for example, the log2 fold change between
@@ -162,6 +162,12 @@
 #' \code{baseMean}, \code{log2FoldChange}, \code{lfcSE}, \code{stat},
 #' \code{pvalue} and \code{padj},
 #' and also includes metadata columns of variable information.
+#' The \code{lfcSE} gives the standard error of the \code{log2FoldChange}.
+#' For the Wald test, \code{stat} is the Wald statistic: the \code{log2FoldChange}
+#' divided by \code{lfcSE}, which is compared to a standard Normal distribution
+#' to generate a two-tailed \code{pvalue}. For the likelihood ratio test (LRT),
+#' \code{stat} is the difference in deviance between the reduced model and the full model,
+#' which is compared to a chi-squared distribution to generate a \code{pvalue}.
 #'
 #' For \code{resultsNames}: the names of the columns available as results,
 #' usually a combination of the variable name and a level
@@ -600,7 +606,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
   # if possible, return pre-computed columns, which are
   # already stored in mcols(dds). this will be the case using
   # results() with 'name', or if expanded model matrices were not
-  # run and the contrast contains the base level as numerator or denominator
+  # run and the contrast contains the reference level as numerator or denominator
 
   resReady <- FALSE
   
@@ -622,7 +628,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
 
     # tricky case: if the design has no intercept, the factor is
     # not the first variable in the design, and one of the numerator or denominator
-    # is the base level, then the desired contrast is simply a coefficient (or -1 times)
+    # is the reference level, then the desired contrast is simply a coefficient (or -1 times)
     noInterceptPullCoef <- !hasIntercept & !firstVar &
       (contrastBaseLevel %in% c(contrastNumLevel, contrastDenomLevel))
     
@@ -647,7 +653,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
           make.names(paste0(contrastFactor,contrastNumLevel))
         }
         if (!name %in% resNames) {
-          stop(paste("as",contrastDenomLevel,"is the base level, was expecting",
+          stop(paste("as",contrastDenomLevel,"is the reference level, was expecting",
                      name,"to be present in 'resultsNames(object)'"))
         }
         log2FoldChange <- getCoef(object, name)
@@ -671,7 +677,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
           make.names(paste0(contrastFactor,contrastDenomLevel))
         }
         if (!swapName %in% resNames) {
-          stop(paste("as",contrastNumLevel,"is the base level, was expecting",
+          stop(paste("as",contrastNumLevel,"is the reference level, was expecting",
                      swapName,"to be present in 'resultsNames(object)'"))
         }
         log2FoldChange <- getCoef(object, swapName)
@@ -700,7 +706,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
         
       } else {
         # check for the case where neither are present
-        # as comparisons against base level
+        # as comparisons against reference level
         if ( ! (contrastNumColumn %in% resNames &
                   contrastDenomColumn %in% resNames) ) {
           stop(paste(contrastNumLevel,"and",contrastDenomLevel,"should be levels of",contrastFactor,
@@ -888,14 +894,14 @@ mleContrast <- function(object, contrast) {
   contrastFactor <- contrast[1]
   contrastNumLevel <- contrast[2]
   contrastDenomLevel <- contrast[3]
-  contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
-  contrastNumColumn <- make.names(paste0("MLE_",contrastFactor,"_",contrastNumLevel,"_vs_",contrastBaseLevel))
-  contrastDenomColumn <- make.names(paste0("MLE_",contrastFactor,"_",contrastDenomLevel,"_vs_",contrastBaseLevel))
+  contrastRefLevel <- levels(colData(object)[,contrastFactor])[1]
+  contrastNumColumn <- make.names(paste0("MLE_",contrastFactor,"_",contrastNumLevel,"_vs_",contrastRefLevel))
+  contrastDenomColumn <- make.names(paste0("MLE_",contrastFactor,"_",contrastDenomLevel,"_vs_",contrastRefLevel))
   cleanName <- paste("log2 fold change (MLE):",contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
-  if ( contrastDenomLevel == contrastBaseLevel ) {
+  if ( contrastDenomLevel == contrastRefLevel ) {
     name <- make.names(paste0("MLE_",contrastFactor,"_",contrastNumLevel,"_vs_",contrastDenomLevel))
     lfcMLE <- mcols(object)[name]
-  } else if ( contrastNumLevel == contrastBaseLevel ) {
+  } else if ( contrastNumLevel == contrastRefLevel ) {
     swapName <- make.names(paste0("MLE_",contrastFactor,"_",contrastDenomLevel,"_vs_",contrastNumLevel))
     lfcMLE <- mcols(object)[swapName]
     lfcMLE[[1]] <- -1 * lfcMLE[[swapName]]

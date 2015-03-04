@@ -185,7 +185,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
 
   # if the last variable in the design formula is a
   # factor, and has a level 'control', check if it is
-  # the base level and if not print a message
+  # the reference level and if not print a message
   lastDV <- length(designVars)
   if (length(designVars) > 0 && designVarsClass[lastDV] == "factor") {
     lastDVLvls <- levels(colData(se)[[designVars[lastDV]]])
@@ -194,8 +194,8 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
       if (cSyn %in% lastDVLvls) {
         if (cSyn != lastDVLvls[1]) {
           message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"',
-  has a factor level, '",cSyn,"', which is not the base level. we recommend
-  to use factor(...,levels=...) or relevel() to set this as the base level
+  has a factor level, '",cSyn,"', which is not the reference level. we recommend
+  to use factor(...,levels=...) or relevel() to set this as the reference level
   before proceeding. for more information, please see the 'Note on factor levels'
   in vignette('DESeq2')."))
         }

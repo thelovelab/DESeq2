@@ -129,6 +129,12 @@ a simple subclass of DataFrame. This object contains the results columns:
 \code{baseMean}, \code{log2FoldChange}, \code{lfcSE}, \code{stat},
 \code{pvalue} and \code{padj},
 and also includes metadata columns of variable information.
+The \code{lfcSE} gives the standard error of the \code{log2FoldChange}.
+For the Wald test, \code{stat} is the Wald statistic: the \code{log2FoldChange}
+divided by \code{lfcSE}, which is compared to a standard Normal distribution
+to generate a two-tailed \code{pvalue}. For the likelihood ratio test (LRT),
+\code{stat} is the difference in deviance between the reduced model and the full model,
+which is compared to a chi-squared distribution to generate a \code{pvalue}.
 
 For \code{resultsNames}: the names of the columns available as results,
 usually a combination of the variable name and a level
@@ -156,7 +162,7 @@ If \code{results} is run without specifying \code{contrast} or \code{name},
 it will return the comparison of the last level of the last variable in the
 design formula over the first level of this variable. For example, for a simple two-group
 comparison, this would return the log2 fold changes of the second group over the
-first group (the base level). Please see examples below and in the vignette.
+first group (the reference level). Please see examples below and in the vignette.
 
 The argument \code{contrast} can be used to generate results tables for
 any comparison of interest, for example, the log2 fold change between

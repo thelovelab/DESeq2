@@ -93,7 +93,7 @@ as described in the \code{modelMatrixType} argument, unless this argument
 is used to override the default behavior or unless the design
 contains 2 level factors and an interaction term.
 This ensures that log2 fold changes will be independent of the choice
-of base level. In this case, the beta prior variance for each factor
+of reference level. In this case, the beta prior variance for each factor
 is calculated as the average of the mean squared maximum likelihood
 estimates for each level and every possible contrast. The \code{\link{results}}
 function without any arguments will automatically perform a contrast of the

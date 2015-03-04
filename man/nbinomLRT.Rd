@@ -36,7 +36,7 @@ formed. "standard" is as created by \code{model.matrix} using the
 design formula. "expanded" includes an indicator variable for each
 level of factors in addition to an intercept,
 in order to ensure that the log2 fold changes are independent
-of the choice of base level.
+of the choice of reference level.
 betaPrior must be set to TRUE in order for expanded model matrices
 to be fit.}
 

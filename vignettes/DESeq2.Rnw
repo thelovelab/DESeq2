@@ -251,11 +251,11 @@ In the three examples above, we applied the function \Rfunction{factor}
 to the column of interest in \Robject{colData}, supplying a character
 vector of levels. It is important to supply levels (otherwise the
 levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
-level as the first element ("base level"), so that the log2 fold changes
-produced by default will be the expected comparison against the base
+level as the first element ("reference level"), so that the log2 fold changes
+produced by default will be the expected comparison against the reference
 level, that is $\log_2 ( \textrm{treated} / \textrm{untreated} )$.
-An \R{} function for easily changing the base level is 
-\Rfunction{relevel}. An example of setting the base level of a factor
+An \R{} function for easily changing the reference level is 
+\Rfunction{relevel}. An example of setting the reference level of a factor
 with \Rfunction{relevel} is:
 
 <<relevel>>=
@@ -930,7 +930,7 @@ possible pairs will simply have $-1 \times$ the log2 fold changes of
 these three).
 
 In order to fit models with ``shrunken'' log2 fold changes in a manner
-which is independent to the choice of base level, \deseqtwo{} uses
+which is independent to the choice of reference level, \deseqtwo{} uses
 ``expanded model matrices'', described further in
 Section~\ref{sec:expanded}. The expanded model matrices include a
 coefficient for each level of the factors in addition to an intercept.
@@ -980,20 +980,20 @@ special case to the normal \deseqtwo{} methods, because we change the
 type of model matrix used in the fitting, using what we call R's
 ``standard model matrix''. For all other designs, we use 
 an ``expanded model matrix'' which fits a term for each level in the
-model, so there are no base levels.
+model, so there are no reference levels.
 The reason to use a standard model matrix for this special case of
 factors with two
 levels and an interaction term is that it is desirable to have
 only a single term to test for a significant interaction between the
 variables. Furthermore, the expanded design matrices are not necessary
 in this case for their purpose (for other designs, they provide
-symmetric shrinkage regardless of the base level). 
+symmetric shrinkage regardless of the reference level). 
 
 This does create a difference in the interpretation of the contrasts
 extracted with \Rfunction{results} for designs with interactions: 
 for expanded design matrices, the main effect is an average effect
 across all groups; while for standard design matrices, the main effect is
-only for the base level of the other factors. We explain in more detail below:
+only for the reference level of the other factors. We explain in more detail below:
 
 Suppose we have an interaction design of \Rcode{$\sim$ group + condition + group:condition}.
 
@@ -1005,8 +1005,8 @@ results(dds, contrast=c("condition","B","A"))
 @ 
 
 \textbf{Standard model matrices} The above results
-table now produces a comparison of B over A only for the \textit{base level} of
-\Robject{group}. Let us suppose the base level of group is X, and the
+table now produces a comparison of B over A only for the \textit{reference level} of
+\Robject{group}. Let us suppose the reference level of group is X, and the
 second group is Y. So for standard model matrices, the above results
 table gives the condition effect for group X.
 
@@ -1086,7 +1086,7 @@ series, one can use a design formula containing the condition factor,
 the time factor, and the interaction of the two. In this case, using
 the likelihood ratio test with a reduced model which does not contain
 the interaction terms will test whether the condition induces a change
-in gene expression at any time point after the base-level time point
+in gene expression at any time point after the reference level time point
 (time 0). An example of the later analysis is provided in an RNA-Seq
 workflow on the Bioconductor
 website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}.
@@ -1708,7 +1708,7 @@ $$ W = \frac{c^t \beta}{\sqrt{c^t \Sigma c}} $$
 As mentioned in Section~\ref{sec:contrasts}, \deseqtwo{} uses
 ``expanded model matrices'' with the log2 fold change prior, 
 in order to produce log2 fold change estimates and test 
-results which are independent of the choice of base level. 
+results which are independent of the choice of reference level. 
 These model matrices differ from the standard model matrices, in that
 they have an indicator column (and therefore a coefficient) for
 each level of factors in the design formula in addition to an intercept. 
@@ -1723,7 +1723,7 @@ calculated by first generating maximum likelihood
 estimates for a standard model matrix. The prior variance for each level
 of a factor is then set as the average of the mean squared maximum likelihood 
 estimates for each level and every possible contrast, such that that this 
-prior value will be base level independent. The \Robject{contrast}
+prior value will be reference-level-independent. The \Robject{contrast}
 argument of the \Rfunction{results} function is again used in order
 to generate comparisons of interest.
 

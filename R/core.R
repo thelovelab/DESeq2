@@ -963,7 +963,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' is used to override the default behavior or unless the design
 #' contains 2 level factors and an interaction term.
 #' This ensures that log2 fold changes will be independent of the choice
-#' of base level. In this case, the beta prior variance for each factor
+#' of reference level. In this case, the beta prior variance for each factor
 #' is calculated as the average of the mean squared maximum likelihood
 #' estimates for each level and every possible contrast. The \code{\link{results}}
 #' function without any arguments will automatically perform a contrast of the
@@ -1069,7 +1069,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
     }
     if (modelMatrixType == "standard" & betaPrior & !blindDesign) {
       message("-- standard model matrices are used for factors with two levels and an interaction,
-   where the main effects are for the base level of other factors.
+   where the main effects are for the reference level of other factors.
    see the 'Interactions' section of the vignette for more details: vignette('DESeq2')")
     }
     if (modelMatrixType == "expanded" & !betaPrior) {
@@ -1413,7 +1413,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' design formula. "expanded" includes an indicator variable for each
 #' level of factors in addition to an intercept,
 #' in order to ensure that the log2 fold changes are independent
-#' of the choice of base level.
+#' of the choice of reference level.
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
 #' @param maxit the maximum number of iterations to allow for convergence of the
@@ -1881,7 +1881,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   stopifnot(all(colSums(abs(modelMatrix)) > 0))
 
   # rename columns, for use as columns in DataFrame
-  # and to emphasize the base level comparison
+  # and to emphasize the reference level comparison
   modelMatrixNames <- colnames(modelMatrix)
   modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
   modelMatrixNames <- make.names(modelMatrixNames)
