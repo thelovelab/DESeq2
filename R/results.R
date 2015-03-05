@@ -150,7 +150,8 @@
 #' of log2 fold change should be added as a column to the results table (default is FALSE).
 #' only applicable when a beta prior was used during the model fitting. only implemented
 #' for 'contrast' for three element character vectors or 'name' for interactions.
-#' @param tidy whether to output the results table with rownames as a first column 'row' 
+#' @param tidy whether to output the results table with rownames as a first column 'row'.
+#' the table will also be coerced to \code{data.frame}
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
 #' execution using \code{BiocParallel}, see next argument \code{BPPARAM}
 #' @param BPPARAM an optional parameter object passed internally
@@ -475,6 +476,7 @@ Likelihood ratio test p-values are overwritten")
     mcols(deseqRes,use.names=TRUE)["row","description"] <- "row names"
     deseqRes <- deseqRes[,c("row",colnms)]
     rownames(deseqRes) <- NULL
+    deseqRes <- as.data.frame(deseqRes)
   }
   
   if (format == "DataFrame") {

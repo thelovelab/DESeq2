@@ -115,7 +115,8 @@ of log2 fold change should be added as a column to the results table (default is
 only applicable when a beta prior was used during the model fitting. only implemented
 for 'contrast' for three element character vectors or 'name' for interactions.}
 
-\item{tidy}{whether to output the results table with rownames as a first column 'row'}
+\item{tidy}{whether to output the results table with rownames as a first column 'row'.
+the table will also be coerced to \code{data.frame}}
 
 \item{parallel}{if FALSE, no parallelization. if TRUE, parallel
 execution using \code{BiocParallel}, see next argument \code{BPPARAM}}
