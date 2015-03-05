@@ -150,6 +150,7 @@
 #' of log2 fold change should be added as a column to the results table (default is FALSE).
 #' only applicable when a beta prior was used during the model fitting. only implemented
 #' for 'contrast' for three element character vectors or 'name' for interactions.
+#' @param tidy whether to output the results table with rownames as a first column 'row' 
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
 #' execution using \code{BiocParallel}, see next argument \code{BPPARAM}
 #' @param BPPARAM an optional parameter object passed internally
@@ -250,6 +251,7 @@ results <- function(object, contrast, name,
                     format=c("DataFrame","GRanges","GRangesList"),
                     test, 
                     addMLE=FALSE,
+                    tidy=FALSE,
                     parallel=FALSE, BPPARAM=bpparam()) {
   # match args
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
@@ -464,6 +466,17 @@ Likelihood ratio test p-values are overwritten")
     attr(deseqRes, "filterThreshold") <- paRes$filterThreshold
     attr(deseqRes, "filterNumRej") <- paRes$filterNumRej
   }
+
+  # remove rownames and attach as a new column, 'row'
+  if (tidy) {
+    colnms <- colnames(deseqRes)
+    deseqRes$row <- rownames(deseqRes)
+    mcols(deseqRes,use.names=TRUE)["row","type"] <- "results"
+    mcols(deseqRes,use.names=TRUE)["row","description"] <- "row names"
+    deseqRes <- deseqRes[,c("row",colnms)]
+    rownames(deseqRes) <- NULL
+  }
+  
   if (format == "DataFrame") {
     return(deseqRes)
   } else if (format == "GRangesList") {

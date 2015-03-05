@@ -10,7 +10,8 @@
 \usage{
 DESeqDataSet(se, design, ignoreRank = FALSE)
 
-DESeqDataSetFromMatrix(countData, colData, design, ignoreRank = FALSE, ...)
+DESeqDataSetFromMatrix(countData, colData, design, tidy = FALSE,
+  ignoreRank = FALSE, ...)
 
 DESeqDataSetFromHTSeqCount(sampleTable, directory = "", design,
   ignoreRank = FALSE, ...)
@@ -36,7 +37,9 @@ using a design with a model matrix which is not full rank.}
 \item{countData}{for matrix input: a matrix of non-negative integers}
 
 \item{colData}{for matrix input: a \code{DataFrame} or \code{data.frame} with at least a single column.
-Rows of colData correspond to columns of countData.}
+Rows of colData correspond to columns of countData}
+
+\item{tidy}{for matrix input: whether the first column of countData is the rownames for the count matrix}
 
 \item{...}{arguments provided to \code{SummarizedExperiment} including rowData and exptData}
 

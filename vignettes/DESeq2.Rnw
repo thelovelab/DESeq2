@@ -2040,7 +2040,9 @@ Jesse Rowley,
 Igor Dolgalev,
 Stephen Turner,
 Ryan C Thompson,
-Tyr Wiesner-Hanks.
+Tyr Wiesner-Hanks,
+Konrad Rudolph,
+David Robinson.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=
