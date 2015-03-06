@@ -453,21 +453,8 @@ these column could have come in during colData import")
   stopifnot(length(maxit)==1)
   fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
   
-  # if trying to call differential expression for a model
-  # with as many samples as columns 
-  # e.g., 2 samples and 2 groups,
-  # we supply a design formula of ~ 1 for dispersion estimation
-  noReps <- if (is.null(modelMatrix)) {
-    mmtest <- model.matrix(design(object), data=as.data.frame(colData(object)))
-    nrow(mmtest) == ncol(mmtest)
-  } else {
-    nrow(modelMatrix) == ncol(modelMatrix)
-  }
+  noReps <- checkForExperimentalReplicates(object, modelMatrix)
   if (noReps) {
-    if (!is.null(modelMatrix)) stop("same number of samples and coefficients to fit with supplied model matrix")
-    warning("same number of samples and coefficients to fit,
-  estimating dispersion by treating samples as replicates.
-  read the ?DESeq section on 'Experiments without replicates'")
     designIn <- design(object)
     design(object) <- formula(~ 1)
   }
@@ -483,6 +470,22 @@ these column could have come in during colData import")
   if (noReps) design(object) <- designIn
   
   return(object)
+}
+
+checkForExperimentalReplicates <- function(object, modelMatrix) {
+  noReps <- if (is.null(modelMatrix)) {
+    mmtest <- model.matrix(design(object), data=as.data.frame(colData(object)))
+    nrow(mmtest) == ncol(mmtest)
+  } else {
+    nrow(modelMatrix) == ncol(modelMatrix)
+  }
+  if (noReps) {
+    if (!is.null(modelMatrix)) stop("same number of samples and coefficients to fit with supplied model matrix")
+    warning("same number of samples and coefficients to fit,
+  estimating dispersion by treating samples as replicates.
+  read the ?DESeq section on 'Experiments without replicates'")
+  }
+  noReps
 }
 
 #' Estimate the dispersions for a DESeqDataSet

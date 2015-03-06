@@ -150,7 +150,7 @@ varianceStabilizingTransformation <- function (object, blind=TRUE, fitType="para
   se <- SummarizedExperiment(
     assays = vsd,
     colData = colData(object),
-    rowData = rowData(object),
+    rowData = rowRanges(object),
     exptData = exptData(object))
   DESeqTransform(se)
 }

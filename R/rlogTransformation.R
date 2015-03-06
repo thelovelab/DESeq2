@@ -186,7 +186,7 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
   se <- SummarizedExperiment(
            assays = rld,
            colData = colData(object),
-           rowData = rowData(object),
+           rowData = rowRanges(object),
            exptData = exptData(object))
   dt <- DESeqTransform(se)
   attr(dt,"betaPriorVar") <- attr(rld, "betaPriorVar")

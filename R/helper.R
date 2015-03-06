@@ -74,7 +74,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' if there is a matrix named "avgTxLength" in \code{assays(dds)}, as created
 #' by \code{\link{normalizeGeneLength}}, this will take precedence in the
 #' length normalization. Otherwise, feature length is calculated 
-#' from the \code{rowData} of the dds object,
+#' from the \code{rowRanges} of the dds object,
 #' if a column \code{basepairs} is not present in \code{mcols(dds)}.
 #' The calculated length is the number of basepairs in the union of all \code{GRanges}
 #' assigned to a given row of \code{object}, e.g., 
@@ -114,7 +114,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' gr2 <- GRanges("chr1",IRanges(c(1,501),c(500,1000)))
 #' gr3 <- GRanges("chr1",IRanges(c(1,1001),c(1000,2000)))
 #' gr4 <- GRanges("chr1",IRanges(c(1,1001,2001),c(500,3000,3000)))
-#' rowData(dds) <- GRangesList(gr1,gr2,gr3,gr4)
+#' rowRanges(dds) <- GRangesList(gr1,gr2,gr3,gr4)
 #' 
 #' # the raw counts
 #' counts(dds)
@@ -139,13 +139,13 @@ fpkm <- function(object, robust=TRUE) {
     return(1e3 * fpm / assays(object)[["avgTxLength"]])
   }
   if (is.null(mcols(object)$basepairs)) {
-    if (class(rowData(object)) == "GRangesList") {
-      ubp <- DataFrame(basepairs = sum(width(reduce(rowData(object)))))
-    } else if (class(rowData(object)) == "GRanges") {
-      ubp <- DataFrame(basepairs = width(rowData(object)))
+    if (class(rowRanges(object)) == "GRangesList") {
+      ubp <- DataFrame(basepairs = sum(width(reduce(rowRanges(object)))))
+    } else if (class(rowRanges(object)) == "GRanges") {
+      ubp <- DataFrame(basepairs = width(rowRanges(object)))
     }
     if (all(ubp$basepairs == 0)) {
-      stop("rowData(object) has all ranges of zero width.
+      stop("rowRanges(object) has all ranges of zero width.
 the user should instead supply a column, mcols(object)$basepairs,
 which will be used to produce FPKM values")
     }
@@ -379,6 +379,13 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
   if (missing(modelMatrixType)) {
     modelMatrixType <- NULL
   }
+
+  # if no reps, treat samples as replicates and print warning
+  noReps <- checkForExperimentalReplicates(object, modelMatrix)
+  if (noReps) {
+    designIn <- design(objectNZ)
+    design(objectNZ) <- formula(~ 1)
+  }
   
   # first parallel execution: gene-wise dispersion estimates
   if (!quiet) message("estimating dispersions")
@@ -402,6 +409,8 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
     objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
       objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                             dispPriorVar=dispPriorVar, quiet=TRUE)
+      # replace design
+      if (noReps) design(objectNZ) <- designIn
       estimateMLEForBetaPriorVar(objectNZSub)
     }, BPPARAM=BPPARAM))
 
@@ -436,6 +445,8 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
       objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
         objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                               dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
+        # replace design
+        if (noReps) design(objectNZ) <- designIn
         nbinomWaldTest(objectNZSub, betaPrior=betaPrior,
                        quiet=TRUE, modelMatrix=modelMatrix, modelMatrixType="standard")
       }, BPPARAM=BPPARAM))
@@ -443,6 +454,8 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
       objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
         objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                               dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
+        # replace design
+        if (noReps) design(objectNZ) <- designIn
         nbinomLRT(objectNZSub, full=full, reduced=reduced,
                   quiet=TRUE, modelMatrixType="standard")
       }, BPPARAM=BPPARAM))

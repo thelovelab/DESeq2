@@ -102,8 +102,8 @@ from independent filtering}
 \item{format}{character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 or if the results DataFrame should be attached as metadata columns to
-the \code{GRanges} or \code{GRangesList} \code{rowData} of the \code{DESeqDataSet}.
-If the \code{rowData} is a \code{GRangesList}, and \code{GRanges} is requested,
+the \code{GRanges} or \code{GRangesList} \code{rowRanges} of the \code{DESeqDataSet}.
+If the \code{rowRanges} is a \code{GRangesList}, and \code{GRanges} is requested,
 the range of each gene will be returned}
 
 \item{test}{this is typically automatically detected internally.

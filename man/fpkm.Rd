@@ -34,7 +34,7 @@ The length of the features (e.g. genes) is calculated one of two ways:
 if there is a matrix named "avgTxLength" in \code{assays(dds)}, as created
 by \code{\link{normalizeGeneLength}}, this will take precedence in the
 length normalization. Otherwise, feature length is calculated
-from the \code{rowData} of the dds object,
+from the \code{rowRanges} of the dds object,
 if a column \code{basepairs} is not present in \code{mcols(dds)}.
 The calculated length is the number of basepairs in the union of all \code{GRanges}
 assigned to a given row of \code{object}, e.g.,
@@ -60,7 +60,7 @@ gr1 <- GRanges("chr1",IRanges(1,1000))
 gr2 <- GRanges("chr1",IRanges(c(1,501),c(500,1000)))
 gr3 <- GRanges("chr1",IRanges(c(1,1001),c(1000,2000)))
 gr4 <- GRanges("chr1",IRanges(c(1,1001,2001),c(500,3000,3000)))
-rowData(dds) <- GRangesList(gr1,gr2,gr3,gr4)
+rowRanges(dds) <- GRangesList(gr1,gr2,gr3,gr4)
 
 # the raw counts
 counts(dds)

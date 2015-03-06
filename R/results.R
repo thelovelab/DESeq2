@@ -140,8 +140,8 @@
 #' @param format character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 #' whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 #' or if the results DataFrame should be attached as metadata columns to
-#' the \code{GRanges} or \code{GRangesList} \code{rowData} of the \code{DESeqDataSet}.
-#' If the \code{rowData} is a \code{GRangesList}, and \code{GRanges} is requested, 
+#' the \code{GRanges} or \code{GRangesList} \code{rowRanges} of the \code{DESeqDataSet}.
+#' If the \code{rowRanges} is a \code{GRangesList}, and \code{GRanges} is requested, 
 #' the range of each gene will be returned
 #' @param test this is typically automatically detected internally.
 #' the one exception is after \code{nbinomLRT} has been run, \code{test="Wald"}
@@ -282,9 +282,9 @@ results <- function(object, contrast, name,
   if (addMLE & !attr(object,"betaPrior")) {
     stop("addMLE=TRUE is only for when a beta prior was used. otherwise, the log2 fold changes are already MLE")
   }
-  if (format == "GRanges" & is(rowData(object),"GRangesList")) {
-    if (any(elementLengths(rowData(object)) == 0)) {
-      stop("rowData is GRangesList and one or more GRanges have length 0. Use format='DataFrame' or 'GRangesList'")
+  if (format == "GRanges" & is(rowRanges(object),"GRangesList")) {
+    if (any(elementLengths(rowRanges(object)) == 0)) {
+      stop("rowRanges is GRangesList and one or more GRanges have length 0. Use format='DataFrame' or 'GRangesList'")
     }
   }
   if (!missing(contrast)) {
@@ -482,18 +482,18 @@ Likelihood ratio test p-values are overwritten")
   if (format == "DataFrame") {
     return(deseqRes)
   } else if (format == "GRangesList") {
-    if (class(rowData(object)) == "GRanges") message("rowData is GRanges")
-    out <- rowData(object)
+    if (class(rowRanges(object)) == "GRanges") message("rowRanges is GRanges")
+    out <- rowRanges(object)
     mcols(out) <- deseqRes
     return(out)
   } else if (format == "GRanges") {
-    if (class(rowData(object)) == "GRangesList") {
-      message("rowData is GRangesList, unlisting the ranges")
-      out <- unlist(range(rowData(object)))
+    if (class(rowRanges(object)) == "GRangesList") {
+      message("rowRanges is GRangesList, unlisting the ranges")
+      out <- unlist(range(rowRanges(object)))
       mcols(out) <- deseqRes
       return(out)
     } else {
-      out <- rowData(object)
+      out <- rowRanges(object)
       mcols(out) <- deseqRes
       return(out)
     }

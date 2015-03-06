@@ -2225,20 +2225,6 @@ trimmedCellVariance <- function(cnts, cells) {
   rowMax(varEst)
 }
 
-medianCellVariance <- function(cnts, cells) {
-  cellMedians <- matrix(sapply(levels(cells), function(lvl)
-                               rowMedians(cnts[,cells==lvl,drop=FALSE])),
-                        nrow=nrow(cnts))
-  qmat <- cellMedians[,as.integer(cells),drop=FALSE]
-  absdev <- abs(cnts - qmat)
-  cellMAD <- matrix(sapply(levels(cells), function(lvl)
-                           rowMedians(absdev[,cells==lvl,drop=FALSE])),
-                    nrow=nrow(absdev))
-  varEst <- ( 1/qnorm(3/4) * cellMAD )^2
-  rowMeans(varEst)
-}
-
-
 calculateCooksDistance <- function(object, H, modelMatrix) {
   p <- ncol(modelMatrix)
   dispersions <- robustMethodOfMomentsDisp(object, modelMatrix)
@@ -2630,15 +2616,22 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
     objectSub <- object[refitReplace,]
     intermediateOrResults <- which(mcols(mcols(objectSub))$type %in% c("intermediate","results"))
     mcols(objectSub) <- mcols(objectSub)[,-intermediateOrResults,drop=FALSE]
+
+    # estimate gene-wise dispersion
     if (!quiet) message("estimating dispersions")
     objectSub <- estimateDispersionsGeneEst(objectSub, quiet=quiet, modelMatrix=modelMatrix)
+    
     # need to redo fitted dispersion due to changes in base mean
     mcols(objectSub)$dispFit <- dispersionFunction(objectSub)(mcols(objectSub)$baseMean)
     mcols(mcols(objectSub),use.names=TRUE)["dispFit",] <- DataFrame(type="intermediate",
                              description="fitted values of dispersion")
     dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" )
+
+    # estimate dispersion MAP
     objectSub <- estimateDispersionsMAP(objectSub, quiet=quiet,
                                         dispPriorVar=dispPriorVar, modelMatrix=modelMatrix)
+
+    # fit GLM
     if (!quiet) message("fitting model and testing")
     if (test == "Wald") {
       betaPriorVar <- attr(object, "betaPriorVar")
@@ -2655,6 +2648,7 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
                                modelMatrixType=modelMatrixType)
       }
     }
+    
     idx <- match(names(mcols(objectSub)), names(mcols(object)))
     mcols(object)[refitReplace, idx] <- mcols(objectSub)
     mcols(object)[newAllZero, mcols(mcols(object))$type == "results"] <- NA

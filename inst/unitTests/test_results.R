@@ -95,6 +95,13 @@ test_results_basics <- function() {
   dds <- DESeq(dds)
   res <- results(dds, format="GRanges")
 
+  # check tidy-ness
+  res <- results(dds, tidy=TRUE)
+  checkTrue(colnames(res)[1] == "row")
+  checkTrue(is(res, "data.frame"))
+
+  # test remove results
   dds <- removeResults(dds)
   checkTrue(!any(mcols(mcols(dds))$type == "results"))
 }
+
