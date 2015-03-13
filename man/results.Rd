@@ -61,14 +61,14 @@ will be tested. If the log2 fold change specified by \code{name}
 or by \code{contrast} is written as \eqn{ \beta }{ beta }, then the possible values for
 \code{altHypothesis} represent the following alternate hypotheses:
 \itemize{
-\item greaterAbs - \eqn{|\beta| > \textrm{lfcThreshold} }{ |beta| > lfcThreshold },
+\item greaterAbs: \eqn{|\beta| > \textrm{lfcThreshold} }{ |beta| > lfcThreshold },
 and p-values are two-tailed
-\item lessAbs - \eqn{ |\beta| < \textrm{lfcThreshold} }{ |beta| < lfcThreshold },
+\item lessAbs: \eqn{ |\beta| < \textrm{lfcThreshold} }{ |beta| < lfcThreshold },
 NOTE: this requires that \code{betaPrior=FALSE} has been specified in the
 previous \code{\link{DESeq}} call.
 p-values are the maximum of the upper and lower tests.
-\item greater - \eqn{ \beta > \textrm{lfcThreshold} }{ beta > lfcThreshold }
-\item less - \eqn{ \beta < -\textrm{lfcThreshold} }{ beta < -lfcThreshold }
+\item greater: \eqn{ \beta > \textrm{lfcThreshold} }{ beta > lfcThreshold }
+\item less: \eqn{ \beta < -\textrm{lfcThreshold} }{ beta < -lfcThreshold }
 }}
 
 \item{listValues}{only used if a list is provided to \code{contrast}:
