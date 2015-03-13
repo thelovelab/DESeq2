@@ -60,11 +60,10 @@ be obtained from any software which outputs a file with a row for each
 transcript, specifying: transcript length, estimate of transcript abundance,
 and the gene which the transcript belongs to.
 
-Normalization factors accounting for the average transcript length and
-library size of each sample are then generated and stored with
-\code{\link{normalizationFactors}}. The analysis can then continue with
-\code{link{DESeq}}, as the normalization factors will be used instead
-of size factors in the following functions.
+Normalization factors accounting for both average transcript length and
+library size of each sample are generated and then stored within the data object.
+The analysis can then continue with \code{\link{DESeq}};
+the stored normalization factors will be used instead of size factors in the analysis.
 
 For RSEM \code{genes.results} files,
 specify \code{level="gene"}, \code{geneIdCol="gene_id"},
