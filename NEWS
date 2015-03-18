@@ -23,13 +23,6 @@ CHANGES IN VERSION 1.7.9
       can be used even when all genes have a sample with a 
       count of zero. See man page for details.
 
-CHANGES IN VERSION 1.7.7
-------------------------
-
-    o Introduced normalizeGeneLength() for correcting for changes
-      in average transcript length across samples.
-
-
 CHANGES IN VERSION 1.7.3
 ------------------------
 
