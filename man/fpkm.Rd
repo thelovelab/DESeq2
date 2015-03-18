@@ -31,8 +31,7 @@ as in \code{\link{estimateSizeFactors}}).
 }
 \details{
 The length of the features (e.g. genes) is calculated one of two ways:
-if there is a matrix named "avgTxLength" in \code{assays(dds)}, as created
-by \code{\link{normalizeGeneLength}}, this will take precedence in the
+if there is a matrix named "avgTxLength" in \code{assays(dds)}, this will take precedence in the
 length normalization. Otherwise, feature length is calculated
 from the \code{rowRanges} of the dds object,
 if a column \code{basepairs} is not present in \code{mcols(dds)}.

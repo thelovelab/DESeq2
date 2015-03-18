@@ -67,9 +67,9 @@
 #' If many of genes have large differences in counts due to
 #' the experimental design, it is important to set blind=FALSE for downstream
 #' analysis. 
-#' @param fast if TRUE, an approximation to the rlog transformation is made,
-#' wherein an optimal amount of shrinkage of sample-wise log fold changes
-#' is calculated for each gene. optimal is defined by maximizing the same
+#' @param fast if TRUE, an alternative rlog-like transformation is made,
+#' wherein an optimal amount of linear shrinkage of sample-wise log fold changes
+#' is calculated for each gene. 'Optimal' is defined by maximizing the same
 #' posterior as in the standard rlog transformation.
 #' @param intercept by default, this is not provided and calculated automatically.
 #' if provided, this should be a vector as long as the number of rows of object,
