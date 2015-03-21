@@ -7,7 +7,8 @@
 \alias{counts<-,DESeqDataSet,matrix-method}
 \title{Accessors for the 'counts' slot of a DESeqDataSet object.}
 \usage{
-\S4method{counts}{DESeqDataSet}(object, normalized = FALSE)
+\S4method{counts}{DESeqDataSet}(object, normalized = FALSE,
+  replaced = FALSE)
 
 \S4method{counts}{DESeqDataSet,matrix}(object) <- value
 }
@@ -17,6 +18,10 @@
 \item{normalized}{logical indicating whether or not to divide the counts by
 the size factors or normalization factors before returning
 (normalization factors always preempt size factors)}
+
+\item{replaced}{after a \code{DESeq} call, this argument will return the counts
+with outliers replaced instead of the original counts, and optionally \code{normalized}.
+The replaced counts are stored by \code{DESeq} in \code{assays(object)[['replaceCounts']]}.}
 
 \item{value}{an integer matrix}
 }

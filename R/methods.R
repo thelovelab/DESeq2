@@ -1,13 +1,24 @@
-counts.DESeqDataSet <- function(object, normalized=FALSE) {
+counts.DESeqDataSet <- function(object, normalized=FALSE, replaced=FALSE) {
+  if (replaced) {
+    if ("replaceCounts" %in% names(assays(object))) {
+      cnts <- assays(object)[["replaceCounts"]]
+    } else {
+      warning("there are no assays named 'replaceCounts', using original.
+calling DESeq() will replace outliers if they are detected and store this assay.")
+      cnts <- assays(object)[["counts"]]
+    }
+  } else {
+    cnts <- assays(object)[["counts"]]
+  }
   if (!normalized) {
-    return(assays(object)[["counts"]])
+    return(cnts)
   } else {
     if (!is.null(normalizationFactors(object))) {
-      return( assays(object)[["counts"]]/normalizationFactors(object) )
+      return( cnts / normalizationFactors(object) )
     } else if (is.null(sizeFactors(object)) || any(is.na(sizeFactors(object)))) {
       stop("first calculate size factors, add normalizationFactors, or set normalized=FALSE")
     } else {
-      return( t( t( assays(object)[["counts"]] ) / sizeFactors(object) ) )
+      return( t( t( cnts ) / sizeFactors(object) ) )
     }
   }
 }
@@ -27,6 +38,9 @@ counts.DESeqDataSet <- function(object, normalized=FALSE) {
 #' @param normalized logical indicating whether or not to divide the counts by
 #' the size factors or normalization factors before returning
 #' (normalization factors always preempt size factors)
+#' @param replaced after a \code{DESeq} call, this argument will return the counts
+#' with outliers replaced instead of the original counts, and optionally \code{normalized}.
+#' The replaced counts are stored by \code{DESeq} in \code{assays(object)[['replaceCounts']]}.
 #' @param value an integer matrix
 #' @author Simon Anders
 #' @seealso \code{\link{sizeFactors}}, \code{\link{normalizationFactors}}

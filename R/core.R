@@ -2190,15 +2190,11 @@ robustMethodOfMomentsDisp <- function(object, modelMatrix) {
   }
   m <- rowMeans(cnts)
   alpha <- ( v - m ) / m^2
-  minDisp <- 1e-8
+  # cannot use the typical minDisp = 1e-8 here or else all counts in the same
+  # group as the outlier count will get an extreme Cook's distance
+  minDisp <- 0.04
   alpha <- pmax(alpha, minDisp)
   alpha
-}
-
-trimmedVariance <- function(x) {
-  rm <-  apply(x,1,mean,trim=1/8)
-  sqerror <- (x - rm)^2
-  1.51 * apply(sqerror,1,mean,trim=1/8)
 }
 
 trimmedCellVariance <- function(cnts, cells) {
@@ -2223,6 +2219,13 @@ trimmedCellVariance <- function(cnts, cells) {
   # take the max of variance estimates from cells
   # as one condition might have highly variable counts
   rowMax(varEst)
+}
+
+trimmedVariance <- function(x) {
+  rm <-  apply(x,1,mean,trim=1/8)
+  sqerror <- (x - rm)^2
+  # scale due to trimming of large squares
+  1.51 * apply(sqerror,1,mean,trim=1/8)
 }
 
 calculateCooksDistance <- function(object, H, modelMatrix) {

@@ -1,3 +1,12 @@
+CHANGES IN VERSION 1.7.43
+-------------------------
+
+    o Added 'replaced' argument to counts() and plotCounts() such
+      that the assay in "replaceCounts" will be used if it exists.
+      Raised a minimum dispersion value used in Cook's calculation, 
+      so that other counts in a group with an outlier won't get extreme
+      Cook's distances themselves.
+
 CHANGES IN VERSION 1.7.32
 -------------------------
 

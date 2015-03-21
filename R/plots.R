@@ -224,6 +224,7 @@ setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
 #' @param xlab as in 'plot'
 #' @param returnData should the function only return the data.frame of counts and
 #' covariates for custom plotting (default is FALSE)
+#' @param replaced use the outlier-replaced counts if they exist
 #' @param ... arguments passed to plot
 #' 
 #' @examples
@@ -235,14 +236,15 @@ setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
 plotCounts <- function(dds, gene, intgroup="condition",
                        normalized=TRUE, transform=FALSE,
                        main, xlab="group",
-                       returnData=FALSE, ...) {
+                       returnData=FALSE,
+                       replaced=FALSE, ...) {
   stopifnot(length(gene) == 1 & (is.character(gene) | (is.numeric(gene) & (gene >= 1 & gene <= nrow(dds)))))
   if (!all(intgroup %in% names(colData(dds)))) stop("all variables in 'intgroup' must be columns of colData")
   stopifnot(returnData | all(sapply(intgroup, function(v) is(colData(dds)[[v]], "factor"))))
   if (is.null(sizeFactors(dds)) & is.null(normalizationFactors(dds))) {
     dds <- estimateSizeFactors(dds)
   }
-  cnts <- counts(dds,normalized=normalized)[gene,]
+  cnts <- counts(dds,normalized=normalized,replaced=replaced)[gene,]
   group <- if (length(intgroup) == 1) {
     colData(dds)[[intgroup]]
   } else if (length(intgroup) == 2) {
