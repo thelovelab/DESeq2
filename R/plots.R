@@ -153,10 +153,15 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
   if (!all(intgroup %in% names(colData(object)))) {
     stop("the argument 'intgroup' should specify columns of colData(dds)")
   }
+
+  intgroup.df <- as.data.frame(colData(object)[, intgroup, drop=FALSE])
   
   # add the intgroup factors together to create a new grouping factor
-  intgroup.df <- as.data.frame(colData(object)[, intgroup, drop=FALSE])
-  group <- factor(apply( intgroup.df, 1, paste, collapse=" : "))
+  group <- if (length(intgroup) > 1) {
+    factor(apply( intgroup.df, 1, paste, collapse=" : "))
+  } else {
+    colData(object)[[intgroup]]
+  }
 
   # assembly the data for the plot
   d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group, intgroup.df, name=colnames(object))
@@ -201,10 +206,19 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
 #' 
 #' @examples
 #'
+#' # using rlog transformed data:
 #' dds <- makeExampleDESeqDataSet(betaSD=1)
 #' rld <- rlog(dds)
-#' plt <- plotPCA(rld)
-#' print(plt)
+#' plotPCA(rld)
+#'
+#' # also possible to perform custom transformation:
+#' dds <- estimateSizeFactors(dds)
+#' # shifted log of normalized counts
+#' se <- SummarizedExperiment(log2(counts(dds, normalized=TRUE) + 1),
+#'                            colData=colData(dds))
+#' # the call to DESeqTransform() is needed to
+#' # trigger our plotPCA method.
+#' plotPCA( DESeqTransform( se ) )
 #' 
 #' @export
 setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
@@ -277,6 +291,33 @@ plotCounts <- function(dds, gene, intgroup="condition",
   plot(data$group + runif(ncol(dds),-.05,.05), data$count, xlim=c(.5,max(data$group)+.5),
        log=logxy, xaxt="n", xlab=xlab, ylab=ylab, main=main, ...)
   axis(1, at=seq_along(levels(group)), levels(group))
+}
+
+
+#' Sparsity plot
+#'
+#' Simple plot of the concentration of counts in a single sample over the
+#' sum of counts per gene.
+#'
+#' @param x a matrix or DESeqDataSet
+#' @param normalized whether to normalize the counts from a DESeqDataSEt
+#' @param ... passed to \code{plot}
+#'
+#' @examples
+#'
+#' dds <- makeExampleDESeqDataSet(n=1000,m=4,dispMeanRel=function(x) .5)
+#' dds <- estimateSizeFactors(dds)
+#' sparsityPlot(dds)
+#' 
+#' @export
+sparsityPlot <- function(x, normalized=TRUE, ...) {
+  if (is(x, "DESeqDataSet")) {
+    x <- counts(x, normalized=normalized)
+  }
+  rs <- rowSums(x)
+  rmx <- apply(x, 1, max)
+  plot(rs[rs > 0], (rmx/rs)[rs > 0], log="x", ylim=c(0,1), xlab="sum of counts per gene",
+       ylab="max count / sum", main="Concentration of counts over total sum of counts", ...)
 }
 
 

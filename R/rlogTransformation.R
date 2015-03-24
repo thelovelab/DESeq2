@@ -143,6 +143,10 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
   if (blind) {
     design(object) <- ~ 1
   }
+  # sparsity test
+  if (missing(intercept) & missing(B)) {
+    sparseTest(counts(object, normalized=TRUE), .9, 100, .1)
+  }
   if (blind | is.null(mcols(object)$dispFit)) {
     # estimate the dispersions on all genes, or if fast=TRUE subset to 1000 non-zero genes
     if (is.null(mcols(object)$baseMean)) {
@@ -203,8 +207,8 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
 #' @export
 rlogTransformation <- rlog
 
-
 ###################### unexported
+
 
 rlogData <- function(object, intercept, betaPriorVar) {
   if (is.null(mcols(object)$dispFit)) {
@@ -423,3 +427,17 @@ rlogGridWrapper <- function (ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, 
   as.numeric(Bvec)
 }
 
+sparseTest <- function(x, p, t1, t2) {
+  rs <- rowSums(x)
+  rmx <- apply(x, 1, max)
+  if (all(rs <= t1)) return(invisible())
+  prop <- (rmx/rs)[rs > t1]
+  total <- mean(prop > p)
+  if (total > t2) warning("the rlog assumes that data is close to a negative binomial distribution, an assumption
+which is sometimes not compatible with datasets where many genes have many zero counts
+despite a few very large counts.
+In this data, for ",round(total,3)*100,"% of genes with a sum of normalized counts above ",t1,", it was the case 
+that a single sample's normalized count made up more than ",p*100,"% of the sum over all samples.
+the threshold for this warning is ",t2*100,"% of genes. See sparsityPlot(dds) for a visualization of this.
+We recommend instead using the varianceStabilizingTransformation or shifted log (see vignette).")
+}

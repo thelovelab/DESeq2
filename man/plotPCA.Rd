@@ -36,10 +36,19 @@ It can be found at \code{DESeq2:::plotPCA.DESeqTransform}.
 Users should find it easy to customize this function.
 }
 \examples{
+# using rlog transformed data:
 dds <- makeExampleDESeqDataSet(betaSD=1)
 rld <- rlog(dds)
-plt <- plotPCA(rld)
-print(plt)
+plotPCA(rld)
+
+# also possible to perform custom transformation:
+dds <- estimateSizeFactors(dds)
+# shifted log of normalized counts
+se <- SummarizedExperiment(log2(counts(dds, normalized=TRUE) + 1),
+                           colData=colData(dds))
+# the call to DESeqTransform() is needed to
+# trigger our plotPCA method.
+plotPCA( DESeqTransform( se ) )
 }
 \author{
 Wolfgang Huber

@@ -10,74 +10,90 @@ using namespace Rcpp;
 Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP use_priorSEXP);
 RcppExport SEXP DESeq2_fitDisp(SEXP ySEXPSEXP, SEXP xSEXPSEXP, SEXP mu_hatSEXPSEXP, SEXP log_alphaSEXPSEXP, SEXP log_alpha_prior_meanSEXPSEXP, SEXP log_alpha_prior_sigmasqSEXPSEXP, SEXP min_log_alphaSEXPSEXP, SEXP kappa_0SEXPSEXP, SEXP tolSEXPSEXP, SEXP maxitSEXPSEXP, SEXP use_priorSEXPSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type xSEXP(xSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type mu_hatSEXP(mu_hatSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type log_alphaSEXP(log_alphaSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type log_alpha_prior_meanSEXP(log_alpha_prior_meanSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type log_alpha_prior_sigmasqSEXP(log_alpha_prior_sigmasqSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type min_log_alphaSEXP(min_log_alphaSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type kappa_0SEXP(kappa_0SEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type tolSEXP(tolSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type maxitSEXP(maxitSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type use_priorSEXP(use_priorSEXPSEXP);
-    __result = Rcpp::wrap(fitDisp(ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP, tolSEXP, maxitSEXP, use_priorSEXP));
-    return __result;
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type xSEXP(xSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type mu_hatSEXP(mu_hatSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type log_alphaSEXP(log_alphaSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type log_alpha_prior_meanSEXP(log_alpha_prior_meanSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type log_alpha_prior_sigmasqSEXP(log_alpha_prior_sigmasqSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type min_log_alphaSEXP(min_log_alphaSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type kappa_0SEXP(kappa_0SEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type tolSEXP(tolSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type maxitSEXP(maxitSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type use_priorSEXP(use_priorSEXPSEXP );
+        Rcpp::List __result = fitDisp(ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP, tolSEXP, maxitSEXP, use_priorSEXP);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
 END_RCPP
 }
 // fitBeta
 Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP);
 RcppExport SEXP DESeq2_fitBeta(SEXP ySEXPSEXP, SEXP xSEXPSEXP, SEXP nfSEXPSEXP, SEXP alpha_hatSEXPSEXP, SEXP contrastSEXPSEXP, SEXP beta_matSEXPSEXP, SEXP lambdaSEXPSEXP, SEXP tolSEXPSEXP, SEXP maxitSEXPSEXP, SEXP useQRSEXPSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type xSEXP(xSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type nfSEXP(nfSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type alpha_hatSEXP(alpha_hatSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type contrastSEXP(contrastSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type beta_matSEXP(beta_matSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type lambdaSEXP(lambdaSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type tolSEXP(tolSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type maxitSEXP(maxitSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type useQRSEXP(useQRSEXPSEXP);
-    __result = Rcpp::wrap(fitBeta(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP));
-    return __result;
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type xSEXP(xSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type nfSEXP(nfSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type alpha_hatSEXP(alpha_hatSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type contrastSEXP(contrastSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type beta_matSEXP(beta_matSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type lambdaSEXP(lambdaSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type tolSEXP(tolSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type maxitSEXP(maxitSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type useQRSEXP(useQRSEXPSEXP );
+        Rcpp::List __result = fitBeta(ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP, beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
 END_RCPP
 }
 // rlogGrid
 Rcpp::List rlogGrid(SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP interceptSEXP, SEXP bgridSEXP, SEXP betapriorvarSEXP);
 RcppExport SEXP DESeq2_rlogGrid(SEXP ySEXPSEXP, SEXP nfSEXPSEXP, SEXP betaSEXPSEXP, SEXP alphaSEXPSEXP, SEXP interceptSEXPSEXP, SEXP bgridSEXPSEXP, SEXP betapriorvarSEXPSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type nfSEXP(nfSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type betaSEXP(betaSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type alphaSEXP(alphaSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type interceptSEXP(interceptSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type bgridSEXP(bgridSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type betapriorvarSEXP(betapriorvarSEXPSEXP);
-    __result = Rcpp::wrap(rlogGrid(ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSEXP, betapriorvarSEXP));
-    return __result;
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type nfSEXP(nfSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type betaSEXP(betaSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type alphaSEXP(alphaSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type interceptSEXP(interceptSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type bgridSEXP(bgridSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type betapriorvarSEXP(betapriorvarSEXPSEXP );
+        Rcpp::List __result = rlogGrid(ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSEXP, betapriorvarSEXP);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
 END_RCPP
 }
 // fitDispGrid
 Rcpp::List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP use_priorSEXP);
 RcppExport SEXP DESeq2_fitDispGrid(SEXP ySEXPSEXP, SEXP xSEXPSEXP, SEXP mu_hatSEXPSEXP, SEXP disp_gridSEXPSEXP, SEXP log_alpha_prior_meanSEXPSEXP, SEXP log_alpha_prior_sigmasqSEXPSEXP, SEXP use_priorSEXPSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type xSEXP(xSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type mu_hatSEXP(mu_hatSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type disp_gridSEXP(disp_gridSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type log_alpha_prior_meanSEXP(log_alpha_prior_meanSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type log_alpha_prior_sigmasqSEXP(log_alpha_prior_sigmasqSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type use_priorSEXP(use_priorSEXPSEXP);
-    __result = Rcpp::wrap(fitDispGrid(ySEXP, xSEXP, mu_hatSEXP, disp_gridSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, use_priorSEXP));
-    return __result;
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type xSEXP(xSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type mu_hatSEXP(mu_hatSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type disp_gridSEXP(disp_gridSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type log_alpha_prior_meanSEXP(log_alpha_prior_meanSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type log_alpha_prior_sigmasqSEXP(log_alpha_prior_sigmasqSEXPSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type use_priorSEXP(use_priorSEXPSEXP );
+        Rcpp::List __result = fitDispGrid(ySEXP, xSEXP, mu_hatSEXP, disp_gridSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, use_priorSEXP);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
 END_RCPP
 }
