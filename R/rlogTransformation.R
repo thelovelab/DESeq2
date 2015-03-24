@@ -438,6 +438,6 @@ which is sometimes not compatible with datasets where many genes have many zero 
 despite a few very large counts.
 In this data, for ",round(total,3)*100,"% of genes with a sum of normalized counts above ",t1,", it was the case 
 that a single sample's normalized count made up more than ",p*100,"% of the sum over all samples.
-the threshold for this warning is ",t2*100,"% of genes. See sparsityPlot(dds) for a visualization of this.
+the threshold for this warning is ",t2*100,"% of genes. See plotSparsity(dds) for a visualization of this.
 We recommend instead using the varianceStabilizingTransformation or shifted log (see vignette).")
 }

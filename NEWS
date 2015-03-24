@@ -1,12 +1,12 @@
-CHANGES IN VERSION 1.7.44
+CHANGES IN VERSION 1.7.45
 -------------------------
 
     o Added a test in rlog for sparse data sets with many large counts,
       which will give a warning and suggestion for alternate transformations.
 
-    o Added sparsityPlot() which will help diagnose issues where datasets
-      do not resemble negative binomial (many genes with all zeros
-      except a minority of very large counts).
+    o Added plotSparsity() which will help diagnose issues where datasets
+      do not resemble negative binomial: many genes with all zeros
+      except a minority of very large counts.
 
 CHANGES IN VERSION 1.7.43
 -------------------------

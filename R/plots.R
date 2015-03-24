@@ -296,8 +296,11 @@ plotCounts <- function(dds, gene, intgroup="condition",
 
 #' Sparsity plot
 #'
-#' Simple plot of the concentration of counts in a single sample over the
-#' sum of counts per gene.
+#' A simple plot of the concentration of counts in a single sample over the
+#' sum of counts per gene. Not technically the same as "sparsity", but this
+#' plot is useful diagnostic for datasets which might not fit a negative
+#' binomial assumption: genes with many zeros and individual very large
+#' counts are difficult to model with the negative binomial distribution.
 #'
 #' @param x a matrix or DESeqDataSet
 #' @param normalized whether to normalize the counts from a DESeqDataSEt
@@ -307,10 +310,10 @@ plotCounts <- function(dds, gene, intgroup="condition",
 #'
 #' dds <- makeExampleDESeqDataSet(n=1000,m=4,dispMeanRel=function(x) .5)
 #' dds <- estimateSizeFactors(dds)
-#' sparsityPlot(dds)
+#' plotSparsity(dds)
 #' 
 #' @export
-sparsityPlot <- function(x, normalized=TRUE, ...) {
+plotSparsity <- function(x, normalized=TRUE, ...) {
   if (is(x, "DESeqDataSet")) {
     x <- counts(x, normalized=normalized)
   }
