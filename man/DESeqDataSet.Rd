@@ -41,7 +41,11 @@ Rows of colData correspond to columns of countData}
 
 \item{tidy}{for matrix input: whether the first column of countData is the rownames for the count matrix}
 
-\item{...}{arguments provided to \code{SummarizedExperiment} including rowData and exptData}
+\item{...}{arguments provided to \code{SummarizedExperiment} including rowRanges and exptData. Note that
+for Bioconductor 3.1, rowRanges must be a GRanges or GRangesList, with potential metadata columns
+as a DataFrame accessed and stored with \code{mcols}. If a user wants to store metadata columns
+about the rows of the countData, but does not have GRanges or GRangesList information,
+first construct the DESeqDataSet without rowRanges and then add the DataFrame with \code{mcols(dds)}.}
 
 \item{sampleTable}{for htseq-count: a \code{data.frame} with three or more columns. Each row
 describes one sample. The first column is the sample name, the second column

@@ -380,8 +380,8 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   countData <- matrix(rnbinom(m*n, mu=mu, size=1/dispersion), ncol=m)
   mode(countData) <- "integer"
   colnames(countData) <- paste("sample",1:m,sep="")
-  rowData <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
-  names(rowData) <- paste0("gene",1:n)
+  rowRanges <- GRanges("1",IRanges(start=(1:n - 1) * 100 + 1,width=100))
+  names(rowRanges) <- paste0("gene",1:n)
 
   # set environment to global environment,
   # to avoid the formula carrying with it all the objects
@@ -395,7 +395,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   object <- DESeqDataSetFromMatrix(countData = countData,
                                    colData = colData,
                                    design = design,
-                                   rowData = rowData)
+                                   rowRanges = rowRanges)
   trueVals <- DataFrame(trueIntercept = beta[,1],
                         trueBeta = beta[,2],
                         trueDisp = dispersion)
@@ -2771,3 +2771,4 @@ designAndArgChecker <- function(object, betaPrior) {
   factor(paste(...)) and use a design of ~group, or set betaPrior=FALSE")
   }
 }
+

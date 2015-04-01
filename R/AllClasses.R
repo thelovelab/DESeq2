@@ -77,7 +77,11 @@ setValidity( "DESeqDataSet", function( object ) {
 #' @param ignoreRank use of this argument is reserved for DEXSeq developers only.
 #' Users will immediately encounter an error upon trying to estimate dispersion
 #' using a design with a model matrix which is not full rank.
-#' @param ... arguments provided to \code{SummarizedExperiment} including rowData and exptData
+#' @param ... arguments provided to \code{SummarizedExperiment} including rowRanges and exptData. Note that
+#' for Bioconductor 3.1, rowRanges must be a GRanges or GRangesList, with potential metadata columns
+#' as a DataFrame accessed and stored with \code{mcols}. If a user wants to store metadata columns
+#' about the rows of the countData, but does not have GRanges or GRangesList information,
+#' first construct the DESeqDataSet without rowRanges and then add the DataFrame with \code{mcols(dds)}.
 #' 
 #' @return A DESeqDataSet object.
 #' 
@@ -216,7 +220,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   }
   dds <- new("DESeqDataSet", se, design = design)
                                  
-  # now we know we have at least an empty GRanges or GRangesList for rowData
+  # now we know we have at least an empty GRanges or GRangesList for rowRanges
   # so we can create a metadata column 'type' for the mcols
   # and we label any incoming columns as 'input'
 
