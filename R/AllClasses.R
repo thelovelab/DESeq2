@@ -7,7 +7,7 @@ setClass("DESeqDataSet",
            dispersionFunction = "function"))
 
 setValidity( "DESeqDataSet", function( object ) {
-  if (! ("counts" %in% names(assays(object))))
+  if (! ("counts" %in% assayNames(object)) )
     return( "the assays slot must contain a matrix named 'counts'" )
   if ( !is.numeric( counts(object) ) )
     return( "the count data is not numeric" )
@@ -100,9 +100,9 @@ setValidity( "DESeqDataSet", function( object ) {
 #' @rdname DESeqDataSet
 #' @export
 DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
-  if (is.null(names(assays(se))) || names(assays(se))[1] != "counts") {
+  if (is.null(assayNames(se)) || assayNames(se)[1] != "counts") {
     message("renaming the first element in assays to 'counts'")
-    names(assays(se, withDimnames=FALSE))[1] <- "counts"
+    assayNames(se)[1] <- "counts"
   }
   # before validity check, try to convert assay to integer mode
   if (any(is.na(assay(se))))

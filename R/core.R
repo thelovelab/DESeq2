@@ -1698,7 +1698,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
 #' 
 #' @export
 replaceOutliers <- function(object, trim=.2, cooksCutoff, minReplicates=7, whichSamples) {
-  if (is.null(attr(object,"modelMatrix")) | !("cooks" %in% names(assays(object)))) {
+  if (is.null(attr(object,"modelMatrix")) | !("cooks" %in% assayNames(object))) {
     stop("first run DESeq, nbinomWaldTest, or nbinomLRT to identify outliers")
   }
   if (minReplicates < 3) {
@@ -2349,7 +2349,7 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   modelMatrixType <- attr(object, "modelMatrixType")
   
-  if (missing(betaPriorVar) | !("H" %in% names(assays(objectNZ)))) {
+  if (missing(betaPriorVar) | !("H" %in% assayNames(objectNZ))) {
     # first, fit the negative binomial GLM without a prior,
     # used to construct the prior variances
     # and for the hat matrix diagonals for calculating Cook's distance

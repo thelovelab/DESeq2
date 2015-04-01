@@ -134,7 +134,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' @export
 fpkm <- function(object, robust=TRUE) {
   fpm <- fpm(object, robust=robust)
-  if ("avgTxLength" %in% names(assays(object))) {
+  if ("avgTxLength" %in% assayNames(object)) {
     return(1e3 * fpm / assays(object)[["avgTxLength"]])
   }
   if (is.null(mcols(object)$basepairs)) {

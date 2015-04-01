@@ -1,6 +1,6 @@
 counts.DESeqDataSet <- function(object, normalized=FALSE, replaced=FALSE) {
   if (replaced) {
-    if ("replaceCounts" %in% names(assays(object))) {
+    if ("replaceCounts" %in% assayNames(object)) {
       cnts <- assays(object)[["replaceCounts"]]
     } else {
       warning("there are no assays named 'replaceCounts', using original.
@@ -272,7 +272,7 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
                  }) 
 
 normalizationFactors.DESeqDataSet <- function(object) {
-  if (!"normalizationFactors" %in% names(assays(object))) return(NULL)
+  if (!"normalizationFactors" %in% assayNames(object)) return(NULL)
   assays(object)[["normalizationFactors"]]
 }
 

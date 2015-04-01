@@ -578,7 +578,7 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   lambda = 1/(log(2)^2 * attr(object,"betaPriorVar"))
 
   # check if DESeq() replaced outliers
-  countsMatrix <- if ("replaceCounts" %in% names(assays(object))) {
+  countsMatrix <- if ("replaceCounts" %in% assayNames(object)) {
     assays(objectNZ)[["replaceCounts"]]
   } else {
     counts(objectNZ)
