@@ -7,7 +7,7 @@
 \title{Estimate the size factors for a DESeqDataSet}
 \usage{
 \S4method{estimateSizeFactors}{DESeqDataSet}(object, type = c("ratio",
-  "iterate"), locfunc = median, geoMeans, controlGenes, normMatrix)
+  "iterate"), locfunc = stats::median, geoMeans, controlGenes, normMatrix)
 }
 \arguments{
 \item{object}{a DESeqDataSet}

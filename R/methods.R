@@ -306,19 +306,18 @@ normalizationFactors.DESeqDataSet <- function(object) {
 #' @param ... additional arguments
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(m=4)
-#' 
+#' dds <- makeExampleDESeqDataSet(n=100, m=4)
+#'
 #' normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
-#'                       ncol=ncol(dds),nrow=nrow(dds))
+#'                       ncol=ncol(dds),nrow=nrow(dds),
+#'                       dimnames=list(1:nrow(dds),1:ncol(dds)))
 #'
 #' # the normalization factors matrix should not have 0's in it
 #' # it should have geometric mean near 1 for each row
-#' 
 #' normFactors <- normFactors / exp(rowMeans(log(normFactors)))
 #' normalizationFactors(dds) <- normFactors
 #'
-#' dds <- estimateDispersions(dds)
-#' dds <- nbinomWaldTest(dds)
+#' dds <- DESeq(dds)
 #'
 #' @export
 setMethod("normalizationFactors", signature(object="DESeqDataSet"),
@@ -332,13 +331,15 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
                    if (any(value <= 0)) {
                      stop("normalization factors must be positive")
                    }
+                   # enforce same dimnames
+                   dimnames(value) <- dimnames(object)
                    assays(object)[["normalizationFactors"]] <- value
                    validObject( object )
                    object
                  })
 
 estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","iterate"),
-                                             locfunc=median, geoMeans, controlGenes, normMatrix) {
+                                             locfunc=stats::median, geoMeans, controlGenes, normMatrix) {
   type <- match.arg(type, c("ratio","iterate"))
   object <- sanitizeColData(object)
   if (type == "iterate") {

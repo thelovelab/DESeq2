@@ -51,6 +51,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
   mode(countdata) <- "integer"
   colsToKeep <- sapply(sp, `[`, 1)
   collapsed <- object[,colsToKeep]
+  dimnames(countdata) <- dimnames(collapsed)
   assay(collapsed) <- countdata
   if (!missing(run)) {
     stopifnot(length(groupby) == length(run))
@@ -353,6 +354,7 @@ normalizeGeneLength <- function(object, files, level=c("tx","gene"),
   message("adding normalization factors for gene length")
   object <- estimateSizeFactors(object, normMatrix=data)
   message("users can continue with DESeq()")
+  dimnames(data) <- dimnames(object)
   assays(object)[["avgTxLength"]] <- data
   object
 }

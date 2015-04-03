@@ -1,3 +1,5 @@
+if (FALSE) {
+
 n <- 10
 files <- c("sample1","sample2","sample3","sample4")
 
@@ -28,3 +30,4 @@ dds <- normalizeGeneLength(dds, files=files, level="gene",
                            dropGenes=TRUE, importer=importer, envir=envir)
 
 
+}

@@ -439,7 +439,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
 #' 
 #' @export
-estimateSizeFactorsForMatrix <- function( counts, locfunc = median, geoMeans, controlGenes )
+estimateSizeFactorsForMatrix <- function( counts, locfunc = stats::median, geoMeans, controlGenes )
 {
   if (missing(geoMeans)) {
     loggeomeans <- rowMeans(log(counts))
@@ -1112,6 +1112,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   }
 
   # store mu in case the user did not call estimateDispersionsGeneEst
+  dimnames(fit$mu) <- NULL
   assays(objectNZ)[["mu"]] <- fit$mu
   assays(object)[["mu"]] <- buildMatrixWithNARows(fit$mu, mcols(object)$allZero)
 
@@ -1563,6 +1564,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
   attr(object,"test") <- "LRT"
 
   # store mu in case the user did not call estimateDispersionsGeneEst
+  dimnames(fullModel$mu) <- NULL
   assays(objectNZ)[["mu"]] <- fullModel$mu
   assays(object)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
 

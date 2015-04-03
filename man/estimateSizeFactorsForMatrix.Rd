@@ -4,7 +4,8 @@
 \alias{estimateSizeFactorsForMatrix}
 \title{Low-level function to estimate size factors with robust regression.}
 \usage{
-estimateSizeFactorsForMatrix(counts, locfunc = median, geoMeans, controlGenes)
+estimateSizeFactorsForMatrix(counts, locfunc = stats::median, geoMeans,
+  controlGenes)
 }
 \arguments{
 \item{counts}{a matrix or data frame of counts, i.e., non-negative integer
