@@ -218,56 +218,64 @@ dds <- DESeq(dds)
 res <- results(dds)
 res[ order(res$padj), ]
 
-## Example 2: two conditions, two groups, with interaction term
+## Example 2: two conditions, two sets, with interaction term
 
 dds <- makeExampleDESeqDataSet(n=100,m=12)
-dds$group <- factor(rep(rep(c("X","Y"),each=3),2))
-design(dds) <- ~ group + condition + group:condition
+dds$set <- factor(rep(rep(c("X","Y"),each=3),2))
+design(dds) <- ~ set + condition + set:condition
 dds <- DESeq(dds)
 resultsNames(dds)
-# the main condition effect (for group X)
+# the main condition effect (for set X)
 results(dds, contrast=c("condition","B","A"))
-# the main group effect (for condition A)
-results(dds, contrast=c("group","Y","X"))
-# the interaction term
-results(dds, name="groupY.conditionB")
-# the condition effect in group Y
-results(dds, contrast=c(0,0,1,1))
-# or, equivalently using list to add these two effects
-results(dds, contrast=list(c("condition_B_vs_A","groupY.conditionB")))
+# the main set effect (for condition A)
+results(dds, contrast=c("set","Y","X"))
+# the interaction term (is the condition effect *different* across set?)
+results(dds, name="setY.conditionB")
+# the condition effect in set Y (add the interaction to the main effect)
+results(dds, contrast=list(c("condition_B_vs_A","setY.conditionB")))
 
-## Example 3: two conditions, three groups, with interaction terms
+## Example 3: two conditions, three sets
+
+# using interaction terms
 
 dds <- makeExampleDESeqDataSet(n=100,m=18)
-dds$group <- factor(rep(rep(c("X","Y","Z"),each=3),2))
-design(dds) <- ~ group + condition + group:condition
+dds$set <- factor(rep(rep(c("X","Y","Z"),each=3),2))
+design(dds) <- ~ set + condition + set:condition
 dds <- DESeq(dds)
 resultsNames(dds)
 
-# the main effect for condition (for all groups)
+# the main effect for condition (for all sets)
 results(dds, contrast=c("condition","B","A"))
 # which is equivalent to
 results(dds, contrast=list("conditionB","conditionA"))
 
-# the interaction term for condition in group Z.
-# if this term is non-zero, then group Z has a
-# different condition effect than the main effect for condition
-results(dds, contrast=list("groupZ.conditionB","groupZ.conditionA"))
+# the interaction term for condition in set Z
+# (does set Z have *different* condition effect than the main effect?)
+results(dds, contrast=list("setZ.conditionB","setZ.conditionA"))
 
-# the condition effect in group Z.
-# this is the sum of the main effect for condition
-# and the interaction effect for condition in group Z
+# the condition effect in set Z
+# (the interaction effect added to the main effect)
 results(dds, contrast=list(
-               c("conditionB","groupZ.conditionB"),
-               c("conditionA","groupZ.conditionA")))
+        c("conditionB","setZ.conditionB"),
+        c("conditionA","setZ.conditionA")))
 
-# the group Z effect compared to the average of group X and Y.
+# the set Z effect compared to the average of set X and Y
 # here we use 'listValues' to multiply the effect sizes for
-# group X and group Y by -1/2
-results(dds, contrast=list("groupZ",c("groupX","groupY")), listValues=c(1,-1/2))
+# set X and set Y by -1/2
+results(dds, contrast=list("setZ",c("setX","setY")), listValues=c(1,-1/2))
 
-# the individual effect for group Z, compared to the intercept
-results(dds, name="groupZ")
+# using a grouping variable.
+
+# this is a useful construction when users just want to compare
+# specific groups which are combinations of variables
+
+dds$group <- factor(paste0(dds$set, dds$condition))
+design(dds) <- ~ group
+dds <- DESeq(dds)
+resultsNames(dds)
+
+# the condition B vs A effect for set Z
+results(dds, contrast=c("group","ZB","ZA"))
 }
 \references{
 Richard Bourgon, Robert Gentleman, Wolfgang Huber: Independent

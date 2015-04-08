@@ -32,7 +32,8 @@ This plot helps to check for batch effects and the like.
 \note{
 See the vignette for an example of variance stabilization and PCA plots.
 Note that the source code of \code{plotPCA} is very simple and commented.
-It can be found at \code{DESeq2:::plotPCA.DESeqTransform}.
+It can be found with comments by typing \code{DESeq2:::plotPCA.DESeqTransform}.
+(The version at \code{getMethod("plotPCA","DESeqTransform")} will not show comments.)
 Users should find it easy to customize this function.
 }
 \examples{
