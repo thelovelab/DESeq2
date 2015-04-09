@@ -978,17 +978,37 @@ and a prior is used for the log2 fold changes, then only the interaction terms
 are moderated, and the main effect terms are not moderated. 
 See \Rcode{?nbinomWaldTest} for more details.
 
-It is important to remember that interactions are \textit{additional terms} 
-(addition in the log scale), beyond the \textit{main effect}
-terms. If the \textit{main effect} of a condition on counts is a log2
-fold change of 2, and the \textit{interaction term} for the condition
-in a particular group Y is a log2 fold change of 0.5, then the log2 fold change for
-the condition for group Y is $2 + 0.5 = 2.5$. Testing if the
-interation term is equal to zero tests if the condition effect in group Y is
-the same for the other group(s). Testing if the sum of the main effect
-and the interaction term is equal to zero tests if there is a
-condition effect in group Y. This is shown in more detail in the
-examples section of the help page for \Rfunction{results}.
+Note that if the comparisons of interest are, for example, the effect
+of a condition in different sets of samples, many users find that 
+a simpler design which likewise allows for a set-specific condition 
+effect is the following: first combine the factors of interest into
+a single factor with all combinations of the original factors, and then
+use a design with just this factor. For example, if we have two
+factors \Robject{set} and \Robject{condition}, and we want to test 
+for the set-specific condition effects in all sets:
+
+<<combineFactors, eval=FALSE>>=
+dds$group <- factor(paste0(dds$set, dds$condition))
+design(dds) <- ~ group
+dds <- DESeq(dds)
+resultsNames(dds)
+results(dds, contrast=c("group", "1B", "1A"))
+@
+
+If one wants to test whether the condition effect is \textit{different}
+across sets, then a design with interactions makes these comparisons
+easier to test. It is important to remember that interactions are
+\textit{additional terms} (addition in the log scale), beyond the
+\textit{main effect} terms. If the \textit{main effect} of a condition
+on counts is a log2 fold change of 2, and the 
+\textit{interaction term} for the condition in a particular set Y is a log2 fold change
+of 0.5, then the log2 fold change for the condition for set Y is $2 +
+0.5 = 2.5$. Testing the interation term alone tests if the condition
+effect in set Y is \textit{different} than in the other
+set(s). Testing the \textit{sum} of the main effect and the
+interaction term tests if there is a condition effect in set Y.  This
+is shown in more detail in the examples section of the help page for
+\Rfunction{results}.
 
 Designs with factors with only two levels and an interaction term present a
 special case to the normal \deseqtwo{} methods, because we change the
@@ -1007,13 +1027,13 @@ symmetric shrinkage regardless of the reference level).
 This does create a difference in the interpretation of the contrasts
 extracted with \Rfunction{results} for designs with interactions: 
 for expanded design matrices, the main effect is an average effect
-across all groups; while for standard design matrices, the main effect is
+across all sets; while for standard design matrices, the main effect is
 only for the reference level of the other factors. We explain in more detail below:
 
-Suppose we have an interaction design of \Rcode{$\sim$ group + condition + group:condition}.
+Suppose we have an interaction design of \Rcode{$\sim$ set + condition + set:condition}.
 
 \textbf{Expanded model matrices} The following code produces a comparison of B over A 
-\textit{across all groups}.
+\textit{across all sets}.
 
 <<expInter, eval=FALSE>>=
 results(dds, contrast=c("condition","B","A"))
@@ -1021,56 +1041,56 @@ results(dds, contrast=c("condition","B","A"))
 
 \textbf{Standard model matrices} The above results
 table now produces a comparison of B over A only for the \textit{reference level} of
-\Robject{group}. Let us suppose the reference level of group is X, and the
-second group is Y. So for standard model matrices, the above results
-table gives the condition effect for group X.
+\Robject{set}. Let us suppose the reference level of set is X, and the
+second set is Y. So for standard model matrices, the above results
+table gives the condition effect for set X.
 
 Below we explain how to interpret the interaction terms for both kinds
 of model matrix.
 
 \textbf{Expanded model matrices} The following code would give the 
-\textit{interaction effect} for condition in group Y, which tests if
-the condition effect is different in group Y than in the other groups.
+\textit{interaction effect} for condition in set Y, which tests if
+the condition effect is different in set Y than in the other sets.
 
 <<expInter2, eval=FALSE>>=
-results(dds, contrast=list("groupY.conditionB","groupY.conditionA"))
+results(dds, contrast=list("setY.conditionB","setY.conditionA"))
 @ 
 
-And the following would give the condition effect in group Y (the main
+And the following would give the condition effect in set Y (the main
 effect and the interaction terms added together):
 
 <<expInter3, eval=FALSE>>=
-results(dds, contrast=list(c("conditionB","groupY.conditionB"),
-                           c("conditionA","groupY.conditionA")))
+results(dds, contrast=list(c("conditionB","setY.conditionB"),
+                           c("conditionA","setY.conditionA")))
 @ 
 
 \textbf{Standard model matrices} Here, we have only a single
-interaction term, \Robject{groupY.conditionB}.
+interaction term, \Robject{setY.conditionB}.
 This term represents the additional effect of condition for
-group Y compared to the main effect of condition in group X. By symmetry, it also
-represents the additional effect of group in condition B
-compared to the main effect of group in condition A. Testing if the
-condition effect is different between the two groups is accomplished
+set Y compared to the main effect of condition in set X. By symmetry, it also
+represents the additional effect of set in condition B
+compared to the main effect of set in condition A. Testing if the
+condition effect is different between the two sets is accomplished
 by extracting only this interaction term:
 
 <<expInter4, eval=FALSE>>=
-results(dds, name="groupY.conditionB")
+results(dds, name="setY.conditionB")
 @
 
-The effect of condition in group Y is the above interaction term added to
-the main effect of condition B vs A in group X:
+The effect of condition in set Y is the above interaction term added to
+the main effect of condition B vs A in set X:
 
 <<expInter5, eval=FALSE>>=
-results(dds, contrast=list(c("conditionB","groupY.conditionB")))
+results(dds, contrast=list(c("conditionB","setY.conditionB")))
 @
 
 For standard model matrices, to obtain the ``average condition
-effect'' for both groups, we can use a numeric contrast,
+effect'' for both sets, we can use a numeric contrast,
 assigning a 1 to the main effect \Robject{conditionB} and a 0.5 to the
-interaction effect \Robject{groupY.conditionB}, as they appear in
+interaction effect \Robject{setY.conditionB}, as they appear in
 \Robject{resultsNames(dds)}. This can be understood as taking us
-halfway from the condition effect in group X to the condition effect
-in group Y:
+halfway from the condition effect in set X to the condition effect
+in set Y:
 
 <<expInter6, eval=FALSE>>=
 resultsNames(dds)
