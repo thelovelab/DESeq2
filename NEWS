@@ -1,12 +1,20 @@
+CHANGES IN VERSION 1.8.0
+------------------------
+
+    o Added support for user-supplied model matrices to DESeq(),
+      estimateDispersions() and nbinomWaldTest(). This helps
+      when the model matrix needs to be edited by the user.
+
 CHANGES IN VERSION 1.7.45
 -------------------------
 
-    o Added a test in rlog for sparse data sets with many large counts,
-      which will give a warning and suggestion for alternate transformations.
+    o Added a test in rlog for sparse data, mostly zero and some 
+      very large counts, which will give a warning and suggestion 
+      for alternate transformations.
 
-    o Added plotSparsity() which will help diagnose issues where datasets
-      do not resemble negative binomial: many genes with all zeros
-      except a minority of very large counts.
+    o Added plotSparsity() which will help diagnose issues for using rlog:
+      data which do not resemble negative binomial due to many genes 
+      with mostly zeros and a few very large counts.
 
 CHANGES IN VERSION 1.7.43
 -------------------------
