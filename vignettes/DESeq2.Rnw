@@ -356,12 +356,16 @@ We can summarize some basic tallies using the
 summary(res)
 @ 
 
-The \Rfunction{results} function contains a number of arguments to 
-customize the results table which is generated.
-Note that the \Rfunction{results} function automatically performs independent filtering 
-based on the mean of counts for each gene, optimizing the number of genes
-which will have an adjusted $p$ value below a given threshold. 
-This will be discussed further in Section~\ref{sec:autoFilt}.
+The \Rfunction{results} function contains a number of arguments to
+customize the results table which is generated.  Note that the
+\Rfunction{results} function automatically performs independent
+filtering based on the mean of normalized counts for each gene,
+optimizing the number of genes which will have an adjusted $p$ value
+below a given FDR cutoff, \Robject{alpha}, By default the argument
+\Robject{alpha} is set to $0.1$.  If the adjusted $p$ value cutoff
+will be a value other than $0.1$, \Robject{alpha} should be set to
+that value.  Independent filtering will be discussed further in
+Section~\ref{sec:autoFilt}.
 
 If a multi-factor design is used, or if the variable in the design
 formula has more than two levels, the \Robject{contrast} argument of

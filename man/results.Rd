@@ -89,7 +89,8 @@ groups with only 2 samples.}
 applied automatically}
 
 \item{alpha}{the significance cutoff used for optimizing the independent
-filtering}
+filtering (by default 0.1). If the adjusted p-value cutoff (FDR) will be a
+value other than 0.1, \code{alpha} should be set to that value.}
 
 \item{filter}{the vector of filter statistics over which the independent
 filtering will be optimized. By default the mean of normalized counts is used.}

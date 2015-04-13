@@ -131,7 +131,8 @@
 #' @param independentFiltering logical, whether independent filtering should be
 #' applied automatically
 #' @param alpha the significance cutoff used for optimizing the independent
-#' filtering
+#' filtering (by default 0.1). If the adjusted p-value cutoff (FDR) will be a
+#' value other than 0.1, \code{alpha} should be set to that value.
 #' @param filter the vector of filter statistics over which the independent
 #' filtering will be optimized. By default the mean of normalized counts is used.
 #' @param theta the quantiles at which to assess the number of rejections
