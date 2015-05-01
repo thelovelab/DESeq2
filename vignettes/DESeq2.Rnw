@@ -2081,7 +2081,8 @@ Stephen Turner,
 Ryan C Thompson,
 Tyr Wiesner-Hanks,
 Konrad Rudolph,
-David Robinson.
+David Robinson,
+Mingxiang Teng.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=
