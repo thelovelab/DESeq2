@@ -29,7 +29,9 @@ setValidity( "DESeqDataSet", function( object ) {
   }
   designFactors <- designVars[designVarsClass == "factor"]
   if (any(sapply(designFactors,function(v) any(table(colData(object)[[v]]) == 0)))) {
-    return("factors in design formula must have samples for each level.
+    return("
+
+factors in design formula must have samples for each level.
   this error can arise when subsetting a DESeqDataSet, in which
   all the samples for one or more levels of a factor in the design were removed.
   if this was intentional, use droplevels() to remove these levels, e.g.:
@@ -37,6 +39,14 @@ setValidity( "DESeqDataSet", function( object ) {
   dds$condition <- droplevels(dds$condition)
 ")
   }
+  if (any(sapply(designFactors,function(v) any(duplicated(make.names(levels(colData(object)[[v]]))))))) {
+    return("
+
+factors in the design formula have non-unique level names after make.names() is applied.
+make.names() is used during the analysis to turn factor levels into safe column names.
+please only use letters and numbers for levels of factors in the design")
+  }
+  # else...
   TRUE
 } )
 
