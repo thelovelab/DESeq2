@@ -90,7 +90,7 @@ options(digits=3, width=80, prompt=" ", continue=" ")
 \subsection{Quick start}
 
 Here we show the most basic steps for a differential expression analysis.
-These steps imply you have a \Rclass{SummarizedExperiment} object
+These steps imply you have a \Rclass{RangedSummarizedExperiment} object
 \Robject{se} with columns \Robject{batch} and \Robject{condition} in \Robject{colData(se)},
 and that \Robject{condition} has levels ``untreat'' and ``treat''.
 
@@ -124,18 +124,18 @@ counts of covered base pairs -- this will only lead to nonsensical results.
 \subsubsection{\Rclass{SummarizedExperiment} input} \label{sec:sumExpInput}
 
 The class used by the \deseqtwo{} package to store the read counts 
-is \Rclass{DESeqDataSet} which extends the \Rclass{SummarizedExperiment} 
-class of the \Biocpkg{GenomicRanges} package. 
+is \Rclass{DESeqDataSet} which extends the \Rclass{RangedSummarizedExperiment} 
+class of the \Biocpkg{SummarizedExperiment} package. 
 This facilitates preparation steps and also downstream exploration of results. 
 For counting aligned reads in genes, the \Rfunction{summarizeOverlaps} function of
 \Biocpkg{GenomicAlignments} with \Robject{mode="Union"} is
-encouraged, resulting in a \Rclass{SummarizedExperiment} object.
+encouraged, resulting in a \Rclass{RangedSummarizedExperiment} object.
 
-An example of the steps to produce a \Rclass{SummarizedExperiment} can
+An example of the steps to produce a \Rclass{RangedSummarizedExperiment} can
 be found in an RNA-Seq workflow on the Bioconductor 
 website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}
 and in the vignette for the data package \Biocexptpkg{airway}.
-Here we load the \Rclass{SummarizedExperiment} from that package in
+Here we load the \Rclass{RangedSummarizedExperiment} from that package in
 order to build a \Rclass{DESeqDataSet}.
 
 <<loadSumExp,cache=TRUE>>=
@@ -154,7 +154,7 @@ however then all differential analysis steps should be repeated,
 as the design formula is used to estimate the dispersions and 
 to estimate the log2 fold changes of the model. 
 The constructor function below shows the generation of a
-\Rclass{DESeqDataSet} from a \Rclass{SummarizedExperiment} \Robject{se}. 
+\Rclass{DESeqDataSet} from a \Rclass{RangedSummarizedExperiment} \Robject{se}. 
 
 \emph{Note}: In order to benefit from the default settings of the
 package, you should put the variable of interest at the end of the
@@ -681,7 +681,7 @@ by the information about the samples.
 \subsubsection{Extracting transformed values}
 
 The two functions return an object of class \Rclass{DESeqTransform}
-which is a subclass of \Rclass{SummarizedExperiment}. 
+which is a subclass of \Rclass{RangedSummarizedExperiment}. 
 The \Rfunction{assay} function is used to extract the matrix of normalized values:
 
 <<rlogAndVST>>=
@@ -1658,7 +1658,7 @@ The main changes in the package \deseqtwo{}, compared to the (older)
 version \Biocpkg{DESeq}, are as follows:
 
 \begin{itemize}
-\item \Rclass{SummarizedExperiment} is used as the superclass for storage of input data,
+\item \Rclass{RangedSummarizedExperiment} is used as the superclass for storage of input data,
   intermediate calculations and results.
 \item Maximum \textit{a posteriori} estimation of GLM coefficients
   incorporating a zero-centered

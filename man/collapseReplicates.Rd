@@ -2,12 +2,12 @@
 % Please edit documentation in R/helper.R
 \name{collapseReplicates}
 \alias{collapseReplicates}
-\title{Collapse technical replicates in a SummarizedExperiment or DESeqDataSet}
+\title{Collapse technical replicates in a RangedSummarizedExperiment or DESeqDataSet}
 \usage{
 collapseReplicates(object, groupby, run, renameCols = TRUE)
 }
 \arguments{
-\item{object}{A \code{SummarizedExperiment} or \code{DESeqDataSet}}
+\item{object}{A \code{RangedSummarizedExperiment} or \code{DESeqDataSet}}
 
 \item{groupby}{a grouping factor, as long as the columns of object}
 

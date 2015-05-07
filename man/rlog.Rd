@@ -68,7 +68,7 @@ The transformation is useful when checking for outliers
 or as input for machine learning techniques
 such as clustering or linear discriminant analysis.
 \code{rlog} takes as input a \code{\link{DESeqDataSet}} and returns a
-\code{\link{SummarizedExperiment}} object.
+\code{\link{RangedSummarizedExperiment}} object.
 }
 \details{
 Note that neither rlog transformation nor the VST are used by the

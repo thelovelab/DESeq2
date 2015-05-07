@@ -9,14 +9,14 @@
 DESeqTransform(SummarizedExperiment)
 }
 \arguments{
-\item{SummarizedExperiment}{a SummarizedExperiment}
+\item{SummarizedExperiment}{a RangedSummarizedExperiment}
 }
 \value{
 a DESeqTransform object
 }
 \description{
 This constructor function would not typically be used by "end users".
-This simple class extends the SummarizedExperiment class of the GenomicRanges package.
+This simple class extends the RangedSummarizedExperiment class of the SummarizedExperiment package.
 It is used by \code{\link{rlog}} and
 \code{\link{varianceStabilizingTransformation}}
 to wrap up the results into a class for downstream methods,

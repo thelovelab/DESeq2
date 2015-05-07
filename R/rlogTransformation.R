@@ -11,7 +11,7 @@
 #' or as input for machine learning techniques
 #' such as clustering or linear discriminant analysis.
 #' \code{rlog} takes as input a \code{\link{DESeqDataSet}} and returns a
-#' \code{\link{SummarizedExperiment}} object.
+#' \code{\link{RangedSummarizedExperiment}} object.
 #'
 #' Note that neither rlog transformation nor the VST are used by the
 #' differential expression estimation in \code{\link{DESeq}}, which always
@@ -191,7 +191,7 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
            assays = rld,
            colData = colData(object),
            rowRanges = rowRanges(object),
-           exptData = exptData(object))
+           metadata = metadata(object))
   dt <- DESeqTransform(se)
   attr(dt,"betaPriorVar") <- attr(rld, "betaPriorVar")
   if (!is.null(attr(rld,"intercept"))) {

@@ -1,4 +1,4 @@
-#' Collapse technical replicates in a SummarizedExperiment or DESeqDataSet
+#' Collapse technical replicates in a RangedSummarizedExperiment or DESeqDataSet
 #'
 #' Collapses the columns in \code{object} by summing within levels
 #' of a grouping factor \code{groupby}. The purpose of this function
@@ -9,7 +9,7 @@
 #' Note: this function is written very simply and
 #' can be easily altered to produce other behavior by examining the source code.
 #'
-#' @param object A \code{SummarizedExperiment} or \code{DESeqDataSet}
+#' @param object A \code{RangedSummarizedExperiment} or \code{DESeqDataSet}
 #' @param groupby a grouping factor, as long as the columns of object
 #' @param run optional, the names of each unique column in object. if provided,
 #' a new column \code{runsCollapsed} will be added to the \code{colData}

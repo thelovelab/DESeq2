@@ -151,7 +151,7 @@ varianceStabilizingTransformation <- function (object, blind=TRUE, fitType="para
     assays = vsd,
     colData = colData(object),
     rowRanges = rowRanges(object),
-    exptData = exptData(object))
+    metadata = metadata(object))
   DESeqTransform(se)
 }
 
