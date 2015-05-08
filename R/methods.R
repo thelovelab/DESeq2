@@ -1,4 +1,9 @@
 counts.DESeqDataSet <- function(object, normalized=FALSE, replaced=FALSE) {
+  # Temporary hack for backward compatibility with "old" DESeqDataSet
+  # objects. Remove once all serialized DESeqDataSet objects around have
+  # been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
   if (replaced) {
     if ("replaceCounts" %in% assayNames(object)) {
       cnts <- assays(object)[["replaceCounts"]]
@@ -94,7 +99,12 @@ setMethod("design", signature(object="DESeqDataSet"), design.DESeqDataSet)
 #' @rdname design
 #' @exportMethod "design<-"
 setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"),
-                 function( object, value ) {  
+                 function( object, value ) {
+                   # Temporary hack for backward compatibility with "old"
+                   # DESeqDataSet objects. Remove once all serialized
+                   # DESeqDataSet objects around have been updated.
+                   if (!.hasSlot(object, "rowRanges"))
+                       object <- updateObject(object)
                    object@design <- value
                    validObject(object)
                    object
@@ -141,7 +151,11 @@ setMethod("dispersionFunction", signature(object="DESeqDataSet"),
 setReplaceMethod("dispersionFunction",
                  signature(object="DESeqDataSet", value="function"),
                  function(object, value, estimateVar=TRUE) {
-
+                   # Temporary hack for backward compatibility with "old"
+                   # DESeqDataSet objects. Remove once all serialized
+                   # DESeqDataSet objects around have been updated.
+                   if (!.hasSlot(object, "rowRanges"))
+                     object <- updateObject(object)
                    if (estimateVar) {
                      if (is.null(mcols(object)$baseMean) | is.null(mcols(object)$allZero)) {
                        object <- getBaseMeansAndVariances(object)
@@ -260,6 +274,11 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
                    if (any(value <= 0)) {
                      stop("size factors must be positive")
                    }
+                   # Temporary hack for backward compatibility with "old"
+                   # DESeqDataSet objects. Remove once all serialized
+                   # DESeqDataSet objects around have been updated.
+                   if (!.hasSlot(object, "rowRanges"))
+                     object <- updateObject(object)
                    # have to make sure to remove sizeFactor which might be
                    # coming from a previous CountDataSet
                    object$sizeFactor <- value
@@ -272,6 +291,11 @@ setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"
                  }) 
 
 normalizationFactors.DESeqDataSet <- function(object) {
+  # Temporary hack for backward compatibility with "old" DESeqDataSet
+  # objects. Remove once all serialized DESeqDataSet objects around have
+  # been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
   if (!"normalizationFactors" %in% assayNames(object)) return(NULL)
   assays(object)[["normalizationFactors"]]
 }
@@ -331,6 +355,11 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
                    if (any(value <= 0)) {
                      stop("normalization factors must be positive")
                    }
+                   # Temporary hack for backward compatibility with "old"
+                   # DESeqDataSet objects. Remove once all serialized
+                   # DESeqDataSet objects around have been updated.
+                   if (!.hasSlot(object, "rowRanges"))
+                     object <- updateObject(object)
                    # enforce same dimnames
                    dimnames(value) <- dimnames(object)
                    assays(object)[["normalizationFactors"]] <- value
@@ -341,6 +370,11 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","iterate"),
                                              locfunc=stats::median, geoMeans, controlGenes, normMatrix) {
   type <- match.arg(type, c("ratio","iterate"))
+  # Temporary hack for backward compatibility with "old" DESeqDataSet
+  # objects. Remove once all serialized DESeqDataSet objects around have
+  # been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
   object <- sanitizeColData(object)
   if (type == "iterate") {
     sizeFactors(object) <- estimateSizeFactorsIterate(object)
@@ -444,6 +478,11 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 
 estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
                                              maxit=100, quiet=FALSE, modelMatrix=NULL) {
+  # Temporary hack for backward compatibility with "old" DESeqDataSet
+  # objects. Remove once all serialized DESeqDataSet objects around have
+  # been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     stop("first call estimateSizeFactors or provide a normalizationFactor matrix before estimateDispersions")
   }
@@ -488,6 +527,11 @@ these column could have come in during colData import")
 }
 
 checkForExperimentalReplicates <- function(object, modelMatrix) {
+  # Temporary hack for backward compatibility with "old" DESeqDataSet
+  # objects. Remove once all serialized DESeqDataSet objects around have
+  # been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
   noReps <- if (is.null(modelMatrix)) {
     mmtest <- model.matrix(design(object), data=as.data.frame(colData(object)))
     nrow(mmtest) == ncol(mmtest)
@@ -612,6 +656,11 @@ setMethod("estimateDispersions", signature(object="DESeqDataSet"),
 #' 
 #' @export
 setMethod("show", signature(object="DESeqResults"), function(object) {
+  # Temporary hack for backward compatibility with "old" DESeqDataSet
+  # objects. Remove once all serialized DESeqDataSet objects around have
+  # been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
   cat(mcols(object)$description[ colnames(object) == "log2FoldChange"],"\n")
   cat(mcols(object)$description[ colnames(object) == "pvalue"],"\n")
   show(DataFrame(object))
@@ -650,6 +699,11 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' 
 #' @export
 coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
+  # Temporary hack for backward compatibility with "old" DESeqDataSet
+  # objects. Remove once all serialized DESeqDataSet objects around have
+  # been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
   resNms <- resultsNames(object)
   if (length(resNms) == 0) {
     stop("no coefficients have been generated yet, first call DESeq()")
