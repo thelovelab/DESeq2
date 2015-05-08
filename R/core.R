@@ -248,6 +248,9 @@ DESeq <- function(object, test=c("Wald","LRT"),
   }
   modelAsFormula <- !is.matrix(full)
 
+  # get rid of any NA in the mcols(mcols(object))
+  object <- sanitizeRowData(object)
+  
   if (test == "LRT") {
     if (missing(reduced)) {
       stop("likelihood ratio test requires a 'reduced' design, see ?DESeq")

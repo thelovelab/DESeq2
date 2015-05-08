@@ -474,6 +474,16 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
   mcols(outMcols) <- mcols(mcols(objectNZ))
   outMu <- buildMatrixWithNARows(assays(objectNZ)[["mu"]], mcols(object)$allZero)
   outCooks <- buildMatrixWithNARows(assays(objectNZ)[["cooks"]], mcols(object)$allZero)
+
+  # now backfill any columns in rowData which existed before running DESeq()
+  # and which are not of type "intermediate" or "results"
+  object <- sanitizeRowData(object)
+  inMcols <- mcols(object)
+  namesCols <- names(mcols(object))
+  inputCols <- namesCols[! mcols(mcols(object))$type %in% c("intermediate","results")]
+  for (var in inputCols) {
+    outMcols[var] <- inMcols[var]
+  }
   
   mcols(object) <- outMcols
   object <- getBaseMeansAndVariances(object)
