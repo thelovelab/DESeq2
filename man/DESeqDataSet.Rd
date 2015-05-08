@@ -4,6 +4,7 @@
 \name{DESeqDataSet-class}
 \alias{DESeqDataSet}
 \alias{DESeqDataSet-class}
+\alias{updateObject,DESeqDataSet-method}
 \alias{DESeqDataSetFromHTSeqCount}
 \alias{DESeqDataSetFromMatrix}
 \title{DESeqDataSet object and constructors}
