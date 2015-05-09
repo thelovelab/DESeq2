@@ -50,20 +50,6 @@ please only use letters and numbers for levels of factors in the design")
   TRUE
 } )
 
-#' @rdname DESeqDataSet
-#' @export 
-setMethod("updateObject", "DESeqDataSet",
-    function(object, ..., verbose=FALSE)
-    {
-        new(class(object), metadata=as.list(object@exptData),
-                           rowRanges=object@rowData,
-                           colData=object@colData,
-                           assays=object@assays,
-                           design=object@design,
-                           dispersionFunction=object@dispersionFunction)
-    }
-)
-
 #' DESeqDataSet object and constructors
 #'
 #' \code{DESeqDataSet} is a subclass of \code{RangedSummarizedExperiment},
