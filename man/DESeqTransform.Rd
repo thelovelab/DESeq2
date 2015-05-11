@@ -16,7 +16,8 @@ a DESeqTransform object
 }
 \description{
 This constructor function would not typically be used by "end users".
-This simple class extends the RangedSummarizedExperiment class of the SummarizedExperiment package.
+This simple class extends the RangedSummarizedExperiment class of the
+SummarizedExperiment package.
 It is used by \code{\link{rlog}} and
 \code{\link{varianceStabilizingTransformation}}
 to wrap up the results into a class for downstream methods,
