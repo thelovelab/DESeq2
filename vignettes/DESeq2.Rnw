@@ -973,22 +973,19 @@ Interaction terms can be added to the design formula, in order to
 test, for example, if the log2 fold change attributable to a given
 condition is different based on a second variable, for example if the
 treatment effect of a drug is differs based on another
-grouping variable like species. Interactions
-are specified in R formula using a colon, \Robject{:}, between the two
-variables names. Demonstrations of extracting results for many different kinds of
-interaction model are shown in the examples section of the help page
-for \Rfunction{results}. When interations are present in the design,
-and a prior is used for the log2 fold changes, then only the interaction terms 
-are moderated, and the main effect terms are not moderated. 
-See \Rcode{?nbinomWaldTest} for more details.
+grouping variable like species. 
 
 Note that if the comparisons of interest are, for example, the effect
 of a condition in different sets of samples, many users find that 
-a simpler design which likewise allows for a set-specific condition 
-effect is the following: first combine the factors of interest into
-a single factor with all combinations of the original factors, and then
-use a design with just this factor. For example, if we have two
-factors \Robject{set} and \Robject{condition}, and we want to test 
+a simpler design is to follow these two steps: 
+(1) combine the factors of interest into a single factor 
+with all combinations of the original factors, and 
+(2) change the design to include just this factor. 
+This design is the same as having an interaction term, 
+in that it creates set-specific condition effects which
+can be extracted with \Rfunction{results}.
+
+If we have two factors \Robject{set} and \Robject{condition}, and we want to test 
 for the set-specific condition effects in all sets:
 
 <<combineFactors, eval=FALSE>>=
@@ -996,8 +993,17 @@ dds$group <- factor(paste0(dds$set, dds$condition))
 design(dds) <- ~ group
 dds <- DESeq(dds)
 resultsNames(dds)
+# the condition effect in set #1
 results(dds, contrast=c("group", "1B", "1A"))
 @
+
+Interactions are specified in R formula using a colon, \Robject{:}, between the two
+variables names. Demonstrations of extracting results for many different kinds of
+interaction model are shown in the examples section of the help page
+for \Rfunction{results}. When interations are present in the design,
+and a prior is used for the log2 fold changes, then only the interaction terms 
+are moderated, and the main effect terms are not moderated. 
+See \Rcode{?nbinomWaldTest} for more details.
 
 If one wants to test whether the condition effect is \textit{different}
 across sets, then a design with interactions makes these comparisons
@@ -1013,105 +1019,6 @@ set(s). Testing the \textit{sum} of the main effect and the
 interaction term tests if there is a condition effect in set Y.  This
 is shown in more detail in the examples section of the help page for
 \Rfunction{results}.
-
-Designs with factors with only two levels and an interaction term present a
-special case to the normal \deseqtwo{} methods, because we change the
-type of model matrix used in the fitting, using what we call R's
-``standard model matrix''. For all other designs, we use 
-an ``expanded model matrix'' which fits a term for each level in the
-model, so there are no reference levels.
-The reason to use a standard model matrix for this special case of
-factors with two
-levels and an interaction term is that it is desirable to have
-only a single term to test for a significant interaction between the
-variables. Furthermore, the expanded design matrices are not necessary
-in this case for their purpose (for other designs, they provide
-symmetric shrinkage regardless of the reference level). 
-
-This does create a difference in the interpretation of the contrasts
-extracted with \Rfunction{results} for designs with interactions: 
-for expanded design matrices, the main effect is an average effect
-across all sets; while for standard design matrices, the main effect is
-only for the reference level of the other factors. We explain in more detail below:
-
-Suppose we have an interaction design of \Rcode{$\sim$ set + condition + set:condition}.
-
-\textbf{Expanded model matrices} The following code produces a comparison of B over A 
-\textit{across all sets}.
-
-<<expInter, eval=FALSE>>=
-results(dds, contrast=c("condition","B","A"))
-@ 
-
-\textbf{Standard model matrices} The above results
-table now produces a comparison of B over A only for the \textit{reference level} of
-\Robject{set}. Let us suppose the reference level of set is X, and the
-second set is Y. So for standard model matrices, the above results
-table gives the condition effect for set X.
-
-Below we explain how to interpret the interaction terms for both kinds
-of model matrix.
-
-\textbf{Expanded model matrices} The following code would give the 
-\textit{interaction effect} for condition in set Y, which tests if
-the condition effect is different in set Y than in the other sets.
-
-<<expInter2, eval=FALSE>>=
-results(dds, contrast=list("setY.conditionB","setY.conditionA"))
-@ 
-
-And the following would give the condition effect in set Y (the main
-effect and the interaction terms added together):
-
-<<expInter3, eval=FALSE>>=
-results(dds, contrast=list(c("conditionB","setY.conditionB"),
-                           c("conditionA","setY.conditionA")))
-@ 
-
-\textbf{Standard model matrices} Here, we have only a single
-interaction term, \Robject{setY.conditionB}.
-This term represents the additional effect of condition for
-set Y compared to the main effect of condition in set X. By symmetry, it also
-represents the additional effect of set in condition B
-compared to the main effect of set in condition A. Testing if the
-condition effect is different between the two sets is accomplished
-by extracting only this interaction term:
-
-<<expInter4, eval=FALSE>>=
-results(dds, name="setY.conditionB")
-@
-
-The effect of condition in set Y is the above interaction term added to
-the main effect of condition B vs A in set X:
-
-<<expInter5, eval=FALSE>>=
-results(dds, contrast=list(c("conditionB","setY.conditionB")))
-@
-
-For standard model matrices, to obtain the ``average condition
-effect'' for both sets, we can use a numeric contrast,
-assigning a 1 to the main effect \Robject{conditionB} and a 0.5 to the
-interaction effect \Robject{setY.conditionB}, as they appear in
-\Robject{resultsNames(dds)}. This can be understood as taking us
-halfway from the condition effect in set X to the condition effect
-in set Y:
-
-<<expInter6, eval=FALSE>>=
-resultsNames(dds)
-results(dds, contrast=c(0,0,1,0.5))
-@
-
-You can use the following lines of code to find out the model matrix
-type and to extract the model matrix which was used by \Rfunction{DESeq}.
-For models with shrinkage on log2 fold changes
-(\Robject{betaPrior=TRUE}), the type will be \Robject{"expanded"}
-unless the design has factors with only two levels and an interaction
-term is included, in which case it will be \Robject{"standard"}.
-
-<<mmtype, eval=FALSE>>=
-attr(dds, "modelMatrixType")
-attr(dds, "modelMatrix")
-@
 
 \subsection{Time-series experiments}
 

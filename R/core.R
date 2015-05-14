@@ -2554,17 +2554,22 @@ fitDispGridWrapper <- function(y, x, mu, logAlphaPriorMean,
 
 
 
-# rough dispersion estimate using a statistic similar to the Pearson residuals
+# rough dispersion estimate using counts and fitted values
 roughDispEstimate <- function(y, x) {
+
   # must be positive
   mu <- linearModelMu(y, x)
   mu <- matrix(pmax(1, mu), ncol=ncol(mu))
+  
   m <- nrow(x)
   p <- ncol(x)
-  # these will be adjusted up to minDisp later
-  numerator <- pmax( rowSums( ((y - mu)^2 - mu) / mu^2 ), 0)
-  denominator <- (m - p)
-  numerator/denominator
+
+  # an alternate rough estimator with higher mean squared or absolute error
+  # (rowSums( (y - mu)^2/(mu * (m - p)) ) - 1)/rowMeans(mu)
+  
+  # rough disp ests will be adjusted up to minDisp later
+  est <- rowSums( ((y - mu)^2 - mu) / mu^2 ) / (m - p)
+  pmax(est, 0)
 }
 
 momentsDispEstimate <- function(object) {
