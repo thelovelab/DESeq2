@@ -473,8 +473,8 @@ Likelihood ratio test p-values are overwritten")
 
   # finalize object / add attributes / make GRanges
   if (independentFiltering) {
-    attr(deseqRes, "filterThreshold") <- paRes$filterThreshold
-    attr(deseqRes, "filterNumRej") <- paRes$filterNumRej
+    metadata(deseqRes) <- list(filterThreshold=paRes$filterThreshold,
+                               filterNumRej=paRes$filterNumRej)
   }
 
   # remove rownames and attach as a new column, 'row'

@@ -1191,7 +1191,7 @@ The independent filtering is performed using the \Rfunction{filtered\_p} functio
 of the \Biocpkg{genefilter} package, and all of the arguments of \Rfunction{filtered\_p}
 can be passed to the \Rfunction{results} function. 
 The filter threshold value and the number of rejections at each quantile
-of the filter statistic are available as attributes of the object 
+of the filter statistic are available as metadata of the object 
 returned by \Rfunction{results}. For example, we can visualize
 the optimization by plotting the \Robject{filterNumRej} attribute of 
 the results object, as seen in Figure \ref{figure/filtByMean-1}. Note
@@ -1200,9 +1200,9 @@ line of rejections over filter threshold appears noisy, the expected
 false discovery rate might not be held exactly for this small set.
 
 <<filtByMean, dev="pdf">>=
-attr(res,"filterThreshold")
-plot(attr(res,"filterNumRej"),type="b",
-     ylab="number of rejections")
+metadata(res)$filterThreshold
+plot(metadata(res)$filterNumRej, 
+     type="b", ylab="number of rejections")
 @
 
 \incfig{figure/filtByMean-1}{.5\textwidth}{Independent filtering.}{
@@ -1734,7 +1734,7 @@ removing a background set of hypotheses whose $p$ values are distributed
 more or less uniformly in $[0,1]$.
 
 <<histindepfilt, dev="pdf", fig.width=7, fig.height=5>>=
-use <- res$baseMean > attr(res,"filterThreshold")
+use <- res$baseMean > metadata(res)$filterThreshold
 table(use)
 h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
 h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
@@ -1753,114 +1753,6 @@ legend("topright", fill=rev(colori), legend=rev(names(colori)))
   The area shaded in blue indicates the subset of those that pass the filtering,
   the area in khaki those that do not pass.
 }
-
-%---------------------------------------------------
-\subsubsection{Diagnostic plots for multiple testing}
-%---------------------------------------------------
-The Benjamini-Hochberg multiple testing adjustment
-procedure \cite{BH:1995} has a simple graphical illustration, which we
-produce in the following code chunk. Its result is shown in the left
-panel of Figure \ref{fig:multtest}.
-
-<<sortP, cache=TRUE>>=
-resFilt <- res[use & !is.na(res$pvalue),]
-orderInPlot <- order(resFilt$pvalue)
-showInPlot <- (resFilt$pvalue[orderInPlot] <= 0.08)
-alpha <- 0.1
-@ 
-
-<<sortedP, fig.width=4.5, fig.height=4.5>>=
-plot(seq(along=which(showInPlot)), resFilt$pvalue[orderInPlot][showInPlot],
-     pch=".", xlab = expression(rank(p[i])), ylab=expression(p[i]))
-abline(a=0, b=alpha/length(resFilt$pvalue), col="red3", lwd=2)
-@
-
-<<doBH, echo=FALSE, results="hide">>=
-whichBH <- which(resFilt$pvalue[orderInPlot] <= alpha * seq(along=resFilt$pvalue)/length(resFilt$pvalue))
-whichBH <- seq_len(max(whichBH))
-## Test some assertions:
-## - whichBH is a contiguous set of integers from 1 to length(whichBH)
-## - the genes selected by this graphical method coincide with those
-##   from p.adjust (i.e. padjFilt)
-stopifnot(length(whichBH)>0,
-          identical(whichBH, seq(along=whichBH)),
-          resFilt$padj[orderInPlot][ whichBH] <= alpha,
-          resFilt$padj[orderInPlot][-whichBH]  > alpha)
-@
-
-Schweder and Spj\o{}tvoll \cite{SchwederSpjotvoll1982} suggested a diagnostic plot
-of the observed $p$-values which permits estimation of the fraction of true null
-hypotheses. For a series of hypothesis tests $H_1, \ldots, H_m$ with $p$-values
-$p_i$, they suggested plotting
-
-\begin{equation}
-  \left( 1-p_i, N(p_i) \right) \mbox{ for } i \in 1, \ldots, m,
-\end{equation}
-
-where $N(p)$ is the number of $p$-values greater than $p$. An application of
-this diagnostic plot to \Robject{resFilt\$pvalue} is shown in the right panel of
-Figure \ref{fig:multtest}.
-When all null hypotheses are true, the $p$-values are each uniformly distributed
-in $[0,1]$, Consequently, the cumulative distribution function of $(p_1, \ldots,
-p_m)$ is expected to be close to the line $F(t)=t$. By symmetry, the same
-applies to $(1 - p_1, \ldots, 1 - p_m)$.
-When (without loss of generality) the first $m_0$ null hypotheses are true and
-the other $m-m_0$ are false, the cumulative distribution function of $(1-p_1,
-\ldots, 1-p_{m_0})$ is again expected to be close to the line $F_0(t)=t$. The
-cumulative distribution function of $(1-p_{m_0+1}, \ldots, 1-p_{m})$, on the
-other hand, is expected to be close to a function $F_1(t)$ which stays below
-$F_0$ but shows a steep increase towards 1 as $t$ approaches $1$.
-In practice, we do not know which of the null hypotheses are true, so we can
-only observe a mixture whose cumulative distribution function is expected to be
-close to
-
-\begin{equation}
-  F(t) = \frac{m_0}{m} F_0(t) + \frac{m-m_0}{m} F_1(t).
-\end{equation}
-
-Such a situation is shown in the right panel of
-Figure \ref{fig:multtest}. If
-$F_1(t)/F_0(t)$ is small for small $t$, then the mixture fraction
-$\frac{m_0}{m}$ can be estimated by fitting a line to the left-hand portion of
-the plot, and then noting its height on the right. Such a fit is shown by the
-red line in the right panel of Figure \ref{fig:multtest}.
-
-<<SchwSpjot, echo=FALSE, results="hide">>=
-j  <- round(length(resFilt$pvalue)*c(1, .66))
-px <- (1-resFilt$pvalue[orderInPlot[j]])
-py <- ((length(resFilt$pvalue)-1):0)[j]
-slope <- diff(py)/diff(px)
-@
-
-<<SchwederSpjotvoll, fig.width=4.5, fig.height=4.5>>=
-plot(1-resFilt$pvalue[orderInPlot],
-     (length(resFilt$pvalue)-1):0, pch=".",
-     xlab=expression(1-p[i]), ylab=expression(N(p[i])))
-abline(a=0, slope, col="red3", lwd=2)
-@
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=.49\textwidth]{figure/sortedP-1}
-\includegraphics[width=.49\textwidth]{figure/SchwederSpjotvoll-1}
-\caption{\emph{Left:} illustration of the Benjamini-Hochberg multiple testing
-  adjustment procedure \cite{BH:1995}.  The black line shows the
-  $p$-values ($y$-axis) versus their rank ($x$-axis), starting with
-  the smallest $p$-value from the left, then the second smallest, and
-  so on. Only the first \Sexpr{sum(showInPlot)} $p$-values are shown.
-  The red line is a straight line with slope $\alpha/n$, where
-  $n=\Sexpr{length(resFilt[["pvalue"]])}$ is the number of tests, and
-  $\alpha=\Sexpr{alpha}$ is a target false discovery rate (FDR).  FDR
-  is controlled at the value $\alpha$ if the genes are selected
-  that lie to the left of the rightmost intersection between the red and black
-  lines: here, this results in \Sexpr{length(whichBH)} genes.
-  \emph{Right:} Schweder and Spj\o{}tvoll plot, as described in the text.
-  For both of these plots, the $p$-values \Robject{resFilt\$pvalues}
-  from Section~\ref{sec:filtbycount} were used as a starting
-  point. Analogously, one can produce these types of plots for any set of $p$-values,
-  for instance those from the previous sections.}
-\label{fig:multtest}
-\end{figure}
 
 \section{Frequently asked questions}
 
