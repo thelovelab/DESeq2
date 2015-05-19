@@ -475,9 +475,9 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
   outMu <- buildMatrixWithNARows(assays(objectNZ)[["mu"]], mcols(object)$allZero)
   outCooks <- buildMatrixWithNARows(assays(objectNZ)[["cooks"]], mcols(object)$allZero)
 
-  # now backfill any columns in rowData which existed before running DESeq()
+  # now backfill any columns in rowRanges which existed before running DESeq()
   # and which are not of type "intermediate" or "results"
-  object <- sanitizeRowData(object)
+  object <- sanitizeRowRanges(object)
   inMcols <- mcols(object)
   namesCols <- names(mcols(object))
   inputCols <- namesCols[! mcols(mcols(object))$type %in% c("intermediate","results")]

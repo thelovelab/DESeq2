@@ -249,7 +249,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   modelAsFormula <- !is.matrix(full)
 
   # get rid of any NA in the mcols(mcols(object))
-  object <- sanitizeRowData(object)
+  object <- sanitizeRowRanges(object)
   
   if (test == "LRT") {
     if (missing(reduced)) {
@@ -553,7 +553,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   }
 
   # in case the class of the mcols(mcols(object)) are not character
-  object <- sanitizeRowData(object)
+  object <- sanitizeRowRanges(object)
 
   if (is.null(modelMatrix)) {
     modelMatrix <- model.matrix(design(object), data=colData(object))
@@ -1037,7 +1037,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
   }
   
   # in case the class of the mcols(mcols(object)) are not character
-  object <- sanitizeRowData(object)
+  object <- sanitizeRowRanges(object)
   
   if ("results" %in% mcols(mcols(object))$type) {
     if (!quiet) message("found results columns, replacing these")
@@ -1454,7 +1454,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
   }
 
   # in case the class of the mcols(mcols(object)) are not character
-  object <- sanitizeRowData(object)
+  object <- sanitizeRowRanges(object)
   
   # run check on the formula
   modelAsFormula <- !(is.matrix(full) & is.matrix(reduced))
@@ -2693,7 +2693,7 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
   object
 }
 
-sanitizeRowData <- function(object) {
+sanitizeRowRanges <- function(object) {
   if (is.null(mcols(mcols(object)))) {
     mcols(mcols(object)) <- DataFrame(type=rep("input",ncol(mcols(object))),
                                       description=character(ncol(mcols(object))))
