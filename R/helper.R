@@ -228,10 +228,17 @@ fpm <- function(object, robust=TRUE) {
 #' Normalize for gene length
 #'
 #' Normalize for gene length using the output of transcript abundance estimators
-#' 
-#' This function imports information about the average transcript length for
-#' each gene, where the average refers to a weighted average with respect
-#' to the transcript abundances. RSEM includes such a column in their
+#'
+#' This is a prototype function for importing information about changes in
+#' the average transcript length for each gene. The use of this function
+#' is only for testing purposes.
+#'
+#' The function simply imports or calculates average
+#' transcript length for each gene and each sample from external files,
+#' and provides this matrix to the \code{normMatrix} argument of
+#' \code{\link{estimateSizeFactors}}. 
+#' By average transcript length, the average refers to a weighted average with respect
+#' to the transcript abundances. The RSEM method includes such a column in their
 #' \code{gene.results} files, but an estimate of average transcript length can
 #' be obtained from any software which outputs a file with a row for each
 #' transcript, specifying: transcript length, estimate of transcript abundance,
