@@ -374,10 +374,14 @@ setClass("DESeqTransform", contains="RangedSummarizedExperiment")
 #' @rdname DESeqTransform
 #' @export
 DESeqTransform <- function(SummarizedExperiment) {
-  # temporary trick to help transition from SummarizedExperiment to new
-  # RangedSummarizedExperiment objects, remove once transition is complete
-  if (is(SummarizedExperiment, "SummarizedExperiment"))
-    SummarizedExperiment <- as(SummarizedExperiment,
-                               "RangedSummarizedExperiment")
-  new("DESeqTransform", SummarizedExperiment)
+  se <- SummarizedExperiment
+  if (!is(se, "RangedSummarizedExperiment")) {
+    if (is(se, "SummarizedExperiment0"))
+      se <- as(se, "RangedSummarizedExperiment")
+    # only to help transition from SummarizedExperiment to new
+    # RangedSummarizedExperiment objects, remove once transition is complete
+    else if (is(se, "SummarizedExperiment"))
+      se <- as(se, "RangedSummarizedExperiment")
+  }
+  new("DESeqTransform", se)
 }
