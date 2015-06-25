@@ -114,10 +114,14 @@ please only use letters and numbers for levels of factors in the design")
 #' @rdname DESeqDataSet
 #' @export
 DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
-  # temporary trick to help transition from SummarizedExperiment to new
-  # RangedSummarizedExperiment objects, remove once transition is complete
-  if (is(se, "SummarizedExperiment"))
-    se <- as(se, "RangedSummarizedExperiment")
+  if (!is(se, "RangedSummarizedExperiment")) {
+    if (is(se, "SummarizedExperiment0"))
+      se <- as(se, "RangedSummarizedExperiment")
+    # only to help transition from SummarizedExperiment to new
+    # RangedSummarizedExperiment objects, remove once transition is complete
+    else if (is(se, "SummarizedExperiment"))
+      se <- as(se, "RangedSummarizedExperiment")
+  }
   if (is.null(assayNames(se)) || assayNames(se)[1] != "counts") {
     message("renaming the first element in assays to 'counts'")
     assayNames(se)[1] <- "counts"
