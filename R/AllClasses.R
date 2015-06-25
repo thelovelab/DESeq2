@@ -115,12 +115,15 @@ please only use letters and numbers for levels of factors in the design")
 #' @export
 DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   if (!is(se, "RangedSummarizedExperiment")) {
-    if (is(se, "SummarizedExperiment0"))
+    if (is(se, "SummarizedExperiment0")) {
       se <- as(se, "RangedSummarizedExperiment")
-    # only to help transition from SummarizedExperiment to new
-    # RangedSummarizedExperiment objects, remove once transition is complete
-    else if (is(se, "SummarizedExperiment"))
+    } else if (is(se, "SummarizedExperiment")) {
+      # only to help transition from SummarizedExperiment to new
+      # RangedSummarizedExperiment objects, remove once transition is complete
       se <- as(se, "RangedSummarizedExperiment")
+    } else {
+      stop("'se' must be a RangedSummarizedExperiment object")
+    }
   }
   if (is.null(assayNames(se)) || assayNames(se)[1] != "counts") {
     message("renaming the first element in assays to 'counts'")
@@ -378,12 +381,15 @@ setClass("DESeqTransform", contains="RangedSummarizedExperiment")
 DESeqTransform <- function(SummarizedExperiment) {
   se <- SummarizedExperiment
   if (!is(se, "RangedSummarizedExperiment")) {
-    if (is(se, "SummarizedExperiment0"))
+    if (is(se, "SummarizedExperiment0")) {
       se <- as(se, "RangedSummarizedExperiment")
-    # only to help transition from SummarizedExperiment to new
-    # RangedSummarizedExperiment objects, remove once transition is complete
-    else if (is(se, "SummarizedExperiment"))
+    } else if (is(se, "SummarizedExperiment")) {
+      # only to help transition from SummarizedExperiment to new
+      # RangedSummarizedExperiment objects, remove once transition is complete
       se <- as(se, "RangedSummarizedExperiment")
+    } else {
+      stop("'SummarizedExperiment' must be a RangedSummarizedExperiment object")
+    }
   }
   new("DESeqTransform", se)
 }
