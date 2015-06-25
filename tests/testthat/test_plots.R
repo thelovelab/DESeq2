@@ -1,0 +1,13 @@
+# test plots
+dds <- makeExampleDESeqDataSet(n=100,m=8)
+dds$group <- factor(rep(c(1,2,1,2),each=2))
+dds <- DESeq(dds)
+res <- results(dds)
+plotDispEsts(dds)
+plotMA(dds)
+plotCounts(dds, 1)
+plotCounts(dds, 1, intgroup=c("condition","group"))
+vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
+plotPCA(vsd)
+plotPCA(vsd, intgroup=c("condition","group"))
+plotSparsity(dds)

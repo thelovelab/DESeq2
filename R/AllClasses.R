@@ -141,11 +141,11 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   }
 
   if (all(assay(se) == 0)) {
-    message("all samples have 0 counts for all genes. check the counting script.")
+    stop("all samples have 0 counts for all genes. check the counting script.")
   }
   
   if (all(rowSums(assay(se) == assay(se)[,1]) == ncol(se))) {
-    message("all genes have equal values for all samples. will not be able to perform differential analysis")
+    warning("all genes have equal values for all samples. will not be able to perform differential analysis")
   }
 
   if (any(duplicated(rownames(se)))) {
@@ -240,6 +240,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   } else {
     cbind(mcols(colData(se)), mcolsCols)
   }
+  
   dds <- new("DESeqDataSet", se, design = design)
                                  
   # now we know we have at least an empty GRanges or GRangesList for rowRanges
@@ -296,6 +297,7 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, tidy=FALSE, igno
   
   se <- SummarizedExperiment(assays = SimpleList(counts=countData), colData = colData, ...)
   dds <- DESeqDataSet(se, design = design, ignoreRank)
+
   return(dds)
 }
 

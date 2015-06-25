@@ -198,11 +198,6 @@ which will be used to produce FPKM values")
 #' colSums(fpm(dds))/1e6
 #' colSums(fpm(dds, robust=FALSE))/1e6
 #'
-#' # the total sum is equal for both methods
-#' 
-#' sum(fpm(dds))
-#' sum(fpm(dds, robust=FALSE))
-#'
 #' @seealso \code{\link{fpkm}}
 #'
 #' @docType methods
@@ -211,16 +206,16 @@ which will be used to produce FPKM values")
 #' 
 #' @export
 fpm <- function(object, robust=TRUE) {
-  if (robust & is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
+  if (robust & is.null(sizeFactors(object))) {
     object <- estimateSizeFactors(object)
   }
-  if (robust) {
-    k <- counts(object, normalized=TRUE)
-    1e6 * ncol(k) * k / sum(k)
+  k <- counts(object)
+  library.sizes <- if (robust) {
+    sizeFactors(object) * sum(k) / ncol(k)
   } else {
-    k <- counts(object)
-    1e6 * sweep(k, 2, colSums(k), "/")
+    colSums(k)
   }
+  1e6 * sweep(k, 2, library.sizes, "/")  
 }
 
 
