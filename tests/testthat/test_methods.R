@@ -1,0 +1,8 @@
+coldata <- DataFrame(x=factor(c("A","A","B","B")))
+counts <- matrix(1:16, ncol=4)
+dds <- DESeqDataSetFromMatrix(counts, coldata, ~ x)
+expect_warning(counts(dds, replace=TRUE))
+expect_error(counts(dds, normalized=TRUE))
+expect_error(sizeFactors(dds) <- c(-1, -1, -1, -1))
+expect_error(normalizationFactors(dds) <- matrix(-1, ncol=4, nrow=4))
+expect_error(estimateDispersions(dds))

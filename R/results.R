@@ -266,6 +266,10 @@ results <- function(object, contrast, name,
   # match args
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
   altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
+
+  if (!missing(test)) {
+    test <- match.arg(test, choices=c("Wald","LRT"))
+  }
   
   # initial argument testing
   stopifnot(lfcThreshold >= 0)
@@ -392,8 +396,7 @@ possibly nbinomWaldTest or nbinomLRT has not yet been run.")
   # only if we need to generate new p-values
   if ( !(lfcThreshold == 0 & altHypothesis == "greaterAbs") ) {
     if (test == "LRT") {
-      warning("tests of log fold change above or below a theshold are Wald tests.
-Likelihood ratio test p-values are overwritten")
+      stop("tests of log fold change above or below a theshold must be Wald tests.")
     }
     if (altHypothesis == "greaterAbs") {
       newStat <- sign(res$log2FoldChange) * pmax(0, (abs(res$log2FoldChange) - lfcThreshold)) / res$lfcSE
@@ -491,13 +494,13 @@ Likelihood ratio test p-values are overwritten")
   if (format == "DataFrame") {
     return(deseqRes)
   } else if (format == "GRangesList") {
-    if (class(rowRanges(object)) == "GRanges") message("rowRanges is GRanges")
+    if (class(rowRanges(object)) == "GRanges") warning("rowRanges is GRanges")
     out <- rowRanges(object)
     mcols(out) <- deseqRes
     return(out)
   } else if (format == "GRanges") {
     if (class(rowRanges(object)) == "GRangesList") {
-      message("rowRanges is GRangesList, unlisting the ranges")
+      warning("rowRanges is GRangesList, performing unlist(range(x)) on the rowRanges")
       out <- unlist(range(rowRanges(object)))
       mcols(out) <- deseqRes
       return(out)
@@ -530,19 +533,18 @@ removeResults <- function(object) {
 # unexported functons 
 ###########################################################
 
-# unexported function
-# results() just calls filtered_p directly
-pAdjustWithIndependentFiltering <- function(p, filterstat, alpha=0.1, method = "BH", plot=FALSE ){
-  theta <- seq(0, 0.95, by=0.05)
-  cutoffs <- quantile( filterstat, theta ) 
-  padj <- filtered_p( filterstat, p, cutoffs, method ) 
-  rej  <- colSums(padj < alpha, na.rm = TRUE )
-  if(plot) plot(theta, rej)
-  j <- which.max(rej)
-  rv <- padj[, j, drop=TRUE]
-  attr(rv, "filterthreshold") = cutoffs[j]
-  rv
-}
+# note: results() just calls filtered_p directly
+## pAdjustWithIndependentFiltering <- function(p, filterstat, alpha=0.1, method = "BH", plot=FALSE ){
+##   theta <- seq(0, 0.95, by=0.05)
+##   cutoffs <- quantile( filterstat, theta ) 
+##   padj <- filtered_p( filterstat, p, cutoffs, method ) 
+##   rej  <- colSums(padj < alpha, na.rm = TRUE )
+##   if(plot) plot(theta, rej)
+##   j <- which.max(rej)
+##   rv <- padj[, j, drop=TRUE]
+##   attr(rv, "filterthreshold") = cutoffs[j]
+##   rv
+## }
 
 # two low-level functions used by results() to perform contrasts
 #
@@ -972,7 +974,7 @@ pvalueAdjustment <- function(res, independentFiltering, filter, theta, alpha, pA
 }
 
 checkContrast <- function(contrast, resNames) {
-  if (!(is.numeric(contrast) | !is.character(contrast) | !is.list(contrast))) {
+  if (!(is.numeric(contrast) | is.character(contrast) | is.list(contrast))) {
     stop("'contrast' vector should be either a character vector of length 3,
 a list of length 2 containing character vectors,
 or a numeric vector, see the argument description in ?results")
@@ -996,8 +998,8 @@ see the manual page of ?results for more information")
       contrast <- list(contrast[[1]], character())
     }
     if (length(contrast) != 2) {
-      stop("'contrast', as a list, should have length 2,
-or, if length 1, an empty vector will be added for the second element.
+      stop("'contrast', as a list, should have length 2, or, if length 1,
+an empty vector will be added for the second element.
 see the manual page of ?results for more information")
     }
     if (!(is.character(contrast[[1]]) & is.character(contrast[[2]]))) {

@@ -490,11 +490,11 @@ estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","loc
   if (!is.null(sizeFactors(object))) {
     if (!is.numeric(sizeFactors(object))) {
       stop("the sizeFactor column in colData is not numeric.
-these column could have come in during colData import")
+this column could have come in during colData import and should be removed.")
     }
     if (any(is.na(sizeFactors(object)))) {
       stop("the sizeFactor column in colData contains NA.
-these column could have come in during colData import")
+this column could have come in during colData import and should be removed.")
     }
   }
   if (all(rowSums(counts(object) == counts(object)[,1]) == ncol(object))) {

@@ -268,6 +268,9 @@ DESeq <- function(object, test=c("Wald","LRT"),
       }
     }
   }
+  if (test == "Wald" & !missing(reduced)) {
+    stop("'reduced' ignored when test='Wald'")
+  }
   
   if (modelAsFormula) {
 
