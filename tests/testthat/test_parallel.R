@@ -1,7 +1,6 @@
-n <- 100
-dispMeanRel <- function(x) (4/x + .1) * exp(rnorm(n,0,sqrt(.5)))
+dispMeanRel <- function(x) (4/x + .1) * exp(rnorm(length(x),0,sqrt(.5)))
 set.seed(1)
-dds0 <- makeExampleDESeqDataSet(n=n,dispMeanRel=dispMeanRel)
+dds0 <- makeExampleDESeqDataSet(n=100,dispMeanRel=dispMeanRel)
 counts(dds0)[51:60,] <- 0L
 
 # the following is an example of a simple parallelizable DESeq() run
@@ -59,3 +58,7 @@ res4 <- results(dds3)
 expect_equal(res2$pvalue, res3$pvalue)
 expect_equal(res3$pvalue, res4$pvalue)  
 
+dds <- makeExampleDESeqDataSet(n=100,m=8)
+dds <- DESeq(dds, parallel=TRUE, test="LRT", reduced=~1)
+dds <- DESeq(dds, parallel=TRUE, test="LRT", reduced=~1, betaPrior=TRUE)
+dds <- DESeq(dds, parallel=TRUE, betaPrior=FALSE)

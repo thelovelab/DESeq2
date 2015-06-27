@@ -13,8 +13,8 @@ expect_error(results(dds))
 dds <- DESeq(dds)
 head(coef(dds))
 res <- results(dds)
-show(res)
-summary(res)
+show.res <- capture.output(show(res))
+summary.res <- summary(res)
 
 # various results error checking
 expect_error(results(dds, test="LRT"))
@@ -87,7 +87,7 @@ results(dds, lfcThreshold=1, altHypothesis="less")
 # test some special cases for results()
 # using designs with a + 0 
 set.seed(1)
-dds <- makeExampleDESeqDataSet(n=200,m=12)
+dds <- makeExampleDESeqDataSet(n=100,m=12)
 dds$condition <- factor(rep(1:3,each=4))
 dds$group <- factor(rep(1:2,length=ncol(dds)))
 
@@ -117,7 +117,7 @@ expect_equal(results(dds, contrast=c("condition","2","3"))[1,2], -1, tolerance=.
 ###############################################
 ## test likelihood ratio test
 set.seed(1)
-dds <- makeExampleDESeqDataSet(n=200)
+dds <- makeExampleDESeqDataSet(n=100)
 dds$group <- factor(rep(1:2,6))
 design(dds) <- ~ group + condition
 dds <- DESeq(dds, test="LRT", reduced=~group)

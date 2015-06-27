@@ -646,11 +646,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # by evaluating a grid of posterior evaluations
   refitDisp <- !dispGeneEstConv & dispGeneEst > minDisp*10
   if (sum(refitDisp) > 0) {
-    dispInR <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE],
-                                  x = modelMatrix, mu = mu[refitDisp,,drop=FALSE],
-                                  logAlphaPriorMean = rep(0,sum(refitDisp)),
-                                  logAlphaPriorSigmaSq = 1,
-                                  usePrior=FALSE)
+    dispInR <- fitDispGridWrapper(y=counts(objectNZ)[refitDisp,,drop=FALSE],x=modelMatrix,
+                                  mu=mu[refitDisp,,drop=FALSE],logAlphaPriorMean=rep(0,sum(refitDisp)),
+                                  logAlphaPriorSigmaSq=1,usePrior=FALSE)
     dispGeneEst[refitDisp] <- dispInR
   }
   dispGeneEst <- pmin(pmax(dispGeneEst, minDisp), maxDisp)
@@ -669,6 +667,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 #' @export
 estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),
                                    minDisp=1e-8, quiet=FALSE) {
+
+  if (is.null(mcols(object)$allZero)) {
+    object <- getBaseMeansAndVariances(object)
+  }
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   useForFit <- mcols(objectNZ)$dispGeneEst > 100*minDisp
   if (sum(useForFit) == 0) {
@@ -730,6 +732,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   stopifnot(length(kappa_0)==1)
   stopifnot(length(dispTol)==1)
   stopifnot(length(maxit)==1)
+  if (is.null(mcols(object)$allZero)) {
+    object <- getBaseMeansAndVariances(object)
+  }
   if (!is.null(mcols(object)$dispersion)) {
     if (!quiet) message("found already estimated dispersions, removing these")
     removeCols <- c("dispersion","dispOutlier","dispMAP","dispIter","dispConv")
@@ -748,7 +753,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
     if (sum(mcols(object)$dispGeneEst >= minDisp*100,na.rm=TRUE) == 0) {
       warning(paste0("all genes have dispersion estimates < ",minDisp*10,
                      ", returning disp = ",minDisp*10))
-      resultsList <- list(dispersion = minDisp*10)
+      resultsList <- list(dispersion = rep(minDisp*10, sum(!mcols(object)$allZero)))
       dispDataFrame <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
       mcols(dispDataFrame) <- DataFrame(type="intermediate",
                                         description="final estimates of dispersion")
@@ -1073,7 +1078,7 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
         "standard"
       }
     }
-    if (modelMatrixType == "standard" & betaPrior & !blindDesign) {
+    if (modelMatrixType == "standard" & betaPrior & !blindDesign & interactionPresent) {
       message("-- standard model matrices are used for factors with two levels and an interaction,
    where the main effects are for the reference level of other factors.
    see the 'Interactions' section of the vignette for more details: vignette('DESeq2')")
@@ -1218,7 +1223,8 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
 #'
 #' These lower-level functions are called within \code{\link{DESeq}} or \code{\link{nbinomWaldTest}}.
 #' End users should use those higher-level function instead.
-#' For advanced users to use this function, first run \code{estimateMLEForBetaPriorVar}
+#' NOTE: \code{estimateBetaPriorVar} returns a numeric vector, not a DESEqDataSet!
+#' For advanced users: to use these functions, first run \code{estimateMLEForBetaPriorVar}
 #' and then run \code{estimateBetaPriorVar}.
 #'
 #' @param object a DESeqDataSet
@@ -2153,12 +2159,12 @@ buildMatrixWithZeroRows <- function(m, zeroRows) {
 
 # convenience function for building larger vectors
 # by filling in NA rows
-buildNumericWithNARows <- function(v, NARows) {
-  vFull <- numeric(length(NARows))
-  VFull <- NA
-  vFull[!NARows] <- v
-  vFull
-}
+## buildNumericWithNARows <- function(v, NARows) {
+##   vFull <- numeric(length(NARows))
+##   VFull <- NA
+##   vFull[!NARows] <- v
+##   vFull
+## }
 
 # convenience function for building larger vectorss
 # by filling in 0 rows
@@ -2277,22 +2283,10 @@ nOrMoreInCell <- function(modelMatrix, n) {
   numEqual >= n
 }
 
-# are all the variables in the design matrix factors?
-allFactors <- function(design, colData) {
-    designVars <- all.vars(design)
-    designVarsClass <- sapply(designVars, function(v) class(colData[[v]]))
-    all(designVarsClass == "factor")
-}
-
 # returns TRUE or FALSE if removing row would leave matrix full rank
-leaveOneOutFullRank <- function(modelMatrix) {
-  sapply(seq_len(nrow(modelMatrix)), function(i) qr(modelMatrix[-i,,drop=FALSE])$rank) == ncol(modelMatrix)
-}
-
-propMaxOfTotal <- function(counts, pseudocount=8) {
-    (apply(counts, 1, max) + pseudocount)/(rowSums(counts) + pseudocount*ncol(counts))
-}
-
+## leaveOneOutFullRank <- function(modelMatrix) {
+##   sapply(seq_len(nrow(modelMatrix)), function(i) qr(modelMatrix[-i,,drop=FALSE])$rank) == ncol(modelMatrix)
+## }
 
 
 # an unexported diagnostic function
@@ -2300,6 +2294,8 @@ propMaxOfTotal <- function(counts, pseudocount=8) {
 # for the GLM coefficients of a single row
 # only for standard model matrices
 covarianceMatrix <- function(object, rowNumber) {
+  if (attr(object, "modelMatrixType") != "standard")
+    stop("only for standard model matrices")
   # convert coefficients to log scale
   coefColumns <- names(mcols(object))[grep("log2 fold change",mcols(mcols(object))$description)]
   beta <- log(2) * as.numeric(as.data.frame(mcols(object)[rowNumber,coefColumns,drop=FALSE]))

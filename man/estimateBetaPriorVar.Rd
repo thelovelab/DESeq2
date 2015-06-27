@@ -37,7 +37,8 @@ on the betas in the \code{\link{DESeq}} GLM
 \description{
 These lower-level functions are called within \code{\link{DESeq}} or \code{\link{nbinomWaldTest}}.
 End users should use those higher-level function instead.
-For advanced users to use this function, first run \code{estimateMLEForBetaPriorVar}
+NOTE: \code{estimateBetaPriorVar} returns a numeric vector, not a DESEqDataSet!
+For advanced users: to use these functions, first run \code{estimateMLEForBetaPriorVar}
 and then run \code{estimateBetaPriorVar}.
 }
 

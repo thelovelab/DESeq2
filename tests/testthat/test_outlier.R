@@ -52,3 +52,8 @@ for (disp0 in c(.01,.5)) {
     #     main=paste(m,"-",disp0), ylab="cooks");abline(h=qf(.99,2,m-2))
   }
 }
+
+dds <- makeExampleDESeqDataSet(n=100)
+counts(dds)[1,1] <- 1000000L
+dds <- DESeq(dds, test="LRT", reduced=~1, minReplicatesForReplace=6)
+dds <- DESeq(dds, test="LRT", reduced=~1, betaPrior=TRUE, minReplicatesForReplace=6)

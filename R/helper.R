@@ -423,20 +423,25 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
       estimateMLEForBetaPriorVar(objectNZSub)
     }, BPPARAM=BPPARAM))
 
+    # need to set standard model matrix for LRT with beta prior...
+    if (test == "LRT") {
+      attr(object, "modelMatrixType") <- "standard"
+      attr(objectNZ, "modelMatrixType") <- "standard"
+      modelMatrixType <- "standard"
+    }
+    
     # the beta prior is estimated over all rows
     betaPriorVar <- estimateBetaPriorVar(objectNZ)
-
+    
     # the third parallel execution: the final GLM and statistics
     if (!quiet) message(paste("fitting model and testing:",nworkers,"workers"))
     if (test == "Wald") {
+
       objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
         nbinomWaldTest(objectNZ[idx == l,,drop=FALSE], betaPriorVar=betaPriorVar,
                        quiet=TRUE, modelMatrixType=modelMatrixType)
       }, BPPARAM=BPPARAM))
     } else if (test == "LRT") {
-      if (missing(modelMatrixType)) {
-        modelMatrixType <- "standard"
-      }
       objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
         nbinomLRT(objectNZ[idx == l,,drop=FALSE], full=full, reduced=reduced,
                   betaPrior=betaPrior, betaPriorVar=betaPriorVar,
@@ -468,8 +473,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
         nbinomLRT(objectNZSub, full=full, reduced=reduced,
                   quiet=TRUE, modelMatrixType="standard")
       }, BPPARAM=BPPARAM))
-    }
-    
+    } 
   }
 
   outMcols <- buildDataFrameWithNARows(mcols(objectNZ), mcols(object)$allZero)

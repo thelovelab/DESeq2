@@ -45,11 +45,6 @@ head(fpm(dds, robust=FALSE), 3)
 
 colSums(fpm(dds))/1e6
 colSums(fpm(dds, robust=FALSE))/1e6
-
-# the total sum is equal for both methods
-
-sum(fpm(dds))
-sum(fpm(dds, robust=FALSE))
 }
 \seealso{
 \code{\link{fpkm}}

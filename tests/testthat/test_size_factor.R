@@ -1,3 +1,12 @@
+# size factor tests
+m <- matrix(1:16, ncol=4)
+expect_error(estimateSizeFactorsForMatrix(m, geoMeans=1:5))
+expect_error(estimateSizeFactorsForMatrix(m, geoMeans=rep(0,4)))
+expect_error(estimateSizeFactorsForMatrix(m, controlGenes="foo"))
+estimateSizeFactorsForMatrix(m, geoMeans=1:4)
+estimateSizeFactorsForMatrix(m, controlGenes=1:2)
+
+# iterate method
 true.sf <- 2^(rep(c(-2,-1,0,0,1,2),each=2))
 dds <- makeExampleDESeqDataSet(sizeFactors=true.sf, n=100)
 cts <- counts(dds)

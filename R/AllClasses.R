@@ -308,28 +308,20 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, tidy=FALSE, igno
 #' @export
 DESeqDataSetFromHTSeqCount <- function( sampleTable, directory="", design, ignoreRank=FALSE, ...) 
 {
-  if (missing(design)) {
-    stop("design is missing")
-  }
-  l <- lapply( as.character( sampleTable[,2] ), function(fn) 
-              read.table( file.path( directory, fn ) ) )
+  if (missing(design)) stop("design is missing")
+  l <- lapply( as.character( sampleTable[,2] ), function(fn) read.table( file.path( directory, fn ) ) )
   if( ! all( sapply( l, function(a) all( a$V1 == l[[1]]$V1 ) ) ) )
     stop( "Gene IDs (first column) differ between files." )
   tbl <- sapply( l, function(a) a$V2 )
   colnames(tbl) <- sampleTable[,1]
   rownames(tbl) <- l[[1]]$V1
   rownames(sampleTable) <- sampleTable[,1]
-  oldSpecialNames <- c( "no_feature", "ambiguous",
-                       "too_low_aQual", "not_aligned",
-                       "alignment_not_unique" )
+  oldSpecialNames <- c("no_feature","ambiguous","too_low_aQual","not_aligned","alignment_not_unique")
   # either starts with two underscores
   # or is one of the old special names (htseq-count backward compatability)
   specialRows <- (substr(rownames(tbl),1,1) == "_") | rownames(tbl) %in% oldSpecialNames
   tbl <- tbl[ !specialRows, , drop=FALSE ]
-  dds <- DESeqDataSetFromMatrix(countData = tbl,
-                                colData = sampleTable[,-(1:2),drop=FALSE],
-                                design = design,
-                                ignoreRank, ...)
+  dds <- DESeqDataSetFromMatrix(countData=tbl,colData=sampleTable[,-(1:2),drop=FALSE],design=design,ignoreRank, ...)
   return(dds)
 }   
 
