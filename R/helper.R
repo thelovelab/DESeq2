@@ -423,7 +423,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
       estimateMLEForBetaPriorVar(objectNZSub)
     }, BPPARAM=BPPARAM))
 
-    # need to set standard model matrix for LRT with beta prior...
+    # need to set standard model matrix for LRT with beta prior
     if (test == "LRT") {
       attr(object, "modelMatrixType") <- "standard"
       attr(objectNZ, "modelMatrixType") <- "standard"
@@ -444,8 +444,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
     } else if (test == "LRT") {
       objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
         nbinomLRT(objectNZ[idx == l,,drop=FALSE], full=full, reduced=reduced,
-                  betaPrior=betaPrior, betaPriorVar=betaPriorVar,
-                  quiet=TRUE, modelMatrixType=modelMatrixType)
+                  betaPrior=betaPrior, betaPriorVar=betaPriorVar, quiet=TRUE)
       }, BPPARAM=BPPARAM))
     }
     
@@ -470,8 +469,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
                                               dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
         # replace design
         if (noReps) design(objectNZ) <- designIn
-        nbinomLRT(objectNZSub, full=full, reduced=reduced,
-                  quiet=TRUE, modelMatrixType="standard")
+        nbinomLRT(objectNZSub, full=full, reduced=reduced, quiet=TRUE)
       }, BPPARAM=BPPARAM))
     } 
   }

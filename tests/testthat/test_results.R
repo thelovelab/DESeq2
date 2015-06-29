@@ -55,10 +55,10 @@ expect_equal(results(dds2,contrast=c("condition","3","1"))[1,2], lfc31, toleranc
 expect_equal(results(dds2,contrast=c("condition","2","1"))[1,2], lfc21, tolerance=1e-6)
 expect_equal(results(dds2,contrast=c("condition","3","2"))[1,2], lfc32, tolerance=1e-6)
 
-# check the default prior  variance on the intercept and group LFC's
+# check the default prior variance on the intercept and group LFC's
 dds3 <- dds
 design(dds3) <- ~ group + condition + condition:group
-dds3 <- nbinomWaldTest(dds3)
+dds3 <- nbinomWaldTest(dds3, betaPrior=TRUE, modelMatrixType="expanded")
 expect_equal(attr(dds3,"betaPriorVar")[1:6],
              c(Intercept=1e6, group1=1e3, group2=1e3,
                condition1=1e3, condition2=1e3, condition3=1e3))

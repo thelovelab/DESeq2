@@ -4,7 +4,7 @@
 \alias{nbinomWaldTest}
 \title{Wald test for the GLM coefficients}
 \usage{
-nbinomWaldTest(object, betaPrior = TRUE, betaPriorVar, modelMatrix = NULL,
+nbinomWaldTest(object, betaPrior, betaPriorVar, modelMatrix = NULL,
   modelMatrixType, maxit = 100, useOptim = TRUE, quiet = FALSE,
   useT = FALSE, df, useQR = TRUE)
 }

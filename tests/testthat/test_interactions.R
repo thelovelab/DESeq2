@@ -11,5 +11,5 @@ dds$x <- factor(rep(1:2,each=8))
 dds$y <- factor(rep(rep(1:2,2),each=4))
 dds$z <- factor(rep(rep(1:2,4),each=2))
 design(dds) <- ~ x*y*z
-expect_error(DESeq(dds))
+expect_error(DESeq(dds, betaPrior=TRUE))
 

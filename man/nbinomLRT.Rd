@@ -5,8 +5,8 @@
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
 nbinomLRT(object, full = design(object), reduced, betaPrior = FALSE,
-  betaPriorVar, modelMatrixType = "standard", maxit = 100,
-  useOptim = TRUE, quiet = FALSE, useQR = TRUE)
+  betaPriorVar, maxit = 100, useOptim = TRUE, quiet = FALSE,
+  useQR = TRUE)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -29,16 +29,6 @@ on the calculation, see \code{\link{nbinomWaldTest}}.}
 model terms including the intercept.
 which if missing is estimated from the rows which do not have any
 zeros}
-
-\item{modelMatrixType}{either "standard" or "expanded", which describe
-how the model matrix, X of the formula in \code{\link{DESeq}}, is
-formed. "standard" is as created by \code{model.matrix} using the
-design formula. "expanded" includes an indicator variable for each
-level of factors in addition to an intercept,
-in order to ensure that the log2 fold changes are independent
-of the choice of reference level.
-betaPrior must be set to TRUE in order for expanded model matrices
-to be fit.}
 
 \item{maxit}{the maximum number of iterations to allow for convergence of the
 coefficient vector}

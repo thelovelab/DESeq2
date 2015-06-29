@@ -241,19 +241,29 @@ DESeq <- function(object, test=c("Wald","LRT"),
   stopifnot(is.logical(quiet))
   stopifnot(is.numeric(minReplicatesForReplace))
   stopifnot(is.logical(parallel))
+  modelAsFormula <- !is.matrix(full)
+  
   if (missing(betaPrior)) {
-    betaPrior <- test == "Wald"
+    betaPrior <- if (modelAsFormula) {
+      termsOrder <- attr(terms.formula(design(object)),"order")
+      interactionPresent <- any(termsOrder > 1)
+      # by default, use beta prior for Wald tests and when no interaction terms are included
+      betaPrior <- test == "Wald" & !interactionPresent
+    } else {
+      FALSE
+    }
   } else {
     stopifnot(is.logical(betaPrior))
   }
-  modelAsFormula <- !is.matrix(full)
-
   # get rid of any NA in the mcols(mcols(object))
   object <- sanitizeRowRanges(object)
   
   if (test == "LRT") {
     if (missing(reduced)) {
       stop("likelihood ratio test requires a 'reduced' design, see ?DESeq")
+    }
+    if (!missing(modelMatrixType) && modelMatrixType == "expanded") {
+      stop("test='LRT' only implemented for standard model matrices")
     }
     if (is.matrix(full) | is.matrix(reduced)) {
       if (!(is.matrix(full) & is.matrix(reduced))) {
@@ -273,7 +283,6 @@ DESeq <- function(object, test=c("Wald","LRT"),
   }
   
   if (modelAsFormula) {
-
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
     designAndArgChecker(object, betaPrior)
     
@@ -282,9 +291,14 @@ DESeq <- function(object, test=c("Wald","LRT"),
     }
     modelMatrix <- NULL
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
+    termsOrder <- attr(terms.formula(design(object)),"order")
+    interactionPresent <- any(termsOrder > 1)
     if (betaPrior & !hasIntercept) {
       stop("betaPrior=TRUE can only be used if the design has an intercept.
   if specifying + 0 in the design formula, use betaPrior=FALSE")
+    }
+    if (betaPrior & interactionPresent) {
+      message("\n-- usage note: betaPrior=FALSE encouraged for designs with interactions\n")
     }
   } else {
     if (betaPrior == TRUE) {
@@ -319,12 +333,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
                                modelMatrix=modelMatrix,
                                modelMatrixType=modelMatrixType)
     } else if (test == "LRT") {
-      if (missing(modelMatrixType)) {
-        modelMatrixType <- "standard"
-      }
       object <- nbinomLRT(object, full=full, reduced=reduced,
-                          betaPrior=betaPrior, quiet=quiet,
-                          modelMatrixType=modelMatrixType)
+                          betaPrior=betaPrior, quiet=quiet)
     }
   } else if (parallel) {
     object <- DESeqParallel(object, test=test, fitType=fitType,
@@ -1032,7 +1042,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
+nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
                            modelMatrix=NULL, modelMatrixType,
                            maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df, useQR=TRUE) {
@@ -1040,10 +1050,6 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
   stopifnot(length(maxit)==1)
-  if (!is.null(modelMatrix) & betaPrior) {
-    stop("the model matrix can only be user-supplied if betaPrior=FALSE")
-  }
-  
   # in case the class of the mcols(mcols(object)) are not character
   object <- sanitizeRowRanges(object)
   
@@ -1060,28 +1066,25 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
 
   if (is.null(modelMatrix)) {
     modelAsFormula <- TRUE
-
-    # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
-    designAndArgChecker(object, betaPrior)
-    
-    # what kind of model matrix to use
-    stopifnot(is.logical(betaPrior))
     termsOrder <- attr(terms.formula(design(object)),"order")
     interactionPresent <- any(termsOrder > 1)
+    if (missing(betaPrior)) {
+      betaPrior <- !interactionPresent
+    }
+    # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
+    designAndArgChecker(object, betaPrior)
+    # what kind of model matrix to use
+    stopifnot(is.logical(betaPrior))
     blindDesign <- design(object) == formula(~ 1)
+    if (blindDesign) {
+      betaPrior <- FALSE
+    }
     if (missing(modelMatrixType) || is.null(modelMatrixType)) {
-      twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
-      mmTypeTest <- betaPrior & !blindDesign & !twoLevelsInteraction
-      modelMatrixType <- if (mmTypeTest) {
+      modelMatrixType <- if (betaPrior) {
         "expanded"
       } else {
         "standard"
       }
-    }
-    if (modelMatrixType == "standard" & betaPrior & !blindDesign & interactionPresent) {
-      message("-- standard model matrices are used for factors with two levels and an interaction,
-   where the main effects are for the reference level of other factors.
-   see the 'Interactions' section of the vignette for more details: vignette('DESeq2')")
     }
     if (modelMatrixType == "expanded" & !betaPrior) {
       stop("expanded model matrices require a beta prior")
@@ -1091,6 +1094,11 @@ nbinomWaldTest <- function(object, betaPrior=TRUE, betaPriorVar,
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
     renameCols <- hasIntercept
   } else {
+    if (missing(betaPrior)) {
+      betaPrior <- FALSE
+    } else {
+      if (betaPrior) stop("the model matrix can only be user-supplied if betaPrior=FALSE")
+    } 
     message("using supplied model matrix")
     modelAsFormula <- FALSE
     attr(object, "modelMatrixType") <- "user-supplied"
@@ -1420,15 +1428,6 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #  betaPriorVar gives the variance of the prior on the sample betas,
 #' which if missing is estimated from the rows which do not have any
 #' zeros
-#' @param modelMatrixType either "standard" or "expanded", which describe
-#' how the model matrix, X of the formula in \code{\link{DESeq}}, is
-#' formed. "standard" is as created by \code{model.matrix} using the
-#' design formula. "expanded" includes an indicator variable for each
-#' level of factors in addition to an intercept,
-#' in order to ensure that the log2 fold changes are independent
-#' of the choice of reference level.
-#' betaPrior must be set to TRUE in order for expanded model matrices
-#' to be fit.
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -1454,7 +1453,6 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
                       betaPrior=FALSE, betaPriorVar,
-                      modelMatrixType="standard",
                       maxit=100, useOptim=TRUE, quiet=FALSE,
                       useQR=TRUE) {
 
@@ -1499,21 +1497,12 @@ nbinomLRT <- function(object, full=design(object), reduced,
     object <- getBaseMeansAndVariances(object)
   }
   
-  # what kind of model matrix to use
   stopifnot(is.logical(betaPrior))
-  termsOrder <- attr(terms.formula(design(object)),"order")
-  interactionPresent <- any(termsOrder > 1)
-
   if (modelAsFormula) {
-    if (is.null(modelMatrixType)) {
-      modelMatrixType <- "standard"
-    }
+    modelMatrixType <- "standard"
     # check for intercept
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
     renameCols <- hasIntercept
-    if (modelMatrixType == "expanded" & !betaPrior) {
-      stop("expanded model matrices require a beta prior")
-    }
   } else {
     modelMatrixType <- "user-supplied"
     renameCols <- FALSE
@@ -1583,11 +1572,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
   H <- fullModel$hat_diagonals
 
   # calculate Cook's distance
-  dispModelMatrix <- if (modelMatrixType == "expanded") {
-    model.matrix(design(object), data=colData(object))
-  } else {
-    modelMatrix
-  }
+  dispModelMatrix <- modelMatrix
   attr(object,"dispModelMatrix") <- dispModelMatrix
   cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
   
@@ -2651,13 +2636,11 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
                                   betaPriorVar=betaPriorVar, quiet=quiet, modelMatrix=modelMatrix)
     } else if (test == "LRT") {
       if (!betaPrior) {
-        objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet,
-                               modelMatrixType=modelMatrixType)
+        objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet)
       } else {
         betaPriorVar <- attr(object, "betaPriorVar")
         objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, betaPrior=betaPrior,
-                               betaPriorVar=betaPriorVar, quiet=quiet,
-                               modelMatrixType=modelMatrixType)
+                               betaPriorVar=betaPriorVar, quiet=quiet)
       }
     }
     
@@ -2757,12 +2740,12 @@ checkFullRank <- function(modelMatrix) {
       stop("the model matrix is not full rank, so the model cannot be fit as specified.
   Levels or combinations of levels without any samples have resulted in
   column(s) of zeros in the model matrix.
-See the section 'Model matrix not full rank' in vignette('DESeq2')")
+  See the section 'Model matrix not full rank' in vignette('DESeq2')")
     } else {
       stop("the model matrix is not full rank, so the model cannot be fit as specified.
   One or more variables or interaction terms in the design formula are linear
   combinations of the others and must be removed.
-See the section 'Model matrix not full rank' in vignette('DESeq2')")
+  See the section 'Model matrix not full rank' in vignette('DESeq2')")
     }
   }
 }
@@ -2775,9 +2758,8 @@ designAndArgChecker <- function(object, betaPrior) {
   if specifying + 0 in the design formula, use betaPrior=FALSE")
   }
   if (any(termsOrder > 2) & betaPrior) {
-    stop("interactions higher than 1st order with log fold change shrinkage
-  has not been implemented. Either combine factors into individual groups using
-  factor(paste(...)) and use a design of ~group, or set betaPrior=FALSE")
+    stop("interactions higher than 1st order with log fold change shrinkage is not implemented.
+  betaPrior=FALSE is recommended for designs with interactions.")
   }
 }
 

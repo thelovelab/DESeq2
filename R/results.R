@@ -184,68 +184,70 @@
 #' ## Example 1: simple two-group comparison
 #' 
 #' dds <- makeExampleDESeqDataSet(m=4)
+#' 
 #' dds <- DESeq(dds)
 #' res <- results(dds)
 #' res[ order(res$padj), ]
 #' 
-#' ## Example 2: two conditions, two sets, with interaction term
+#' ## Example 2: two conditions, two genotypes, with an interaction term
 #' 
 #' dds <- makeExampleDESeqDataSet(n=100,m=12)
-#' dds$set <- factor(rep(rep(c("X","Y"),each=3),2))
-#' design(dds) <- ~ set + condition + set:condition
-#' dds <- DESeq(dds)
-#' resultsNames(dds)
-#' # the main condition effect (for set X)
-#' results(dds, contrast=c("condition","B","A"))
-#' # the main set effect (for condition A)
-#' results(dds, contrast=c("set","Y","X"))
-#' # the interaction term (is the condition effect *different* across set?)
-#' results(dds, name="setY.conditionB")
-#' # the condition effect in set Y (add the interaction to the main effect)
-#' results(dds, contrast=list(c("condition_B_vs_A","setY.conditionB")))
+#' dds$genotype <- factor(rep(rep(c("I","II"),each=3),2))
 #' 
-#' ## Example 3: two conditions, three sets
+#' design(dds) <- ~ genotype + condition + genotype:condition
+#' dds <- DESeq(dds) 
+#' resultsNames(dds)
 #'
-#' # using interaction terms
+#' # Note: design with interactions terms by default have betaPrior=FALSE
+#'
+#' # the condition effect for genotype I (the main effect)
+#' results(dds, contrast=c("condition","B","A"))
+#'
+#' # the condition effect for genotype II
+#' # this is, by definition, the main effect *plus* the interaction term
+#' # (the extra condition effect in genotype II compared to genotype I).
+#' results(dds, list( c("condition_B_vs_A","genotypeII.conditionB") ))
+#' 
+#' # the interaction term, answering: is the condition effect *different* across genotypes?
+#' results(dds, name="genotypeII.conditionB")
+#'  
+#' ## Example 3: two conditions, three genotypes
+#'
+#' # ~~~ Using interaction terms ~~~
 #' 
 #' dds <- makeExampleDESeqDataSet(n=100,m=18)
-#' dds$set <- factor(rep(rep(c("X","Y","Z"),each=3),2))
-#' design(dds) <- ~ set + condition + set:condition
+#' dds$genotype <- factor(rep(rep(c("I","II","III"),each=3),2))
+#' design(dds) <- ~ genotype + condition + genotype:condition
 #' dds <- DESeq(dds)
 #' resultsNames(dds)
-#' 
-#' # the main effect for condition (for all sets)
-#' results(dds, contrast=c("condition","B","A"))
-#' # which is equivalent to
-#' results(dds, contrast=list("conditionB","conditionA"))
-#'  
-#' # the interaction term for condition in set Z
-#' # (does set Z have *different* condition effect than the main effect?)
-#' results(dds, contrast=list("setZ.conditionB","setZ.conditionA"))
-#' 
-#' # the condition effect in set Z
-#' # (the interaction effect added to the main effect)
-#' results(dds, contrast=list(
-#'         c("conditionB","setZ.conditionB"),
-#'         c("conditionA","setZ.conditionA")))
 #'
-#' # the set Z effect compared to the average of set X and Y
-#' # here we use 'listValues' to multiply the effect sizes for
-#' # set X and set Y by -1/2
-#' results(dds, contrast=list("setZ",c("setX","setY")), listValues=c(1,-1/2))
+#' # the condition effect for genotype I (the main effect)
+#' results(dds, contrast=c("condition","B","A"))
+#'
+#' # the condition effect for genotype III
+#' # this is, by definition, the main effect *plus* the interaction term
+#' # (the extra condition effect in genotype III compared to genotype I).
+#' results(dds, contrast=list( c("condition_B_vs_A","genotypeIII.conditionB") ))
+#'  
+#' # the interaction term for condition effect in genotype III vs genotype I
+#' results(dds, name="genotypeIII.conditionB")
 #' 
-#' # using a grouping variable.
+#' # the interaction term for condition effect in genotype III vs genotype II
+#' # (the interaction effect added to the main effect)
+#' results(dds, contrast=list("genotypeIII.conditionB", "genotypeII.conditionB"))
+#'
+#' # ~~~ Using a grouping variable ~~~
 #' 
-#' # this is a useful construction when users just want to compare
-#' # specific groups which are combinations of variables
+#' # This is a useful construction when users just want to compare
+#' # specific groups which are combinations of variables.
 #' 
-#' dds$group <- factor(paste0(dds$set, dds$condition))
+#' dds$group <- factor(paste0(dds$genotype, dds$condition))
 #' design(dds) <- ~ group
 #' dds <- DESeq(dds)
 #' resultsNames(dds)
 #'
-#' # the condition B vs A effect for set Z
-#' results(dds, contrast=c("group","ZB","ZA"))
+#' # the condition effect for genotypeIII
+#' results(dds, contrast=c("group", "IIIB", "IIIA"))
 #' 
 #' @rdname results
 #' @aliases results resultsNames removeResults
@@ -951,7 +953,7 @@ pvalueAdjustment <- function(res, independentFiltering, filter, theta, alpha, pA
     if (missing(theta)) {
       lowerQuantile <- mean(filter == 0)
       if (lowerQuantile < .95) upperQuantile <- .95 else upperQuantile <- 1
-      theta <- seq(lowerQuantile, upperQuantile, length=20)
+      theta <- seq(lowerQuantile, upperQuantile, length=50)
     }
     stopifnot(length(theta) > 1)
     stopifnot(length(filter) == nrow(res))

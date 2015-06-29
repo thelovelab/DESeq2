@@ -1,3 +1,13 @@
+CHANGES IN VERSION 1.9.16
+
+    o When the design formula contains interaction terms, the DESeq()
+      function will by default not use a beta prior (betaPrior=FALSE).
+      The previous implementation of a log fold change prior for
+      interaction terms returned accurate inference, but was confusing
+      for users to interpret. New instructions on building results tables
+      for designs with interactions will be included in the software
+      vignette.
+
 CHANGES IN VERSION 1.8.0
 ------------------------
 

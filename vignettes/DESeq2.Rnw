@@ -113,7 +113,8 @@ matrix of integer values. The value in the $i$-th row and the $j$-th column of
 the matrix tells how many reads have been mapped to gene $i$ in sample $j$.
 Analogously, for other types of assays, the rows of the matrix might correspond
 e.\,g.\ to binding regions (with ChIP-Seq) or peptide sequences (with
-quantitative mass spectrometry).
+quantitative mass spectrometry). We will list method for obtaining count tables
+in a section below.
 
 The count values must be raw counts of sequencing reads. This is important
 for \deseqtwo{}'s statistical model \cite{Love2014} to hold, as only the actual
@@ -130,6 +131,7 @@ This facilitates preparation steps and also downstream exploration of results.
 For counting aligned reads in genes, the \Rfunction{summarizeOverlaps} function of
 \Biocpkg{GenomicAlignments} with \Robject{mode="Union"} is
 encouraged, resulting in a \Rclass{RangedSummarizedExperiment} object.
+Other methods for obtaining count matrices are described in the next section.
 
 An example of the steps to produce a \Rclass{RangedSummarizedExperiment} can
 be found in an RNA-Seq workflow on the Bioconductor 
@@ -169,12 +171,20 @@ ddsSE
 \subsubsection{Count matrix input}
 
 Alternatively, the function \Rfunction{DESeqDataSetFromMatrix} can be
-used if you already have a matrix of read counts prepared.
-For this function you should provide the counts matrix, the column
-information as a \Rclass{DataFrame} or \Rclass{data.frame} and the design formula.
-To demonstate the use of this function, we first load the \Robject{pasillaGenes} 
-data object, to pull out the count matrix, \Robject{countData}, and sample
-information, \Robject{colData}.
+used if you already have a matrix of read counts prepared from another
+source. Another method for quickly producing count matrices 
+from alignment files is the \Rfunction{featureCounts} function
+in the \Biocpkg{Rsubread} package.
+To use \Rfunction{DESeqDataSetFromMatrix}, the user should provide 
+the counts matrix, the information about the samples (the columns of the 
+count matrix) as a \Rclass{DataFrame} or \Rclass{data.frame}, 
+and the design formula.
+
+To demonstate the use of \Rfunction{DESeqDataSetFromMatrix}, 
+we will first load the \Robject{pasillaGenes} 
+data object, pull out the count matrix which we will name \Robject{countData}, 
+and sample information, \Robject{colData}. Below we describe how to extract 
+these objects from, e.g. \Rfunction{featureCounts} output.
 
 <<loadPasilla>>=
 library("pasilla")
@@ -184,21 +194,21 @@ countData <- counts(pasillaGenes)
 colData <- pData(pasillaGenes)[,c("condition","type")]
 @ 
 
-\Robject{countData} should be a matrix of read counts, where columns correspond to different samples.
-\Robject{colData} should be a \Rclass{data.frame} or \Rclass{DataFrame} of information about the samples, 
-where the rows directly match the columns of \Robject{countData}.
+The count matrix and column data:
 
 <<showPasilla>>=
 head(countData)
 head(colData)
 @ 
 
-These two objects can be read into R from flat files using base R 
-functions such as \Rfunction{read.csv} or \Rfunction{read.delim}. 
-For \textit{HTSeq} count files, see the dedicated input function below.
 If you have used the \Rfunction{featureCounts} function in the 
 \Biocpkg{Rsubread} package, the matrix of read counts can be directly 
 provided from the \Robject{"counts"} element in the list output.
+The count matrix and column data can also be read into R 
+from flat files using base R functions such as \Rfunction{read.csv} 
+or \Rfunction{read.delim}. 
+For \textit{HTSeq} count files, see the dedicated input function below.
+
 With the count matrix, \Robject{countData}, and the sample
 information, \Robject{colData}, we can construct a \Rclass{DESeqDataSet}:
 
