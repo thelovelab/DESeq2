@@ -479,7 +479,9 @@ possibly nbinomWaldTest or nbinomLRT has not yet been run.")
   # finalize object / add attributes / make GRanges
   if (independentFiltering) {
     metadata(deseqRes) <- list(filterThreshold=paRes$filterThreshold,
-                               filterNumRej=paRes$filterNumRej)
+                               filterTheta=paRes$filterTheta,
+                               filterNumRej=paRes$filterNumRej,
+                               lo.fit=paRes$lo.fit)
   }
 
   # remove rownames and attach as a new column, 'row'
@@ -960,12 +962,32 @@ pvalueAdjustment <- function(res, independentFiltering, filter, theta, alpha, pA
     filtPadj <- filtered_p(filter=filter, test=res$pvalue,
                            theta=theta, method=pAdjustMethod) 
     numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
-    j <- which.max(numRej)
+    # prevent over-aggressive filtering when all genes are null,
+    # by requiring the max number of rejections is above a fitted curve.
+    # If the max number of rejection is not greater than 10, then don't
+    # perform independent filtering at all.
+    lo.fit <- lowess(numRej ~ theta, f=1/5)
+    if (max(numRej) <= 10) {
+      j <- 1
+    } else { 
+      residual <- numRej - lo.fit$y
+      thresh <- max(lo.fit$y) - sqrt(mean(residual^2))
+      j <- if (any(numRej > thresh)) {
+        which(numRej > thresh)[1]
+      } else {
+        1  
+      }
+    }
+    # j <- which.max(numRej) # old method
     padj <- filtPadj[, j, drop=TRUE]
     cutoffs <- quantile(filter, theta)
     filterThreshold <- cutoffs[j]
     filterNumRej <- data.frame(theta=theta, numRej=numRej)
-    return(list(padj=padj, filterThreshold=filterThreshold, filterNumRej=filterNumRej))
+    return(list(padj=padj,
+                filterThreshold=filterThreshold,
+                filterTheta=theta[j],
+                filterNumRej=filterNumRej,
+                lo.fit=lo.fit))
   } else {
     # regular p-value adjustment
     # which does not include those rows which were removed

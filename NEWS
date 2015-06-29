@@ -1,4 +1,18 @@
+CHANGES IN VERSION 1.9.17
+-------------------------
+
+    o Independent filtering: results() no longer uses the maximum
+      of the number of rejections as calculated by the filter_p() function
+      from the genefilter package. Small numbers of rejections at a
+      high quantile of the filter threshold could result in
+      a high filter threshold. Instead, now the results() function
+      will use the lowest quantile of the filter for which the
+      number of rejections is close to the peak of a lowess curve fit
+      through the number of rejections over the filter quantiles.
+      'Close to' is defined as within 1 residual standard deviations.
+
 CHANGES IN VERSION 1.9.16
+-------------------------
 
     o When the design formula contains interaction terms, the DESeq()
       function will by default not use a beta prior (betaPrior=FALSE).

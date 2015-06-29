@@ -1204,15 +1204,14 @@ The filter threshold value and the number of rejections at each quantile
 of the filter statistic are available as metadata of the object 
 returned by \Rfunction{results}. For example, we can visualize
 the optimization by plotting the \Robject{filterNumRej} attribute of 
-the results object, as seen in Figure \ref{figure/filtByMean-1}. Note
-that if the maximum number of rejections is very small such that the
-line of rejections over filter threshold appears noisy, the expected
-false discovery rate might not be held exactly for this small set.
+the results object, as seen in Figure \ref{figure/filtByMean-1}.
 
 <<filtByMean, dev="pdf">>=
 metadata(res)$filterThreshold
 plot(metadata(res)$filterNumRej, 
      type="b", ylab="number of rejections")
+lines(metadata(res)$lo.fit, col="red")
+abline(v=metadata(res)$filterTheta)
 @
 
 \incfig{figure/filtByMean-1}{.5\textwidth}{Independent filtering.}{
