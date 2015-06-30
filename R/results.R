@@ -970,7 +970,11 @@ pvalueAdjustment <- function(res, independentFiltering, filter, theta, alpha, pA
     if (max(numRej) <= 10) {
       j <- 1
     } else { 
-      residual <- numRej - lo.fit$y
+      residual <- if (all(numRej==0)) {
+        0
+      } else {
+        numRej[numRej > 0] - lo.fit$y[numRej > 0]
+      }
       thresh <- max(lo.fit$y) - sqrt(mean(residual^2))
       j <- if (any(numRej > thresh)) {
         which(numRej > thresh)[1]
