@@ -2761,5 +2761,18 @@ designAndArgChecker <- function(object, betaPrior) {
     stop("interactions higher than 1st order with log fold change shrinkage is not implemented.
   betaPrior=FALSE is recommended for designs with interactions.")
   }
+  design <- design(object)
+  designVars <- all.vars(design)
+  designVarsClass <- sapply(designVars, function(v) class(colData(object)[[v]]))
+  designFactors <- designVars[designVarsClass == "factor"]
+  if (any(sapply(designFactors,function(v) any(table(colData(object)[[v]]) == 0)))) {
+    stop("factors in design formula must have samples for each level.
+  this error can arise when subsetting a DESeqDataSet, in which
+  all the samples for one or more levels of a factor in the design were removed.
+  if this was intentional, use droplevels() to remove these levels, e.g.:
+
+  dds$condition <- droplevels(dds$condition)
+")
+  }
 }
 

@@ -10,3 +10,8 @@ expect_error(DESeq(dds, full=m, betaPrior=TRUE))
 
 design(dds) <- ~ 0 + condition
 expect_error(DESeq(dds, betaPrior=TRUE))
+
+dds <- makeExampleDESeqDataSet(n=100)
+dds$condition <- factor(rep(c("A","B","C"),each=4))
+dds <- dds[,1:8]
+expect_error(DESeq(dds))
