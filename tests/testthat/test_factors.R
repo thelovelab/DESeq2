@@ -1,3 +1,3 @@
-dds0 <- makeExampleDESeqDataSet(n=100, m=6)
-expect_error(levels(dds0$condition) <- c("test-","test+"))
-
+dds <- makeExampleDESeqDataSet(n=100, m=6)
+levels(dds$condition) <- c("test-","test+")
+expect_error(DESeq(dds))
