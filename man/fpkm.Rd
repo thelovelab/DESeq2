@@ -51,25 +51,24 @@ consideration in the internal union basepair calculation.
 m <- matrix(1e6 * rep(c(.125, .25, .25, .5), each=4),
             ncol=4, dimnames=list(1:4,1:4))
 mode(m) <- "integer"
-se <- SummarizedExperiment(m, colData=DataFrame(sample=1:4))
+se <- SummarizedExperiment(list(counts=m), colData=DataFrame(sample=1:4))
 dds <- DESeqDataSet(se, ~ 1)
 
 # create 4 GRanges with lengths: 1, 1, 2, 2.5 Kb
-gr1 <- GRanges("chr1",IRanges(1,1000))
-gr2 <- GRanges("chr1",IRanges(c(1,501),c(500,1000)))
-gr3 <- GRanges("chr1",IRanges(c(1,1001),c(1000,2000)))
-gr4 <- GRanges("chr1",IRanges(c(1,1001,2001),c(500,3000,3000)))
+gr1 <- GRanges("chr1",IRanges(1,1000)) # 1kb
+gr2 <- GRanges("chr1",IRanges(c(1,1001),c( 500,1500))) # 1kb
+gr3 <- GRanges("chr1",IRanges(c(1,1001),c(1000,2000))) # 2kb
+gr4 <- GRanges("chr1",IRanges(c(1,1001),c(200,1300))) # 500bp
 rowRanges(dds) <- GRangesList(gr1,gr2,gr3,gr4)
 
 # the raw counts
 counts(dds)
 
+# the FPM values
+fpm(dds)
+
 # the FPKM values
 fpkm(dds)
-
-# held constant per 1 million fragments
-counts(dds) <- counts(dds) * 2L
-round(fpkm(dds))
 }
 \seealso{
 \code{\link{fpm}}

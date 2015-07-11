@@ -11,7 +11,9 @@ fpm(object, robust = TRUE)
 \item{object}{a \code{DESeqDataSet}}
 
 \item{robust}{whether to use size factors to normalize
-rather than taking the column sums of the raw counts.}
+rather than taking the column sums of the raw counts.
+If TRUE, the size factors and the geometric mean of
+column sums are multiplied to create a robust library size estimate.}
 }
 \value{
 a matrix which is normalized per million of mapped fragments,
@@ -33,10 +35,15 @@ dds <- makeExampleDESeqDataSet(m = 4, n = 1000,
                                sizeFactors=c(.5,1,1,2),
                                dispMeanRel=function(x) .01)
 
-counts(dds)[11:15,] <- 2e5L
+# add a few rows with very high count
+counts(dds)[4:10,] <- 2e5L
 
-head(fpm(dds), 3)
-head(fpm(dds, robust=FALSE), 3)
+# in this robust version, the counts are comparable across samples
+round(head(fpm(dds), 3))
+
+# in this column sum version, the counts are still skewed:
+# sample1 < sample2 & 3 < sample 4
+round(head(fpm(dds, robust=FALSE), 3))
 
 # the column sums of the robust version
 # are not equal to 1e6, but the

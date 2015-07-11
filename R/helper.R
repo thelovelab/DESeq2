@@ -106,25 +106,24 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' m <- matrix(1e6 * rep(c(.125, .25, .25, .5), each=4),
 #'             ncol=4, dimnames=list(1:4,1:4))
 #' mode(m) <- "integer"
-#' se <- SummarizedExperiment(m, colData=DataFrame(sample=1:4))
+#' se <- SummarizedExperiment(list(counts=m), colData=DataFrame(sample=1:4))
 #' dds <- DESeqDataSet(se, ~ 1)
 #' 
 #' # create 4 GRanges with lengths: 1, 1, 2, 2.5 Kb
-#' gr1 <- GRanges("chr1",IRanges(1,1000))
-#' gr2 <- GRanges("chr1",IRanges(c(1,501),c(500,1000)))
-#' gr3 <- GRanges("chr1",IRanges(c(1,1001),c(1000,2000)))
-#' gr4 <- GRanges("chr1",IRanges(c(1,1001,2001),c(500,3000,3000)))
+#' gr1 <- GRanges("chr1",IRanges(1,1000)) # 1kb
+#' gr2 <- GRanges("chr1",IRanges(c(1,1001),c( 500,1500))) # 1kb
+#' gr3 <- GRanges("chr1",IRanges(c(1,1001),c(1000,2000))) # 2kb
+#' gr4 <- GRanges("chr1",IRanges(c(1,1001),c(200,1300))) # 500bp
 #' rowRanges(dds) <- GRangesList(gr1,gr2,gr3,gr4)
 #' 
 #' # the raw counts
 #' counts(dds)
+#'
+#' # the FPM values
+#' fpm(dds)
 #' 
 #' # the FPKM values
 #' fpkm(dds)
-#' 
-#' # held constant per 1 million fragments
-#' counts(dds) <- counts(dds) * 2L
-#' round(fpkm(dds))
 #' 
 #' @seealso \code{\link{fpm}}
 #'
@@ -171,6 +170,8 @@ which will be used to produce FPKM values")
 #' @param object a \code{DESeqDataSet}
 #' @param robust whether to use size factors to normalize
 #' rather than taking the column sums of the raw counts.
+#' If TRUE, the size factors and the geometric mean of
+#' column sums are multiplied to create a robust library size estimate.
 #' 
 #' @return a matrix which is normalized per million of mapped fragments,
 #' either using the robust median ratio method (robust=TRUE, default)
@@ -185,10 +186,15 @@ which will be used to produce FPKM values")
 #'                                sizeFactors=c(.5,1,1,2),
 #'                                dispMeanRel=function(x) .01)
 #'
-#' counts(dds)[11:15,] <- 2e5L
-#' 
-#' head(fpm(dds), 3)
-#' head(fpm(dds, robust=FALSE), 3)
+#' # add a few rows with very high count
+#' counts(dds)[4:10,] <- 2e5L
+#'
+#' # in this robust version, the counts are comparable across samples
+#' round(head(fpm(dds), 3))
+#'
+#' # in this column sum version, the counts are still skewed:
+#' # sample1 < sample2 & 3 < sample 4
+#' round(head(fpm(dds, robust=FALSE), 3))
 #'
 #' # the column sums of the robust version
 #' # are not equal to 1e6, but the
@@ -211,7 +217,7 @@ fpm <- function(object, robust=TRUE) {
   }
   k <- counts(object)
   library.sizes <- if (robust) {
-    sizeFactors(object) * sum(k) / ncol(k)
+    sizeFactors(object) * exp(mean(log(colSums(k))))
   } else {
     colSums(k)
   }
@@ -226,7 +232,7 @@ fpm <- function(object, robust=TRUE) {
 #'
 #' This is a prototype function for importing information about changes in
 #' the average transcript length for each gene. The use of this function
-#' is only for testing purposes.
+#' is only for testing purposes. 
 #'
 #' The function simply imports or calculates average
 #' transcript length for each gene and each sample from external files,
