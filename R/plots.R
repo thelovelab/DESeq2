@@ -173,7 +173,8 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
   
   ggplot(data=d, aes_string(x="PC1", y="PC2", color="group")) + geom_point(size=3) + 
     xlab(paste0("PC1: ",round(percentVar[1] * 100),"% variance")) +
-    ylab(paste0("PC2: ",round(percentVar[2] * 100),"% variance"))
+      ylab(paste0("PC2: ",round(percentVar[2] * 100),"% variance")) +
+        coord_fixed()
 }
 
 #' Sample PCA plot for transformed data
@@ -200,9 +201,10 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
 #' @author Wolfgang Huber
 #'
 #' @note See the vignette for an example of variance stabilization and PCA plots.
-#' Note that the source code of \code{plotPCA} is very simple and commented.
-#' It can be found with comments by typing \code{DESeq2:::plotPCA.DESeqTransform}.
-#' (The version at \code{getMethod("plotPCA","DESeqTransform")} will not show comments.)
+#' Note that the source code of \code{plotPCA} is very simple.
+#' The source can be found by typing \code{DESeq2:::plotPCA.DESeqTransform}
+#' or \code{getMethod("plotPCA","DESeqTransform")}, or
+#' browsed on github at \url{https://github.com/Bioconductor-mirror/DESeq2/blob/master/R/plots.R}
 #' Users should find it easy to customize this function.
 #' 
 #' @examples
