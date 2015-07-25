@@ -26,7 +26,7 @@ library("DESeq2")
 @
 
 
-\author{Michael Love$^{1*}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Department of Biostatistics, Dana Farber Cancer Institute and} \\ \small{Harvard School of Public Health, Boston, US;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} \\ \small{\texttt{$^*$michaelisaiahlove (at) gmail.com}}}
+\author{Michael Love$^{1}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Department of Biostatistics, Dana Farber Cancer Institute and} \\ \small{Harvard School of Public Health, Boston, US;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} 
 
 \title{Differential analysis of count data -- the DESeq2 package}
 
@@ -102,6 +102,14 @@ res <- results(dds, contrast=c("condition","treat","untreat"))
 
 If you have a count matrix and sample information table, the first
 line would instead use \Rfunction{DESeqDataSetFromMatrix}, shown below.
+
+\subsection{How to get help}
+
+All \textit{DESeq2} questions should be posted to the Bioconductor support
+site: \url{https://support.bioconductor.org}, which serves as a
+repository of questions and answers. See the first question in the 
+FAQ at the end of this document for more information about how to
+make an informative post.
 
 \subsection{Input data} \label{sec:prep}
 
