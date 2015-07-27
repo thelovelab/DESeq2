@@ -26,7 +26,7 @@ library("DESeq2")
 @
 
 
-\author{Michael Love$^{1}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Department of Biostatistics, Dana Farber Cancer Institute and} \\ \small{Harvard School of Public Health, Boston, US;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} 
+\author{Michael Love$^{1}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Department of Biostatistics, Dana Farber Cancer Institute and} \\ \small{Harvard School of Public Health, Boston, US;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} }
 
 \title{Differential analysis of count data -- the DESeq2 package}
 
