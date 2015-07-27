@@ -705,17 +705,15 @@ The \Rfunction{assay} function is used to extract the matrix of normalized value
 <<rlogAndVST>>=
 rld <- rlog(dds)
 vsd <- varianceStabilizingTransformation(dds)
-rlogMat <- assay(rld)
-vstMat <- assay(vsd)
+head(assay(rld), 3)
 @
 
-Note that if you have many samples, and the \Rfunction{rlog} function
-is taking too long, there is an argument \Robject{fast=TRUE}, which
-will perform an approximation of the rlog: instead of shrinking the
-samples independently, the function will find the optimal amount of
-shrinkage for each gene given the mean counts. The optimization is
-performed on the same likelihood of the data as the original rlog.
-The speed-up for a dataset with 100 samples is around 15x.
+Note that if you have many samples (for example hundreds of samples), 
+the \Rfunction{rlog} function might take too long, and the 
+variance stabilizing transformation might be a better choice.
+The rlog and VST have similar properties, but the rlog requires
+fitting a shrinkage term for each sample and each gene which takes time.
+See the DESeq2 paper for more discussion on the differences \cite{Love2014}.
 
 \subsubsection{Regularized log transformation}
 
@@ -833,32 +831,29 @@ these particular samples detrimental to our purpose.
 
 \subsubsection{Heatmap of the count matrix}\label{sec:hmc}
 To explore a count matrix, it is often instructive to look at it as a
-heatmap.  Below we show how to produce such a heatmap from the
-raw and transformed data.
+heatmap.  Below we show how to produce such a heatmap 
+for various transformations of the data.
 
 <<heatmap>>=
-library("RColorBrewer")
-library("gplots")
-select <- order(rowMeans(counts(dds,normalized=TRUE)),decreasing=TRUE)[1:30]
-hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
+library("pheatmap")
+select <- order(rowMeans(counts(dds,normalized=TRUE)),decreasing=TRUE)[1:20]
 @
 
 <<figHeatmap2a, dev="pdf", fig.width=7, fig.height=10>>=
-heatmap.2(counts(dds,normalized=TRUE)[select,], col = hmcol,
-          Rowv = FALSE, Colv = FALSE, scale="none",
-          dendrogram="none", trace="none", margin=c(10,6))
+log.norm.counts <- log2(counts(dds,normalized=TRUE)[select,] + 1)
+df <- as.data.frame(colData(dds)[,c("condition","type")])
+pheatmap(log.norm.counts, cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
 @
 
 <<figHeatmap2b, dev="pdf", fig.width=7, fig.height=10>>=
-heatmap.2(assay(rld)[select,], col = hmcol,
-          Rowv = FALSE, Colv = FALSE, scale="none",
-          dendrogram="none", trace="none", margin=c(10, 6))
+pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
 @
 
 <<figHeatmap2c, dev="pdf", fig.width=7, fig.height=10>>=
-heatmap.2(assay(vsd)[select,], col = hmcol,
-          Rowv = FALSE, Colv = FALSE, scale="none",
-          dendrogram="none", trace="none", margin=c(10, 6))
+pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
 @
 
 \begin{figure}
@@ -886,24 +881,26 @@ sample-to-sample distances. We could alternatively use the variance stabilized
 transformation here.
 
 <<sampleClust>>=
-distsRL <- dist(t(assay(rld)))
+sampleDists <- dist(t(assay(rld)))
 @
 
 A heatmap of this distance matrix gives us an overview over similarities
 and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples-1}):
-We have to provide a hierarchical clustering \Robject{hc} to the \Rfunction{heatmap.2}
-function based on the sample distances, or else the \Rfunction{heatmap.2}
+We have to provide a hierarchical clustering \Robject{hc} to the heatmap
+function based on the sample distances, or else the heatmap
 function would calculate a clustering based on the distances between
 the rows/columns of the distance matrix.
 
 <<figHeatmapSamples, dev="pdf", fig.width=7, fig.height=7>>=
-mat <- as.matrix(distsRL)
-rownames(mat) <- colnames(mat) <- with(colData(dds),
-                                       paste(condition, type, sep=" : "))
-hc <- hclust(distsRL)
-heatmap.2(mat, Rowv=as.dendrogram(hc),
-          symm=TRUE, trace="none", 
-          col = rev(hmcol), margin=c(13, 13))
+library("RColorBrewer")
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- paste(rld$condition, rld$type, sep="-")
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows=sampleDists,
+         clustering_distance_cols=sampleDists,
+         col=colors)
 @
 
 \subsubsection{Principal component plot of the samples}\label{sec:pca}

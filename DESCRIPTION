@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based on the negative
     binomial distribution
-Version: 1.9.25
+Version: 1.9.26
 Author: Michael Love (HSPH Boston), Simon Anders, Wolfgang Huber (EMBL
     Heidelberg)
 Maintainer: Michael Love <michaelisaiahlove@gmail.com>
@@ -31,14 +31,14 @@ Depends:
     RcppArmadillo (>= 0.3.4.4)
 Suggests:
     testthat,
-    gplots,
     knitr,
-    RColorBrewer,
     BiocStyle,
+    vsn,
+    pheatmap,
+    RColorBrewer,
     airway,
     pasilla (>= 0.2.10),
-    DESeq,
-    vsn
+    DESeq
 LinkingTo: Rcpp, RcppArmadillo
 biocViews: Sequencing, ChIPSeq, RNASeq, SAGE, DifferentialExpression,
     GeneExpression
