@@ -325,9 +325,10 @@ data package \Biocexptpkg{pasilla}.
 \subsection{Differential expression analysis} \label{sec:de}
 
 The standard differential expression analysis steps are wrapped
-into a single function, \Rfunction{DESeq}. The steps of this function
-are described in Section~\ref{sec:glm} and in the manual page for
-\Robject{?DESeq}. The individual sub-functions which are called by \Rfunction{DESeq}
+into a single function, \Rfunction{DESeq}. The estimation steps performed
+by this function are described in Section~\ref{sec:glm}, in the manual page for
+\Robject{?DESeq} and in the Methods section of the \deseqtwo{} publication \cite{Love2014}. 
+The individual sub-functions which are called by \Rfunction{DESeq}
 are still available, described in Section~\ref{sec:steps}. 
 
 Results tables are generated using the function \Rfunction{results}, which
@@ -1535,7 +1536,7 @@ instead of the likelihood ratio test, but for user-supplied model matrices, the 
 \subsection{The DESeq2 model} \label{sec:glm}
 
 The \deseqtwo{} model and all the steps taken in the software
-are described in detail in our pre-print \cite{Love2014},
+are described in detail in our publication \cite{Love2014},
 and we include the formula and descriptions in this section as well.
 The differential expression analysis in \deseqtwo{} uses a generalized
 linear model of the form:
