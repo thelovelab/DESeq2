@@ -14,19 +14,19 @@ plotDispEsts.DESeqDataSet <- function( object, ymin,
       ymin = 10^floor(log10(min(py[py>0], na.rm=TRUE))-0.1)
 
   plot(px, pmax(py, ymin), xlab=xlab, ylab=ylab,
-    log=log, pch=ifelse(py<ymin, 6, 20), col=col2useful(genecol,.8), cex=cex, ... )
+    log=log, pch=ifelse(py<ymin, 6, 20), col=genecol, cex=cex, ... )
 
   # use a circle over outliers
   pchOutlier <- ifelse(mcols(object)$dispOutlier[sel],1,16)
   cexOutlier <- ifelse(mcols(object)$dispOutlier[sel],2*cex,cex)
   lwdOutlier <- ifelse(mcols(object)$dispOutlier[sel],2,1)
   if (!is.null(dispersions(object))) {
-    points(px, dispersions(object)[sel], col=col2useful(finalcol,.8), cex=cexOutlier,
+    points(px, dispersions(object)[sel], col=finalcol, cex=cexOutlier,
            pch=pchOutlier, lwd=lwdOutlier)
   }
 
   if (!is.null(mcols(object)$dispFit)) {
-    points(px, mcols(object)$dispFit[sel], col=col2useful(fitcol,.8), cex=cex, pch=16)
+    points(px, mcols(object)$dispFit[sel], col=fitcol, cex=cex, pch=16)
   }
   
   if (legend) {
@@ -326,14 +326,8 @@ plotSparsity <- function(x, normalized=TRUE, ...) {
        ylab="max count / sum", main="Concentration of counts over total sum of counts", ...)
 }
 
-
-##############
-# unexported #
-##############
-
-
 # convenience function for adding alpha transparency to named colors
-col2useful <- function(col,alpha) {
-  x <- col2rgb(col)/255
-  rgb(x[1],x[2],x[3],alpha)
-}
+## col2useful <- function(col,alpha) {
+##   x <- col2rgb(col)/255
+##   rgb(x[1],x[2],x[3],alpha)
+## }
