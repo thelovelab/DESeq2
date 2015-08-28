@@ -45,8 +45,8 @@ library("DESeq2")
   methods to test for differential expression by use of negative binomial generalized
   linear models; the estimates of dispersion and logarithmic fold changes 
   incorporate data-driven prior distributions\footnote{Other \Bioconductor{} packages 
-  with similar aims are \Biocpkg{edgeR}, \Biocpkg{baySeq}, \Biocpkg{DSS} and 
-  \Biocpkg{limma}.}. 
+  with similar aims are \Biocpkg{edgeR}, \Biocpkg{limma},
+  \Biocpkg{DSS}, \Biocpkg{EBSeq} and \Biocpkg{baySeq}.}. 
   This vignette explains the use of the package and demonstrates typical workflows.  
   An RNA-Seq workflow on the Bioconductor 
   website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}
