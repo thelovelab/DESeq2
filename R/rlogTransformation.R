@@ -127,7 +127,7 @@
 #' 
 #' @export
 rlog <- function(object, blind=TRUE, fast=FALSE,
-                 intercept, betaPriorVar, B, fitType="parametric") {
+                 intercept, betaPriorVar, B, fitType="mean") {
   if (is.null(colnames(object))) {
     colnames(object) <- seq_len(ncol(object))
   }
