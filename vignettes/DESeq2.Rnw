@@ -1896,7 +1896,8 @@ Ryan C Thompson,
 Tyr Wiesner-Hanks,
 Konrad Rudolph,
 David Robinson,
-Mingxiang Teng.
+Mingxiang Teng,
+Mathias Lesche.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=
