@@ -1,12 +1,3 @@
-CHANGES IN VERSION 1.9.32
--------------------------
-
-    o rlog() when estimating dispersion trend defaults to fitType="mean".
-      This accomplishes the beneficial shrinkage of differences for
-      genes with low counts, while avoiding overly agressive shrinking
-      of large counts which occur in rows where the mean of normalized
-      counts is still low.
-
 CHANGES IN VERSION 1.9.17
 -------------------------
 

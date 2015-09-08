@@ -666,7 +666,7 @@ mean is low. Both \emph{rlog} and VST use the experiment-wide trend
 of variance over mean, in order to transform the data to remove the
 experiment-wide trend. Note that we do not require or
 desire that all the genes have \emph{exactly} the same variance after
-transformation. Indeed, in Figure~\ref{figure/vsd2-1} below, you will see
+transformation. Indeed, in Figure~\ref{fig:meansd} below, you will see
 that after the transformations the genes with the same mean do not
 have exactly the same standard deviations, but that the
 experiment-wide trend has flattened. It is those genes with row
@@ -787,14 +787,19 @@ legend("bottomright",
 
 \subsubsection{Effects of transformations on the variance}
 
-\incfig{figure/vsd2-1}{\textwidth}{Standard deviation over mean.}{
-  Per-gene standard deviation (taken across samples), against the rank
+\begin{figure}
+\centering
+\includegraphics[width=.32\textwidth]{figure/log2meansd-1}
+\includegraphics[width=.32\textwidth]{figure/rlogmeansd-1}
+\includegraphics[width=.32\textwidth]{figure/vstmeansd-1}
+\caption{Per-gene standard deviation (taken across samples), against the rank
   of the mean, for the shifted logarithm $\log_2(n+1)$ (left), the
   regularized log transformation (center) and the variance stabilizing
-  transformation (right). 
-}
+  transformation (right).}
+\label{fig:meansd}
+\end{figure}
 
-Figure~\ref{figure/vsd2-1} plots the standard deviation of the transformed
+Figure~\ref{fig:meansd} plots the standard deviation of the transformed
 data, across samples, against the mean, using the shifted
 logarithm transformation (\ref{eq:shiftedlog}), the
 regularized log transformation and the variance stabilizing transformation.
@@ -803,12 +808,17 @@ count range, and the regularized log to a lesser extent, while for
 the variance stabilized data the standard deviation is roughly constant
 along the whole dynamic range.
 
-<<vsd2, fig.width=8, fig.height=3>>=
+<<log2meansd, fig.width=3, fig.height=3>>=
 library("vsn")
-par(mfrow=c(1,3))
 notAllZero <- (rowSums(counts(dds))>0)
 meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1))
+@ 
+
+<<rlogmeansd, fig.width=3, fig.height=3>>=
 meanSdPlot(assay(rld[notAllZero,]))
+@ 
+
+<<vstmeansd, fig.width=3, fig.height=3>>=
 meanSdPlot(assay(vsd[notAllZero,]))
 @
 
@@ -840,19 +850,19 @@ library("pheatmap")
 select <- order(rowMeans(counts(dds,normalized=TRUE)),decreasing=TRUE)[1:20]
 @
 
-<<figHeatmap2a, dev="pdf", fig.width=7, fig.height=10>>=
+<<figHeatmap2a, dev="pdf", fig.width=5, fig.height=7>>=
 log.norm.counts <- log2(counts(dds,normalized=TRUE)[select,] + 1)
 df <- as.data.frame(colData(dds)[,c("condition","type")])
 pheatmap(log.norm.counts, cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 @
 
-<<figHeatmap2b, dev="pdf", fig.width=7, fig.height=10>>=
+<<figHeatmap2b, dev="pdf", fig.width=5, fig.height=7>>=
 pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 @
 
-<<figHeatmap2c, dev="pdf", fig.width=7, fig.height=10>>=
+<<figHeatmap2c, dev="pdf", fig.width=5, fig.height=7>>=
 pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 @
@@ -863,7 +873,7 @@ pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
 \includegraphics[width=.32\textwidth]{figure/figHeatmap2b-1}
 \includegraphics[width=.32\textwidth]{figure/figHeatmap2c-1}
 \caption{Heatmaps showing the expression data of the \Sexpr{length(select)}
-  most highly expressed genes. The data is of raw counts (left),
+  most highly expressed genes. The data is of log2 normalized counts (left),
   from regularized log transformation (center) and from variance
   stabilizing transformation (right).}
 \label{fig:heatmap2}

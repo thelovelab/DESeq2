@@ -6,10 +6,10 @@
 \title{Apply a 'regularized log' transformation}
 \usage{
 rlog(object, blind = TRUE, fast = FALSE, intercept, betaPriorVar, B,
-  fitType = "mean")
+  fitType = "parametric")
 
 rlogTransformation(object, blind = TRUE, fast = FALSE, intercept,
-  betaPriorVar, B, fitType = "mean")
+  betaPriorVar, B, fitType = "parametric")
 }
 \arguments{
 \item{object}{a DESeqDataSet, or matrix of counts}
