@@ -12,9 +12,13 @@
 
 <<knitr, echo=FALSE, results="hide">>=
 library("knitr")
-opts_chunk$set(tidy=FALSE,dev="png",fig.show="hide",
-               fig.width=4,fig.height=4.5,
-               message=FALSE)
+opts_chunk$set(
+  tidy=FALSE,
+  dev="png",
+  fig.show="hide",
+  fig.width=4, fig.height=4.5,
+  cache=TRUE,
+  message=FALSE)
 @ 
 
 <<style, eval=TRUE, echo=FALSE, results="asis">>=
@@ -26,7 +30,11 @@ library("DESeq2")
 @
 
 
-\author{Michael Love$^{1}$, Simon Anders$^{2}$, Wolfgang Huber$^{2}$ \\[1em] \small{$^{1}$ Department of Biostatistics, Dana Farber Cancer Institute and} \\ \small{Harvard School of Public Health, Boston, US;} \\ \small{$^{2}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} }
+\author{Michael Love$^{1}$, Simon Anders$^{2,3}$, Wolfgang Huber$^{3}$ \\[1em] 
+  \small{$^{1}$ Department of Biostatistics, Dana-Farber Cancer Institute and} \\ 
+  \small{Harvard TH Chan School of Public Health, Boston, US;} \\ 
+  \small{$^{2}$ Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland} \\ 
+  \small{$^{3}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} }
 
 \title{Differential analysis of count data -- the DESeq2 package}
 
@@ -47,12 +55,11 @@ library("DESeq2")
   incorporate data-driven prior distributions\footnote{Other \Bioconductor{} packages 
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{limma},
   \Biocpkg{DSS}, \Biocpkg{EBSeq} and \Biocpkg{baySeq}.}. 
-  This vignette explains the use of the package and demonstrates typical workflows.  
-  An RNA-Seq workflow on the Bioconductor 
-  website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}
-  (formerly the Beginner's Guide PDF), covers similar material to this
-  vignette but at a slower pace, including the generation of count
-  matrices from FASTQ files.
+  This vignette explains the use of the package and demonstrates
+  typical workflows.  An RNA-Seq workflow on the Bioconductor website:
+  \url{http://www.bioconductor.org/help/workflows/rnaseqGene/} covers
+  similar material to this vignette but at a slower pace, including
+  the generation of count matrices from FASTQ files.
 
   \vspace{1em}
   
@@ -107,9 +114,9 @@ line would instead use \Rfunction{DESeqDataSetFromMatrix}, shown below.
 
 All \textit{DESeq2} questions should be posted to the Bioconductor support
 site: \url{https://support.bioconductor.org}, which serves as a
-repository of questions and answers. See the first question in the 
-FAQ at the end of this document for more information about how to
-make an informative post.
+repository of questions and answers. See the first question in the
+list of Frequently Asked Questions (Section \ref{sec:faq})
+for more information about how to construct an informative post.
 
 \subsection{Input data} \label{sec:prep}
 
@@ -124,11 +131,15 @@ e.\,g.\ to binding regions (with ChIP-Seq) or peptide sequences (with
 quantitative mass spectrometry). We will list method for obtaining count tables
 in a section below.
 
-The count values must be raw counts of sequencing reads. This is important
-for \deseqtwo{}'s statistical model \cite{Love2014} to hold, as only the actual
-counts allow assessing the measurement precision correctly. Hence, please
-do not supply other quantities, such as (rounded) normalized counts, or
-counts of covered base pairs -- this will only lead to nonsensical results.
+The count values must be raw counts of sequencing reads (for
+single-end RNA-seq) or fragments (for paired-end RNA-seq). 
+The \href{http://www.bioconductor.org/help/workflows/rnaseqGene/}{RNA-seq workflow}
+describes multiple techniques for preparing such count matrices.
+It is important to provide the correct input for \deseqtwo{}'s
+statistical model \cite{Love2014} to hold, as only the actual 
+counts allow assessing the measurement precision correctly. The \deseqtwo{}
+model internally corrects for library size, so transformed values such as counts
+scaled by library size should never be used as input.
 
 \subsubsection{\Rclass{SummarizedExperiment} input} \label{sec:sumExpInput}
 
@@ -148,7 +159,7 @@ and in the vignette for the data package \Biocexptpkg{airway}.
 Here we load the \Rclass{RangedSummarizedExperiment} from that package in
 order to build a \Rclass{DESeqDataSet}.
 
-<<loadSumExp,cache=TRUE>>=
+<<loadSumExp>>=
 library("airway")
 data("airway")
 se <- airway
@@ -170,7 +181,7 @@ The constructor function below shows the generation of a
 package, you should put the variable of interest at the end of the
 formula and make sure the control level is the first level.
 
-<<sumExpInput, cache=TRUE>>=
+<<sumExpInput>>=
 library("DESeq2")
 ddsSE <- DESeqDataSet(se, design = ~ cell + dex)
 ddsSE
@@ -266,7 +277,7 @@ chop up the sample filename to obtain the condition status, or
 you might alternatively read in a phenotypic table 
 using \Rfunction{read.table}.
 
-<<htseqInput, cache=TRUE>>=
+<<htseqInput>>=
 sampleFiles <- grep("treated",list.files(directory),value=TRUE)
 sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
 sampleTable <- data.frame(sampleName = sampleFiles,
@@ -340,7 +351,7 @@ Details about the comparison are printed to the console. The text, \texttt{condi
 \texttt{treated vs untreated}, tells you that the estimates are of the logarithmic
 fold change $\log_2 ( \textrm{treated} / \textrm{untreated} )$.
 
-<<deseq, cache=TRUE>>=
+<<deseq>>=
 dds <- DESeq(dds)
 res <- results(dds)
 res
@@ -595,7 +606,7 @@ function will by default pull the \Robject{condition} results unless
 \Robject{contrast} or \Robject{name} arguments are specified. 
 Then we can re-run \Rfunction{DESeq}:
 
-<<replaceDesign,cache=TRUE>>=
+<<replaceDesign>>=
 design(ddsMF) <- formula(~ type + condition)
 ddsMF <- DESeq(ddsMF)
 @
@@ -1023,13 +1034,10 @@ resultsNames(dds)
 results(dds, contrast=c("group", "1B", "1A"))
 @
 
-Interactions are specified in R formula using a colon, \Robject{:}, between the two
-variables names. Demonstrations of extracting results for many different kinds of
-interaction model are shown in the examples section of the help page
-for \Rfunction{results}. When interations are present in the design,
-and a prior is used for the log2 fold changes, then only the interaction terms 
-are moderated, and the main effect terms are not moderated. 
-See \Rcode{?nbinomWaldTest} for more details.
+Interactions are specified in R formula using a colon, \Robject{:},
+between the two variables names. Demonstrations of extracting results
+for many different kinds of interaction model are shown in the
+examples section of the help page for \Rfunction{results}.
 
 If one wants to test whether the condition effect is \textit{different}
 across sets, then a design with interactions makes these comparisons
@@ -1616,13 +1624,24 @@ version \Biocpkg{DESeq}, are as follows:
 
 \begin{itemize}
   \item For the calculation of the beta prior variance, instead of
-    simply matching the empirical quantile to the quantile of a Normal distribution,
-    we use the weighted quantile function of the \CRANpkg{Hmisc}
-    package. The weighting is described in the man page for \Rfunction{nbinomWaldTest}.
-    The weights used are the inverse of the expected variance of log counts (as used
-    in the diagonals of the matrix $W$ in the GLM). The effect is that
-    the estimated prior variance is robust against noisy
-    estimates of log fold change from genes with very small counts.
+    matching the empirical quantile to the quantile of a Normal
+    distribution, \deseqtwo() now uses the weighted quantile function
+    of the \CRANpkg{Hmisc} package. The weighting is described in the
+    man page for \Rfunction{nbinomWaldTest}.  The weights are the
+    inverse of the expected variance of log counts (as used in the
+    diagonals of the matrix $W$ in the GLM). The effect of the change
+    is that the estimated prior variance is robust against noisy
+    estimates of log fold change from genes with very small
+    counts. This change occurred in version 1.6 (October 2014).
+  \item For designs with interaction terms, the solution described in
+    the paper is no longer used (log fold change shrinkage only
+    applied to interaction terms). Instead, \deseqtwo{} now turns off
+    log fold change shrinkage for all terms if an interaction term is
+    present (\Robject{betaPrior=FALSE}).  While the inference on
+    interaction terms was correct with \Robject{betaPrior=TRUE}, the
+    interpretation of the individual terms and the extraction of
+    contrasts was too confusing.  This change occurred in version 1.10
+    (October 2015).
 \end{itemize}
 
 \subsection{Count outlier detection} \label{sec:cooks}
@@ -1683,9 +1702,6 @@ results which are independent of the choice of reference level.
 These model matrices differ from the standard model matrices, in that
 they have an indicator column (and therefore a coefficient) for
 each level of factors in the design formula in addition to an intercept. 
-Expanded model matrices are not used without the log2 fold change 
-prior or in the case of designs
-with 2 level factors and an interaction term.
 
 These matrices are therefore not full rank, but a coefficient vector $\beta_i$ 
 can still be found due to the zero-centered prior on non-intercept coefficients.
@@ -1697,7 +1713,6 @@ estimates for each level and every possible contrast, such that that this
 prior value will be reference-level-independent. The \Robject{contrast}
 argument of the \Rfunction{results} function is again used in order
 to generate comparisons of interest.
-
 
 
 %--------------------------------------------------
@@ -1727,7 +1742,9 @@ easy to theoretically imply from first principles, but rarely a problem in pract
 We refer to \cite{Bourgon:2010:PNAS} for further discussion of this topic.
 
 A simple filtering criterion readily available in the results object is the
-mean of normalized counts irrespective of biological condition (Figure \ref{figure/indFilt-1}). 
+mean of normalized counts irrespective of biological condition (Figure \ref{figure/indFilt-1}),
+and so this is the criterion which is used automatically by the
+\Rfunction{results} function to perform independent filtering.
 Genes with very low counts are not likely to 
 see significant differences typically due to high
 dispersion. For example, we can plot the $-\log_{10}$ $p$ values from all genes
@@ -1760,7 +1777,6 @@ more or less uniformly in $[0,1]$.
 
 <<histindepfilt, dev="pdf", fig.width=7, fig.height=5>>=
 use <- res$baseMean > metadata(res)$filterThreshold
-table(use)
 h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
 h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
 colori <- c(`do not pass`="khaki", `pass`="powderblue")
@@ -1779,7 +1795,7 @@ legend("topright", fill=rev(colori), legend=rev(names(colori)))
   the area in khaki those that do not pass.
 }
 
-\section{Frequently asked questions}
+\section{Frequently asked questions} \label{sec:faq}
 
 \subsection{How can I get support for DESeq2?}
 

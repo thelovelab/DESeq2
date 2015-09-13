@@ -277,6 +277,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   }
   
   if (modelAsFormula) {
+
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
     designAndArgChecker(object, betaPrior)
     
@@ -284,16 +285,6 @@ DESeq <- function(object, test=c("Wald","LRT"),
       stop("'full' specified as formula should equal design(object)")
     }
     modelMatrix <- NULL
-    hasIntercept <- attr(terms(design(object)),"intercept") == 1
-    termsOrder <- attr(terms.formula(design(object)),"order")
-    interactionPresent <- any(termsOrder > 1)
-    if (betaPrior & !hasIntercept) {
-      stop("betaPrior=TRUE can only be used if the design has an intercept.
-  if specifying + 0 in the design formula, use betaPrior=FALSE")
-    }
-    if (betaPrior & interactionPresent) {
-      message("\n-- usage note: betaPrior=FALSE encouraged for designs with interactions\n")
-    }
   } else {
     if (betaPrior == TRUE) {
       stop("betaPrior=TRUE is not supported for user-provided model matrices")
@@ -961,7 +952,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #'
 #' The prior variance is calculated by matching the 0.05 upper quantile
 #' of the observed MLE coefficients to a zero-centered Normal distribution.
-#' In a change since the publication of the paper,
+#' In a change of methods since the 2014 paper,
 #' the weighted upper quantile is calculated using the
 #' \code{wtd.quantile} function from the Hmisc package. The weights are
 #' the inverse of the expected variance of log counts, so the inverse of
@@ -971,12 +962,15 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' overly influence the calculation of the prior variance.
 #' The final prior variance for a factor level is the average of the
 #' estimated prior variance over all contrasts of all levels of the factor.
+#' Another change since the 2014 paper: when interaction terms are present
+#' in the design, the prior on log fold changes is turned off
+#' (for more details, see the vignette section, "Methods changes since
+#' the 2014 DESeq2 paper").
 #' 
 #' When a log2 fold change prior is used (betaPrior=TRUE),
 #' then \code{nbinomWaldTest} will by default use expanded model matrices,
 #' as described in the \code{modelMatrixType} argument, unless this argument
-#' is used to override the default behavior or unless the design
-#' contains 2 level factors and an interaction term.
+#' is used to override the default behavior.
 #' This ensures that log2 fold changes will be independent of the choice
 #' of reference level. In this case, the beta prior variance for each factor
 #' is calculated as the average of the mean squared maximum likelihood
@@ -985,10 +979,6 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' last level of the last variable in the design formula over the first level.
 #' The \code{contrast} argument of the \code{\link{results}} function can be used
 #' to generate other comparisons.
-#' 
-#' When interaction terms are present, the prior on log fold changes will only
-#' be used for the interaction terms (non-interaction log fold changes
-#' receive a wide prior variance of 1000).
 #'  
 #' The Wald test can be replaced with the \code{\link{nbinomLRT}}
 #' for an alternative test of significance.
@@ -1065,8 +1055,10 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
     if (missing(betaPrior)) {
       betaPrior <- !interactionPresent
     }
+
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
     designAndArgChecker(object, betaPrior)
+
     # what kind of model matrix to use
     stopifnot(is.logical(betaPrior))
     blindDesign <- design(object) == formula(~ 1)
@@ -1313,22 +1305,25 @@ estimateBetaPriorVar <- function(object,
   }
   names(betaPriorVar) <- colnames(betaMatrix)
 
+  # pre-v1.10 code for interactions and beta prior:
+  # ------------------------------------------------------
   # find the names of betaPriorVar which correspond
   # to non-interaction terms and set these to a wide prior
-  termsOrder <- attr(terms.formula(design(object)),"order")
-  interactionPresent <- any(termsOrder > 1)  
-  if (interactionPresent) {
-    nonInteractionCols <- getNonInteractionColumnIndices(objectNZ, modelMatrix)
-    if (modelMatrixType == "standard") widePrior <- 1e6 else widePrior <- 1e3
-    betaPriorVar[nonInteractionCols] <- widePrior
-    if (modelMatrixType == "expanded") {
-      # also set a wide prior for additional contrasts which were added
-      # for calculation of the prior variance in the case of
-      # expanded model matrices
-      designFactors <- getDesignFactors(objectNZ)
-      betaPriorVar[which(names(betaPriorVar) %in% paste0(designFactors,"Cntrst"))] <- widePrior
-    }
-  }
+  ## termsOrder <- attr(terms.formula(design(object)),"order")
+  ## interactionPresent <- any(termsOrder > 1)  
+  ## if (interactionPresent) {
+  ##   nonInteractionCols <- getNonInteractionColumnIndices(objectNZ, modelMatrix)
+  ##   if (modelMatrixType == "standard") widePrior <- 1e6 else widePrior <- 1e3
+  ##   betaPriorVar[nonInteractionCols] <- widePrior
+  ##   if (modelMatrixType == "expanded") {
+  ##     # also set a wide prior for additional contrasts which were added
+  ##     # for calculation of the prior variance in the case of
+  ##     # expanded model matrices
+  ##     designFactors <- getDesignFactors(objectNZ)
+  ##     betaPriorVar[which(names(betaPriorVar) %in% paste0(designFactors,"Cntrst"))] <- widePrior
+  ##   }
+  ## }
+  
   # intercept set to wide prior
   if ("Intercept" %in% names(betaPriorVar)) {
     betaPriorVar[which(names(betaPriorVar) == "Intercept")] <- 1e6
@@ -1353,11 +1348,8 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
   # this code copied from nbinomWaldTest()
-  termsOrder <- attr(terms.formula(design(object)),"order")
-  interactionPresent <- any(termsOrder > 1)
   blindDesign <- design(object) == formula(~ 1)
-  twoLevelsInteraction <- !factorPresentThreeOrMoreLevels(object) & interactionPresent
-  mmTypeTest <- !blindDesign & !twoLevelsInteraction
+  mmTypeTest <- !blindDesign
   modelMatrixType <- if (mmTypeTest) {
     "expanded"
   } else {
@@ -2734,12 +2726,18 @@ checkFullRank <- function(modelMatrix) {
       stop("the model matrix is not full rank, so the model cannot be fit as specified.
   Levels or combinations of levels without any samples have resulted in
   column(s) of zeros in the model matrix.
-  See the section 'Model matrix not full rank' in vignette('DESeq2')")
+
+  Please read the vignette section 'Model matrix not full rank':
+
+  vignette('DESeq2')")
     } else {
       stop("the model matrix is not full rank, so the model cannot be fit as specified.
   One or more variables or interaction terms in the design formula are linear
   combinations of the others and must be removed.
-  See the section 'Model matrix not full rank' in vignette('DESeq2')")
+
+  Please read the vignette section 'Model matrix not full rank':
+
+  vignette('DESeq2')")
     }
   }
 }
@@ -2747,14 +2745,16 @@ checkFullRank <- function(modelMatrix) {
 designAndArgChecker <- function(object, betaPrior) {
   termsOrder <- attr(terms.formula(design(object)),"order")
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
+  interactionPresent <- any(termsOrder > 1)
+  
   if (betaPrior & !hasIntercept) {
     stop("betaPrior=TRUE can only be used if the design has an intercept.
   if specifying + 0 in the design formula, use betaPrior=FALSE")
   }
-  if (any(termsOrder > 2) & betaPrior) {
-    stop("interactions higher than 1st order with log fold change shrinkage is not implemented.
-  betaPrior=FALSE is recommended for designs with interactions.")
+  if (betaPrior & interactionPresent) {
+    stop("betaPrior=FALSE should be used for designs with interactions")
   }
+
   design <- design(object)
   designVars <- all.vars(design)
   designVarsClass <- sapply(designVars, function(v) class(colData(object)[[v]]))

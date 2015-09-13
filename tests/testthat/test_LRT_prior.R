@@ -8,6 +8,6 @@ res <- results(dds)
 expect_true(grepl("LRT",mcols(res)$description[colnames(res) == "stat"]))
 
 design(dds) <- ~ group * condition
-dds <- DESeq(dds,test="LRT",reduced=~ group,betaPrior=TRUE)
-res <- results(dds)
+expect_error(dds <- DESeq(dds,test="LRT",reduced=~ group,betaPrior=TRUE))
+
 

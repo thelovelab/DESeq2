@@ -76,7 +76,7 @@ standard errors and then compared to a standard Normal distribution.
 
 The prior variance is calculated by matching the 0.05 upper quantile
 of the observed MLE coefficients to a zero-centered Normal distribution.
-In a change since the publication of the paper,
+In a change of methods since the 2014 paper,
 the weighted upper quantile is calculated using the
 \code{wtd.quantile} function from the Hmisc package. The weights are
 the inverse of the expected variance of log counts, so the inverse of
@@ -86,12 +86,15 @@ that noisy estimates of log fold changes from small count genes do not
 overly influence the calculation of the prior variance.
 The final prior variance for a factor level is the average of the
 estimated prior variance over all contrasts of all levels of the factor.
+Another change since the 2014 paper: when interaction terms are present
+in the design, the prior on log fold changes is turned off
+(for more details, see the vignette section, "Methods changes since
+the 2014 DESeq2 paper").
 
 When a log2 fold change prior is used (betaPrior=TRUE),
 then \code{nbinomWaldTest} will by default use expanded model matrices,
 as described in the \code{modelMatrixType} argument, unless this argument
-is used to override the default behavior or unless the design
-contains 2 level factors and an interaction term.
+is used to override the default behavior.
 This ensures that log2 fold changes will be independent of the choice
 of reference level. In this case, the beta prior variance for each factor
 is calculated as the average of the mean squared maximum likelihood
@@ -100,10 +103,6 @@ function without any arguments will automatically perform a contrast of the
 last level of the last variable in the design formula over the first level.
 The \code{contrast} argument of the \code{\link{results}} function can be used
 to generate other comparisons.
-
-When interaction terms are present, the prior on log fold changes will only
-be used for the interaction terms (non-interaction log fold changes
-receive a wide prior variance of 1000).
 
 The Wald test can be replaced with the \code{\link{nbinomLRT}}
 for an alternative test of significance.
