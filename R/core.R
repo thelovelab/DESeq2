@@ -1054,6 +1054,9 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
     interactionPresent <- any(termsOrder > 1)
     if (missing(betaPrior)) {
       betaPrior <- !interactionPresent
+      if (interactionPresent) {
+        message("-- note: betaPrior=FALSE used for designs with interaction (DESeq2 >= v1.10)")
+      }
     }
 
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
