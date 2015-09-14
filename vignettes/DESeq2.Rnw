@@ -582,8 +582,16 @@ resSig
 
 \subsection{Multi-factor designs} \label{sec:multifactor}
 
-Experiments with more than one factor influencing the counts can be 
-analyzed using model formula including the additional variables. 
+Experiments with more than one factor influencing the counts can be
+analyzed using design formula that include the additional variables.  
+By adding these to the design, one can control for additional variation
+in the counts. For example, if the condition samples are balanced
+across experimental batches, by including the \Robject{batch} factor to the
+design, one can increase the sensitivity for finding differences due
+to \Robject{condition}. There are multiple ways to analyze experiments when the
+additional variables are of interest and not just controlling factors 
+(see Section \ref{sec:interactions} on interactions).
+
 The data in the \Biocexptpkg{pasilla} package have a condition of interest 
 (the column \Robject{condition}), as well as information on the type of sequencing 
 which was performed (the column \Robject{type}), as we can see below:
@@ -631,7 +639,7 @@ resMFType <- results(ddsMF, contrast=c("type","single-read","paired-end"))
 head(resMFType)
 @
 
-If the variable is continuous or an interaction term (see Section~\ref{sec:interaction})
+If the variable is continuous or an interaction term (see Section~\ref{sec:interactions})
 then the results can be extracted using the \Robject{name} argument to \Rfunction{results},
 where the name is one of elements returned by \Robject{resultsNames(dds)}.
 
@@ -1004,55 +1012,85 @@ of the help page for the \Rfunction{results} function.  The formula
 that is used to generate the contrasts can be found in
 Section~\ref{sec:ctrstTheory}.
 
-\subsection{Interactions} \label{sec:interaction}
+\subsection{Interactions} \label{sec:interactions}
 
 Interaction terms can be added to the design formula, in order to
 test, for example, if the log2 fold change attributable to a given
-condition is different based on a second variable, for example if the
-treatment effect of a drug is differs based on another
-grouping variable like species. 
+condition is \textit{different} based on another factor, for example if the
+condition effect differs across genotype.
 
-Note that if the comparisons of interest are, for example, the effect
-of a condition in different sets of samples, many users find that 
-a simpler design is to follow these two steps: 
-(1) combine the factors of interest into a single factor 
-with all combinations of the original factors, and 
-(2) change the design to include just this factor. 
-This design is the same as having an interaction term, 
+Many users begin to add interaction terms to the design formula, when
+in fact a much simpler approach is possible. We will explain this approach
+first. If the comparisons of interest are, for example, the effect
+of a condition for different sets of samples, a simpler approach is to:
+
+\begin{enumerate}
+\item combine the factors of interest into a single factor, e.g.
+  \Robject{group}, with all combinations of the original factors
+\item change the design to include just this factor, e.g. \Robject{\lowtilde{} group}
+\end{enumerate}
+
+Using this design is similar to adding an interaction term, 
 in that it creates set-specific condition effects which
 can be extracted with \Rfunction{results}.
-
-If we have two factors \Robject{set} and \Robject{condition}, and we want to test 
-for the set-specific condition effects in all sets:
+If we have two factors \Robject{set} (with values 1 and 2) 
+and \Robject{condition} (with values A and B), and we want to test 
+for the condition effects specifically for each set, we could use the
+following approach: 
 
 <<combineFactors, eval=FALSE>>=
 dds$group <- factor(paste0(dds$set, dds$condition))
 design(dds) <- ~ group
 dds <- DESeq(dds)
 resultsNames(dds)
-# the condition effect in set #1
+# the condition effect in set #1 would be
 results(dds, contrast=c("group", "1B", "1A"))
 @
 
-Interactions are specified in R formula using a colon, \Robject{:},
-between the two variables names. Demonstrations of extracting results
-for many different kinds of interaction model are shown in the
-examples section of the help page for \Rfunction{results}.
+Now we will continue to explain the use of interactions in order to
+test for differences in condition effects across sets. We will use as
+an example, condition effects across three genotypes (X, Y, and Z).
+For a simple diagram of how interactions might look across genotypes,
+see Figure \ref{fig:inter}. 
 
-If one wants to test whether the condition effect is \textit{different}
-across sets, then a design with interactions makes these comparisons
-easier to test. It is important to remember that interactions are
-\textit{additional terms} (addition in the log scale), beyond the
-\textit{main effect} terms. If the \textit{main effect} of a condition
-on counts is a log2 fold change of 2, and the 
-\textit{interaction term} for the condition in a particular set Y is a log2 fold change
-of 0.5, then the log2 fold change for the condition for set Y is $2 +
-0.5 = 2.5$. Testing the interation term alone tests if the condition
-effect in set Y is \textit{different} than in the other
-set(s). Testing the \textit{sum} of the main effect and the
-interaction term tests if there is a condition effect in set Y.  This
-is shown in more detail in the examples section of the help page for
-\Rfunction{results}.
+<<interFig, dev="pdf", fig.width=4, fig.height=3, echo=FALSE, results="hide">>=
+npg <- 20
+mu <- 2^c(8,10,9,11,10,12)
+cond <- rep(rep(c("A","B"),each=npg),3)
+geno <- rep(c("X","Y","Z"),each=2*npg)
+table(cond, geno)
+counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)
+d <- data.frame(log2c=log2(counts+1), cond, geno)
+library(ggplot2)
+plotit <- function(d) {
+  ggplot(d, aes(x=cond, y=log2c, group=geno)) + 
+    geom_jitter(position = position_jitter(width=.1)) +
+    facet_wrap(~ geno) + 
+    stat_summary(fun.y=mean, geom="line", colour="red", size=1) + 
+    ylab("log2(counts+1)")
+}
+plotit(d) + ylim(7,13)
+lm(log2c ~ cond + geno + geno:cond, data=d)
+@ 
+
+<<interFig2, dev="pdf", fig.width=4, fig.height=3,  echo=FALSE, results="hide">>=
+mu[4] <- 2^12
+mu[6] <- 2^8
+counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)
+d2 <- data.frame(log2c=log2(counts + 1), cond, geno)
+plotit(d2) + ylim(7,13)
+lm(log2c ~ cond + geno + geno:cond, data=d2)
+@ 
+
+\begin{figure}
+\centering
+\includegraphics[width=.45\textwidth]{figure/interFig-1}
+\includegraphics[width=.45\textwidth]{figure/interFig2-1}
+\caption{
+  \textbf{Interactions.} 
+  write text here.}
+\label{fig:inter}
+\end{figure}
 
 \subsection{Time-series experiments}
 
