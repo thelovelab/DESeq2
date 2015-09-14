@@ -1,4 +1,4 @@
-%\VignetteIndexEntry{Analyzing RNA-Seq data with the "DESeq2" package}
+%\VignetteIndexEntry{Analyzing RNA-seq data with the "DESeq2" package}
 %\VignettePackage{DESeq2}
 %\VignetteEngine{knitr::knitr}
 
@@ -43,7 +43,7 @@ library("DESeq2")
 \maketitle
 
 \begin{abstract}
-  A basic task in the analysis of count data from RNA-Seq is the detection of
+  A basic task in the analysis of count data from RNA-seq is the detection of
   differentially expressed genes. The count data are presented as a table which reports,
   for each sample, the number of sequence fragments that have been assigned to each
   gene. Analogous data also arise for other assay types, including comparative ChIP-Seq,
@@ -56,7 +56,7 @@ library("DESeq2")
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{limma},
   \Biocpkg{DSS}, \Biocpkg{EBSeq} and \Biocpkg{baySeq}.}. 
   This vignette explains the use of the package and demonstrates
-  typical workflows.  An RNA-Seq workflow on the Bioconductor website:
+  typical workflows.  An RNA-seq workflow on the Bioconductor website:
   \url{http://www.bioconductor.org/help/workflows/rnaseqGene/} covers
   similar material to this vignette but at a slower pace, including
   the generation of count matrices from FASTQ files.
@@ -123,7 +123,7 @@ for more information about how to construct an informative post.
 \subsubsection{Why raw counts?}
 
 As input, the \deseqtwo{} package expects count data as obtained, e.\,g.,
-from RNA-Seq or another high-throughput sequencing experiment, in the form of a
+from RNA-seq or another high-throughput sequencing experiment, in the form of a
 matrix of integer values. The value in the $i$-th row and the $j$-th column of
 the matrix tells how many reads have been mapped to gene $i$ in sample $j$.
 Analogously, for other types of assays, the rows of the matrix might correspond
@@ -153,7 +153,7 @@ encouraged, resulting in a \Rclass{RangedSummarizedExperiment} object.
 Other methods for obtaining count matrices are described in the next section.
 
 An example of the steps to produce a \Rclass{RangedSummarizedExperiment} can
-be found in an RNA-Seq workflow on the Bioconductor 
+be found in an RNA-seq workflow on the Bioconductor 
 website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}
 and in the vignette for the data package \Biocexptpkg{airway}.
 Here we load the \Rclass{RangedSummarizedExperiment} from that package in
@@ -1105,7 +1105,7 @@ the time factor, and the interaction of the two. In this case, using
 the likelihood ratio test with a reduced model which does not contain
 the interaction terms will test whether the condition induces a change
 in gene expression at any time point after the reference level time point
-(time 0). An example of the later analysis is provided in an RNA-Seq
+(time 0). An example of the later analysis is provided in an RNA-seq
 workflow on the Bioconductor
 website: \url{http://www.bioconductor.org/help/workflows/rnaseqGene/}.
 
@@ -1139,7 +1139,7 @@ between the number of parameters in the two models.
 
 \subsection{Approach to count outliers} \label{sec:outlierApproach}
 
-RNA-Seq data sometimes contain isolated instances of very large counts that are apparently
+RNA-seq data sometimes contain isolated instances of very large counts that are apparently
 unrelated to the experimental or study design, and which may be 
 considered outliers. There are many reasons why outliers can arise, including rare
 technical or experimental artifacts, read mapping problems in the case of genetically
@@ -1616,7 +1616,7 @@ By default these log2 fold changes are the maximum \emph{a posteriori} estimates
 zero-centered Normal prior -- in the software referrred to as a $\beta$-prior -- hence \deseqtwo{}
 provides ``moderated'' log2 fold change estimates.  Dispersions are estimated using expected mean
 values from the maximum likelihood estimate of log2 fold changes, and optimizing the Cox-Reid
-adjusted profile likelihood, as first implemented for RNA-Seq data in \Biocpkg{edgeR}
+adjusted profile likelihood, as first implemented for RNA-seq data in \Biocpkg{edgeR}
 \cite{CR,edgeR_GLM}. The steps performed by the \Rfunction{DESeq} function are documented in its
 manual page; briefly, they are:
 
