@@ -241,8 +241,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
     betaPrior <- if (modelAsFormula) {
       termsOrder <- attr(terms.formula(design(object)),"order")
       interactionPresent <- any(termsOrder > 1)
-      # by default, use beta prior for Wald tests and when no interaction terms are included
-      betaPrior <- test == "Wald" & !interactionPresent
+      # use beta prior for Wald tests and when no interaction terms are included
+      (test == "Wald") & !interactionPresent
     } else {
       FALSE
     }
@@ -1052,11 +1052,11 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
     modelAsFormula <- TRUE
     termsOrder <- attr(terms.formula(design(object)),"order")
     interactionPresent <- any(termsOrder > 1)
+    if (interactionPresent) {
+      message("-- note: betaPrior=FALSE used for designs with interaction")
+    }
     if (missing(betaPrior)) {
       betaPrior <- !interactionPresent
-      if (interactionPresent) {
-        message("-- note: betaPrior=FALSE used for designs with interaction (DESeq2 >= v1.10)")
-      }
     }
 
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
@@ -2749,7 +2749,6 @@ designAndArgChecker <- function(object, betaPrior) {
   termsOrder <- attr(terms.formula(design(object)),"order")
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
   interactionPresent <- any(termsOrder > 1)
-  
   if (betaPrior & !hasIntercept) {
     stop("betaPrior=TRUE can only be used if the design has an intercept.
   if specifying + 0 in the design formula, use betaPrior=FALSE")
