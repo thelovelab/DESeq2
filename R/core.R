@@ -2759,16 +2759,24 @@ designAndArgChecker <- function(object, betaPrior) {
 
   design <- design(object)
   designVars <- all.vars(design)
-  designVarsClass <- sapply(designVars, function(v) class(colData(object)[[v]]))
-  designFactors <- designVars[designVarsClass == "factor"]
-  if (any(sapply(designFactors,function(v) any(table(colData(object)[[v]]) == 0)))) {
-    stop("factors in design formula must have samples for each level.
+  if (length(designVars) > 0) {
+    designFactors <- designVars[sapply(designVars, function(v) is(colData(object)[[v]], "factor"))]
+    if (length(designFactors) > 0 && any(sapply(designFactors,function(v) any(table(colData(object)[[v]]) == 0)))) {
+      stop("factors in design formula must have samples for each level.
   this error can arise when subsetting a DESeqDataSet, in which
   all the samples for one or more levels of a factor in the design were removed.
   if this was intentional, use droplevels() to remove these levels, e.g.:
 
   dds$condition <- droplevels(dds$condition)
 ")
+    }
+    if (any(sapply(designVars, function(v) is(colData(object)[[v]], "ordered")))) {
+      stop("the design contains an ordered factor. The internal steps
+that estimate the beta prior variance and produce resultsNames
+do not work on ordered factors. You should instead use model.matrix()
+and then provide your custom matrix to 'full' argument of DESeq().
+(You should also provide a matrix to 'reduced' for test='LRT'.)")
+    }
   }
 }
 
