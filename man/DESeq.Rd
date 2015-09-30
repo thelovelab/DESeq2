@@ -58,7 +58,12 @@ betaPrior must be set to TRUE in order for expanded model matrices
 to be fit.}
 
 \item{parallel}{if FALSE, no parallelization. if TRUE, parallel
-execution using \code{BiocParallel}, see next argument \code{BPPARAM}}
+execution using \code{BiocParallel}, see next argument \code{BPPARAM}.
+A note on running in parallel using \code{BiocParallel}: it may be
+advantageous to remove large, unneeded objects from your current
+R environment before calling \code{DESeq},
+as it is possible that R's internal garbage collection
+will copy these files while running on worker nodes.}
 
 \item{BPPARAM}{an optional parameter object passed internally
 to \code{\link{bplapply}} when \code{parallel=TRUE}.

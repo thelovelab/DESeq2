@@ -47,23 +47,6 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// rlogGrid
-Rcpp::List rlogGrid(SEXP ySEXP, SEXP nfSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP interceptSEXP, SEXP bgridSEXP, SEXP betapriorvarSEXP);
-RcppExport SEXP DESeq2_rlogGrid(SEXP ySEXPSEXP, SEXP nfSEXPSEXP, SEXP betaSEXPSEXP, SEXP alphaSEXPSEXP, SEXP interceptSEXPSEXP, SEXP bgridSEXPSEXP, SEXP betapriorvarSEXPSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type ySEXP(ySEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type nfSEXP(nfSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type betaSEXP(betaSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type alphaSEXP(alphaSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type interceptSEXP(interceptSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type bgridSEXP(bgridSEXPSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type betapriorvarSEXP(betapriorvarSEXPSEXP);
-    __result = Rcpp::wrap(rlogGrid(ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSEXP, betapriorvarSEXP));
-    return __result;
-END_RCPP
-}
 // fitDispGrid
 Rcpp::List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP use_priorSEXP);
 RcppExport SEXP DESeq2_fitDispGrid(SEXP ySEXPSEXP, SEXP xSEXPSEXP, SEXP mu_hatSEXPSEXP, SEXP disp_gridSEXPSEXP, SEXP log_alpha_prior_meanSEXPSEXP, SEXP log_alpha_prior_sigmasqSEXPSEXP, SEXP use_priorSEXPSEXP) {

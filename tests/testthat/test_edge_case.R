@@ -40,3 +40,7 @@ design(dds) <- ~ exp_cond
 dds <- DESeq(dds)
 results(dds)
 
+# NA in colData
+dds <- makeExampleDESeqDataSet(n=50,m=4)
+colData(dds)$condition[4] <- NA
+expect_error(DESeq(dds))

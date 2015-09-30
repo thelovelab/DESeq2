@@ -6,12 +6,15 @@
 \alias{summary.DESeqResults}
 \title{Summarize DESeq results}
 \usage{
-\method{summary}{DESeqResults}(object, alpha=.1, \dots)
+\method{summary}{DESeqResults}(object, alpha, \dots)
 }
 \arguments{
 \item{object}{a \code{\link{DESeqResults}} object}
 
-\item{alpha}{the adjusted p-value cutoff}
+\item{alpha}{the adjusted p-value cutoff. if not set, this
+defaults to the \code{alpha} argument which was used in
+\code{\link{results}} to set the target FDR for independent
+filtering.}
 
 \item{...}{additional arguments}
 }

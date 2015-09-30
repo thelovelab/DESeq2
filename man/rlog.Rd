@@ -5,11 +5,10 @@
 \alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
-rlog(object, blind = TRUE, fast = FALSE, intercept, betaPriorVar, B,
-  fitType = "parametric")
+rlog(object, blind = TRUE, intercept, betaPriorVar, fitType = "parametric")
 
-rlogTransformation(object, blind = TRUE, fast = FALSE, intercept,
-  betaPriorVar, B, fitType = "parametric")
+rlogTransformation(object, blind = TRUE, intercept, betaPriorVar,
+  fitType = "parametric")
 }
 \arguments{
 \item{object}{a DESeqDataSet, or matrix of counts}
@@ -24,11 +23,6 @@ If many of genes have large differences in counts due to
 the experimental design, it is important to set blind=FALSE for downstream
 analysis.}
 
-\item{fast}{if TRUE, an alternative rlog-like transformation is made,
-wherein an optimal amount of linear shrinkage of sample-wise log fold changes
-is calculated for each gene. 'Optimal' is defined by maximizing the same
-posterior as in the standard rlog transformation.}
-
 \item{intercept}{by default, this is not provided and calculated automatically.
 if provided, this should be a vector as long as the number of rows of object,
 which is log2 of the mean normalized counts from a previous dataset.
@@ -37,12 +31,6 @@ transformation based on a previous dataset.}
 
 \item{betaPriorVar}{a single value, the variance of the prior on the sample
 betas, which if missing is estimated from the data}
-
-\item{B}{for the \code{fast} method only.
-by default, this is not provided and calculated automatically.
-if provided, this should be a vector as long as the number of rows of object.
-this is the amount of shrinkage from 0 to 1 for each row, and takes precedence
-over internal calculation of B using betaPriorVar.}
 
 \item{fitType}{in case dispersions have not yet been estimated for \code{object},
 this parameter is passed on to \code{\link{estimateDispersions}} (options described there).}
@@ -139,6 +127,6 @@ Reference for regularized logarithm (rlog):
 Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 2014, 15:550. \url{http://dx.doi.org/10.1186/s13059-014-0550-8}
 }
 \seealso{
-\code{\link{plotPCA}}, \code{\link{varianceStabilizingTransformation}}
+\code{\link{plotPCA}}, \code{\link{varianceStabilizingTransformation}}, \code{\link{normTransform}}
 }
 

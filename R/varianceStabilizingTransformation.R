@@ -102,7 +102,7 @@
 #' 
 #' @author Simon Anders
 #'
-#' @seealso \code{\link{plotPCA}}, \code{\link{rlog}}
+#' @seealso \code{\link{plotPCA}}, \code{\link{rlog}}, \code{\link{normTransform}}
 #'
 #' @examples
 #'

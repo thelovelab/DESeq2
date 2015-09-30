@@ -720,10 +720,13 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
 #' Print a summary of the results from a DESeq analysis.
 #'
 #' @usage
-#' \method{summary}{DESeqResults}(object, alpha=.1, \dots)
+#' \method{summary}{DESeqResults}(object, alpha, \dots)
 #' 
 #' @param object a \code{\link{DESeqResults}} object
-#' @param alpha the adjusted p-value cutoff
+#' @param alpha the adjusted p-value cutoff. if not set, this
+#' defaults to the \code{alpha} argument which was used in
+#' \code{\link{results}} to set the target FDR for independent
+#' filtering.
 #' @param ... additional arguments
 #'
 #' @docType methods
@@ -740,7 +743,14 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
 #' summary(res)
 #'
 #' @export
-summary.DESeqResults <- function(object, alpha=.1, ...) {
+summary.DESeqResults <- function(object, alpha, ...) {
+  if (missing(alpha)) {
+    alpha <- if (is.null(metadata(object)$alpha)) {
+      0.1
+    } else {
+      metadata(object)$alpha
+    }
+  }  
   cat("\n")
   notallzero <- sum(object$baseMean > 0)
   up <- sum(object$padj < alpha & object$log2FoldChange > 0, na.rm=TRUE)

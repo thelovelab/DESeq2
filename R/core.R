@@ -184,7 +184,12 @@ NULL
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
-#' execution using \code{BiocParallel}, see next argument \code{BPPARAM}
+#' execution using \code{BiocParallel}, see next argument \code{BPPARAM}.
+#' A note on running in parallel using \code{BiocParallel}: it may be
+#' advantageous to remove large, unneeded objects from your current
+#' R environment before calling \code{DESeq},
+#' as it is possible that R's internal garbage collection
+#' will copy these files while running on worker nodes.
 #' @param BPPARAM an optional parameter object passed internally
 #' to \code{\link{bplapply}} when \code{parallel=TRUE}.
 #' If not specified, the parameters last registered with
@@ -230,6 +235,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
                   minReplicatesForReplace=7, modelMatrixType,
                   parallel=FALSE, BPPARAM=bpparam()) {
   # check arguments
+  stopifnot(is(object, "DESeqDataSet"))
   test <- match.arg(test, choices=c("Wald","LRT"))
   fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
   stopifnot(is.logical(quiet))
@@ -2760,6 +2766,9 @@ designAndArgChecker <- function(object, betaPrior) {
   design <- design(object)
   designVars <- all.vars(design)
   if (length(designVars) > 0) {
+    if (any(sapply(designVars, function(v) any(is.na(colData(object)[[v]]))))) {
+      stop("variables in the design formula cannot have NA values")
+    }
     designFactors <- designVars[sapply(designVars, function(v) is(colData(object)[[v]], "factor"))]
     if (length(designFactors) > 0 && any(sapply(designFactors,function(v) any(table(colData(object)[[v]]) == 0)))) {
       stop("factors in design formula must have samples for each level.

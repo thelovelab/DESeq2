@@ -66,11 +66,7 @@
 #' blind=FALSE will skip re-estimation of the dispersion trend, if this has already been calculated.
 #' If many of genes have large differences in counts due to
 #' the experimental design, it is important to set blind=FALSE for downstream
-#' analysis. 
-#' @param fast if TRUE, an alternative rlog-like transformation is made,
-#' wherein an optimal amount of linear shrinkage of sample-wise log fold changes
-#' is calculated for each gene. 'Optimal' is defined by maximizing the same
-#' posterior as in the standard rlog transformation.
+#' analysis.
 #' @param intercept by default, this is not provided and calculated automatically.
 #' if provided, this should be a vector as long as the number of rows of object,
 #' which is log2 of the mean normalized counts from a previous dataset.
@@ -78,11 +74,6 @@
 #' transformation based on a previous dataset.
 #' @param betaPriorVar a single value, the variance of the prior on the sample
 #' betas, which if missing is estimated from the data
-#' @param B for the \code{fast} method only.
-#' by default, this is not provided and calculated automatically.
-#' if provided, this should be a vector as long as the number of rows of object.
-#' this is the amount of shrinkage from 0 to 1 for each row, and takes precedence
-#' over internal calculation of B using betaPriorVar.
 #' @param fitType in case dispersions have not yet been estimated for \code{object},
 #' this parameter is passed on to \code{\link{estimateDispersions}} (options described there).
 #' 
@@ -100,7 +91,7 @@
 #' 
 #' Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 2014, 15:550. \url{http://dx.doi.org/10.1186/s13059-014-0550-8}
 #' 
-#' @seealso \code{\link{plotPCA}}, \code{\link{varianceStabilizingTransformation}}
+#' @seealso \code{\link{plotPCA}}, \code{\link{varianceStabilizingTransformation}}, \code{\link{normTransform}}
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet(m=6,betaSD=1)
@@ -126,8 +117,7 @@
 #'                            
 #' 
 #' @export
-rlog <- function(object, blind=TRUE, fast=FALSE,
-                 intercept, betaPriorVar, B, fitType="parametric") {
+rlog <- function(object, blind=TRUE, intercept, betaPriorVar, fitType="parametric") {
   if (is.null(colnames(object))) {
     colnames(object) <- seq_len(ncol(object))
   }
@@ -144,46 +134,23 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
     design(object) <- ~ 1
   }
   # sparsity test
-  if (missing(intercept) & missing(B)) {
+  if (missing(intercept)) {
     sparseTest(counts(object, normalized=TRUE), .9, 100, .1)
   }
   if (blind | is.null(mcols(object)$dispFit)) {
-    # estimate the dispersions on all genes, or if fast=TRUE subset to 1000 non-zero genes
+    # estimate the dispersions on all genes
     if (is.null(mcols(object)$baseMean)) {
       object <- getBaseMeansAndVariances(object)
     }
-    if (!fast | sum(mcols(object)$baseMean > 0) <= 1000) {
-      object <- estimateDispersionsGeneEst(object, quiet=TRUE)
-      object <- estimateDispersionsFit(object, fitType, quiet=TRUE)
-    } else {
-      # select 1000 genes along the range of non-zero base means
-      idx <- order(mcols(object)$baseMean)[round(seq(from=(sum(mcols(object)$baseMean==0) + 1),
-                                                     to=nrow(object), length=1000))]      
-      objectSub <- object[idx,]
-      objectSub <- estimateDispersionsGeneEst(objectSub, quiet=TRUE)
-      objectSub <- estimateDispersionsFit(objectSub, fitType, quiet=TRUE)
-      # fill in the fitted dispersions for all genes
-      mcols(object)$dispFit <- dispersionFunction(objectSub)(mcols(object)$baseMean)
-    }
+    object <- estimateDispersionsGeneEst(object, quiet=TRUE)
+    object <- estimateDispersionsFit(object, fitType, quiet=TRUE)
   }
   if (!missing(intercept)) {
     if (length(intercept) != nrow(object)) {
       stop("intercept should be as long as the number of rows of object")
     }
   }
-  if (!missing(B)) {
-    if (length(B) != nrow(object)) {
-      stop("B should be as long as the number of rows of object")
-    }
-    if (!all(B >= 0 & B <= 1)) {
-      stop("B should be defined between 0 and 1")
-    }
-  }
-  if (fast) {
-    rld <- rlogDataFast(object, intercept, betaPriorVar, B)
-  } else {
-    rld <- rlogData(object, intercept, betaPriorVar)
-  }
+  rld <- rlogData(object, intercept, betaPriorVar)
   if (matrixIn) {
     return(rld)
   }
@@ -197,9 +164,6 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
   if (!is.null(attr(rld,"intercept"))) {
     mcols(dt)$rlogIntercept <- attr(rld,"intercept")
   }
-  if (!is.null(attr(rld,"B"))) {
-    attr(dt,"B") <- attr(rld,"B")
-  }
   dt
 }
 
@@ -208,7 +172,6 @@ rlog <- function(object, blind=TRUE, fast=FALSE,
 rlogTransformation <- rlog
 
 ###################### unexported
-
 
 rlogData <- function(object, intercept, betaPriorVar) {
   if (is.null(mcols(object)$dispFit)) {
@@ -309,122 +272,6 @@ rlogData <- function(object, intercept, betaPriorVar) {
     attr(normalizedData,"intercept") <- fittedIntercept
   }
   normalizedData
-}
-
-rlogDataFast <- function(object, intercept, betaPriorVar, B) {
-  if (is.null(mcols(object)$dispFit)) {
-    stop("first estimate dispersion")
-  }
-  if (is.null(mcols(object)$allZero) | is.null(mcols(object)$baseMean)) {
-    object <- getBaseMeansAndVariances(object)
-  }
-  if (!missing(B)) {
-    if (length(B) != nrow(object)) {
-      stop("B should be as long as the number of rows of object")
-    }
-    if (!all(B >= 0 & B <= 1)) {
-      stop("B should be defined between 0 and 1")
-    }
-  }
-  if (missing(intercept)) {
-    # set the intercept to log2 ( geometric mean of normalized counts )
-    intercept <- rowMeans(log2(counts(object,normalized=TRUE) + 0.5))
-    interceptOut <- intercept
-    interceptOut[mcols(object)$allZero] <- -Inf
-  } else {
-    if (length(intercept) != nrow(object)) {
-      stop("intercept should be as long as the number of rows of object")
-    }
-    infiniteIntercept <- !is.finite(intercept)
-    mcols(object)$allZero <- infiniteIntercept
-    interceptOut <- intercept
-  }
-  # only continue on the rows with non-zero row sums
-  objectNZ <- object[!mcols(object)$allZero,]
-  stopifnot(all(!is.na(mcols(objectNZ)$dispFit)))
-  interceptNZ <- intercept[!mcols(object)$allZero]
-
-  logCounts <- log2(counts(objectNZ,normalized=TRUE) + 0.5)
-  logFoldChangeMatrix <- logCounts - interceptNZ
-  
-  if (missing(B)) {
-    # if a prior sigma squared notq provided, estimate this
-    # by the matching upper quantiles of the
-    # log2 counts plus a pseudocount
-    
-    if (missing(betaPriorVar)) {
-      betaPriorVar <- if (nrow(objectNZ) > 1000) {
-        # subsample 1000 genes along the range of base mean
-        # to speed up the weighted quantile matching      
-        idx <- order(mcols(objectNZ)$baseMean)[round(seq(from=1,to=nrow(objectNZ),length=1000))]
-        logFoldChangeVector <- as.numeric(logFoldChangeMatrix[idx,,drop=FALSE])
-        varlogk <- 1/mcols(objectNZ)$baseMean[idx] + mcols(objectNZ)$dispFit[idx]
-        weights <- 1/varlogk
-        matchWeightedUpperQuantileForVariance(logFoldChangeVector, rep(weights,ncol(objectNZ)))        
-      } else {
-        logFoldChangeVector <- as.numeric(logFoldChangeMatrix)
-        varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
-        weights <- 1/varlogk
-        matchWeightedUpperQuantileForVariance(logFoldChangeVector, rep(weights,ncol(objectNZ)))
-      }
-    }
-    stopifnot(length(betaPriorVar)==1)
-    if (!is.null(normalizationFactors(object))) {
-      nf <- normalizationFactors(objectNZ)
-    } else {
-      sf <- sizeFactors(object)
-      nf <- matrix(rep(sf,each=nrow(objectNZ)),ncol=ncol(objectNZ))
-    }
-    dispersion <- mcols(objectNZ)$dispFit
-
-    delta <- .05
-    bgrid <- seq(from=0, to=1, by=delta)
-
-    # find a subset of rows which covers the dynamic range
-    lbm <- log(mcols(objectNZ)$baseMean)
-    idx <- if (nrow(objectNZ) > 1000) {
-      order(lbm)[round(seq(from=1, to=nrow(objectNZ), length=1000))]
-    } else {
-      seq_len(nrow(objectNZ))
-    }
-
-    # evaluate over a grid of B (shrinkage amount)
-    optimalFromGrid <- rlogGridWrapper(counts(objectNZ)[idx,], nf[idx,], logFoldChangeMatrix[idx,],
-                                       dispersion[idx], interceptNZ[idx], bgrid, betaPriorVar)
-    fit <- loess(optimalFromGrid ~ lbm, data=data.frame(optimalFromGrid,lbm=lbm[idx]),
-                 control=loess.control(trace.hat="approximate"), span=.1)
-    pred <- predict(fit, newdata=data.frame(lbm))
-    optimalB <- pmax(0, pmin(1, pred))
-     
-  } else {
-    Bout <- B
-    optimalB <- B[!mcols(object)$allZero]
-  }
-
-  # shrink the betas/log fold changes according to the interpolated B's
-  lfcShrink <- (1 - optimalB) * logFoldChangeMatrix
-  normalizedDataNZ <- interceptNZ + lfcShrink
-  normalizedData <- buildMatrixWithZeroRows(normalizedDataNZ, mcols(object)$allZero)
-  colnames(normalizedData) <- colnames(object)
-  if (!missing(betaPriorVar)) {
-    attr(normalizedData,"betaPriorVar") <- betaPriorVar
-  }
-  attr(normalizedData,"intercept") <- interceptOut
-  Bout <- buildNumericWithZeroRows(optimalB, mcols(object)$allZero)
-  attr(normalizedData,"B") <- Bout
-  normalizedData
-}
-
-# Evaluate the likelihood over a grid of B's
-rlogGridWrapper <- function (ySEXP, nfSEXP, betaSEXP, alphaSEXP, interceptSEXP, bgridSEXP, betapriorvarSEXP) {
-  # test for any NAs in arguments
-  arg.names <- names(formals(rlogGridWrapper))
-  na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
-  if (any(na.test)) stop(paste("in call to rlogGrid, the following arguments contain NA:",
-                               paste(arg.names[na.test],collapse=", ")))
-  Bvec <- rlogGrid(ySEXP=ySEXP, nfSEXP=nfSEXP, betaSEXP=betaSEXP, alphaSEXP=alphaSEXP, interceptSEXP=interceptSEXP,
-                   bgridSEXP=bgridSEXP, betapriorvarSEXP=betapriorvarSEXP)$Bvec
-  as.numeric(Bvec)
 }
 
 sparseTest <- function(x, p, t1, t2) {

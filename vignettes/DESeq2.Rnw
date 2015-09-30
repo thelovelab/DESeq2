@@ -112,7 +112,7 @@ line would instead use \Rfunction{DESeqDataSetFromMatrix}, shown below.
 
 \subsection{How to get help}
 
-All \textit{DESeq2} questions should be posted to the Bioconductor support
+All \deseqtwo{} questions should be posted to the Bioconductor support
 site: \url{https://support.bioconductor.org}, which serves as a
 repository of questions and answers. See the first question in the
 list of Frequently Asked Questions (Section \ref{sec:faq})
@@ -289,6 +289,23 @@ ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
 ddsHTSeq
 @
 
+\subsubsection{Pre-filtering}
+
+While it is not necessary to pre-filter before running the \deseqtwo{}
+functions, there are two reasons which making pre-filtering useful:
+by removing rows in which there are no reads or nearly no reads,
+we (1) reduce the memory size of the data object and 
+(2) increase the speed of the transformation
+and testing functions within \deseqtwo{}. Here we perform a minimal
+filtering for rows that have only 0 or 1 read. Note that more strict
+filtering to increase power is automatically applied via independent filtering
+on the mean of \textit{normalized} counts, which will be discussed in
+Section~\ref{sec:autoFilt}.
+
+<<prefilter>>=
+dds <- dds[ rowSums(counts(dds)) > 1, ]
+@ 
+
 \subsubsection{Note on factor levels} \label{sec:factorLevels}
 
 In the three examples above, we applied the function \Rfunction{factor}
@@ -440,6 +457,16 @@ either up or down.
 plotMA(res, main="DESeq2", ylim=c(-2,2))
 @
 
+After calling \Rfunction{plotMA}, one can use the function
+\Rfunction{identify} to interactively detect the row number of
+individual genes by clicking on the plot. One can then recover
+the gene identifiers by saving the resulting indices:
+
+<<MAidentify, eval=FALSE>>=
+idx <- identify(res$baseMean, res$log2FoldChange)
+rownames(res)[idx]
+@ 
+
 The MA-plot of log2 fold changes returned by \deseqtwo{} allows us to
 see how the shrinkage of fold changes works for genes with low
 counts. You can still obtain results tables which include the
@@ -454,18 +481,11 @@ resMLE <- results(dds, addMLE=TRUE)
 head(resMLE, 4)
 @ 
 
-<<MANoPrior, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
-df <- data.frame(resMLE$baseMean, resMLE$lfcMLE, ifelse(is.na(res$padj), FALSE, res$padj < .1))
-plotMA(df, main=expression(unshrunken~log[2]~fold~changes), ylim=c(-2,2))
+One can make an MA-plot of the unshrunken estimates like so:
+
+<<MANoPrior, fig.width=4.5, fig.height=4.5>>=
+plotMA(resMLE, MLE=TRUE, main="unshrunken LFC", ylim=c(-2,2))
 @
-
-After calling \Rfunction{plotMA}, one can use the function
-\Rfunction{identify} to interactively detect the row number of
-individual genes by clicking on the plot.
-
-<<MAidentify, eval=FALSE>>=
-identify(res$baseMean, res$log2FoldChange)
-@ 
 
 \subsubsection{Plot counts}
 
@@ -692,29 +712,41 @@ experiment-wide trend has flattened. It is those genes with row
 variance above the trend which will allow us to cluster samples into
 interesting groups.
 
+\textbf{Note on running time:} if you have many samples (e.g. 100s),
+the \Rfunction{rlog} function might take too long, and the variance
+stabilizing transformation might be a better choice.  The rlog and VST
+have similar properties, but the rlog requires fitting a shrinkage
+term for each sample and each gene which takes time.  See the
+\deseqtwo{} paper for more discussion on the differences
+\cite{Love2014}.
+
 \subsubsection{Blind dispersion estimation}
 
-The two functions, \Rfunction{rlog} and 
-\Rfunction{varianceStabilizingTransformation}, have an argument \Robject{blind},
-for whether the transformation should be blind to the sample information specified by the 
-design formula. When \Robject{blind} equals \Robject{TRUE} (the default),
-the functions will re-estimate the dispersions using only an intercept
-(design formula $\sim 1$). This setting should be used in order to compare samples 
-in a manner wholly unbiased by the information about experimental groups, 
-for example to perform sample QA (quality assurance) as demonstrated below.
+The two functions, \Rfunction{rlog} and
+\Rfunction{varianceStabilizingTransformation}, have an argument
+\Robject{blind}, for whether the transformation should be blind to the
+sample information specified by the design formula. When
+\Robject{blind} equals \Robject{TRUE} (the default), the functions
+will re-estimate the dispersions using only an intercept (design
+formula $\sim 1$). This setting should be used in order to compare
+samples in a manner wholly unbiased by the information about
+experimental groups, for example to perform sample QA (quality
+assurance) as demonstrated below.
 
-However, blind dispersion estimation is not the appropriate choice if one
-expects that many or the majority of genes (rows) will have large differences
-in counts which are explanable by the experimental design, and one wishes 
-to tranform the data for downstream analysis. In this case, using blind dispersion
-estimation will lead to large estimates of dispersion, as it attributes differences
-due to experimental design as unwanted ``noise'', and shrinks the tranformed values
-towards each other. By setting \Robject{blind} to \Robject{FALSE}, the dispersions 
-already estimated will be used to perform transformations, or if not present, 
-they will be estimated using the current design formula. Note that only the fitted
-dispersion estimates from mean-dispersion trend line is used in the transformation.
-So setting \Robject{blind} to \Robject{FALSE} is still mostly unbiased
-by the information about the samples.
+However, blind dispersion estimation is not the appropriate choice if
+one expects that many or the majority of genes (rows) will have large
+differences in counts which are explanable by the experimental design,
+and one wishes to tranform the data for downstream analysis. In this
+case, using blind dispersion estimation will lead to large estimates
+of dispersion, as it attributes differences due to experimental design
+as unwanted ``noise'', and shrinks the tranformed values towards each
+other. By setting \Robject{blind} to \Robject{FALSE}, the dispersions
+already estimated will be used to perform transformations, or if not
+present, they will be estimated using the current design formula. Note
+that only the fitted dispersion estimates from mean-dispersion trend
+line is used in the transformation.  So setting \Robject{blind} to
+\Robject{FALSE} is still mostly unbiased by the information about the
+samples.
 
 \subsubsection{Extracting transformed values}
 
@@ -728,58 +760,57 @@ vsd <- varianceStabilizingTransformation(dds)
 head(assay(rld), 3)
 @
 
-Note that if you have many samples (for example hundreds of samples), 
-the \Rfunction{rlog} function might take too long, and the 
-variance stabilizing transformation might be a better choice.
-The rlog and VST have similar properties, but the rlog requires
-fitting a shrinkage term for each sample and each gene which takes time.
-See the DESeq2 paper for more discussion on the differences \cite{Love2014}.
-
 \subsubsection{Regularized log transformation}
 
-The function \Rfunction{rlog},
-stands for \emph{regularized log}, transforming
-the original count data to the log2 scale by fitting a model with a
-term for each sample and a prior distribution on the coefficients
-which is estimated from the data. This is the same kind of shrinkage 
-(sometimes referred to as regularization, or moderation) of log fold changes
-used by the \Rfunction{DESeq} and \Rfunction{nbinomWaldTest}, as seen in
-Figure \ref{fig:MA}. The resulting data contains elements defined as:
+The function \Rfunction{rlog}, stands for \emph{regularized log},
+transforming the original count data to the log2 scale by fitting a
+model with a term for each sample and a prior distribution on the
+coefficients which is estimated from the data. This is the same kind
+of shrinkage (sometimes referred to as regularization, or moderation)
+of log fold changes used by the \Rfunction{DESeq} and
+\Rfunction{nbinomWaldTest}, as seen in Figure \ref{fig:MA}. The
+resulting data contains elements defined as:
 
 $$ \log_2(q_{ij}) = \beta_{i0} + \beta_{ij} $$
 
-where $q_{ij}$ is a parameter proportional to the expected true concentration of fragments for gene
-$i$ and sample $j$ (see Section~\ref{sec:glm}), $\beta_{i0}$ is an intercept which does not undergo
-shrinkage, and $\beta_{ij}$ is the sample-specific effect which is shrunk toward zero based on the
-dispersion-mean trend over the entire dataset. The trend typically captures high dispersions for low
-counts, and therefore these genes exhibit higher shrinkage from the\Rfunction{rlog}.
+where $q_{ij}$ is a parameter proportional to the expected true
+concentration of fragments for gene $i$ and sample $j$ (see
+Section~\ref{sec:glm}), $\beta_{i0}$ is an intercept which does not
+undergo shrinkage, and $\beta_{ij}$ is the sample-specific effect
+which is shrunk toward zero based on the dispersion-mean trend over
+the entire dataset. The trend typically captures high dispersions for
+low counts, and therefore these genes exhibit higher shrinkage from
+the\Rfunction{rlog}.
 
-Note that, as $q_{ij}$ represents the part of the mean value $\mu_{ij}$ after the size factor $s_j$
-has been divided out, it is clear that the rlog transformation inherently accounts for differences
-in sequencing depth.  Without priors, this design matrix would lead to a non-unique solution,
-however the addition of a prior on non-intercept betas allows for a unique solution to be found.
-The regularized log transformation is preferable to the variance stabilizing transformation if the
-size factors vary widely.
+Note that, as $q_{ij}$ represents the part of the mean value
+$\mu_{ij}$ after the size factor $s_j$ has been divided out, it is
+clear that the rlog transformation inherently accounts for differences
+in sequencing depth.  Without priors, this design matrix would lead to
+a non-unique solution, however the addition of a prior on
+non-intercept betas allows for a unique solution to be found.  The
+regularized log transformation is preferable to the variance
+stabilizing transformation if the size factors vary widely.
 
 \subsubsection{Variance stabilizing transformation}
 
-Above, we used a parametric fit for the dispersion. In this case,
-the closed-form expression for the variance stabilizing transformation
-is used by \Rfunction{varianceStabilizingTransformation}, which is derived in
-the file \texttt{vst.pdf}, that is distributed in the package
-alongside this vignette. If a local fit is used (option \Robject{fitType="locfit"}
-to \Rfunction{estimateDispersions}) a numerical integration is used instead.
+Above, we used a parametric fit for the dispersion. In this case, the
+closed-form expression for the variance stabilizing transformation is
+used by \Rfunction{varianceStabilizingTransformation}, which is
+derived in the file \texttt{vst.pdf}, that is distributed in the
+package alongside this vignette. If a local fit is used (option
+\Robject{fitType="locfit"} to \Rfunction{estimateDispersions}) a
+numerical integration is used instead.
 
-The resulting variance stabilizing transformation is shown in
-Figure \ref{figure/vsd1-1}.  The code that produces the figure is hidden from
+The resulting variance stabilizing transformation is shown in Figure
+\ref{figure/vsd1-1}.  The code that produces the figure is hidden from
 this vignette for the sake of brevity, but can be seen in the
-\texttt{.Rnw} or \texttt{.R} source file. Note that the vertical axis in such
-plots is the square root of the variance over all samples, so including 
-the variance due to the experimental conditions. 
-While a flat curve of the square root of variance over the mean 
-may seem like the goal of such transformations, 
-this may be unreasonable in the case of datasets with many true 
-differences due to the experimental conditions.
+\texttt{.Rnw} or \texttt{.R} source file. Note that the vertical axis
+in such plots is the square root of the variance over all samples, so
+including the variance due to the experimental conditions.  While a
+flat curve of the square root of variance over the mean may seem like
+the goal of such transformations, this may be unreasonable in the case
+of datasets with many true differences due to the experimental
+conditions.
 
 <<vsd1, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
 px     <- counts(dds)[,1] / sizeFactors(dds)[1]
@@ -827,17 +858,17 @@ count range, and the regularized log to a lesser extent, while for
 the variance stabilized data the standard deviation is roughly constant
 along the whole dynamic range.
 
-<<log2meansd, fig.width=3, fig.height=3>>=
+<<log2meansd, fig.width=4, fig.height=3>>=
 library("vsn")
 notAllZero <- (rowSums(counts(dds))>0)
 meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1))
 @ 
 
-<<rlogmeansd, fig.width=3, fig.height=3>>=
+<<rlogmeansd, fig.width=4, fig.height=3>>=
 meanSdPlot(assay(rld[notAllZero,]))
 @ 
 
-<<vstmeansd, fig.width=3, fig.height=3>>=
+<<vstmeansd, fig.width=4, fig.height=3>>=
 meanSdPlot(assay(vsd[notAllZero,]))
 @
 
@@ -870,9 +901,10 @@ select <- order(rowMeans(counts(dds,normalized=TRUE)),decreasing=TRUE)[1:20]
 @
 
 <<figHeatmap2a, dev="pdf", fig.width=5, fig.height=7>>=
-log.norm.counts <- log2(counts(dds,normalized=TRUE)[select,] + 1)
+nt <- normTransform(dds) # defaults to log2(x+1)
+log2.norm.counts <- assay(nt)[select,]
 df <- as.data.frame(colData(dds)[,c("condition","type")])
-pheatmap(log.norm.counts, cluster_rows=FALSE, show_rownames=FALSE,
+pheatmap(log2.norm.counts, cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 @
 
@@ -1092,6 +1124,18 @@ lm(log2c ~ cond + geno + geno:cond, data=d2)
 \label{fig:inter}
 \end{figure}
 
+The two points about interactions which are hardest for users are:
+
+\begin{enumerate}
+  \item that the interaction is the difference between reference group effect and the
+effect in another group, and therefore the effect in that group is the
+sum of the \textit{main effect} and the \textit{interaction effect}
+(see \Rcode{?results}).
+  \item that the interaction is not necessary, see code above.
+\end{enumerate}
+
+more text here...
+
 \subsection{Time-series experiments}
 
 There are a number of ways to analyze time-series experiments,
@@ -1149,9 +1193,7 @@ by default, genes that are affected by such outliers are set aside by \deseqtwo{
 or if there are sufficient samples, outlier counts are replaced for model fitting. 
 These two behaviors are described below.
 
-The \Rfunction{DESeq} function 
-(and \Rfunction{nbinomWaldTest}/\Rfunction{nbinomLRT} functions) 
-calculates, for every gene and for every sample,
+The \Rfunction{DESeq} function calculates, for every gene and for every sample,
 a diagnostic test for outliers called \emph{Cook's distance}. Cook's distance 
 is a measure of how much a single sample is influencing the fitted 
 coefficients for a gene, and a large value of Cook's distance is 
@@ -1164,6 +1206,7 @@ Cook's distance above a cutoff for samples which have 3 or more replicates.
 The $p$ values and adjusted $p$ values for these genes are set to \Robject{NA}. 
 At least 3 replicates are required for flagging, as it is difficult to judge
 which sample might be an outlier with only 2 replicates.
+This filtering can be turned off with \Rcode{results(dds, cooksCutoff=FALSE)}.
 
 With many degrees of freedom -- i.\,e., many more samples than number of parameters to 
 be estimated -- it is undesirable to remove entire genes from the analysis
@@ -1174,6 +1217,9 @@ with the trimmed mean over all samples, scaled up by the size factor or
 normalization factor for that sample. This approach is conservative, 
 it will not lead to false positives, as it replaces
 the outlier value with the value predicted by the null hypothesis.
+This outlier replacement only occurs when there are 7 or more
+replicates, and can be turned off with 
+\Rcode{DESeq(dds, minReplicatesForReplace=Inf)}.
 
 The default Cook's distance cutoff for the two behaviors described above
 depends on the sample size and number of parameters
@@ -1181,17 +1227,41 @@ to be estimated. The default is to use the $99\%$ quantile of the
 $F(p,m-p)$ distribution (with $p$ the number of parameters including the 
 intercept and $m$ number of samples).
 The default for gene flagging can be modified using the \Robject{cooksCutoff} 
-argument to the \Rfunction{results} function. The gene flagging functionality 
-can be disabled by setting \Robject{cooksCutoff} to \Robject{FALSE}
-or \Robject{Inf}. The automatic outlier replacement performed by 
-\Rfunction{DESeq} can be disabled by setting the \Robject{minReplicatesForReplace}
-argument to \Robject{Inf}.
-
-\Rfunction{DESeq} automatically replaces outliers if there are
-sufficient replicates and a row contains a count with very high Cook's
-distance.  \Rfunction{DESeq} preserves the original counts in
+argument to the \Rfunction{results} function. 
+For outlier replacement, \Rfunction{DESeq} preserves the original counts in
 \Robject{counts(dds)} saving the replacement counts as a matrix named
 \Robject{replaceCounts} in \Robject{assays(dds)}.
+Note that with continuous variables in the design, outlier detection
+and replacement is not automatically performed, as our 
+current methods involve a robust estimation of within-group variance
+which does not extend easily to continuous covariates. However, users
+can examine the Cook's distances in \Rcode{assays(dds)[["cooks"]]}, in
+order to perform manual visualization and filtering if necessary.
+
+\textbf{Note on many outlier:} if there are very many outliers 
+(e.g. many hundreds or thousands) reported by
+\Rcode{summary(res)}, one might consider further exploration to see if
+a single sample or a few samples should be removed due to low quality. 
+The automatic outlier filtering/replacement is useful in situations which the number
+of outliers is limited. When there are thousands, it might make more sense to
+turn off the outlier filtering/replacement
+(\Rfunction{DESeq} with \Robject{minReplicatesForReplace=Inf} and
+\Rfunction{results} with \Robject{cooksCutoff=FALSE})
+and perform manual inspection: First it would be
+advantageous to make a PCA plot using the code example in Section
+\ref{sec:pca} to spot individual sample outliers; Second, one can make
+a boxplot of the Cook's distances to see if one sample is consistently
+higher than others: 
+
+<<boxplotCooks>>=
+par(mar=c(8,5,2,2))
+boxplot(log10(assays(dds)[["cooks"]]), range=0, las=2)
+@ 
+
+\incfig{figure/boxplotCooks-1}{.5\textwidth}{Boxplot of Cook's distances.}{
+  Here we can look to see if one sample has much higher Cook's distances
+  than the other samples.
+}
 
 \subsection{Dispersion plot and fitting alternatives}
 
@@ -1941,12 +2011,19 @@ vectors can be converted into \Rclass{factors} using the function
 See the manual page for \Rfunction{DESeq}, which links to the 
 subfunctions which are called in order, where complete details are listed.
 
+\subsection{Is there an official Galaxy tool for DESeq2?}
+
+Yes. The repository for the \deseqtwo{} tool is
+\url{https://github.com/galaxyproject/tools-iuc/tree/master/tools/deseq2} 
+and a link to its location in the Tool Shed is 
+\url{https://toolshed.g2.bx.psu.edu/view/iuc/deseq2/d983d19fbbab}.
+
 \section{Acknowledgments}
 
 We have benefited in the development of \deseqtwo{} from the help and
 feedback of many individuals, including but not limited to: 
 The Bionconductor Core Team,
-Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein,
+Alejandro Reyes, Andrzej Ole\'s, Aleksandra Pekowska, Felix Klein,
 Vince Carey,
 Devon Ryan, 
 Steve Lianoglou, Jessica Larson, Christina Chaivorapol, Pan Du, Richard Bourgon,
@@ -1961,7 +2038,11 @@ Tyr Wiesner-Hanks,
 Konrad Rudolph,
 David Robinson,
 Mingxiang Teng,
-Mathias Lesche.
+Mathias Lesche,
+Sonali Arora,
+Jordan Ramilowski,
+Ian Dworkin,
+Bj\"orn Gr\"uning.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=

@@ -75,14 +75,31 @@ plotMA.DESeqDataSet <- function(object, alpha=.1, main="", ylim, ...) {
     plotMA.DESeqResults(res, alpha=alpha, main=main, ylim=ylim)
 }
 
-plotMA.DESeqResults <- function(object, alpha=.1, main="", ylim, ...) {
-    df <- data.frame(mean = object$baseMean,
-                     lfc = object$log2FoldChange,
-                     isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
+plotMA.DESeqResults <- function(object, alpha, main="", ylim, MLE=FALSE, ...) {
+  if (missing(alpha)) {
+    alpha <- if (is.null(metadata(object)$alpha)) {
+      0.1
+    } else {
+      metadata(object)$alpha
+    }
+  }
+  df <- if (MLE) {
+    # test if MLE is there
+    if (is.null(object$lfcMLE)) {
+      stop("lfcMLE column is not present: you should first run results() with addMLE=TRUE")
+    }
+    data.frame(mean = object$baseMean,
+               lfc = object$lfcMLE,
+               isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
+  } else {
+    data.frame(mean = object$baseMean,
+               lfc = object$log2FoldChange,
+               isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
+  }
     if (missing(ylim)) {
       plotMA(df, main=main, ...)
     } else {
-      plotMA(df, main=main, ylim=ylim, ...)
+       plotMA(df, main=main, ylim=ylim, ...)
     }  
 }
 
@@ -110,6 +127,10 @@ plotMA.DESeqResults <- function(object, alpha=.1, main="", ylim, ...) {
 #' or a \code{DESeqDataSet} processed by \code{\link{DESeq}}, or the
 #' individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}
 #' @param alpha the significance level for thresholding adjusted p-values
+#' @param MLE whether to plot the MLE (unshrunken estimates), defaults to FALSE.
+#' Requires that \code{\link{results}} was run with \code{addMLE=TRUE}.
+#' Note that the MLE will be plotted regardless of this argument, if DESeq() was run
+#' with \code{betaPrior=FALSE}.
 #' @param main optional title for the plot
 #' @param ylim optional y limits
 #' @param ... further arguments passed to \code{plotMA} if object

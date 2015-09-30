@@ -9,7 +9,8 @@
 \usage{
 \S4method{plotMA}{DESeqDataSet}(object, alpha = 0.1, main = "", ylim, ...)
 
-\S4method{plotMA}{DESeqResults}(object, alpha = 0.1, main = "", ylim, ...)
+\S4method{plotMA}{DESeqResults}(object, alpha, main = "", ylim, MLE = FALSE,
+  ...)
 }
 \arguments{
 \item{object}{a \code{DESeqResults} object produced by \code{\link{results}};
@@ -25,6 +26,11 @@ individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}}
 \item{...}{further arguments passed to \code{plotMA} if object
 is \code{DESeqResults} or to \code{\link{results}} if object is
 \code{DESeqDataSet}}
+
+\item{MLE}{whether to plot the MLE (unshrunken estimates), defaults to FALSE.
+Requires that \code{\link{results}} was run with \code{addMLE=TRUE}.
+Note that the MLE will be plotted regardless of this argument, if DESeq() was run
+with \code{betaPrior=FALSE}.}
 }
 \description{
 A simple helper function that makes a so-called "MA-plot", i.e. a

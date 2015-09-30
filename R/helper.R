@@ -363,6 +363,31 @@ normalizeGeneLength <- function(object, files, level=c("tx","gene"),
   object
 }
 
+#' Normalized counts transformation
+#'
+#' A simple function for creating a \code{\link{DESeqTransform}}
+#' object after applying: f(count + pc).
+#' 
+#' @param object a DESeqDataSet object
+#' @param f a function to apply to normalized counts
+#' @param pc a pseudocount to add to normalized counts
+#' 
+#' @seealso \code{\link{varianceStabilizingTransformation}}, \code{\link{rlog}}
+#' 
+#' @export
+normTransform <- function(object, f=log2, pc=1) {
+  if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
+    object <- estimateSizeFactors(object)
+  }
+  nt <- f(counts(object, normalized=TRUE) + pc)
+  se <- SummarizedExperiment(
+    assays = nt,
+    colData = colData(object),
+    rowRanges = rowRanges(object),
+    metadata = metadata(object))
+  DESeqTransform(se)
+}
+
 
 #####################
 # unexported

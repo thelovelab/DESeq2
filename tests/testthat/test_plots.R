@@ -11,3 +11,10 @@ vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
 plotPCA(vsd)
 plotPCA(vsd, intgroup=c("condition","group"))
 plotSparsity(dds)
+
+# plotMA MLE
+res <- results(dds)
+expect_error(plotMA(res, MLE=TRUE))
+res <- results(dds, addMLE=TRUE)
+plotMA(res, MLE=TRUE)
+dev.off()

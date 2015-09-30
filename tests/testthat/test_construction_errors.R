@@ -33,3 +33,4 @@ mcols(mcols(se)) <- DataFrame(info="the gene id")
 dds <- DESeqDataSet(se, ~ x)
 mcols(colData(dds))
 mcols(mcols(dds))
+

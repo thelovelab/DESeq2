@@ -481,7 +481,8 @@ possibly nbinomWaldTest or nbinomLRT has not yet been run.")
     metadata(deseqRes) <- list(filterThreshold=paRes$filterThreshold,
                                filterTheta=paRes$filterTheta,
                                filterNumRej=paRes$filterNumRej,
-                               lo.fit=paRes$lo.fit)
+                               lo.fit=paRes$lo.fit,
+                               alpha=alpha)
   }
 
   # remove rownames and attach as a new column, 'row'

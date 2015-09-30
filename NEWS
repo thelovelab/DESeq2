@@ -1,3 +1,20 @@
+CHANGES IN VERSION 1.9.42
+-------------------------
+
+    o New function 'normTranform', for making DESeqTransform objects
+      from normalized counts plus a pseudocount (default 1) then
+      applying a transformation (default log2).
+
+    o Added MLE argument to plotMA(), if results() was run with
+      addMLE=TRUE, this allows for comparison of shrunken and
+      unshrunken estimates of fold change.
+
+    o summary() and plotMA() use the 'alpha' which was specified
+      in results() rather than defaulting to 0.1.
+
+    o Removed rlog's fast option, and instead recommending VST for
+      very large matrices of counts (100s of samples).
+
 CHANGES IN VERSION 1.9.17
 -------------------------
 
