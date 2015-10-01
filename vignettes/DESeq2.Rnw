@@ -1902,25 +1902,28 @@ $$ W = \frac{c^t \beta}{\sqrt{c^t \Sigma c}} $$
 
 \subsection{Expanded model matrices} \label{sec:expanded}
 
-As mentioned in Section~\ref{sec:contrasts}, \deseqtwo{} uses
-``expanded model matrices'' with the log2 fold change prior, 
-in order to produce log2 fold change estimates and test 
+\deseqtwo{} uses ``expanded model matrices'' with the log2 fold change prior, 
+in order to produce shrunken log2 fold change estimates and test 
 results which are independent of the choice of reference level. 
-These model matrices differ from the standard model matrices, in that
+Another way of saying this is that the shrinkage is \textit{symmetric}
+with respect to all the levels of the factors in the design.
+The expanded model matrices differ from the standard model matrices, in that
 they have an indicator column (and therefore a coefficient) for
 each level of factors in the design formula in addition to an intercept. 
+Note that in version 1.10 and onward, standard model matrices are used for
+designs with interaction terms, as the shrinkage of log2 fold changes
+is not recommended for these designs.
 
-These matrices are therefore not full rank, but a coefficient vector $\beta_i$ 
-can still be found due to the zero-centered prior on non-intercept coefficients.
-The prior variance for the log2 fold changes is 
-calculated by first generating maximum likelihood
-estimates for a standard model matrix. The prior variance for each level
-of a factor is then set as the average of the mean squared maximum likelihood 
-estimates for each level and every possible contrast, such that that this 
-prior value will be reference-level-independent. The \Robject{contrast}
-argument of the \Rfunction{results} function is again used in order
-to generate comparisons of interest.
-
+The expanded model matrices are not full rank, but a coefficient
+vector $\beta_i$ can still be found due to the zero-centered prior on
+non-intercept coefficients. The prior variance for the log2 fold
+changes is calculated by first generating maximum likelihood estimates
+for a standard model matrix. The prior variance for each level of a
+factor is then set as the average of the mean squared maximum
+likelihood estimates for each level and every possible contrast, such
+that that this prior value will be reference-level-independent. The
+\Robject{contrast} argument of the \Rfunction{results} function is
+used in order to generate comparisons of interest.
 
 %--------------------------------------------------
 \subsection{Independent filtering and multiple testing} \label{sec:indepfilt}
