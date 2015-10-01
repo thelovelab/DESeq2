@@ -43,8 +43,16 @@
 #' On p-values:
 #' 
 #' By default, independent filtering is performed to select a set of genes
-#' for multiple test correction which will optimize the number of adjusted
+#' for multiple test correction which maximizes the number of adjusted
 #' p-values less than a given critical value \code{alpha} (by default 0.1).
+#' The filter used for maximizing the number of rejections is the mean
+#' of normalized counts for all samples in the dataset.
+#' In version >= 1.10, the threshold chosen is
+#' the lowest quantile of the filter for which the
+#' number of rejections is close to the peak of a curve fit
+#' to the number of rejections over the filter quantiles.
+#' 'Close to' is defined as within 1 residual standard deviation.
+#' 
 #' The adjusted p-values for the genes which do not pass the filter threshold
 #' are set to \code{NA}. By default, the mean of normalized counts
 #' is used to perform this filtering, though other statistics can be provided.
@@ -138,6 +146,9 @@
 #' @param theta the quantiles at which to assess the number of rejections
 #' from independent filtering
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
+#' @param filterFun an optional custom function for independent filtering,
+#' with arguments \code{filter}, \code{test}, \code{theta}, \code{method},
+#' similar to \code{genefilter::filtered_p}, and which returns \code{padj}
 #' @param format character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 #' whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 #' or if the results DataFrame should be attached as metadata columns to
@@ -224,18 +235,22 @@
 #' # the condition effect for genotype I (the main effect)
 #' results(dds, contrast=c("condition","B","A"))
 #'
-#' # the condition effect for genotype III
-#' # this is, by definition, the main effect *plus* the interaction term
+#' # the condition effect for genotype III.
+#' # this is the main effect *plus* the interaction term
 #' # (the extra condition effect in genotype III compared to genotype I).
 #' results(dds, contrast=list( c("condition_B_vs_A","genotypeIII.conditionB") ))
 #'  
-#' # the interaction term for condition effect in genotype III vs genotype I
+#' # the interaction term for condition effect in genotype III vs genotype I.
+#' # this tests if the condition effect is different in III compared to I
 #' results(dds, name="genotypeIII.conditionB")
 #' 
-#' # the interaction term for condition effect in genotype III vs genotype II
-#' # (the interaction effect added to the main effect)
+#' # the interaction term for condition effect in genotype III vs genotype II.
+#' # this tests if the condition effect is different in III compared to II
 #' results(dds, contrast=list("genotypeIII.conditionB", "genotypeII.conditionB"))
 #'
+#' # Note that a likelihood ratio could be used to test if there are any
+#' # differences in the condition effect between the three genotypes.
+#' 
 #' # ~~~ Using a grouping variable ~~~
 #' 
 #' # This is a useful construction when users just want to compare
@@ -260,6 +275,7 @@ results <- function(object, contrast, name,
                     independentFiltering=TRUE,
                     alpha=0.1, filter, theta,
                     pAdjustMethod="BH",
+                    filterFun,
                     format=c("DataFrame","GRanges","GRangesList"),
                     test, 
                     addMLE=FALSE,
@@ -460,7 +476,7 @@ of length 3 to 'contrast' instead of using 'name'")
   }
 
   # p-value adjustment
-  paRes <- pvalueAdjustment(res, independentFiltering, filter, theta, alpha, pAdjustMethod)
+  paRes <- pvalueAdjustment(res, independentFiltering, filter, theta, alpha, pAdjustMethod, filterFun)
   res$padj <- paRes$padj
 
   # adding metadata columns for padj
@@ -532,18 +548,78 @@ removeResults <- function(object) {
 # unexported functons 
 ###########################################################
 
-# note: results() just calls filtered_p directly
-## pAdjustWithIndependentFiltering <- function(p, filterstat, alpha=0.1, method = "BH", plot=FALSE ){
-##   theta <- seq(0, 0.95, by=0.05)
-##   cutoffs <- quantile( filterstat, theta ) 
-##   padj <- filtered_p( filterstat, p, cutoffs, method ) 
-##   rej  <- colSums(padj < alpha, na.rm = TRUE )
-##   if(plot) plot(theta, rej)
-##   j <- which.max(rej)
-##   rv <- padj[, j, drop=TRUE]
-##   attr(rv, "filterthreshold") = cutoffs[j]
-##   rv
-## }
+pvalueAdjustment <- function(res, independentFiltering, filter,
+                             theta, alpha, pAdjustMethod,
+                             filterFun) {
+  # perform independent filtering
+  if (independentFiltering) {
+    if (missing(filter)) {
+      filter <- res$baseMean
+    }
+    if (missing(theta)) {
+      lowerQuantile <- mean(filter == 0)
+      if (lowerQuantile < .95) upperQuantile <- .95 else upperQuantile <- 1
+      theta <- seq(lowerQuantile, upperQuantile, length=50)
+    }
+    if (missing(filterFun)) {
+      # do filtering using genefilter
+      stopifnot(length(theta) > 1)
+      stopifnot(length(filter) == nrow(res))
+      filtPadj <- filtered_p(filter=filter, test=res$pvalue,
+                             theta=theta, method=pAdjustMethod) 
+      numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
+      # prevent over-aggressive filtering when all genes are null,
+      # by requiring the max number of rejections is above a fitted curve.
+      # If the max number of rejection is not greater than 10, then don't
+      # perform independent filtering at all.
+      lo.fit <- lowess(numRej ~ theta, f=1/5)
+      if (max(numRej) <= 10) {
+        j <- 1
+      } else { 
+          residual <- if (all(numRej==0)) {
+            0
+          } else {
+              numRej[numRej > 0] - lo.fit$y[numRej > 0]
+            }
+          thresh <- max(lo.fit$y) - sqrt(mean(residual^2))
+          j <- if (any(numRej > thresh)) {
+            which(numRej > thresh)[1]
+          } else {
+              1  
+            }
+        }
+      # j <- which.max(numRej) # old method
+      padj <- filtPadj[, j, drop=TRUE]
+      cutoffs <- quantile(filter, theta)
+      filterThreshold <- cutoffs[j]
+      filterNumRej <- data.frame(theta=theta, numRej=numRej)
+      filterTheta <- theta[j]
+    } else {
+      # use a custom filter function
+      padj <- filterFun(filter=filter,
+                        test=res$pvalue,
+                        theta=theta,
+                        method=pAdjustMethod)
+      filterThreshold <- NULL
+      filterTheta <- NULL
+      filterNumRej <- NULL
+      lo.fit <- NULL
+    }
+    return(list(padj=padj,
+                filterThreshold=filterThreshold,
+                filterTheta=filterTheta,
+                filterNumRej=filterNumRej,
+                lo.fit=lo.fit))
+  } else {
+    # regular p-value adjustment
+    # does not include those rows which were removed
+    # by maximum Cook's distance
+    padj <- p.adjust(res$pvalue,method=pAdjustMethod)
+    return(list(padj=padj))
+  }
+}
+
+
 
 # two low-level functions used by results() to perform contrasts
 #
@@ -930,61 +1006,6 @@ mleContrast <- function(object, contrast) {
   names(lfcMLE) <- "lfcMLE"
   mcols(lfcMLE)$description <- cleanName
   lfcMLE
-}
-
-pvalueAdjustment <- function(res, independentFiltering, filter, theta, alpha, pAdjustMethod) {
-  # perform independent filtering
-  if (independentFiltering) {
-    if (missing(filter)) {
-      filter <- res$baseMean
-    }
-    if (missing(theta)) {
-      lowerQuantile <- mean(filter == 0)
-      if (lowerQuantile < .95) upperQuantile <- .95 else upperQuantile <- 1
-      theta <- seq(lowerQuantile, upperQuantile, length=50)
-    }
-    stopifnot(length(theta) > 1)
-    stopifnot(length(filter) == nrow(res))
-    filtPadj <- filtered_p(filter=filter, test=res$pvalue,
-                           theta=theta, method=pAdjustMethod) 
-    numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
-    # prevent over-aggressive filtering when all genes are null,
-    # by requiring the max number of rejections is above a fitted curve.
-    # If the max number of rejection is not greater than 10, then don't
-    # perform independent filtering at all.
-    lo.fit <- lowess(numRej ~ theta, f=1/5)
-    if (max(numRej) <= 10) {
-      j <- 1
-    } else { 
-      residual <- if (all(numRej==0)) {
-        0
-      } else {
-        numRej[numRej > 0] - lo.fit$y[numRej > 0]
-      }
-      thresh <- max(lo.fit$y) - sqrt(mean(residual^2))
-      j <- if (any(numRej > thresh)) {
-        which(numRej > thresh)[1]
-      } else {
-        1  
-      }
-    }
-    # j <- which.max(numRej) # old method
-    padj <- filtPadj[, j, drop=TRUE]
-    cutoffs <- quantile(filter, theta)
-    filterThreshold <- cutoffs[j]
-    filterNumRej <- data.frame(theta=theta, numRej=numRej)
-    return(list(padj=padj,
-                filterThreshold=filterThreshold,
-                filterTheta=theta[j],
-                filterNumRej=filterNumRej,
-                lo.fit=lo.fit))
-  } else {
-    # regular p-value adjustment
-    # which does not include those rows which were removed
-    # by maximum Cook's distance
-    padj <- p.adjust(res$pvalue,method=pAdjustMethod)
-    return(list(padj=padj))
-  }
 }
 
 checkContrast <- function(contrast, resNames) {

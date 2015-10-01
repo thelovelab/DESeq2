@@ -925,7 +925,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
     # with a minimum of .25
     dispPriorVar <- pmax((varLogDispEsts - expVarLogDisp), 0.25)
   } else {
-    # we have m = p, so do not try to substract sampling variance
+    # we have m = p, so do not try to subtract sampling variance
     dispPriorVar <- varLogDispEsts
     expVarLogDisp <- 0
   }

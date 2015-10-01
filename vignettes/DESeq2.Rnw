@@ -30,10 +30,10 @@ library("DESeq2")
 @
 
 
-\author{Michael Love$^{1}$, Simon Anders$^{2,3}$, Wolfgang Huber$^{3}$ \\[1em] 
+\author{Michael I. Love$^{1}$, Simon Anders$^{2,3}$, Wolfgang Huber$^{3}$ \\[1em] 
   \small{$^{1}$ Department of Biostatistics, Dana-Farber Cancer Institute and} \\ 
   \small{Harvard TH Chan School of Public Health, Boston, US;} \\ 
-  \small{$^{2}$ Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland} \\ 
+  \small{$^{2}$ Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland;} \\ 
   \small{$^{3}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} }
 
 \title{Differential analysis of count data -- the DESeq2 package}
@@ -55,11 +55,11 @@ library("DESeq2")
   incorporate data-driven prior distributions\footnote{Other \Bioconductor{} packages 
   with similar aims are \Biocpkg{edgeR}, \Biocpkg{limma},
   \Biocpkg{DSS}, \Biocpkg{EBSeq} and \Biocpkg{baySeq}.}. 
-  This vignette explains the use of the package and demonstrates
-  typical workflows.  An RNA-seq workflow on the Bioconductor website:
-  \url{http://www.bioconductor.org/help/workflows/rnaseqGene/} covers
-  similar material to this vignette but at a slower pace, including
-  the generation of count matrices from FASTQ files.
+  This vignette explains the use of the package and demonstrates typical workflows.  
+  An RNA-seq workflow\footnote{\url{http://www.bioconductor.org/help/workflows/rnaseqGene/}} 
+  on the Bioconductor website covers similar material to this vignette
+  but at a slower pace, including the generation of count matrices
+  from FASTQ files.
 
   \vspace{1em}
   
@@ -97,18 +97,22 @@ options(digits=3, width=80, prompt=" ", continue=" ")
 \subsection{Quick start}
 
 Here we show the most basic steps for a differential expression analysis.
-These steps imply you have a \Rclass{RangedSummarizedExperiment} object
-\Robject{se} with columns \Robject{batch} and \Robject{condition} in \Robject{colData(se)},
-and that \Robject{condition} has levels ``untreat'' and ``treat''.
+These steps require you have a \Rclass{RangedSummarizedExperiment} object
+\Robject{se} which contains the counts and information about samples.
+The \Robject{design} indicates that we want to
+measure the effect of condition, controlling for batch differences.
+The two factor variables \Robject{batch} and \Robject{condition} 
+should be columns of \Robject{colData(se)}.
 
 <<quick, eval=FALSE>>=
-dds <- DESeqDataSet(se, ~ batch + condition)
+dds <- DESeqDataSet(se, design = ~ batch + condition)
 dds <- DESeq(dds)
-res <- results(dds, contrast=c("condition","treat","untreat"))
+res <- results(dds, contrast=c("condition","trt","con"))
 @
 
 If you have a count matrix and sample information table, the first
-line would instead use \Rfunction{DESeqDataSetFromMatrix}, shown below.
+line would use \Rfunction{DESeqDataSetFromMatrix} instead of 
+\Rfunction{DESeqDataSet}, as shown in Section~\ref{sec:countmat}.
 
 \subsection{How to get help}
 
@@ -135,9 +139,9 @@ The count values must be raw counts of sequencing reads (for
 single-end RNA-seq) or fragments (for paired-end RNA-seq). 
 The \href{http://www.bioconductor.org/help/workflows/rnaseqGene/}{RNA-seq workflow}
 describes multiple techniques for preparing such count matrices.
-It is important to provide the correct input for \deseqtwo{}'s
-statistical model \cite{Love2014} to hold, as only the actual 
-counts allow assessing the measurement precision correctly. The \deseqtwo{}
+It is important to provide count matrices as input for \deseqtwo{}'s
+statistical model \cite{Love2014} to hold, as only the  
+count values allow assessing the measurement precision correctly. The \deseqtwo{}
 model internally corrects for library size, so transformed values such as counts
 scaled by library size should never be used as input.
 
@@ -187,7 +191,7 @@ ddsSE <- DESeqDataSet(se, design = ~ cell + dex)
 ddsSE
 @
 
-\subsubsection{Count matrix input}
+\subsubsection{Count matrix input} \label{sec:countmat}
 
 Alternatively, the function \Rfunction{DESeqDataSetFromMatrix} can be
 used if you already have a matrix of read counts prepared from another
@@ -291,16 +295,16 @@ ddsHTSeq
 
 \subsubsection{Pre-filtering}
 
-While it is not necessary to pre-filter before running the \deseqtwo{}
-functions, there are two reasons which making pre-filtering useful:
+While it is not necessary to pre-filter low count genes before running the \deseqtwo{}
+functions, there are two reasons which make pre-filtering useful:
 by removing rows in which there are no reads or nearly no reads,
-we (1) reduce the memory size of the data object and 
-(2) increase the speed of the transformation
+we reduce the memory size of the \Robject{dds} data object and 
+we increase the speed of the transformation
 and testing functions within \deseqtwo{}. Here we perform a minimal
-filtering for rows that have only 0 or 1 read. Note that more strict
-filtering to increase power is automatically applied via independent filtering
-on the mean of \textit{normalized} counts, which will be discussed in
-Section~\ref{sec:autoFilt}.
+pre-filtering to remove rows that have only 0 or 1 read. Note that more strict
+filtering to increase power is \textit{automatically} applied via independent filtering
+on the mean of normalized counts within the \Rfunction{results}
+function, which will be discussed in Section~\ref{sec:autoFilt}.
 
 <<prefilter>>=
 dds <- dds[ rowSums(counts(dds)) > 1, ]
@@ -308,25 +312,30 @@ dds <- dds[ rowSums(counts(dds)) > 1, ]
 
 \subsubsection{Note on factor levels} \label{sec:factorLevels}
 
-In the three examples above, we applied the function \Rfunction{factor}
-to the column of interest in \Robject{colData}, supplying a character
-vector of levels. It is important to supply levels (otherwise the
-levels are chosen in alphabetical order) and to put the ``control'' or ``untreated''
-level as the first element ("reference level"), so that the log2 fold changes
-produced by default will be the expected comparison against the reference
-level, that is $\log_2 ( \textrm{treated} / \textrm{untreated} )$.
-An \R{} function for easily changing the reference level is 
-\Rfunction{relevel}. An example of setting the reference level of a factor
-with \Rfunction{relevel} is:
+By default, R will choose a \textit{reference level} for factors based
+on alphabetical order. Then, if you never tell the \deseqtwo{} functions
+which level you want to compare against (e.g. which level represents
+the control group), the comparisons will be based on the alphabetical
+order of the levels. There are two solutions: you can either
+explicitly tell \Rfunction{results} which comparison to make using the
+\Robject{contrast} argument (this will be shown later), or you can
+explicitly set the factors levels. Setting the factor levels can be done in two ways,
+either using factor:
 
-<<relevel>>=
-dds$condition <- relevel(dds$condition, "untreated")
+<<factorlvl>>=
+dds$condition <- factor(dds$condition, levels=c("untreated","treated"))
 @ 
 
-In addition, when subsetting the columns of a \Rclass{DESeqDataSet},
+...or using \Rfunction{relevel}, just specifying the reference level:
+
+<<relevel>>=
+dds$condition <- relevel(dds$condition, ref="untreated")
+@ 
+
+If you need to subset the columns of a \Rclass{DESeqDataSet},
 i.e., when removing certain samples from the analysis, it is possible
 that all the samples for one or more levels of a variable in the design
-formula are removed. In this case, the \Rfunction{droplevels} function can be used
+formula would be removed. In this case, the \Rfunction{droplevels} function can be used
 to remove those levels which do not have samples in the current \Rclass{DESeqDataSet}:
 
 <<droplevels>>=
@@ -393,7 +402,6 @@ We can order our results table by the smallest adjusted $p$ value:
 
 <<resOrder>>=
 resOrdered <- res[order(res$padj),]
-head(resOrdered)
 @
 
 We can summarize some basic tallies using the
@@ -403,16 +411,30 @@ We can summarize some basic tallies using the
 summary(res)
 @ 
 
+How many adjusted p-values were less than 0.1?
+
+<<sumRes01>>=
+sum(res$padj < 0.1, na.rm=TRUE)
+@ 
+
 The \Rfunction{results} function contains a number of arguments to
 customize the results table which is generated.  Note that the
 \Rfunction{results} function automatically performs independent
 filtering based on the mean of normalized counts for each gene,
 optimizing the number of genes which will have an adjusted $p$ value
-below a given FDR cutoff, \Robject{alpha}, By default the argument
+below a given FDR cutoff, \Robject{alpha}.
+Independent filtering is further discussed in Section~\ref{sec:autoFilt}.
+By default the argument
 \Robject{alpha} is set to $0.1$.  If the adjusted $p$ value cutoff
 will be a value other than $0.1$, \Robject{alpha} should be set to
-that value.  Independent filtering will be discussed further in
-Section~\ref{sec:autoFilt}.
+that value:
+
+<<resAlpha05>>=
+res05 <- results(dds, alpha=0.05)
+summary(res05)
+sum(res05$padj < 0.05, na.rm=TRUE)
+@ 
+
 
 If a multi-factor design is used, or if the variable in the design
 formula has more than two levels, the \Robject{contrast} argument of
@@ -487,7 +509,7 @@ One can make an MA-plot of the unshrunken estimates like so:
 plotMA(resMLE, MLE=TRUE, main="unshrunken LFC", ylim=c(-2,2))
 @
 
-\subsubsection{Plot counts}
+\subsubsection{Plot counts} \label{sec:plotcounts}
 
 It can also be useful to examine the counts of reads for a single gene
 across the groups. A simple function for making this
@@ -536,13 +558,15 @@ the function \Rfunction{mcols} on the results object.
 mcols(res)$description
 @
 
-For a particular gene, a log2 fold change of $-1$ for \Robject{condition treated vs untreated} 
-means that the treatment induces a change in observed expression level of $2^{-1} = 0.5$ 
-compared to the untreated condition. If the variable of interest is continuous-valued, 
-then the reported log2 fold change is per unit of change of that variable.
+For a particular gene, a log2 fold change of $-1$ for
+\Robject{condition treated vs untreated} means that the treatment
+induces a multiplicative change in observed gene expression level of
+$2^{-1} = 0.5$ compared to the untreated condition. If the variable of
+interest is continuous-valued, then the reported log2 fold change is
+per unit of change of that variable.
 
-\emph{Note:} some values in the results table can be set to \texttt{NA}, 
-for either one of the following reasons:
+\textbf{Note on p-values set to NA}: some values in the results table
+can be set to \Robject{NA} for one of the following reasons:
 
 \begin{enumerate} 
   \item If within a row, all samples have zero counts, 
@@ -550,30 +574,19 @@ for either one of the following reasons:
     log2 fold change estimates, $p$ value and adjusted $p$ value
     will all be set to \texttt{NA}.
   \item If a row contains a sample with an extreme count outlier
-    then the $p$ value and adjusted $p$ value are set to \texttt{NA}.
+    then the $p$ value and adjusted $p$ value will be set to \texttt{NA}.
     These outlier counts are detected by Cook's distance. Customization
     of this outlier filtering and description of functionality for 
     replacement of outlier counts and refitting is described in 
     Section~\ref{sec:outlierApproach},
   \item If a row is filtered by automatic independent filtering, 
-    based on low mean normalized count, then only the adjusted $p$ value is 
-    set to \texttt{NA}. Description and customization of independent filtering is 
+    for having a low mean normalized count, then only the adjusted $p$
+    value will be set to \texttt{NA}. 
+    Description and customization of independent filtering is 
     described in Section~\ref{sec:autoFilt}.
 \end{enumerate}
 
-The column of \Robject{log2FoldChange} for the default workflow will
-contain shrunken estimates of fold change as mentioned above. It is
-possible to add a column to the results table -- without rerunning the
-analysis -- which contains the unshrunken, or maximum likelihood
-estimates (MLE), log2 fold changes. This will add the column
-\Robject{lfcMLE} directly after \Robject{log2FoldChange}.
-
-<<addMLE>>=
-head(results(dds, addMLE=TRUE),4)
-@ 
-
 \subsubsection{Exporting results to HTML or CSV files}
-
 An HTML report of the results with plots and sortable/filterable columns
 can be exported using the \Biocpkg{ReportingTools} package
 on a \Rclass{DESeqDataSet} that has been processed by the \Rfunction{DESeq} function.
@@ -1021,27 +1034,26 @@ which can be used to test if differences between groups are equal to
 zero.  The simplest use case for contrasts is an experimental design
 containing a factor with three levels, say A, B and C.  Contrasts
 enable the user to generate results for all 3 possible differences:
-log2 fold change of B vs A, of C vs A, and of C vs B (the other three
-possible pairs will simply have $-1 \times$ the log2 fold changes of
-these three).
-
-In order to fit models with ``shrunken'' log2 fold changes in a manner
-which is independent to the choice of reference level, \deseqtwo{} uses
-``expanded model matrices'', described further in
-Section~\ref{sec:expanded}. The expanded model matrices include a
-coefficient for each level of the factors in addition to an intercept.
+log2 fold change of B vs A, of C vs A, and of C vs B.
 The \Robject{contrast} argument of \Rfunction{results} function is
-again used to extract test results of log2 fold changes of interest.
+used to extract test results of log2 fold changes of interest, for example:
+
+<<simpleContrast, eval=FALSE>>=
+results(dds, contrast=c("condition","C","B"))
+@ 
 
 Log2 fold changes can also be added and subtracted by providing a
-\Robject{list} to the \Robject{contrast} argument with two elements:
+\Robject{list} to the \Robject{contrast} argument which has two elements:
 the names of the log2 fold changes to add, and the names of the log2
-fold changes to subtract.  Alternatively, a numeric vector of the
+fold changes to subtract. The names used in the list should come from
+\Robject{resultsNames(dds)}.
+
+Alternatively, a numeric vector of the
 length of \Robject{resultsNames(dds)} can be provided, for manually
 specifying the linear combination of terms.  Demonstrations of the use
 of contrasts for various designs can be found in the examples section
-of the help page for the \Rfunction{results} function.  The formula
-that is used to generate the contrasts can be found in
+of the help page for the \Rfunction{results} function. The
+mathematical formula that is used to generate the contrasts can be found in
 Section~\ref{sec:ctrstTheory}.
 
 \subsection{Interactions} \label{sec:interactions}
@@ -1052,56 +1064,53 @@ condition is \textit{different} based on another factor, for example if the
 condition effect differs across genotype.
 
 Many users begin to add interaction terms to the design formula, when
-in fact a much simpler approach is possible. We will explain this approach
-first. If the comparisons of interest are, for example, the effect
-of a condition for different sets of samples, a simpler approach is to:
+in fact a much simpler approach would give all the results tables that
+are desired. We will explain this approach first, because it is much
+simpler to perform.
+If the comparisons of interest are, for example, the effect
+of a condition for different sets of samples, a simpler approach than
+adding interaction terms explicitly to the design formula is to
+perform the following steps:
 
 \begin{enumerate}
-\item combine the factors of interest into a single factor, e.g.
-  \Robject{group}, with all combinations of the original factors
+\item combine the factors of interest into a single factor with all
+  combinations of the original factors 
 \item change the design to include just this factor, e.g. \Robject{\lowtilde{} group}
 \end{enumerate}
 
 Using this design is similar to adding an interaction term, 
-in that it creates set-specific condition effects which
-can be extracted with \Rfunction{results}.
-If we have two factors \Robject{set} (with values 1 and 2) 
-and \Robject{condition} (with values A and B), and we want to test 
-for the condition effects specifically for each set, we could use the
-following approach: 
+in that it models multiple condition effects which
+can be easily extracted with \Rfunction{results}.
+Suppose we have two factors \Robject{genotype} (with values I, II, and III) 
+and \Robject{condition} (with values A and B), and we want to extract 
+the condition effect specifically for each genotype. We could use the
+following approach to obtain, e.g. the condition effect for genotype I: 
 
 <<combineFactors, eval=FALSE>>=
-dds$group <- factor(paste0(dds$set, dds$condition))
+dds$group <- factor(paste0(dds$genotype, dds$condition))
 design(dds) <- ~ group
 dds <- DESeq(dds)
 resultsNames(dds)
-# the condition effect in set #1 would be
-results(dds, contrast=c("group", "1B", "1A"))
+results(dds, contrast=c("group", "IB", "IA"))
 @
-
-Now we will continue to explain the use of interactions in order to
-test for differences in condition effects across sets. We will use as
-an example, condition effects across three genotypes (X, Y, and Z).
-For a simple diagram of how interactions might look across genotypes,
-see Figure \ref{fig:inter}. 
 
 <<interFig, dev="pdf", fig.width=4, fig.height=3, echo=FALSE, results="hide">>=
 npg <- 20
 mu <- 2^c(8,10,9,11,10,12)
 cond <- rep(rep(c("A","B"),each=npg),3)
-geno <- rep(c("X","Y","Z"),each=2*npg)
+geno <- rep(c("I","II","III"),each=2*npg)
 table(cond, geno)
 counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)
 d <- data.frame(log2c=log2(counts+1), cond, geno)
 library(ggplot2)
-plotit <- function(d) {
+plotit <- function(d, title) {
   ggplot(d, aes(x=cond, y=log2c, group=geno)) + 
-    geom_jitter(position = position_jitter(width=.1)) +
+    geom_jitter(size=1.5, position = position_jitter(width=.15)) +
     facet_wrap(~ geno) + 
-    stat_summary(fun.y=mean, geom="line", colour="red", size=1) + 
-    ylab("log2(counts+1)")
+    stat_summary(fun.y=mean, geom="line", colour="red", size=0.8) + 
+    xlab("condition") + ylab("log2(counts+1)") + ggtitle(title)
 }
-plotit(d) + ylim(7,13)
+plotit(d, "Gene 1") + ylim(7,13)
 lm(log2c ~ cond + geno + geno:cond, data=d)
 @ 
 
@@ -1110,31 +1119,69 @@ mu[4] <- 2^12
 mu[6] <- 2^8
 counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)
 d2 <- data.frame(log2c=log2(counts + 1), cond, geno)
-plotit(d2) + ylim(7,13)
+plotit(d2, "Gene 2") + ylim(7,13)
 lm(log2c ~ cond + geno + geno:cond, data=d2)
 @ 
 
 \begin{figure}
 \centering
-\includegraphics[width=.45\textwidth]{figure/interFig-1}
-\includegraphics[width=.45\textwidth]{figure/interFig2-1}
+\includegraphics[width=.49\textwidth]{figure/interFig-1}
+\includegraphics[width=.49\textwidth]{figure/interFig2-1}
 \caption{
-  \textbf{Interactions.} 
-  write text here.}
+  \textbf{Genotype-specific condition effects.} 
+  Here, the y-axis represents $\log_2(\textrm{counts}+1)$, and each
+  group has 20 samples (black dots). A red line connects the mean of
+  the groups within each genotype.
+  On the left side (Gene 1), note that the condition effect is consistent
+  across genotypes. Although condition A has a different baseline for
+  I,II, and III, the condition effect is a log2 fold change of about 2
+  for each genotype.
+  Using a model with an interaction term \Robject{genotype:condition},
+  the interaction terms for genotype II and genotype III will be nearly 0.
+  On the right side (Gene 2), we can see that the condition effect is
+  not consistent across genotype. Here the main condition effect (the
+  effect for the reference genotype I) is again 2. However, this time
+  the interaction terms will be around 1 for genotype II and
+  -4 for genotype III. This is 
+  because the condition effect is higher by 1 for genotype II compared to
+  genotype I, and lower by 4 for genotype III compared to genotype I.
+  The condition effect for genotype II (or III) is obtained by adding the
+  main condition effect and the interaction term for that genotype.
+  Such a plot can be made using the \Rfunction{plotCounts} function
+  (Section~\ref{sec:plotcounts}).
+}
 \label{fig:inter}
 \end{figure}
 
-The two points about interactions which are hardest for users are:
+Now we will continue to explain the use of interactions in order to
+test for \textit{differences} in condition effects. We continue with
+the example of condition effects across three genotypes (I, II, and III).
+For a diagram of how interactions might look across genotypes 
+please refer to Figure \ref{fig:inter}. 
 
-\begin{enumerate}
-  \item that the interaction is the difference between reference group effect and the
-effect in another group, and therefore the effect in that group is the
-sum of the \textit{main effect} and the \textit{interaction effect}
-(see \Rcode{?results}).
-  \item that the interaction is not necessary, see code above.
-\end{enumerate}
+The key point to remember about designs with interaction terms is
+that, unlike for a design \Robject{\lowtilde{} 
+  genotype + condition}, where the condition effect represents the
+\textit{overall} effect controlling for differences due to genotype, by adding
+\Robject{genotype:condition}, the main condition effect only
+represents the effect of condition for the \textit{reference level} of
+genotype (I, or whichever level was defined by the user as the
+reference level). The interaction terms \Robject{genotypeII.conditionB}
+and \Robject{genotypeIII.conditionB} give the \textit{difference}
+between the condition effect for a given genotype and the condition
+effect for the reference genotype. 
 
-more text here...
+This genotype-condition interaction example is examined in further
+detail in Example 3 in the help page for \Rfunction{results}, which
+can be found by typing \Rcode{?results}. In particular, we show how to
+test for differences in the condition effect across genotype, and we
+show how to obtain the condition effect for non-reference genotypes.
+Note that in \deseqtwo{} version 1.10, the \Rfunction{DESeq} function will turn
+off log fold change shrinkage (setting \Robject{betaPrior=FALSE}),
+for designs which contain an interaction term. Turning off the log
+fold change shrinkage allows the software to use standard model
+matrices (as would be produced by \Rfunction{model.matrix}), where the
+interaction coefficients are easier to interpret.
 
 \subsection{Time-series experiments}
 
@@ -1238,13 +1285,13 @@ which does not extend easily to continuous covariates. However, users
 can examine the Cook's distances in \Rcode{assays(dds)[["cooks"]]}, in
 order to perform manual visualization and filtering if necessary.
 
-\textbf{Note on many outlier:} if there are very many outliers 
+\textbf{Note on many outliers:} if there are very many outliers 
 (e.g. many hundreds or thousands) reported by
 \Rcode{summary(res)}, one might consider further exploration to see if
 a single sample or a few samples should be removed due to low quality. 
-The automatic outlier filtering/replacement is useful in situations which the number
-of outliers is limited. When there are thousands, it might make more sense to
-turn off the outlier filtering/replacement
+The automatic outlier filtering/replacement is most useful in situations which the number
+of outliers is limited. When there are thousands of reported outliers, 
+it might make more sense to turn off the outlier filtering/replacement
 (\Rfunction{DESeq} with \Robject{minReplicatesForReplace=Inf} and
 \Rfunction{results} with \Robject{cooksCutoff=FALSE})
 and perform manual inspection: First it would be
@@ -1260,7 +1307,8 @@ boxplot(log10(assays(dds)[["cooks"]]), range=0, las=2)
 
 \incfig{figure/boxplotCooks-1}{.5\textwidth}{Boxplot of Cook's distances.}{
   Here we can look to see if one sample has much higher Cook's distances
-  than the other samples.
+  than the other samples. In this case, the samples all have
+  comparable range of Cook's distances.
 }
 
 \subsection{Dispersion plot and fitting alternatives}
@@ -1339,9 +1387,11 @@ the optimization by plotting the \Robject{filterNumRej} attribute of
 the results object, as seen in Figure \ref{figure/filtByMean-1}.
 
 <<filtByMean, dev="pdf">>=
+metadata(res)$alpha
 metadata(res)$filterThreshold
 plot(metadata(res)$filterNumRej, 
-     type="b", ylab="number of rejections")
+     type="b", ylab="number of rejections",
+     xlab="quantiles of filter")
 lines(metadata(res)$lo.fit, col="red")
 abline(v=metadata(res)$filterTheta)
 @
@@ -1349,8 +1399,13 @@ abline(v=metadata(res)$filterTheta)
 \incfig{figure/filtByMean-1}{.5\textwidth}{Independent filtering.}{
   The \Rfunction{results} function maximizes the 
   number of rejections (adjusted $p$ value less than a 
-  significance level), over theta, the quantiles 
-  of a filtering statistic (in this case, the mean of normalized counts).
+  significance level), over the quantiles 
+  of a filter statistic (the mean of normalized counts).
+  The threshold chosen (vertical line) is   
+  the lowest quantile of the filter for which the
+  number of rejections is within 1 residual standard deviation to the
+  peak of a curve fit 
+  to the number of rejections over the filter quantiles.
 }
 
 Independent filtering can be turned off by setting 
@@ -1539,50 +1594,58 @@ cqnNormFactors <- exp(cqnOffset)
 EDASeqNormFactors <- exp(-1 * EDASeqOffset)
 @
 
-\subsection{Model matrix not full rank}
+\subsection{``Model matrix not full rank''}
 
-While most experimental designs run easily using design formula, some design formulas can
-cause problems and result in the \Rfunction{DESeq} function returning an error with the text:
-``the model matrix is not full rank, so the model cannot be fit as specified.''
-There are two reasons for this problem, either one or more columns in the model matrix
-are linear combinations of other columns, or there are levels of factors or combinations of levels
-of multiple factors which are missing samples. We address these problems below and discuss possible
-solutions: 
+While most experimental designs run easily using design formula, some
+design formulas can cause problems and result in the \Rfunction{DESeq}
+function returning an error with the text: ``the model matrix is not
+full rank, so the model cannot be fit as specified.''  There are two
+main reasons for this problem: either one or more columns in the model
+matrix are linear combinations of other columns, or there are levels
+of factors or combinations of levels of multiple factors which are
+missing samples. We address these two problems below and discuss
+possible solutions:
 
 \subsubsection{Linear combinations}
 
-The simplest case of the linear combination, or linear dependency problem, is if two variables contain
-exactly the same information, such as in the following sample table. The software cannot fit an
-effect for \Robject{batch} and \Robject{condition}, because they produce identical columns in the model
-matrix. This is also referred to as ``confounding''. A unique solution of coefficients (the
-$\beta_i$ in the following Section \ref{sec:glm}) is not possible.
+The simplest case is the linear combination, or linear dependency
+problem, when two variables contain exactly the same information, such
+as in the following sample table. The software cannot fit an effect
+for \Robject{batch} and \Robject{condition}, because they produce
+identical columns in the model matrix. This is also referred to as
+``perfect confounding''. A unique solution of coefficients (the $\beta_i$ in
+the formula in Section~\ref{sec:glm}) is not possible.
 
 <<lineardep, echo=FALSE>>=
 data.frame(batch=factor(c(1,1,2,2)), condition=factor(c("A","A","B","B")))
 @ 
 
-Another situation which will cause problems is when the variables are not identical, but one
-variable can be formed by the combination of other factor levels. In the following example, the
-effect of batch 2 vs 1 cannot be fit because it is identical to a column in the model matrix which
-represents the condition C vs A effect.
+Another situation which will cause problems is when the variables are
+not identical, but one variable can be formed by the combination of
+other factor levels. In the following example, the effect of batch 2
+vs 1 cannot be fit because it is identical to a column in the model
+matrix which represents the condition C vs A effect.
 
 <<lineardep2, echo=FALSE>>=
 data.frame(batch=factor(c(1,1,1,1,2,2)), condition=factor(c("A","A","B","B","C","C")))
 @ 
 
-In both of these cases, the batch effect cannot be fit and must be removed from the model
-formula. The options are either to assume there is no batch effect (which we know is highly unlikely
-given the literature on batch effects in sequencing datasets) or to repeat the experiment and
-properly balance the conditions across batches, for example: 
+In both of these cases above, the batch effect cannot be fit and must
+be removed from the model formula. There is just no way to tell apart
+the condition effects and the batch effects. The options are either to assume
+there is no batch effect (which we know is highly unlikely given the
+literature on batch effects in sequencing datasets) or to repeat the
+experiment and properly balance the conditions across batches.
+A balanced design would look like:
 
 <<lineardep3, echo=FALSE>>=
 data.frame(batch=factor(c(1,1,1,2,2,2)), condition=factor(c("A","B","C","A","B","C")))
 @ 
 
-Finally, there is the case of an experiment with grouped individuals, where a group-specific effect
-of some treatment is sought. This design requires a bit of refactoring in order to fit the model
-terms. Here we use a trick from the \Biocpkg{edgeR} user guide, from the section 
-``Comparisons Both Between and Within Subjects''. An example of such an experimental design is:
+Finally, there is a case where we can in fact perform inference.
+Consider an experiment with grouped individuals,
+where we seek to test the group-specific effect of a treatment, while
+controlling for individual effects. A simple example of such a design is:
 
 <<groupeffect>>=
 (coldata <- data.frame(grp=factor(rep(c("X","Y"),each=4)),
@@ -1590,39 +1653,59 @@ terms. Here we use a trick from the \Biocpkg{edgeR} user guide, from the section
                        cnd=factor(rep(c("A","B"),4))))
 @
 
-If we try to analyze with a formula such as, \Rcode{$\sim$ ind + grp*cnd}, we will
-obtain an error, because the effect for group is a linear combination of the individuals.
 
-However, the following steps allow for an analysis of group-specific condition effects, while
-controlling for differences in individual. 
-For object construction, use a dummy design, such as \Rcode{$\sim$ 1}. Then add a column
-\Robject{ind.n} which distinguishes the individuals ``nested'' within a group. Here, we add this
-column to coldata, but in practice you would add this column to \Rcode{dds}.
+This design can be analyzed by \deseqtwo{} but requires a bit of
+refactoring in order to fit the model terms. Here we will use a trick
+described in the \Biocpkg{edgeR} user guide, from the section
+``Comparisons Both Between and Within Subjects''.  If we try to
+analyze with a formula such as, \Rcode{$\sim$ ind + grp*cnd}, we will
+obtain an error, because the effect for group is a linear combination
+of the individuals.
+
+However, the following steps allow for an analysis of group-specific
+condition effects, while controlling for differences in individual.
+For object construction, use a dummy design, such as \Rcode{$\sim$
+  1}. Then add a column \Robject{ind.n} which distinguishes the
+individuals ``nested'' within a group. Here, we add this column to
+coldata, but in practice you would add this column to \Rcode{dds}.
 
 <<groupeffect2>>=
 coldata$ind.n <- factor(rep(rep(1:2,each=2),2))
 coldata
 @ 
 
-Now we can reassign our \Rclass{DESeqDataSet} a design of \Rcode{$\sim$ grp + grp:ind.n + grp:cnd},
-before we call \Rfunction{DESeq}. This new design will result in the following model matrix:
+Now we can reassign our \Rclass{DESeqDataSet} a design of
+\Rcode{$\sim$ grp + grp:ind.n + grp:cnd}, before we call
+\Rfunction{DESeq}. This new design will result in the following model
+matrix: 
 
 <<groupeffect3>>=
 model.matrix(~ grp + grp:ind.n + grp:cnd, coldata)
 @ 
 
-where the terms \Robject{grpX.cndB} and \Robject{grpY.cndB} give the group-specific condition
-effects.
+where the terms \Robject{grpX.cndB} and \Robject{grpY.cndB} give the
+group-specific condition effects. These can be extracted using
+\Rfunction{results} with the \Robject{name} argument.
+Furthermore, \Robject{grpX.cndB} and
+\Robject{grpY.cndB} can be contrasted using the \Robject{contrast}
+argument, in order to test if the condition effect is different across group:
+
+<<groupeffect4, eval=FALSE>>=
+results(dds, contrast=list("grpY.cndB","grpX.cndB"))
+@ 
 
 \subsubsection{Levels without samples}
 
-The base R function for creating model matrices will produce a column of zeros if a level is missing
-from a factor or a combination of levels is missing from an interaction of factors. The solution to
-the first case is to call \Rfunction{droplevels} on the column, which will remove levels without
-samples. This was shown in the beginning of this vignette.
+The base R function for creating model matrices will produce a column
+of zeros if a level is missing from a factor or a combination of
+levels is missing from an interaction of factors. The solution to the
+first case is to call \Rfunction{droplevels} on the column, which will
+remove levels without samples. This was shown in the beginning of this
+vignette.
 
-The second case is also solvable, by manually editing the model matrix, and then providing this to
-\Rfunction{DESeq}. Here we construct an example dataset to illustrate:
+The second case is also solvable, by manually editing the model
+matrix, and then providing this to \Rfunction{DESeq}. Here we
+construct an example dataset to illustrate:
 
 <<missingcombo>>=
 group <- factor(rep(1:3,each=6))
@@ -1630,9 +1713,9 @@ condition <- factor(rep(rep(c("A","B","C"),each=2),3))
 (d <- data.frame(group, condition)[-c(17,18),])
 @ 
 
-Note that if we try to estimate all interaction terms, we introduce a column with all zeros, as
-there are no condition C samples for group 3. (Here, \Rfunction{unname} is used to display the
-matrix concisely.)
+Note that if we try to estimate all interaction terms, we introduce a
+column with all zeros, as there are no condition C samples for group
+3. (Here, \Rfunction{unname} is used to display the matrix concisely.)
 
 <<missingcombo2>>=
 m1 <- model.matrix(~ condition*group, d)
@@ -1647,10 +1730,12 @@ m1 <- m1[,-9]
 unname(m1)
 @ 
 
-Now this matrix \Robject{m1} can be provided to the \Robject{full} argument of \Rfunction{DESeq}.
-For a likelihood ratio test of interactions, a model matrix using a reduced design such as
-\Rcode{$\sim$ condition + group} can be given to the \Robject{reduced} argument. Wald tests can also be generated
-instead of the likelihood ratio test, but for user-supplied model matrices, the argument
+Now this matrix \Robject{m1} can be provided to the \Robject{full}
+argument of \Rfunction{DESeq}.  For a likelihood ratio test of
+interactions, a model matrix using a reduced design such as
+\Rcode{$\sim$ condition + group} can be given to the \Robject{reduced}
+argument. Wald tests can also be generated instead of the likelihood
+ratio test, but for user-supplied model matrices, the argument
 \Robject{betaPrior} must be set to \Robject{FALSE}.
 
 \newpage
@@ -1740,7 +1825,7 @@ version \Biocpkg{DESeq}, are as follows:
     diagonals of the matrix $W$ in the GLM). The effect of the change
     is that the estimated prior variance is robust against noisy
     estimates of log fold change from genes with very small
-    counts. This change occurred in version 1.6 (October 2014).
+    counts. This change was introduced in version 1.6 (October 2014).
   \item For designs with interaction terms, the solution described in
     the paper is no longer used (log fold change shrinkage only
     applied to interaction terms). Instead, \deseqtwo{} now turns off
@@ -1748,9 +1833,20 @@ version \Biocpkg{DESeq}, are as follows:
     present (\Robject{betaPrior=FALSE}).  While the inference on
     interaction terms was correct with \Robject{betaPrior=TRUE}, the
     interpretation of the individual terms and the extraction of
-    contrasts was too confusing.  This change occurred in version 1.10
+    contrasts was too confusing.  This change was introduced in version 1.10
     (October 2015).
+  \item A small change to the independent filtering routine: instead
+    of taking the quantile of the filter (the mean of normalized counts) which
+    directly \textit{maximizes} the number of rejections, the threshold chosen is 
+    the lowest quantile of the filter for which the
+    number of rejections is close to the peak of a curve fit
+    to the number of rejections over the filter quantiles.
+    ``Close to'' is defined as within 1 residual standard deviation.
+    This change was introduced in version 1.10 (October 2015).
 \end{itemize}
+
+For a list of all changes since version 1.0.0, see the NEWS file
+included in the package.
 
 \subsection{Count outlier detection} \label{sec:cooks}
 

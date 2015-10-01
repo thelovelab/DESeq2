@@ -1,3 +1,21 @@
+CHANGES IN VERSION 1.10.0
+-------------------------
+
+    o Added MLE argument to plotMA().
+
+    o Added normTransform() for simple log2(K/s + 1) transformation,
+      where K is a count and s is a size factor.
+
+    o When the design contains an interaction, DESeq() will use
+      betaPrior=FALSE. This makes coefficients easier to interpret.
+
+    o Independent filtering will be less greedy, using as a
+      threshold the lowest quantile of the filter such that the
+      number of rejections is within 1 SD from the maximum.
+      See ?results.
+
+    o summary() and plotMA() will use 'alpha' from results().
+
 CHANGES IN VERSION 1.9.42
 -------------------------
 

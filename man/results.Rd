@@ -9,7 +9,7 @@
 results(object, contrast, name, lfcThreshold = 0,
   altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
   listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
-  alpha = 0.1, filter, theta, pAdjustMethod = "BH",
+  alpha = 0.1, filter, theta, pAdjustMethod = "BH", filterFun,
   format = c("DataFrame", "GRanges", "GRangesList"), test, addMLE = FALSE,
   tidy = FALSE, parallel = FALSE, BPPARAM = bpparam())
 
@@ -99,6 +99,10 @@ filtering will be optimized. By default the mean of normalized counts is used.}
 from independent filtering}
 
 \item{pAdjustMethod}{the method to use for adjusting p-values, see \code{?p.adjust}}
+
+\item{filterFun}{an optional custom function for independent filtering,
+with arguments \code{filter}, \code{test}, \code{theta}, \code{method},
+similar to \code{genefilter::filtered_p}, and which returns \code{padj}}
 
 \item{format}{character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
@@ -190,8 +194,16 @@ on the \code{\link{DESeqResults}} object returned by \code{results}.
 On p-values:
 
 By default, independent filtering is performed to select a set of genes
-for multiple test correction which will optimize the number of adjusted
+for multiple test correction which maximizes the number of adjusted
 p-values less than a given critical value \code{alpha} (by default 0.1).
+The filter used for maximizing the number of rejections is the mean
+of normalized counts for all samples in the dataset.
+In version >= 1.10, the threshold chosen is
+the lowest quantile of the filter for which the
+number of rejections is close to the peak of a curve fit
+to the number of rejections over the filter quantiles.
+'Close to' is defined as within 1 residual standard deviation.
+
 The adjusted p-values for the genes which do not pass the filter threshold
 are set to \code{NA}. By default, the mean of normalized counts
 is used to perform this filtering, though other statistics can be provided.
@@ -255,17 +267,21 @@ resultsNames(dds)
 # the condition effect for genotype I (the main effect)
 results(dds, contrast=c("condition","B","A"))
 
-# the condition effect for genotype III
-# this is, by definition, the main effect *plus* the interaction term
+# the condition effect for genotype III.
+# this is the main effect *plus* the interaction term
 # (the extra condition effect in genotype III compared to genotype I).
 results(dds, contrast=list( c("condition_B_vs_A","genotypeIII.conditionB") ))
 
-# the interaction term for condition effect in genotype III vs genotype I
+# the interaction term for condition effect in genotype III vs genotype I.
+# this tests if the condition effect is different in III compared to I
 results(dds, name="genotypeIII.conditionB")
 
-# the interaction term for condition effect in genotype III vs genotype II
-# (the interaction effect added to the main effect)
+# the interaction term for condition effect in genotype III vs genotype II.
+# this tests if the condition effect is different in III compared to II
 results(dds, contrast=list("genotypeIII.conditionB", "genotypeII.conditionB"))
+
+# Note that a likelihood ratio could be used to test if there are any
+# differences in the condition effect between the three genotypes.
 
 # ~~~ Using a grouping variable ~~~
 
