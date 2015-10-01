@@ -748,18 +748,21 @@ assurance) as demonstrated below.
 
 However, blind dispersion estimation is not the appropriate choice if
 one expects that many or the majority of genes (rows) will have large
-differences in counts which are explanable by the experimental design,
+differences in counts which are explainable by the experimental design,
 and one wishes to tranform the data for downstream analysis. In this
 case, using blind dispersion estimation will lead to large estimates
 of dispersion, as it attributes differences due to experimental design
-as unwanted ``noise'', and shrinks the tranformed values towards each
-other. By setting \Robject{blind} to \Robject{FALSE}, the dispersions
+as unwanted ``noise'', and will result in overly shrinking the transformed
+values towards each other. 
+By setting \Robject{blind} to \Robject{FALSE}, the dispersions
 already estimated will be used to perform transformations, or if not
 present, they will be estimated using the current design formula. Note
 that only the fitted dispersion estimates from mean-dispersion trend
-line is used in the transformation.  So setting \Robject{blind} to
-\Robject{FALSE} is still mostly unbiased by the information about the
-samples.
+line are used in the transformation (the global dependence of
+dispersion on mean for the entire experiment).
+So setting \Robject{blind} to \Robject{FALSE} is still for the most
+part unbiased by the information about which samples were in which
+experimental group. 
 
 \subsubsection{Extracting transformed values}
 
