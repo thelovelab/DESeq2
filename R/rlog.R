@@ -72,6 +72,7 @@
 #' which is log2 of the mean normalized counts from a previous dataset.
 #' this will enforce the intercept for the GLM, allowing for a "frozen" rlog
 #' transformation based on a previous dataset.
+#' You will also need to provide \code{mcols(object)$dispFit}.
 #' @param betaPriorVar a single value, the variance of the prior on the sample
 #' betas, which if missing is estimated from the data
 #' @param fitType in case dispersions have not yet been estimated for \code{object},

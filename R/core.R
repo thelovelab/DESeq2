@@ -647,10 +647,11 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # by evaluating a grid of posterior evaluations
   refitDisp <- !dispGeneEstConv & dispGeneEst > minDisp*10
   if (sum(refitDisp) > 0) {
-    dispInR <- fitDispGridWrapper(y=counts(objectNZ)[refitDisp,,drop=FALSE],x=modelMatrix,
-                                  mu=mu[refitDisp,,drop=FALSE],logAlphaPriorMean=rep(0,sum(refitDisp)),
-                                  logAlphaPriorSigmaSq=1,usePrior=FALSE)
-    dispGeneEst[refitDisp] <- dispInR
+    dispGrid <- fitDispGridWrapper(y=counts(objectNZ)[refitDisp,,drop=FALSE],x=modelMatrix,
+                                   mu=mu[refitDisp,,drop=FALSE],
+                                   logAlphaPriorMean=rep(0,sum(refitDisp)),
+                                   logAlphaPriorSigmaSq=1,usePrior=FALSE)
+    dispGeneEst[refitDisp] <- dispGrid
   }
   dispGeneEst <- pmin(pmax(dispGeneEst, minDisp), maxDisp)
   
@@ -1454,6 +1455,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
+  if (missing(reduced)) {
+    stop("provide a reduced formula for the LRT, e.g. nbinomLRT(object, reduced= ~1)")
+  }
 
   # in case the class of the mcols(mcols(object)) are not character
   object <- sanitizeRowRanges(object)
@@ -2137,23 +2141,6 @@ buildMatrixWithZeroRows <- function(m, zeroRows) {
   mFull
 }
 
-# convenience function for building larger vectors
-# by filling in NA rows
-## buildNumericWithNARows <- function(v, NARows) {
-##   vFull <- numeric(length(NARows))
-##   VFull <- NA
-##   vFull[!NARows] <- v
-##   vFull
-## }
-
-# convenience function for building larger vectorss
-# by filling in 0 rows
-buildNumericWithZeroRows <- function(v, zeroRows) {
-  vFull <- numeric(length(zeroRows))
-  vFull[!zeroRows] <- v
-  vFull
-}
-
 # convenience function for breaking up matrices
 # by column and preserving column names
 matrixToList <- function(m) {
@@ -2298,12 +2285,6 @@ getDesignFactors <- function(object) {
   designVars <- all.vars(design)
   designVarsClass <- sapply(designVars, function(v) class(colData(object)[[v]]))
   designVars[designVarsClass == "factor"]
-}
-
-factorPresentThreeOrMoreLevels <- function(object) {
-  designFactors <- getDesignFactors(object)
-  threeOrMore <- sapply(designFactors,function(v) nlevels(colData(object)[[v]]) >= 3)
-  any(threeOrMore)
 }
 
 # looking at the values of x which are large
@@ -2574,9 +2555,6 @@ linearModelMu <- function(y, x) {
 # checks for LRT formulas, written as function to remove duplicate code
 # in DESeq() and nbinomLRT()
 checkLRT <- function(full, reduced) {
-  if (missing(reduced)) {
-    stop("provide a reduced formula for the likelihood ratio test, e.g. nbinomLRT(object, reduced = ~ 1)")
-  }
   reducedNotInFull <- !all.vars(reduced) %in% all.vars(full)
   if (any(reducedNotInFull)) {
     stop(paste("the following variables in the reduced formula not in the full formula:",

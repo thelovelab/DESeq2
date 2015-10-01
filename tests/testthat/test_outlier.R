@@ -57,3 +57,9 @@ dds <- makeExampleDESeqDataSet(n=100)
 counts(dds)[1,1] <- 1000000L
 dds <- DESeq(dds, test="LRT", reduced=~1, minReplicatesForReplace=6)
 dds <- DESeq(dds, test="LRT", reduced=~1, betaPrior=TRUE, minReplicatesForReplace=6)
+
+# test replace function
+dds <- makeExampleDESeqDataSet(n=100,m=4)
+expect_error(replaceOutliers(dds))
+dds <- DESeq(dds)
+expect_error(replaceOutliers(dds, minReplicates=2))

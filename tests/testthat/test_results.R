@@ -67,11 +67,13 @@ results(dds, contrast=list(character(),"condition1"), listValues=c(.5,-.5))
 expect_equivalent(attr(dds,"betaPriorVar")[1], 1e6)  
 
 # test thresholding
-
 results(dds, lfcThreshold=1)
 expect_error(results(dds, lfcThreshold=1, altHypothesis="lessAbs"))
 results(dds, lfcThreshold=1, altHypothesis="greater")
 results(dds, lfcThreshold=1, altHypothesis="less")
+
+ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
+results(ddsNoPrior, lfcThreshold=1, altHypothesis="lessAbs")
 
 ##################################################
 ## test designs with zero intercept
@@ -121,7 +123,6 @@ expect_true(!all(results(dds,name="condition_B_vs_A")$stat ==
 expect_error(results(dds, addMLE=TRUE))
 expect_error(results(dds, lfcThreshold=1, test="LRT"))
 
-
 expect_true(all(results(dds, test="LRT", contrast=c("group","1","2"))$log2FoldChange ==
                 -1 * results(dds, test="LRT", contrast=c("group","2","1"))$log2FoldChange))
 
@@ -141,7 +142,12 @@ res <- results(dds, tidy=TRUE)
 expect_true(colnames(res)[1] == "row")
 expect_true(is(res, "data.frame"))
 
+# test MLE and 'name'
+results(dds, addMLE=TRUE)
+expect_error(results(dds, name="condition_B_vs_A", addMLE=TRUE))
+
 # test remove results
 dds <- removeResults(dds)
 expect_true(!any(mcols(mcols(dds))$type == "results"))
+
 

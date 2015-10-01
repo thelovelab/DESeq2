@@ -281,7 +281,7 @@ results <- function(object, contrast, name,
   stopifnot(length(listValues)==2 & is.numeric(listValues))
   stopifnot(listValues[1] > 0 & listValues[2] < 0)
   if (!"results" %in% mcols(mcols(object))$type) {
-    stop("cannot find results columns in object, first call DESeq, nbinomWaldTest, or nbinomLRT")
+    stop("couldn't find results. you should first run DESeq()")
   }
   if (missing(test)) {
     test <- attr(object, "test")
@@ -293,10 +293,19 @@ results <- function(object, contrast, name,
   }
   if (lfcThreshold == 0 & altHypothesis == "lessAbs") {
     stop("when testing altHypothesis='lessAbs', set the argument lfcThreshold to a positive value")
-  }  
-  if (addMLE & !attr(object,"betaPrior")) {
-    stop("addMLE=TRUE is only for when a beta prior was used. otherwise, the log2 fold changes are already MLE")
   }
+  
+  if (addMLE) {
+    if (!attr(object,"betaPrior")) {
+      stop("addMLE=TRUE is only for when a beta prior was used.
+otherwise, the log2 fold changes are already MLE")
+    }
+    if (!missing(name) & missing(contrast)) {
+      stop("addMLE=TRUE should be used by providing character vector
+of length 3 to 'contrast' instead of using 'name'")
+    }
+  }
+  
   if (format == "GRanges" & is(rowRanges(object),"GRangesList")) {
     if (any(elementLengths(rowRanges(object)) == 0)) {
       stop("rowRanges is GRangesList and one or more GRanges have length 0. Use format='DataFrame' or 'GRangesList'")
@@ -333,13 +342,8 @@ results <- function(object, contrast, name,
     }
   }
   
-  # check to see at least one of these are present
   WaldResults <- paste0("WaldPvalue_",name) %in% names(mcols(object))
   LRTResults <- "LRTPvalue" %in% names(mcols(object))
-  if (! ( WaldResults | LRTResults) ) {
-    stop("cannot find appropriate results in the DESeqDataSet.
-possibly nbinomWaldTest or nbinomLRT has not yet been run.")
-  }
   
   # if performing a contrast call the function cleanContrast()
   if (!missing(contrast)) {
@@ -377,19 +381,9 @@ possibly nbinomWaldTest or nbinomLRT has not yet been run.")
 
   # add unshrunken MLE coefficients to the results table
   if (addMLE) {
-    if (!missing(contrast)) {
-      if (is.numeric(contrast)) stop("addMLE only implemented for: contrast=c('condition','B','A')")
-      if (is.list(contrast)) stop("addMLE only implemented for: contrast=c('condition','B','A')")
-      res <- cbind(res, mleContrast(object, contrast))
-    } else {
-      mleName <- paste0("MLE_",name)
-      mleNames <- names(mcols(object))[grep("MLE_",names(mcols(object)))]
-      if (!mleName %in% mleNames) stop("MLE_ plus 'name' was not found as a column in mcols(dds)")
-      mleColumn <- mcols(object)[mleName]
-      names(mleColumn) <- "lfcMLE"
-      mcols(mleColumn)$description <- paste("log2 fold change (MLE):", name)
-      res <- cbind(res, mleColumn)
-    }
+    if (is.numeric(contrast)) stop("addMLE only implemented for: contrast=c('condition','B','A')")
+    if (is.list(contrast)) stop("addMLE only implemented for: contrast=c('condition','B','A')")
+    res <- cbind(res, mleContrast(object, contrast))
     res <- res[,c("baseMean","log2FoldChange","lfcMLE","lfcSE","stat","pvalue")]
     # if an all zero contrast, also zero out the lfcMLE
     res$lfcMLE[ which(res$log2FoldChange == 0 & res$stat == 0) ] <- 0
@@ -684,8 +678,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
           make.names(paste0(contrastFactor,contrastNumLevel))
         }
         if (!name %in% resNames) {
-          stop(paste("as",contrastDenomLevel,"is the reference level, was expecting",
-                     name,"to be present in 'resultsNames(object)'"))
+          stop(paste("as",contrastDenomLevel,"is the reference level, was expecting",name,"to be present in 'resultsNames(object)'"))
         }
         log2FoldChange <- getCoef(object, name)
         lfcSE <- getCoefSE(object, name)
@@ -708,8 +701,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
           make.names(paste0(contrastFactor,contrastDenomLevel))
         }
         if (!swapName %in% resNames) {
-          stop(paste("as",contrastNumLevel,"is the reference level, was expecting",
-                     swapName,"to be present in 'resultsNames(object)'"))
+          stop(paste("as",contrastNumLevel,"is the reference level, was expecting",swapName,"to be present in 'resultsNames(object)'"))
         }
         log2FoldChange <- getCoef(object, swapName)
         lfcSE <- getCoefSE(object, swapName)
@@ -740,9 +732,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
         # as comparisons against reference level
         if ( ! (contrastNumColumn %in% resNames &
                   contrastDenomColumn %in% resNames) ) {
-          stop(paste(contrastNumLevel,"and",contrastDenomLevel,"should be levels of",contrastFactor,
-                     "such that",contrastNumColumn,"and",contrastDenomColumn,
-                     "are contained in 'resultsNames(object)'"))
+          stop(paste(contrastNumLevel,"and",contrastDenomLevel,"should be levels of",contrastFactor,"such that",contrastNumColumn,"and",contrastDenomColumn,"are contained in 'resultsNames(object)'"))
         }
       }
       # case 2: expanded model matrices or no intercept and first variable
@@ -896,11 +886,6 @@ renameModelMatrixColumns <- function(data, design) {
   colNamesFrom <- make.names(do.call(c,lapply(factorVars, function(v) paste0(v,levels(data[[v]])[-1]))))
   colNamesTo <- make.names(do.call(c,lapply(factorVars, function(v) paste0(v,"_",levels(data[[v]])[-1],"_vs_",levels(data[[v]])[1]))))
   data.frame(from=colNamesFrom,to=colNamesTo,stringsAsFactors=FALSE)
-}
-
-getNonInteractionColumnIndices <- function(object, modelMatrix) {
-  interactions <- which(attr(terms.formula(design(object)),"order") > 1)
-  which(attr(modelMatrix,"assign") != interactions)
 }
 
 makeWaldTest <- function(object) {
