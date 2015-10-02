@@ -670,7 +670,7 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   } else {
     counts(objectNZ)
   }
-    
+
   betaRes <- fitBeta(ySEXP = countsMatrix, xSEXP = modelMatrix,
                      nfSEXP = normalizationFactors,
                      alpha_hatSEXP = alpha_hat,
@@ -678,7 +678,7 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
                      beta_matSEXP = beta_mat,
                      lambdaSEXP = lambda,
                      tolSEXP = 1e-8, maxitSEXP = 0,
-                     useQRSEXP=FALSE)
+                     useQRSEXP=FALSE) # QR not relevant, fitting loop isn't entered
   # convert back to log2 scale
   contrastEstimate <- log2(exp(1)) * betaRes$contrast_num
   contrastSE <- log2(exp(1)) * betaRes$contrast_denom

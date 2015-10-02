@@ -2144,7 +2144,8 @@ Mathias Lesche,
 Sonali Arora,
 Jordan Ramilowski,
 Ian Dworkin,
-Bj\"orn Gr\"uning.
+Bj\"orn Gr\"uning,
+Ryan McMinds.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=

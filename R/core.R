@@ -1059,9 +1059,6 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
     modelAsFormula <- TRUE
     termsOrder <- attr(terms.formula(design(object)),"order")
     interactionPresent <- any(termsOrder > 1)
-    if (interactionPresent) {
-      message("-- note: betaPrior=FALSE used for designs with interaction")
-    }
     if (missing(betaPrior)) {
       betaPrior <- !interactionPresent
     }
@@ -2271,6 +2268,8 @@ covarianceMatrix <- function(object, rowNumber) {
   sf <- sizeFactors(object)
   alpha <- dispersions(object)[rowNumber]
   mu.hat <- as.vector(sf * exp(x %*% beta))
+  minmu <- 0.1
+  mu.hat[mu.hat < minmu] <- minmu
   w <- diag(1/(1/mu.hat^2 * ( mu.hat + alpha * mu.hat^2 )))
   betaPriorVar <- attr(object,"betaPriorVar")
   ridge <- diag(1/(log(2)^2 * betaPriorVar))
@@ -2429,6 +2428,8 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     betaMatrix[row,] <- o$par / scaleCols
     # calculate the standard errors
     mu_row <- as.numeric(nf * 2^(x %*% o$par))
+    minmu <- 0.1
+    mu_row[mu_row < minmu] <- minmu
     w <- diag((mu_row^-1 + alpha)^-1)
     xtwx <- t(x) %*% w %*% x
     xtwxRidgeInv <- solve(xtwx + ridge)
