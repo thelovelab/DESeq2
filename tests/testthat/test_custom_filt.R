@@ -10,7 +10,7 @@ theta <- seq(mean(filter == 0), 1, length=20)
 method <- "BH"
 alpha <- 0.1
 
-customFilt <- function(filter, test, theta, method, alpha) {
+customFilt <- function(alpha, filter, test, theta, method) {
   cutoff <- quantile(filter, theta)
   numRej <- sapply(cutoff, function(x) sum(p.adjust(test[filter > x]) < alpha, na.rm=TRUE))
   threshold <- theta[which(numRej == max(numRej))[1]]

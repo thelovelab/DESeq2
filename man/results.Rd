@@ -101,8 +101,8 @@ from independent filtering}
 \item{pAdjustMethod}{the method to use for adjusting p-values, see \code{?p.adjust}}
 
 \item{filterFun}{an optional custom function for independent filtering,
-with arguments \code{filter}, \code{test}, \code{theta}, \code{method}, and \code{alpha}
-(first args similar to \code{genefilter::filtered_p}), and which returns \code{padj}}
+with arguments \code{alpha}, \code{filter}, \code{test}, \code{theta}, and \code{method}
+similar to \code{genefilter::filtered_R}, and which returns \code{padj}}
 
 \item{format}{character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,

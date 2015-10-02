@@ -147,8 +147,8 @@
 #' from independent filtering
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #' @param filterFun an optional custom function for independent filtering,
-#' with arguments \code{filter}, \code{test}, \code{theta}, \code{method}, and \code{alpha}
-#' (first args similar to \code{genefilter::filtered_p}), and which returns \code{padj}
+#' with arguments \code{alpha}, \code{filter}, \code{test}, \code{theta}, and \code{method}
+#' similar to \code{genefilter::filtered_R}, and which returns \code{padj}
 #' @param format character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 #' whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 #' or if the results DataFrame should be attached as metadata columns to
@@ -596,11 +596,11 @@ pvalueAdjustment <- function(res, independentFiltering, filter,
       filterTheta <- theta[j]
     } else {
       # use a custom filter function
-      padj <- filterFun(filter=filter,
+      padj <- filterFun(alpha=alpha,
+                        filter=filter,
                         test=res$pvalue,
                         theta=theta,
-                        method=pAdjustMethod,
-                        alpha=alpha)
+                        method=pAdjustMethod)
       filterThreshold <- NULL
       filterTheta <- NULL
       filterNumRej <- NULL
