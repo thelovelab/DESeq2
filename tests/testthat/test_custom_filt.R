@@ -8,10 +8,11 @@ filter <- mcols(dds)$baseMean
 test <- res$pvalue
 theta <- seq(mean(filter == 0), 1, length=20)
 method <- "BH"
+alpha <- 0.1
 
-customFilt <- function(filter, test, theta, method) {
+customFilt <- function(filter, test, theta, method, alpha) {
   cutoff <- quantile(filter, theta)
-  numRej <- sapply(cutoff, function(x) sum(p.adjust(test[filter > x]) < 0.1, na.rm=TRUE))
+  numRej <- sapply(cutoff, function(x) sum(p.adjust(test[filter > x]) < alpha, na.rm=TRUE))
   threshold <- theta[which(numRej == max(numRej))[1]]
   padj <- numeric(length(test))
   padj <- NA
