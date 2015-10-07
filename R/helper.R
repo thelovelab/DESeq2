@@ -294,7 +294,7 @@ fpm <- function(object, robust=TRUE) {
 #' One can pre-test with \code{importer(files[1])}.
 #' @param ... further arguments passed to \code{importer}
 #'
-#' @return a DESeqDataSet with \code{link{normalizationFactors}}
+#' @return a DESeqDataSet with \code{\link{normalizationFactors}}
 #' accounting for average transcript length and library size
 #' 
 #' @examples

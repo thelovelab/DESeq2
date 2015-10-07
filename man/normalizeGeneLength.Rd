@@ -45,7 +45,7 @@ One can pre-test with \code{importer(files[1])}.}
 \item{...}{further arguments passed to \code{importer}}
 }
 \value{
-a DESeqDataSet with \code{link{normalizationFactors}}
+a DESeqDataSet with \code{\link{normalizationFactors}}
 accounting for average transcript length and library size
 }
 \description{
