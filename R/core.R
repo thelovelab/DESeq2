@@ -49,7 +49,7 @@
 #' For more detailed information on usage, see the package vignette, by typing
 #' \code{vignette("DESeq2")}, or the workflow linked to on the first page
 #' of the vignette. All support questions should be posted to the Bioconductor
-#' support site: \url{support.bioconductor.org}.
+#' support site: \url{http://support.bioconductor.org}.
 #'
 #' @references
 #'
