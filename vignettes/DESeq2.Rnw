@@ -2120,6 +2120,34 @@ Yes. The repository for the \deseqtwo{} tool is
 and a link to its location in the Tool Shed is 
 \url{https://toolshed.g2.bx.psu.edu/view/iuc/deseq2/d983d19fbbab}.
 
+\subsection{I ran a likelihood ratio test, but \texttt{results()} only gives me one comparison.}
+
+``\dots How do I get the $p$ values for all of the variables/levels 
+that were removed in the reduced design?''
+
+This is explained in the help page for \texttt{?results} in the
+section about likelihood ratio test p-values, but we will restate the
+answer here. When one performs a likelihood ratio test, the $p$ values and
+the test statistic (the \Robject{stat} column) are values for the test
+that removes all of the variables which are present in the full
+design and not in the reduced design. This tests the null hypothesis
+that all the coefficients from these variables and levels of these factors
+are equal to zero.
+
+The likelihood ratio test $p$ values therefore
+represent a test of \textit{all the variables and all the levels of factors}
+which are among these variables. However, the results table only has space for
+one column of log fold change, so a single variable and a single
+comparison is shown (among the potentially multiple log fold changes
+which were tested in the likelihood ratio test). 
+This is indicated at the top of the results table
+with the text, e.g.: ``log2 fold change (MLE): condition C vs A'' followed
+by ``LRT p-value: '\lowtilde{} batch + condition' vs '\lowtilde{} batch' ''.
+This indicates that the $p$ value is for the likelihood ratio test of
+\textit{all the variables and all the levels}, while the log fold change is a single
+comparison from among those variables and levels.
+See the help page for \Rfunction{results} for more details.
+
 \section{Acknowledgments}
 
 We have benefited in the development of \deseqtwo{} from the help and
