@@ -2155,6 +2155,8 @@ feedback of many individuals, including but not limited to:
 The Bionconductor Core Team,
 Alejandro Reyes, Andrzej Ole\'s, Aleksandra Pekowska, Felix Klein,
 Vince Carey,
+Owen Solberg,
+Ruping Sun,
 Devon Ryan, 
 Steve Lianoglou, Jessica Larson, Christina Chaivorapol, Pan Du, Richard Bourgon,
 Willem Talloen, 
