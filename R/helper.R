@@ -72,14 +72,18 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' as in \code{\link{estimateSizeFactors}}).
 #'
 #' The length of the features (e.g. genes) is calculated one of two ways:
-#' if there is a matrix named "avgTxLength" in \code{assays(dds)}, this will take precedence in the
-#' length normalization. Otherwise, feature length is calculated 
+#' (1) If there is a matrix named "avgTxLength" in \code{assays(dds)}, this will take precedence in the
+#' length normalization.
+#' (2) Otherwise, feature length is calculated 
 #' from the \code{rowRanges} of the dds object,
 #' if a column \code{basepairs} is not present in \code{mcols(dds)}.
 #' The calculated length is the number of basepairs in the union of all \code{GRanges}
 #' assigned to a given row of \code{object}, e.g., 
 #' the union of all basepairs of exons of a given gene.
-#'
+#' Note that the second approach over-estimates the gene length
+#' (average transcript length, weighted by abundance is the appropriate
+#' normalization for counts), and so the FPKM will be an underestimate of the true value.
+#' 
 #' Note that, when the read/fragment counting has inter-feature dependencies, a strict
 #' normalization would not incorporate the basepairs of a feature which
 #' overlap another feature. This inter-feature dependence is not taken into
@@ -230,137 +234,14 @@ fpm <- function(object, robust=TRUE) {
 #'
 #' Normalize for gene length using the output of transcript abundance estimators
 #'
-#' This is a prototype function for importing information about changes in
-#' the average transcript length for each gene. The use of this function
-#' is only for testing purposes. 
+#' This function is deprecated and moved to a new general purpose package,
+#' tximport, which will be added to Bioconductor.
 #'
-#' The function simply imports or calculates average
-#' transcript length for each gene and each sample from external files,
-#' and provides this matrix to the \code{normMatrix} argument of
-#' \code{\link{estimateSizeFactors}}. 
-#' By average transcript length, the average refers to a weighted average with respect
-#' to the transcript abundances. The RSEM method includes such a column in their
-#' \code{gene.results} files, but an estimate of average transcript length can
-#' be obtained from any software which outputs a file with a row for each
-#' transcript, specifying: transcript length, estimate of transcript abundance,
-#' and the gene which the transcript belongs to.
-#'
-#' Normalization factors accounting for both average transcript length and
-#' library size of each sample are generated and then stored within the data object.
-#' The analysis can then continue with \code{\link{DESeq}};
-#' the stored normalization factors will be used instead of size factors in the analysis.
-#'
-#' For RSEM \code{genes.results} files,
-#' specify \code{level="gene"}, \code{geneIdCol="gene_id"},
-#' and \code{lengthCol="effective_length"}
+#' @param ... ...
 #' 
-#' For Cufflinks \code{isoforms.fpkm_tracking} files,
-#' specify \code{level="tx"}, \code{geneIdCol="gene_id"},
-#' \code{lengthCol="length"}, and \code{abundanceCol="FPKM"}.
-#'
-#' For Sailfish output files, one can write an \code{importer}
-#' function which attaches a column \code{gene_id} based on Transcript ID,
-#' and then specify \code{level="tx"}, \code{geneIdCol="gene_id"},
-#' \code{lengthCol="Length"} and \code{abundanceCol="RPKM"}.
-#' 
-#' Along with the normalization matrix which is stored in \code{normalizationFactors(object)},
-#' the resulting gene length matrix is stored in \code{assays(dds)[["avgTxLength"]]},
-#' and will take precedence in calls to \code{\link{fpkm}}.
-#'
-#' @param object the DESeqDataSet, before calling \code{DESeq}
-#' @param files a character vector specifying the filenames of output files
-#' containing either transcript abundance estimates with transcript length, 
-#' or average transcript length information per gene.
-#' @param level either "tx" or "gene"
-#' @param geneIdCol the name of the column of the files specifying the gene id. This
-#' should line up with the \code{rownames(object)}. The information in the files
-#' will be re-ordered to line up with the rownames of the object.
-#' See \code{dropGenes} for more details.
-#' @param lengthCol the name of the column of files specifying the length of the
-#' feature, either transcript for \code{level="tx"} or the gene for
-#' \code{level="gene"}.
-#' @param abundanceCol only needed if \code{level="tx"}, the name of the
-#' column specifying the abundance estimate of the transcript.
-#' @param dropGenes whether to drop genes from the object,
-#' as labelled by \code{rownames(object)}, which are not
-#' present in the \code{geneIdCol} of the files. Defaults to FALSE
-#' and gives an error upon finding \code{rownames} of the object
-#' not present in the \code{geneIdCol} of the files.
-#' The function will reorder the matching rows of the files to match
-#' the rownames of the object.
-#' @param importer a function to read the \code{files}.
-#' \code{fread} from the data.table package is quite fast,
-#' but other options include \code{read.table}, \code{read.csv}.
-#' One can pre-test with \code{importer(files[1])}.
-#' @param ... further arguments passed to \code{importer}
-#'
-#' @return a DESeqDataSet with \code{\link{normalizationFactors}}
-#' accounting for average transcript length and library size
-#' 
-#' @examples
-#'
-#' n <- 10
-#' files <- c("sample1","sample2")
-#' gene_id <- rep(paste0("gene",seq_len(n)),each=3)
-#' set.seed(1)
-#' sample1 <- data.frame(gene_id=gene_id,length=rpois(3*n,2000),FPKM=round(rnorm(3*n,10,1),2))
-#' sample2 <- data.frame(gene_id=gene_id,length=rpois(3*n,2000),FPKM=round(rnorm(3*n,10,1),2))
-#' importer <- get
-#' dds <- makeExampleDESeqDataSet(n=n, m=2)
-#' dds <- normalizeGeneLength(dds, files=files, level="tx",
-#'   geneIdCol="gene_id", lengthCol="length", abundanceCol="FPKM",
-#'   dropGenes=TRUE, importer=importer)
-#'
 #' @export
-normalizeGeneLength <- function(object, files, level=c("tx","gene"),
-                                geneIdCol="gene_id", lengthCol="length", abundanceCol="FPKM",
-                                dropGenes=FALSE, importer, ...) {
-  stopifnot(length(files) == ncol(object))
-  message("assuming: 'files' and colnames of the dds in same order:
-  files:    ",paste(head(files,4),collapse=", "),"...
-  colnames: ",paste(head(colnames(object),4),collapse=", "),"...")
-  dataList <- list()
-  level <- match.arg(level, c("tx","gene"))
-  for (i in seq_along(files)) {
-    raw <- as.data.frame(importer(files[i], ...))
-    if (level == "tx") {
-      stopifnot(all(c(geneIdCol, lengthCol, abundanceCol) %in% names(raw)))
-      raw[[geneIdCol]] <- factor(raw[[geneIdCol]], unique(raw[[geneIdCol]]))
-      res <- do.call(c, as.list(by(raw, raw[[geneIdCol]],
-                                   function(x) sum(x[[lengthCol]] * x[[abundanceCol]])/sum(x[[abundanceCol]]),
-                                   simplify=FALSE)))      
-      dataList[[i]] <- data.frame(avgLength=res, row.names=names(res))
-    } else if (level == "gene") {
-      stopifnot(all(c(geneIdCol, lengthCol) %in% names(raw)))
-      dataList[[i]] <- data.frame(avgLength=raw[[lengthCol]], row.names=raw[[geneIdCol]])
-    }
-  }
-  for (i in seq_along(files)[-1]) {
-    stopifnot(all(rownames(dataList[[i]]) == rownames(dataList[[1]])))
-  }
-  data <- do.call(cbind, dataList)
-  data <- as.matrix(data)
-
-  common <- rownames(object)[rownames(object) %in% rownames(data)]
-  if (length(common) < nrow(object)) {
-    message(length(common)," genes out of ",nrow(object)," of the dds object are present in the gene length data")
-    if (dropGenes) {
-      message("dropping genes from the dds")
-      object <- object[common,]
-    } else {
-      stop("specify 'dropGenes=TRUE' in order to drop genes from the dds")
-    }
-  }
-  if (!all(rownames(data) == rownames(object))) {
-    data <- data[match(common, rownames(data)),]
-  }
-  stopifnot(rownames(data) == rownames(object))
-  message("adding normalization factors for gene length")
-  object <- estimateSizeFactors(object, normMatrix=data)
-  message("users can continue with DESeq()")
-  dimnames(data) <- dimnames(object)
-  assays(object)[["avgTxLength"]] <- data
-  object
+normalizeGeneLength <- function(...) {
+  .Deprecated("tximport, a separate package to be added to Bioconductor")
 }
 
 #' Normalized counts transformation

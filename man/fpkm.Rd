@@ -31,13 +31,17 @@ as in \code{\link{estimateSizeFactors}}).
 }
 \details{
 The length of the features (e.g. genes) is calculated one of two ways:
-if there is a matrix named "avgTxLength" in \code{assays(dds)}, this will take precedence in the
-length normalization. Otherwise, feature length is calculated
+(1) If there is a matrix named "avgTxLength" in \code{assays(dds)}, this will take precedence in the
+length normalization.
+(2) Otherwise, feature length is calculated
 from the \code{rowRanges} of the dds object,
 if a column \code{basepairs} is not present in \code{mcols(dds)}.
 The calculated length is the number of basepairs in the union of all \code{GRanges}
 assigned to a given row of \code{object}, e.g.,
 the union of all basepairs of exons of a given gene.
+Note that the second approach over-estimates the gene length
+(average transcript length, weighted by abundance is the appropriate
+normalization for counts), and so the FPKM will be an underestimate of the true value.
 
 Note that, when the read/fragment counting has inter-feature dependencies, a strict
 normalization would not incorporate the basepairs of a feature which
