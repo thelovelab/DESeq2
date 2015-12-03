@@ -322,8 +322,11 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory=".", design, igno
 DESeqDataSetFromTximport <- function(txi, colData, design, ...) 
 {
   counts <- round(txi$counts)
+  mode(counts) <- "integer"
   dds <- DESeqDataSetFromMatrix(countData=counts, colData=colData, design=design, ...)
-  assays(dds)[["avgTxLength"]] <- txi$length
+  lengths <- txi$length
+  dimnames(lengths) <- dimnames(dds)
+  assays(dds)[["avgTxLength"]] <- lengths
   return(dds)
 }   
 

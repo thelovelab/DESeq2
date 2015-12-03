@@ -139,7 +139,7 @@ Cook's distance, and the 'Dealing with outliers' section of the vignette.
 Unlike the behavior of \code{\link{replaceOutliers}}, here original counts are
 kept in the matrix returned by \code{\link{counts}}, original Cook's
 distances are kept in \code{assays(dds)[["cooks"]]}, and the replacement
-counts used for fitting are kept in \code{assays(object)[["replaceCounts"]]}.
+counts used for fitting are kept in \code{assays(dds)[["replaceCounts"]]}.
 
 Note that if a log2 fold change prior is used (betaPrior=TRUE)
 then expanded model matrices will be used in fitting. These are
