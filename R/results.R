@@ -293,6 +293,7 @@ results <- function(object, contrast, name,
   stopifnot(lfcThreshold >= 0)
   stopifnot(length(lfcThreshold)==1)
   stopifnot(length(alpha)==1)
+  stopifnot(alpha > 0 & alpha < 1)
   stopifnot(length(pAdjustMethod)==1)
   stopifnot(length(listValues)==2 & is.numeric(listValues))
   stopifnot(listValues[1] > 0 & listValues[2] < 0)

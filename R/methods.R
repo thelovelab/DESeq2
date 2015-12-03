@@ -379,16 +379,26 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","iterate"),
   if (type == "iterate") {
     sizeFactors(object) <- estimateSizeFactorsIterate(object)
   } else {
-    if (missing(normMatrix)) {
+    if ("avgTxLength" %in% assayNames(object)) {
+      nm <- assays(object)[["avgTxLength"]]
+      nm <- nm / exp(rowMeans(log(nm))) # divide out the geometric mean
+      normalizationFactors(object) <- estimateNormFactors(counts(object),
+                                                          normMatrix=nm,
+                                                          locfunc=locfunc,
+                                                          geoMeans=geoMeans,
+                                                          controlGenes=controlGenes)
+      message("using 'avgTxLength' from assays(dds), correcting for library size")      
+    } else if (missing(normMatrix)) {
       sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc=locfunc,
                                                           geoMeans=geoMeans,
                                                           controlGenes=controlGenes)
     } else {
-      normalizationFactors(object) <- estimateNormFactors(counts(object), normMatrix=normMatrix,
+      normalizationFactors(object) <- estimateNormFactors(counts(object),
+                                                          normMatrix=normMatrix,
                                                           locfunc=locfunc,
                                                           geoMeans=geoMeans,
                                                           controlGenes=controlGenes)
-      message("adding normalization factors which account for library size")
+      message("using 'normMatrix', adding normalization factors which correct for library size")
     }
   }
   object
@@ -439,11 +449,16 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","iterate"),
 #' for a "frozen" size factor calculation
 #' @param controlGenes optional, numeric or logical index vector specifying those genes to
 #' use for size factor estimation (e.g. housekeeping or spike-in genes)
-#' @param normMatrix optional, a matrix of normalization factors which do not
-#' control for library size (e.g. average transcript length of genes for each
-#' sample). Providing \code{normMatrix} will estimate size factors on the
+#' @param normMatrix optional, a matrix of normalization factors which do not yet
+#' control for library size. Note that this argument should not be used (and
+#' will be ignored) if the \code{dds} object was created using \code{tximport}.
+#' In this case, the information in \code{assays(dds)[["avgTxLength"]]}
+#' is automatically used to create appropriate normalization factors.
+#' Providing \code{normMatrix} will estimate size factors on the
 #' count matrix divided by \code{normMatrix} and store the product of the
 #' size factors and \code{normMatrix} as \code{\link{normalizationFactors}}.
+#' It is recommended to divide out the row-wise geometric mean of
+#' \code{normMatrix} so the rows roughly are centered on 1.
 #' 
 #' @return The DESeqDataSet passed as parameters, with the size factors filled
 #' in.

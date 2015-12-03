@@ -33,11 +33,16 @@ for a "frozen" size factor calculation}
 \item{controlGenes}{optional, numeric or logical index vector specifying those genes to
 use for size factor estimation (e.g. housekeeping or spike-in genes)}
 
-\item{normMatrix}{optional, a matrix of normalization factors which do not
-control for library size (e.g. average transcript length of genes for each
-sample). Providing \code{normMatrix} will estimate size factors on the
+\item{normMatrix}{optional, a matrix of normalization factors which do not yet
+control for library size. Note that this argument should not be used (and
+will be ignored) if the \code{dds} object was created using \code{tximport}.
+In this case, the information in \code{assays(dds)[["avgTxLength"]]}
+is automatically used to create appropriate normalization factors.
+Providing \code{normMatrix} will estimate size factors on the
 count matrix divided by \code{normMatrix} and store the product of the
-size factors and \code{normMatrix} as \code{\link{normalizationFactors}}.}
+size factors and \code{normMatrix} as \code{\link{normalizationFactors}}.
+It is recommended to divide out the row-wise geometric mean of
+\code{normMatrix} so the rows roughly are centered on 1.}
 }
 \value{
 The DESeqDataSet passed as parameters, with the size factors filled
