@@ -324,9 +324,15 @@ DESeqDataSetFromTximport <- function(txi, colData, design, ...)
   counts <- round(txi$counts)
   mode(counts) <- "integer"
   dds <- DESeqDataSetFromMatrix(countData=counts, colData=colData, design=design, ...)
-  lengths <- txi$length
-  dimnames(lengths) <- dimnames(dds)
-  assays(dds)[["avgTxLength"]] <- lengths
+  stopifnot(txi$countsFromAbundance %in% c("no","scaledTPM","lengthScaledTPM"))
+  if (txi$countsFromAbundance %in% c("scaledTPM","lengthScaledTPM")) {
+    message("using just counts from tximport")
+  } else {
+    message("using counts and average transcript lengths from tximport")
+    lengths <- txi$length
+    dimnames(lengths) <- dimnames(dds)
+    assays(dds)[["avgTxLength"]] <- lengths
+  }
   return(dds)
 }   
 
