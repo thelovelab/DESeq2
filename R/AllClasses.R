@@ -107,11 +107,7 @@ please only use letters and numbers for levels of factors in the design")
 #' @export
 DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   if (!is(se, "RangedSummarizedExperiment")) {
-    if (is(se, "SummarizedExperiment0")) {
-      se <- as(se, "RangedSummarizedExperiment")
-    } else if (is(se, "SummarizedExperiment")) {
-      # only to help transition from SummarizedExperiment to new
-      # RangedSummarizedExperiment objects, remove once transition is complete
+    if (is(se, "SummarizedExperiment")) {
       se <- as(se, "RangedSummarizedExperiment")
     } else {
       stop("'se' must be a RangedSummarizedExperiment object")
@@ -385,11 +381,7 @@ setClass("DESeqTransform", contains="RangedSummarizedExperiment")
 DESeqTransform <- function(SummarizedExperiment) {
   se <- SummarizedExperiment
   if (!is(se, "RangedSummarizedExperiment")) {
-    if (is(se, "SummarizedExperiment0")) {
-      se <- as(se, "RangedSummarizedExperiment")
-    } else if (is(se, "SummarizedExperiment")) {
-      # only to help transition from SummarizedExperiment to new
-      # RangedSummarizedExperiment objects, remove once transition is complete
+    if (is(se, "SummarizedExperiment")) {
       se <- as(se, "RangedSummarizedExperiment")
     } else {
       stop("'SummarizedExperiment' must be a RangedSummarizedExperiment object")
