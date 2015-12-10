@@ -1,3 +1,17 @@
+/*
+ * DESeq2 C++ functions
+ * 
+ * Author: Michael I. Love
+ * Last modified: September 30, 2015
+ * License: LGPL (>= 3)
+ *
+ * Note: The canonical, up-to-date DESeq2.cpp lives in 
+ * the DESeq2 library, the development branch of which 
+ * can be viewed here: 
+ *
+ * https://github.com/Bioconductor-mirror/DESeq2/blob/master/src/DESeq2.cpp
+ */
+
 // include RcppArmadillo and Rcpp
 #include "RcppArmadillo.h"
 

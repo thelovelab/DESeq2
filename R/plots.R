@@ -70,12 +70,12 @@ plotDispEsts.DESeqDataSet <- function( object, ymin,
 #' @export
 setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDataSet)
 
-plotMA.DESeqDataSet <- function(object, alpha=.1, main="", ylim, ...) {
+plotMA.DESeqDataSet <- function(object, alpha=.1, main="", xlab="mean of normalized counts", ylim, MLE=FALSE, ...) {
     res <- results(object, ...)
-    plotMA.DESeqResults(res, alpha=alpha, main=main, ylim=ylim)
+    plotMA.DESeqResults(res, alpha=alpha, main=main, xlab=xlab, ylim=ylim, MLE=MLE)
 }
 
-plotMA.DESeqResults <- function(object, alpha, main="", ylim, MLE=FALSE, ...) {
+plotMA.DESeqResults <- function(object, alpha, main="", xlab="mean of normalized counts", ylim, MLE=FALSE, ...) {
   if (missing(alpha)) {
     alpha <- if (is.null(metadata(object)$alpha)) {
       0.1
@@ -97,9 +97,9 @@ plotMA.DESeqResults <- function(object, alpha, main="", ylim, MLE=FALSE, ...) {
                isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
   }
     if (missing(ylim)) {
-      plotMA(df, main=main, ...)
+      plotMA(df, main=main, xlab=xlab, ...)
     } else {
-       plotMA(df, main=main, ylim=ylim, ...)
+       plotMA(df, main=main, xlab=xlab, ylim=ylim, ...)
     }  
 }
 
@@ -132,6 +132,7 @@ plotMA.DESeqResults <- function(object, alpha, main="", ylim, MLE=FALSE, ...) {
 #' Note that the MLE will be plotted regardless of this argument, if DESeq() was run
 #' with \code{betaPrior=FALSE}.
 #' @param main optional title for the plot
+#' @param xlab optional defaults to "mean of normalized counts"
 #' @param ylim optional y limits
 #' @param ... further arguments passed to \code{plotMA} if object
 #' is \code{DESeqResults} or to \code{\link{results}} if object is
