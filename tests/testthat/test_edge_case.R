@@ -26,7 +26,7 @@ dds2 <- DESeq(dds2)
 results(dds2)
 expect_true(class(mcols(mcols(dds2))$type) == "character")
 
-dds3 <- DESeqDataSetFromMatrix( counts(dds), DataFrame(row.names=1:ncol(dds)), ~ 1 )
+dds3 <- DESeqDataSetFromMatrix( counts(dds), DataFrame(row.names=colnames(dds)), ~ 1 )
 dds3$test <- 1:ncol(dds3)
 dds3 <- estimateSizeFactors(dds3)
 expect_true(class(mcols(colData(dds3))$type) == "character")
