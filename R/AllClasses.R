@@ -271,9 +271,10 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, tidy=FALSE, igno
 
   # we expect a matrix of counts, which are non-negative integers
   countData <- as.matrix( countData )
-    
-  if (is(colData,"data.frame")) colData <- DataFrame(colData, row.names=rownames(colData))
 
+  if (is(colData,"data.frame"))
+    colData <- as(colData, "DataFrame")
+  
   # check if the rownames of colData are simply in different order
   # than the colnames of the countData, if so throw an error
   # as the user probably should investigate what's wrong
