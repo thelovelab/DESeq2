@@ -200,7 +200,7 @@ NULL
 #' @references
 #'
 #' Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 2014, 15:550. \url{http://dx.doi.org/10.1186/s13059-014-0550-8}
-#' @import BiocGenerics BiocParallel S4Vectors IRanges GenomicRanges SummarizedExperiment Biobase Rcpp RcppArmadillo methods ggplot2 
+#' @import BiocGenerics BiocParallel S4Vectors IRanges GenomicRanges SummarizedExperiment Biobase Rcpp methods
 #'
 #' @importFrom locfit locfit
 #' @importFrom genefilter rowVars filtered_p
