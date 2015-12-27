@@ -1288,7 +1288,12 @@ estimateBetaPriorVar <- function(object,
   # weighting by 1/Var(log(K))
   # Var(log(K)) ~ Var(K)/mu^2 = 1/mu + alpha
   # and using the fitted alpha
-  varlogk <- 1/mcols(objectNZ)$baseMean + mcols(objectNZ)$dispFit
+  dispFit <- mcols(objectNZ)$dispFit
+  if (is.null(dispFit)) {
+    # betaPrior routine could have been called w/o the dispersion fitted trend
+    dispFit <- mean(dispersions(objectNZ))
+  }
+  varlogk <- 1/mcols(objectNZ)$baseMean + dispFit
   weights <- 1/varlogk
   
   betaPriorVar <- if (nrow(betaMatrix) > 1) {

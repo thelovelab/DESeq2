@@ -13,3 +13,10 @@ dds2 <- estimateMLEForBetaPriorVar(dds)
 estimateBetaPriorVar(dds2, betaPriorMethod="quantile")
 dds <- nbinomWaldTest(dds, modelMatrixType="standard")
 covarianceMatrix(dds, 1)
+
+# try nbinom after no fitted dispersions
+dds <- makeExampleDESeqDataSet(n=100, m=4)
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersionsGeneEst(dds)
+dispersions(dds) <- mcols(dds)$dispGeneEst
+dds <- nbinomWaldTest(dds)
