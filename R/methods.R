@@ -404,13 +404,13 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","iterate"),
   object
 }
 
-#' Estimate the size factors for a DESeqDataSet
+#' Estimate the size factors for a \code{\link{DESeqDataSet}}
 #' 
 #' This function estimates the size factors using the
 #' "median ratio method" described by Equation 5 in Anders and Huber (2010).
-#' The estimated size factors can be accessed using \code{\link{sizeFactors}}.
+#' The estimated size factors can be accessed using the accessor function \code{\link{sizeFactors}}.
 #' Alternative library size estimators can also be supplied
-#' using \code{\link{sizeFactors}}.
+#' using the assignment function \code{\link{sizeFactors<-}}.
 #' 
 #' Typically, the function is called with the idiom:
 #'
