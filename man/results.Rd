@@ -47,12 +47,14 @@ building a results table. Use this argument rather than \code{contrast}
 for continuous variables, individual effects or for individual interaction terms.
 The value provided to \code{name} must be an element of \code{resultsNames(object)}.}
 
-\item{lfcThreshold}{a non-negative value, which specifies the test which should
-be applied to the log2 fold changes. The standard is a test that the log2 fold
-changes are not equal to zero. However, log2 fold changes greater or less than
-\code{lfcThreshold} can also be tested. Specify the alternative hypothesis
-using the \code{altHypothesis} argument. If \code{lfcThreshold} is specified,
-the results are Wald tests, and LRT p-values will be overwritten.}
+\item{lfcThreshold}{a non-negative value which specifies a log2 fold change
+threshold. The default value is 0, corresponding to a test that
+the log2 fold changes are equal to zero. The user can
+specify the alternative hypothesis using the \code{altHypothesis} argument,
+which defaults to testing
+for log2 fold changes greater in absolute value than a given threshold.
+If \code{lfcThreshold} is specified,
+the results are for Wald tests, and LRT p-values will be overwritten.}
 
 \item{altHypothesis}{character which specifies the alternative hypothesis,
 i.e. those values of log2 fold change which the user is interested in
@@ -225,13 +227,16 @@ be the estimated coefficient for the last element of \code{resultsNames(object)}
 }
 \examples{
 
-## Example 1: simple two-group comparison
+## Example 1: two-group comparison
 
 dds <- makeExampleDESeqDataSet(m=4)
 
 dds <- DESeq(dds)
-res <- results(dds)
-res[ order(res$padj), ]
+res <- results(dds, contrast=c("condition","B","A"))
+
+# with more than two groups, the call would look similar, e.g.:
+# results(dds, contrast=c("condition","C","A"))
+# etc.
 
 ## Example 2: two conditions, two genotypes, with an interaction term
 

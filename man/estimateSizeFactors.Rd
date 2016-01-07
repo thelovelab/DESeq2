@@ -4,7 +4,7 @@
 \name{estimateSizeFactors}
 \alias{estimateSizeFactors}
 \alias{estimateSizeFactors,DESeqDataSet-method}
-\title{Estimate the size factors for a DESeqDataSet}
+\title{Estimate the size factors for a \code{\link{DESeqDataSet}}}
 \usage{
 \S4method{estimateSizeFactors}{DESeqDataSet}(object, type = c("ratio",
   "iterate"), locfunc = stats::median, geoMeans, controlGenes, normMatrix)
@@ -51,9 +51,9 @@ in.
 \description{
 This function estimates the size factors using the
 "median ratio method" described by Equation 5 in Anders and Huber (2010).
-The estimated size factors can be accessed using \code{\link{sizeFactors}}.
+The estimated size factors can be accessed using the accessor function \code{\link{sizeFactors}}.
 Alternative library size estimators can also be supplied
-using \code{\link{sizeFactors}}.
+using the assignment function \code{\link{sizeFactors<-}}.
 }
 \details{
 Typically, the function is called with the idiom:
