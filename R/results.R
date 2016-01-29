@@ -329,7 +329,7 @@ of length 3 to 'contrast' instead of using 'name'")
   }
   
   if (format == "GRanges" & is(rowRanges(object),"GRangesList")) {
-    if (any(elementLengths(rowRanges(object)) == 0)) {
+    if (any(elementNROWS(rowRanges(object)) == 0)) {
       stop("rowRanges is GRangesList and one or more GRanges have length 0. Use format='DataFrame' or 'GRangesList'")
     }
   }
