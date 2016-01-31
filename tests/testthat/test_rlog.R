@@ -22,3 +22,5 @@ expect_error(rlogData(dds, intercept=rep(1,10)))
 dds <- makeExampleDESeqDataSet(n=50, m=10)
 nt <- normTransform(dds)
 plotPCA(nt)
+
+rld <- rlog(counts(dds))

@@ -1,3 +1,11 @@
+CHANGES IN VERSION 1.11.18
+--------------------------
+
+    o Added a function vst(), which is a fast wrapper for
+      varianceStabilizingTransformation(). The speed-up
+      is accomplished by subsetting to a smaller number
+      of genes for the estimation of the dispersion trend.
+
 CHANGES IN VERSION 1.11.5
 -------------------------
 
