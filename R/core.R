@@ -2612,7 +2612,9 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
     if (test == "Wald") {
       betaPriorVar <- attr(object, "betaPriorVar")
       objectSub <- nbinomWaldTest(objectSub, betaPrior=betaPrior,
-                                  betaPriorVar=betaPriorVar, quiet=quiet, modelMatrix=modelMatrix)
+                                  betaPriorVar=betaPriorVar, quiet=quiet,
+                                  modelMatrix=modelMatrix,
+                                  modelMatrixType=modelMatrixType)
     } else if (test == "LRT") {
       if (!betaPrior) {
         objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet)

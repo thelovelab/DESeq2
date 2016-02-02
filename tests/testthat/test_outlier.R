@@ -63,3 +63,9 @@ dds <- makeExampleDESeqDataSet(n=100,m=4)
 expect_error(replaceOutliers(dds))
 dds <- DESeq(dds)
 expect_error(replaceOutliers(dds, minReplicates=2))
+
+# check model matrix standard bug
+set.seed(1)
+dds <- makeExampleDESeqDataSet(n=100, m=20)
+counts(dds)[1,] <- c(100000L, rep(0L, 19))
+dds <- DESeq(dds, modelMatrixType="standard")
