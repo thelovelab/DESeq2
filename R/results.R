@@ -1085,6 +1085,17 @@ contrastAllZeroNumeric <- function(object, contrast) {
     stop("was expecting a model matrix stored as an attribute of the DESeqDataSet")
   }
   modelMatrix <- attr(object, "modelMatrix")
+
+  # note: this extra leg-work to zero out LFC, lfcSE, and set p-value to 1
+  # for contrasts comparing groups where both groups have all zeros
+  # is only implemented for the case in which we can identify
+  # the relevant samples by multiplying the model matrix
+  # with a vector where the non-zero elements of the numeric contrast are replaced with 1
+
+  # so this code will not zero out in the case of standard model matrices
+  # where the user supplies a numeric vector that pulls out a single column
+  # of the model matrix, for example.
+  
   if (all(contrast >= 0) | all(contrast <= 0)) {
     return( rep(FALSE, nrow(object)) )
   }
