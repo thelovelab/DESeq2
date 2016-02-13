@@ -124,26 +124,27 @@ for more information about how to construct an informative post.
 
 \subsection{Input data} \label{sec:prep}
 
-\subsubsection{Why raw counts?}
+\subsubsection{Why un-normalized counts?}
 
 As input, the \deseqtwo{} package expects count data as obtained, e.\,g.,
 from RNA-seq or another high-throughput sequencing experiment, in the form of a
 matrix of integer values. The value in the $i$-th row and the $j$-th column of
-the matrix tells how many reads have been mapped to gene $i$ in sample $j$.
+the matrix tells how many reads can be assigned to gene $i$ in sample $j$.
 Analogously, for other types of assays, the rows of the matrix might correspond
 e.\,g.\ to binding regions (with ChIP-Seq) or peptide sequences (with
-quantitative mass spectrometry). We will list method for obtaining count tables
-in a section below.
+quantitative mass spectrometry). We will list method for obtaining count matrices
+in sections below.
 
-The count values must be raw counts of sequencing reads (for
+The values in the matrix should be un-normalized counts of sequencing reads (for
 single-end RNA-seq) or fragments (for paired-end RNA-seq). 
 The \href{http://www.bioconductor.org/help/workflows/rnaseqGene/}{RNA-seq workflow}
 describes multiple techniques for preparing such count matrices.
 It is important to provide count matrices as input for \deseqtwo{}'s
 statistical model \cite{Love2014} to hold, as only the  
 count values allow assessing the measurement precision correctly. The \deseqtwo{}
-model internally corrects for library size, so transformed values such as counts
-scaled by library size should never be used as input.
+model internally corrects for library size, so transformed or
+normalized values such as counts scaled by library size should not
+be used as input. 
 
 \subsubsection{\Rclass{SummarizedExperiment} input} \label{sec:sumExpInput}
 
@@ -251,6 +252,61 @@ the gene names are already the rownames of the \Robject{dds}.)
 featureData <- data.frame(gene=rownames(pasillaGenes))
 (mcols(dds) <- DataFrame(mcols(dds), featureData))
 @ 
+
+\subsubsection{Transcript abundance estimates summarized to gene-level}
+
+Users can create gene-level count matrices for use with \deseqtwo{}
+by importing information from transcript abundance estimators, including the
+following methods:
+
+\begin{itemize}
+\item
+  \href{http://www.cs.cmu.edu/~ckingsf/software/sailfish/}{Sailfish} \cite{Patro2014Sailfish}
+\item \href{http://combine-lab.github.io/salmon/}{Salmon} \cite{Patro2015Salmon}
+\item
+  \href{https://pachterlab.github.io/kallisto/about.html}{kallisto} \cite{Bray2015Near}
+\item \href{http://deweylab.github.io/RSEM/}{RSEM} \cite{Li2011RSEM}
+\end{itemize}
+
+Full details on the motivation and methods for importing transcript
+level abundance and count estimates, summarizing to gene-level count matrices 
+and producing an offset which corrects for potential changes in average
+transcript length across samples are described in \cite{Soneson2015}.
+
+We demonstrate the import of transcript abundances
+and construction of a gene-level \Rclass{DESeqDataSet} object
+from \textit{Sailfish} \texttt{quant.sf} files, which are
+stored in the \Biocexptpkg{tximportData} package.
+Note that, instead of locating \Robject{dir} using \Rfunction{system.file},
+a user would typically just provide a path, e.g. \texttt{/path/to/quant/files}.
+For further details on use of \Rfunction{tximport}, 
+including the construction of the \Robject{tx2gene} table for linking
+transcripts to genes, please refer to the \Biocpkg{tximport} package vignette. 
+
+<<tximport>>=
+library("tximport")
+library("readr")
+library("tximportData")
+dir <- system.file("extdata", package="tximportData")
+samples <- read.table(file.path(dir,"samples.txt"), header=TRUE)
+files <- file.path(dir,"salmon", samples$run, "quant.sf")
+names(files) <- paste0("sample",1:6)
+tx2gene <- read.csv(file.path(dir, "tx2gene.csv"))
+txi <- tximport(files, type="salmon", tx2gene=tx2gene, reader=read_tsv)
+@ 
+
+Next we create an condition vector to demonstrate building an
+\Robject{DESeqDataSet}. For a typical use, this information would already
+be present as a column of the \Robject{samples} table.
+The best practice is to read \Robject{colData} from a CSV or TSV file, 
+and to construct \Robject{files} 
+from a column of \Robject{colData}, as shown in the code chunk above.
+
+<<txi2dds>>=
+coldata <- data.frame(condition=factor(rep(c("A","B"),each=3)))
+rownames(coldata) <- colnames(txi$counts)
+ddsTxi <- DESeqDataSetFromTximport(txi, colData=coldata, design=~ condition)
+@
 
 \subsubsection{\textit{HTSeq} input}
 

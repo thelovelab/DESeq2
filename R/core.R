@@ -206,6 +206,10 @@ NULL
 #' @importFrom genefilter rowVars filtered_p
 #' @importFrom Hmisc wtd.quantile
 #' 
+#' @importFrom graphics axis hist plot points
+#' @importFrom stats Gamma as.formula coefficients df dnbinom dnorm formula glm loess lowess model.matrix optim p.adjust pchisq pnorm prcomp predict pt qf qnorm rchisq relevel rnbinom rnorm runif splinefun terms terms.formula
+#' @importFrom utils read.table
+#' 
 #' @useDynLib DESeq2
 #'
 #' @seealso \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
