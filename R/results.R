@@ -726,9 +726,6 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
     contrastNumLevel <- contrast[2]
     contrastDenomLevel <- contrast[3]
     contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]
-
-    # check if both levels have all zero counts
-    contrastAllZero <- contrastAllZeroCharacter(object, contrastFactor, contrastNumLevel, contrastDenomLevel)
     
     # check for intercept
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
@@ -831,6 +828,12 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
                    "are expected to be in resultsNames(object)"))
       }
     }
+
+    # check if both levels have all zero counts
+    # (this has to be down here to make use of error checking above)
+    contrastAllZero <- contrastAllZeroCharacter(object, contrastFactor,
+                         contrastNumLevel, contrastDenomLevel)
+    
   }
 
   # if the result table not already built in the above code...
