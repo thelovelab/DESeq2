@@ -253,11 +253,12 @@ featureData <- data.frame(gene=rownames(pasillaGenes))
 (mcols(dds) <- DataFrame(mcols(dds), featureData))
 @ 
 
-\subsubsection{Transcript abundance estimates summarized to gene-level}
+\subsubsection{tximport: transcript abundance summarized to gene-level}
 
 Users can create gene-level count matrices for use with \deseqtwo{}
-by importing information from transcript abundance estimators, including the
-following methods:
+by importing information using the \Biocpkg{tximport} package.
+This workflow allows users to import transcript abundance estimates
+from a variety of external software, including the following methods:
 
 \begin{itemize}
 \item
@@ -268,13 +269,25 @@ following methods:
 \item \href{http://deweylab.github.io/RSEM/}{RSEM} \cite{Li2011RSEM}
 \end{itemize}
 
+Some advantages of using the above methods for transcript abundance
+estimation are: (i) this approach corrects for potential changes
+in gene length across samples (e.g. from differential isoform usage),
+(ii) some of these methods (\textit{Sailfish, Salmon, kallisto}) 
+are substantially faster and require less memory
+and disk usage compared to alignment-based methods, and
+(iii) it is possible to avoid discarding those fragments that can
+align to multiple genes with homologous sequence.
+
 Full details on the motivation and methods for importing transcript
 level abundance and count estimates, summarizing to gene-level count matrices 
 and producing an offset which corrects for potential changes in average
 transcript length across samples are described in \cite{Soneson2015}.
+The \textit{tximport}$\rightarrow$\deseqtwo{} approach uses rounded estimated
+gene counts (but not normalized) instead of the raw count of fragments
+which can be unambiguously assigned to a gene.
 
-We demonstrate the import of transcript abundances
-and construction of a gene-level \Rclass{DESeqDataSet} object
+Here, we demonstrate how to import transcript abundances
+and construct of a gene-level \Rclass{DESeqDataSet} object
 from \textit{Sailfish} \texttt{quant.sf} files, which are
 stored in the \Biocexptpkg{tximportData} package.
 Note that, instead of locating \Robject{dir} using \Rfunction{system.file},
@@ -307,6 +320,9 @@ coldata <- data.frame(condition=factor(rep(c("A","B"),each=3)))
 rownames(coldata) <- colnames(txi$counts)
 ddsTxi <- DESeqDataSetFromTximport(txi, colData=coldata, design=~ condition)
 @
+
+The \Robject{ddsTxi} object can then be used as \Robject{dds} in the
+following analysis steps.
 
 \subsubsection{\textit{HTSeq} input}
 
