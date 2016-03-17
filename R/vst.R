@@ -218,6 +218,8 @@ getVarianceStabilizedData <- function(object) {
 #' or by avoiding subsetting and using \code{\link{varianceStabilizingTransformation}}.
 #' 
 #' @param object a DESeqDataSet or a matrix of counts
+#' @param blind logical, whether to blind the transformation to the experimental
+#' design (see \code{\link{varianceStabilizingTransformation}})
 #' @param nsub the number of genes to subset to (default 1000)
 #' @param fitType for estimation of dispersions: this parameter
 #' is passed on to \code{\link{estimateDispersions}} (options described there)
@@ -230,7 +232,7 @@ getVarianceStabilizedData <- function(object) {
 #' vsd <- vst(dds)
 #'
 #' @export
-vst <- function(object, nsub=1000, fitType="parametric") {
+vst <- function(object, blind=TRUE, nsub=1000, fitType="parametric") {
   if (nrow(object) < nsub) {
     stop("less than 'nsub' rows,
   it is recommended to use varianceStabilizingTransformation directly")
@@ -242,6 +244,9 @@ vst <- function(object, nsub=1000, fitType="parametric") {
     matrixIn <- TRUE
     object <- DESeqDataSetFromMatrix(object, DataFrame(row.names=colnames(object)), ~ 1)
   } else {
+    if (blind) {
+      design(object) <- ~ 1
+    }
     matrixIn <- FALSE
   }
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {

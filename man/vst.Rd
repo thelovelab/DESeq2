@@ -4,10 +4,13 @@
 \alias{vst}
 \title{Quickly estimate dispersion trend and apply a variance stabilizing transformation}
 \usage{
-vst(object, nsub = 1000, fitType = "parametric")
+vst(object, blind = TRUE, nsub = 1000, fitType = "parametric")
 }
 \arguments{
 \item{object}{a DESeqDataSet or a matrix of counts}
+
+\item{blind}{logical, whether to blind the transformation to the experimental
+design (see \code{\link{varianceStabilizingTransformation}})}
 
 \item{nsub}{the number of genes to subset to (default 1000)}
 

@@ -135,7 +135,7 @@ expect_warning(results(dds, format="GRangesList"))
 
 rowRanges(dds) <- as(rowRanges(dds), "GRangesList")
 dds <- DESeq(dds)
-expect_warning(results(dds, format="GRanges"))
+expect_message(results(dds, format="GRanges"))
 
 # check tidy-ness
 res <- results(dds, tidy=TRUE)
