@@ -2247,7 +2247,8 @@ Sonali Arora,
 Jordan Ramilowski,
 Ian Dworkin,
 Bj\"orn Gr\"uning,
-Ryan McMinds.
+Ryan McMinds,
+Paul Gordon.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=
