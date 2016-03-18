@@ -8,7 +8,7 @@ library("samr")
 library("DSS")
 library("EBSeq")
 source("runScripts.R")
-algos <- list("DESeq2"=runDESeq2,
+algos <- list("DESeq2"=runDESeq2,"DESeq2-LRT"=runDESeq2LRT,"DESeq2-NoIF"=runDESeq2NoIF,
               "edgeR"=runEdgeR,"edgeR-robust"=runEdgeRRobust,
               "DSS"=runDSS,"DSS-FDR"=runDSSFDR,
               "voom"=runVoom,
@@ -24,11 +24,10 @@ nreps <- 6
 effSizes <- rep(rep(effSizeLevels, each=nreps), times=length(mLevels))
 ms <- rep(mLevels, each=nreps * length(effSizeLevels))
 
-library("BiocParallel")
-register(SerialParam())
-#register(MulticoreParam(workers=8,verbose=TRUE))
+library("parallel")
+options(mc.cores=20)
 
-resList <- bplapply(seq_along(ms), function(i) {
+resList <- mclapply(seq_along(ms), function(i) {
   set.seed(i)
   m <- ms[i]
   es <- effSizes[i]
@@ -43,9 +42,12 @@ resList <- bplapply(seq_along(ms), function(i) {
   sens <- sapply(resTest, function(z) mean((z$padj < .1)[sensidx]))
   rmf <- cut(rowMeans(mat), c(0, 20, 100, 300, Inf), include.lowest=TRUE)
   levels(rmf) <- paste0("sens",c("0to20","20to100","100to300","more300"))
-  sensStratified <- t(sapply(resTest, function(z) tapply((z$padj < .1)[sensidx], rmf[sensidx], mean)))
-  oneminusspecpvals <- sapply(resTest, function(z) mean((z$pvals < .01)[beta == 0 & nonzero], na.rm=TRUE))
-  oneminusspecpadj <- sapply(resTest, function(z) mean((z$padj < .1)[beta == 0 & nonzero], na.rm=TRUE))
+  sensStratified <- t(sapply(resTest, function(z)
+                    tapply((z$padj < .1)[sensidx], rmf[sensidx], mean)))
+  oneminusspecpvals <- sapply(resTest,
+                      function(z) mean((z$pvals < .01)[beta == 0 & nonzero], na.rm=TRUE))
+  oneminusspecpadj <- sapply(resTest,
+                      function(z) mean((z$padj < .1)[beta == 0 & nonzero], na.rm=TRUE))
   oneminusprec <- sapply(resTest, function(z) {
       idx <- which(z$padj < .1)
       ifelse(sum(idx) == 0, 0, mean((beta == 0)[idx]))

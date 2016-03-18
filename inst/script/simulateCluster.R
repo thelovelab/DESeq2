@@ -4,6 +4,9 @@ library("DESeq2")
 library("PoiClaClu")
 library("mclust")
 
+library("parallel")
+options(mc.cores=20)
+
 set.seed(1)
 n <- 2000
 # create 20 samples, then remove first group, leaving 16
@@ -23,7 +26,7 @@ nreps <- 20
 res <- do.call(rbind, lapply(seq_along(dispScales), function(idx) {
   dispScale <- dispScales[idx]
   do.call(rbind, lapply(rnormsds[[idx]], function(rnormsd) {
-    do.call(rbind, lapply(seq_along(sfs), function(sf.idx) {
+    do.call(rbind, mclapply(seq_along(sfs), function(sf.idx) {
       sf <- sfs[[sf.idx]]
       do.call(rbind, lapply(seq_len(nreps), function(i) {
         beta <- replicate(k, c(rep(0,8/10 * n), rnorm(2/10 * n, 0, rnormsd)))

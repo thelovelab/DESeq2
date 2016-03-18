@@ -13,6 +13,36 @@ runDESeq2 <- function(e, retDDS=FALSE) {
   return(list(pvals=pvals, padj=padj, beta=beta))
 }
 
+runDESeq2LRT <- function(e, retDDS=FALSE) {
+  counts <- exprs(e)
+  mode(counts) <- "integer"
+  dds <- DESeqDataSetFromMatrix(counts, DataFrame(pData(e)), ~ condition)
+  dds <- DESeq(dds,test="LRT",reduced=~1,quiet=TRUE)
+  res <- results(dds)
+  beta <- res$log2FoldChange
+  pvals <- res$pvalue
+  padj <- res$padj
+  pvals[is.na(pvals)] <- 1
+  pvals[rowSums(exprs(e)) == 0] <- NA
+  padj[is.na(padj)] <- 1
+  return(list(pvals=pvals, padj=padj, beta=beta))
+}
+
+runDESeq2NoIF <- function(e, retDDS=FALSE) {
+  counts <- exprs(e)
+  mode(counts) <- "integer"
+  dds <- DESeqDataSetFromMatrix(counts, DataFrame(pData(e)), ~ condition)
+  dds <- DESeq(dds,quiet=TRUE)
+  res <- results(dds, independentFiltering=FALSE)
+  beta <- res$log2FoldChange
+  pvals <- res$pvalue
+  padj <- res$padj
+  pvals[is.na(pvals)] <- 1
+  pvals[rowSums(exprs(e)) == 0] <- NA
+  padj[is.na(padj)] <- 1
+  return(list(pvals=pvals, padj=padj, beta=beta))
+}
+
 runDESeq2Outliers <- function(e, retDDS=FALSE) {
   counts <- exprs(e)
   mode(counts) <- "integer"
@@ -44,9 +74,10 @@ runEdgeR <- function(e) {
   design <- model.matrix(~ pData(e)$condition)
   dgel <- DGEList(exprs(e))
   dgel <- calcNormFactors(dgel)
-  dgel <- estimateGLMCommonDisp(dgel, design)
-  dgel <- estimateGLMTrendedDisp(dgel, design)
-  dgel <- estimateGLMTagwiseDisp(dgel, design)
+  ## dgel <- estimateGLMCommonDisp(dgel, design)
+  ## dgel <- estimateGLMTrendedDisp(dgel, design)
+  ## dgel <- estimateGLMTagwiseDisp(dgel, design)
+  dgel <- estimateDisp(dgel, design)
   edger.fit <- glmFit(dgel, design)
   edger.lrt <- glmLRT(edger.fit)
   predbeta <- predFC(exprs(e), design, offset=getOffset(dgel), dispersion=dgel$tagwise.dispersion)

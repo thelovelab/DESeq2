@@ -83,7 +83,7 @@ library("ggplot2")
 p <- ggplot(res, aes(y=sensitivity, x=oneminusprec,
                      color=algorithm, shape=algorithm))
 p + geom_point() + theme_bw() + facet_grid(effSize ~ m) +
-  scale_shape_manual(values=1:9) +
+  scale_shape_manual(values=1:11) +
   xlab("1 - precision (false discovery rate)") + 
   coord_cartesian(xlim=c(-.03, .3)) + 
   geom_vline(xintercept=.1)
@@ -109,7 +109,7 @@ p <- ggplot(melted, aes(y=sensitivity, x=aveexp, group=algorithm,
 p + stat_summary(fun.y="mean", geom="line") +
   stat_summary(fun.y="mean", geom="point") +
   theme_bw() + facet_grid(effSize ~ m) +
-  scale_shape_manual(values=1:9) +
+  scale_shape_manual(values=1:11) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   xlab("mean counts")
 ```
@@ -191,7 +191,7 @@ p + scale_x_continuous(breaks=c(0,.1,.2)) +
   geom_line() + theme_bw() + 
   facet_grid(m ~ percentOutlier) + 
   geom_abline(intercept=0,slope=1) +
-  xlab("adjusted *p*-value") + ylab("1 - precision (FDR)") + 
+  xlab("adjusted p-value") + ylab("1 - precision (FDR)") + 
   coord_cartesian(xlim=c(-.03, .25), ylim=c(-.05, .25)) + 
   geom_point(aes(x=precpadj, y=oneminusprec, shape=algorithm),
              data=res[res$precpadj == .1,])
@@ -372,6 +372,7 @@ $-\log_{10}(p)$ in a comparison of two conditions in which one group
 has all zero counts, e.g.: $\{0,0,0\}$ vs $\{10,10,10\}$.
 
 ```{r onlyonecondition, fig.width=4, fig.height=4, fig.cap="Simulated gene expressed in only one condition"}
+library("DESeq2")
 m <- 6
 disp <- 0.5
 ii <- seq(from=1,to=4,length=7)

@@ -7,6 +7,9 @@ library("Biobase")
 algos <- list("DESeq2"=runDESeq2,"edgeR"=runEdgeR)
 namesAlgos <- names(algos)
 
+library("parallel")
+options(mc.cores=10)
+
 set.seed(1)
 nreps <- 10
 n <- 1000
@@ -15,7 +18,7 @@ types <- c("bell","slab bell","slab spike","spike spike")
 methods <- c("DESeq2","edgeR predFC","edgeR predFC10")
 res <- do.call(rbind, lapply(ms, function(m) {
   do.call(rbind, lapply(types, function(type) {
-    do.call(rbind, lapply(seq_len(nreps), function(i) {
+    do.call(rbind, mclapply(seq_len(nreps), function(i) {
       beta <- if (type == "bell") {
         rnorm(n)
       } else if (type == "slab bell") {

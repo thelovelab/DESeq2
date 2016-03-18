@@ -10,6 +10,9 @@ algos <- list("DESeq2"=runDESeq2Outliers,
 namesAlgos <- names(algos)
 methods <- c("DESeq2", "DESeq2-noFilt", "DESeq2-noRepl", "edgeR", "edgeR-robust")
 
+library("parallel")
+options(mc.cores=10)
+
 set.seed(1)
 padjVector <- seq(from=0, to=1, length=201)
 pvalsVector <- seq(from=0, to=.4, length=201)
@@ -20,7 +23,7 @@ nreps <- 10
 
 res <- do.call(rbind, lapply(ms, function(m) {
   do.call(rbind, lapply(percentOutliers, function(pOut) {
-    resList <- lapply(seq_len(nreps), function(i) {
+    resList <- mclapply(seq_len(nreps), function(i) {
       condition <- factor(rep(c("A","B"), each = m/2))
       x <- model.matrix(~ condition)
       beta <- c(rep(0, n * 8/10), sample(c(-1,1), n * 2/10, TRUE))
