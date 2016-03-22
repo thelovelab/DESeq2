@@ -45,20 +45,20 @@
 #' By default, independent filtering is performed to select a set of genes
 #' for multiple test correction which maximizes the number of adjusted
 #' p-values less than a given critical value \code{alpha} (by default 0.1).
+#' See the reference in this man page for details on independent filtering.
 #' The filter used for maximizing the number of rejections is the mean
 #' of normalized counts for all samples in the dataset.
-#' In version >= 1.10, the threshold chosen is
+#' Several arguments from the \code{\link[genefilter]{filtered_p}} function of
+#' the genefilter package (used within the \code{results} function)
+#' are provided here to control the independent filtering behavior.
+#' In DESeq2 version >= 1.10, the threshold that is chosen is
 #' the lowest quantile of the filter for which the
 #' number of rejections is close to the peak of a curve fit
 #' to the number of rejections over the filter quantiles.
 #' 'Close to' is defined as within 1 residual standard deviation.
-#' 
 #' The adjusted p-values for the genes which do not pass the filter threshold
-#' are set to \code{NA}. By default, the mean of normalized counts
-#' is used to perform this filtering, though other statistics can be provided.
-#' Several arguments from the \code{filtered_p} function of genefilter
-#' are provided here to control or turn off the independent filtering behavior.
-#'
+#' are set to \code{NA}. 
+#' 
 #' By default, \code{results} assigns a p-value of \code{NA}
 #' to genes containing count outliers, as identified using Cook's distance.
 #' See the \code{cooksCutoff} argument for control of this behavior.
@@ -68,9 +68,13 @@
 #'
 #' For analyses using the likelihood ratio test (using \code{\link{nbinomLRT}}),
 #' the p-values are determined solely by the difference in deviance between
-#' the full and reduced model formula. A log2 fold change is included,
-#' which can be controlled using the \code{name} argument, or by default this will
-#' be the estimated coefficient for the last element of \code{resultsNames(object)}.
+#' the full and reduced model formula. A single log2 fold change is printed
+#' in the results table for consistency with other results table outputs,
+#' however the test statistic and p-values may nevertheless involve
+#' the testing of one or more log2 fold changes.
+#' Which log2 fold change is printed in the results table can be controlled
+#' using the \code{name} argument, or by default this will be the estimated
+#' coefficient for the last element of \code{resultsNames(object)}.
 #'
 #' @references Richard Bourgon, Robert Gentleman, Wolfgang Huber: Independent
 #' filtering increases detection power for high-throughput experiments.
@@ -132,10 +136,9 @@
 #' by default this is \code{c(1,-1)}
 #' @param cooksCutoff theshold on Cook's distance, such that if one or more
 #' samples for a row have a distance higher, the p-value for the row is
-#' set to NA.
-#' The default cutoff is the .99 quantile of the F(p, m-p) distribution,
+#' set to NA. The default cutoff is the .99 quantile of the F(p, m-p) distribution,
 #' where p is the number of coefficients being fitted and m is the number of samples.
-#' Set to Inf or FALSE to disable the resetting of p-values to NA.
+#' Set to \code{Inf} or \code{FALSE} to disable the resetting of p-values to NA.
 #' Note: this test excludes the Cook's distance of samples belonging to experimental
 #' groups with only 2 samples.
 #' @param independentFiltering logical, whether independent filtering should be
@@ -150,14 +153,15 @@
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
 #' @param filterFun an optional custom function for independent filtering,
 #' with arguments \code{alpha}, \code{filter}, \code{test}, \code{theta}, and \code{method}
-#' similar to \code{genefilter::filtered_R}, and which returns \code{padj}
+#' similar to the \code{\link[genefilter]{filtered_R}} function in the genefilter package,
+#' and which returns \code{padj}
 #' @param format character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 #' whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 #' or if the results DataFrame should be attached as metadata columns to
 #' the \code{GRanges} or \code{GRangesList} \code{rowRanges} of the \code{DESeqDataSet}.
 #' If the \code{rowRanges} is a \code{GRangesList}, and \code{GRanges} is requested, 
 #' the range of each gene will be returned
-#' @param test this is typically automatically detected internally.
+#' @param test this is automatically detected internally if not provided.
 #' the one exception is after \code{nbinomLRT} has been run, \code{test="Wald"}
 #' will generate Wald statistics and Wald test p-values.
 #' @param addMLE whether the "unshrunken" maximum likelihood estimates (MLE)
@@ -190,7 +194,7 @@
 #'
 #' For \code{removeResults}: the original \code{DESeqDataSet} with results metadata columns removed
 #'
-#' @seealso \code{\link{DESeq}}
+#' @seealso \code{\link{DESeq}}, \code{\link[genefilter]{filtered_R}}
 #'
 #' @examples
 #'
