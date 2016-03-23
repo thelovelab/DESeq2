@@ -331,10 +331,13 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
       objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                             dispPriorVar=dispPriorVar, quiet=TRUE)
       # replace design
-      if (noReps) design(objectNZ) <- designIn
+      if (noReps) design(objectNZSub) <- designIn
       estimateMLEForBetaPriorVar(objectNZSub)
     }, BPPARAM=BPPARAM))
 
+    # replace design
+    if (noReps) design(objectNZ) <- designIn
+    
     # need to set standard model matrix for LRT with beta prior
     if (test == "LRT") {
       attr(object, "modelMatrixType") <- "standard"
@@ -371,7 +374,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
         objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                               dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
         # replace design
-        if (noReps) design(objectNZ) <- designIn
+        if (noReps) design(objectNZSub) <- designIn
         nbinomWaldTest(objectNZSub, betaPrior=betaPrior,
                        quiet=TRUE, modelMatrix=modelMatrix, modelMatrixType="standard")
       }, BPPARAM=BPPARAM))
@@ -380,7 +383,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
         objectNZSub <- estimateDispersionsMAP(objectNZ[idx == l,,drop=FALSE],
                                               dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
         # replace design
-        if (noReps) design(objectNZ) <- designIn
+        if (noReps) design(objectNZSub) <- designIn
         nbinomLRT(objectNZSub, full=full, reduced=reduced, quiet=TRUE)
       }, BPPARAM=BPPARAM))
     } 
