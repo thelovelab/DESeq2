@@ -496,13 +496,13 @@ of length 3 to 'contrast' instead of using 'name'")
   # make results object
   deseqRes <- DESeqResults(res)
 
-  # finalize object / add attributes / make GRanges
+  # finalize object / add metadata / make GRanges
   if (independentFiltering) {
-    metadata(deseqRes) <- list(filterThreshold=paRes$filterThreshold,
-                               filterTheta=paRes$filterTheta,
-                               filterNumRej=paRes$filterNumRej,
-                               lo.fit=paRes$lo.fit,
-                               alpha=alpha)
+    metadata(deseqRes)[["filterThreshold"]] <- paRes$filterThreshold
+    metadata(deseqRes)[["filterTheta"]] <- paRes$filterTheta
+    metadata(deseqRes)[["filterNumRej"]] <- paRes$filterNumRej
+    metadata(deseqRes)[["lo.fit"]] <- paRes$lo.fit
+    metadata(deseqRes)[["alpha"]] <- alpha
   }
 
   # remove rownames and attach as a new column, 'row'

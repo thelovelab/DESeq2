@@ -109,6 +109,7 @@ please only use letters and numbers for levels of factors in the design")
 #' dds <- DESeqDataSetFromMatrix(countData, DataFrame(condition), ~ condition)
 #'
 #' @rdname DESeqDataSet
+#' @importFrom utils packageVersion
 #' @export
 DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   if (!is(se, "RangedSummarizedExperiment")) {
@@ -237,24 +238,27 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     cbind(mcols(colData(se)), mcolsCols)
   }
   
-  dds <- new("DESeqDataSet", se, design = design)
+  object <- new("DESeqDataSet", se, design = design)
                                  
   # now we know we have at least an empty GRanges or GRangesList for rowRanges
   # so we can create a metadata column 'type' for the mcols
   # and we label any incoming columns as 'input'
 
   # this is metadata columns on the rows
-  mcolsRows <- DataFrame(type=rep("input",ncol(mcols(dds))),
-                         description=rep("",ncol(mcols(dds))))
-  mcols(mcols(dds)) <- if (is.null(mcols(mcols(dds)))) {
+  mcolsRows <- DataFrame(type=rep("input",ncol(mcols(object))),
+                         description=rep("",ncol(mcols(object))))
+  mcols(mcols(object)) <- if (is.null(mcols(mcols(object)))) {
     mcolsRows
-  } else if (all(names(mcols(mcols(dds))) == c("type","description"))) {
+  } else if (all(names(mcols(mcols(object))) == c("type","description"))) {
     mcolsRows
   } else {
-    cbind(mcols(mcols(dds)), mcolsRows)
+    cbind(mcols(mcols(object)), mcolsRows)
   }
+
+  # stash the package version
+  metadata(object)[["version"]] <- packageVersion("DESeq2")
   
-  return(dds)
+  return(object)
 }
 
 #' @rdname DESeqDataSet
@@ -293,9 +297,9 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, tidy=FALSE, igno
   }
   
   se <- SummarizedExperiment(assays = SimpleList(counts=countData), colData = colData, ...)
-  dds <- DESeqDataSet(se, design = design, ignoreRank)
+  object <- DESeqDataSet(se, design = design, ignoreRank)
 
-  return(dds)
+  return(object)
 }
 
 #' @rdname DESeqDataSet
@@ -315,8 +319,8 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory=".", design, igno
   # or is one of the old special names (htseq-count backward compatability)
   specialRows <- (substr(rownames(tbl),1,1) == "_") | rownames(tbl) %in% oldSpecialNames
   tbl <- tbl[ !specialRows, , drop=FALSE ]
-  dds <- DESeqDataSetFromMatrix(countData=tbl,colData=sampleTable[,-(1:2),drop=FALSE],design=design,ignoreRank, ...)
-  return(dds)
+  object <- DESeqDataSetFromMatrix(countData=tbl,colData=sampleTable[,-(1:2),drop=FALSE],design=design,ignoreRank, ...)
+  return(object)
 }   
 
 #' @rdname DESeqDataSet
@@ -325,17 +329,17 @@ DESeqDataSetFromTximport <- function(txi, colData, design, ...)
 {
   counts <- round(txi$counts)
   mode(counts) <- "integer"
-  dds <- DESeqDataSetFromMatrix(countData=counts, colData=colData, design=design, ...)
+  object <- DESeqDataSetFromMatrix(countData=counts, colData=colData, design=design, ...)
   stopifnot(txi$countsFromAbundance %in% c("no","scaledTPM","lengthScaledTPM"))
   if (txi$countsFromAbundance %in% c("scaledTPM","lengthScaledTPM")) {
     message("using just counts from tximport")
   } else {
     message("using counts and average transcript lengths from tximport")
     lengths <- txi$length
-    dimnames(lengths) <- dimnames(dds)
-    assays(dds)[["avgTxLength"]] <- lengths
+    dimnames(lengths) <- dimnames(object)
+    assays(object)[["avgTxLength"]] <- lengths
   }
-  return(dds)
+  return(object)
 }   
 
 

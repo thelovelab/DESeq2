@@ -348,6 +348,9 @@ DESeq <- function(object, test=c("Wald","LRT"),
                                    modelMatrix=modelMatrix,
                                    modelMatrixType=modelMatrixType)
   }
+
+  # stash the package version (again, also in construction)
+  metadata(object)[["version"]] <- packageVersion("DESeq2")
   
   object
 }
