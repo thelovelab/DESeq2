@@ -1842,7 +1842,16 @@ proportional to the expected true concentration of fragments for sample $j$.
 The coefficients $\beta_i$ give the log2 fold changes for gene $i$ for each 
 column of the model matrix $X$. 
 
-By default these log2 fold changes are the maximum \emph{a posteriori} estimates after incorporating a
+The dispersion parameter $\alpha_i$ defines the relationship between
+the variance of the observed count and its mean value. In other
+words, how far do we expected the observed count will be from the
+mean value, which depends both on the size factor $s_j$ and the
+covariate-dependent part $q_{ij}$ as defined above.
+
+$$ \textrm{Var}(K_{ij}) = E[ (K_{ij} - \mu_{ij})^2 ] = \mu_{ij} + \alpha_i \mu_{ij}^2 $$
+
+The log2 fold changes in $\beta_i$ are the maximum \emph{a posteriori}
+estimates after incorporating a 
 zero-centered Normal prior -- in the software referrred to as a $\beta$-prior -- hence \deseqtwo{}
 provides ``moderated'' log2 fold change estimates.  Dispersions are estimated using expected mean
 values from the maximum likelihood estimate of log2 fold changes, and optimizing the Cox-Reid
@@ -2137,6 +2146,7 @@ genes with all counts equal to zero.
   testing we recommend the \Rfunction{DESeq} function applied to raw
   counts as outlined in Section~\ref{sec:de}.
       
+  
 \subsection{Can I use DESeq2 to analyze paired samples?}
 
 Yes, you should use a multi-factor design which includes the sample
@@ -2144,6 +2154,61 @@ information as a term in the design formula. This will account for
 differences between the samples while estimating the effect due to 
 the condition. The condition of interest should go at the end of the 
 design formula. See Section~\ref{sec:multifactor}.
+
+\subsection{If I have multiple groups, should I run them all together or split into pairs of groups?}
+
+Typically, we recommend users to run samples from all groups together, and then
+use the \Rcode{contrast} argument of the \Rfunction{results} function
+to extract comparisons of interest after fitting the model using \Rfunction{DESeq}.
+
+The model fit by \Rfunction{DESeq} estimates a single dispersion
+parameter for each gene, which defines how far we expect the observed
+count for a sample will be from the mean value from the model 
+given its size factor and its condition group. See Section~\ref{sec:glm} 
+and the \deseqtwo{} paper for full details.
+Having a single dispersion parameter for each gene is usually
+sufficient for analyzing multi-group data, as the final dispersion value will
+incorporate the within-group variability across all groups. 
+
+However, for some datasets, exploratory data analysis (EDA) plots as outlined
+in Section~\ref{sec:pca} could reveal that one or more groups has much
+higher within-group variability than the others. A simulated example
+of such a set of samples is shown in Figure~\ref{figure/varGroup-1}.
+This is case where, by comparing groups A and B separately --
+subsetting a \Rclass{DESeqDataSet} to only samples from those two
+groups and then running \Rfunction{DESeq} on this subset -- will be
+more sensitive than a model including all samples together.
+It should be noted that such an extreme range of within-group
+variability is not common, although it could arise if certain
+treatments produce an extreme reaction (e.g. cell death).
+Again, this can be easily detected from the EDA plots such as PCA
+described in this vignette.
+
+<<varGroup, echo=FALSE, fig.width=5, fig.height=5>>=
+set.seed(3)
+dds1 <- makeExampleDESeqDataSet(n=1000,m=12,betaSD=.3,dispMeanRel=function(x) 0.01)
+dds2 <- makeExampleDESeqDataSet(n=1000,m=12,
+                                betaSD=.3,
+                                interceptMean=mcols(dds1)$trueIntercept,
+                                interceptSD=0,
+                                dispMeanRel=function(x) 0.2)
+dds2 <- dds2[,7:12]
+dds2$condition <- rep("C",6)
+mcols(dds2) <- NULL
+dds <- cbind(dds1, dds2)
+rld <- rlog(dds, blind=FALSE, fitType="mean")
+plotPCA(rld)
+@ 
+
+\incfig{figure/varGroup-1}{.5\textwidth}{Extreme range of within-group variability.}{
+  Typically, it is recommended to run \Rfunction{DESeq} across samples
+  from all groups, for datasets with multiple groups. 
+  However, this simulated dataset shows a case where
+  it would be preferable to compare groups A and B by creating a
+  smaller dataset without the C samples. Group C has much higher
+  within-group variability, which would inflate the per-gene dispersion
+  estimate for groups A and B as well. 
+}
 
 \subsection{Can I run DESeq2 to contrast the levels of 100 groups?}
 
@@ -2163,9 +2228,13 @@ fitting procedure.
 \subsection{Can I use DESeq2 to analyze a dataset without replicates?}
 
 If a \Rclass{DESeqDataSet} is provided with an experimental design without replicates,
-a message is printed, that the samples are treated as replicates
-for estimation of dispersion. More details can be found in the 
-manual page for \Rfunction{?DESeq}.
+a warning is printed, that the samples are treated as replicates
+for estimation of dispersion. This kind of analysis is
+only useful for exploring the data, but will not provide the kind of
+proper statistical inference on differences between groups.
+Without biological replicates, it is not possible to estimate the biological
+variability of each gene. 
+More details can be found in the manual page for \Rfunction{?DESeq}.
 
 \subsection{How can I include a continuous covariate in the design formula?}
 
@@ -2179,6 +2248,47 @@ way, the average effect of each group is controlled for, regardless of
 the trend over the continuous covariates.  In R, \Rclass{numeric}
 vectors can be converted into \Rclass{factors} using the function
 \Rfunction{cut}.
+
+\subsection{Will the log fold change shrinkage ``overshrink'' large differences?}
+
+For most datasets, the application of a prior to the log fold changes
+is a good choice, providing log fold change estimates that are
+more stable across the entire range of mean counts than the maximum
+likelihood estimates (see Figure~\ref{fig:MA} and the \deseqtwo{} paper).
+One situation in which the prior on log fold changes might
+``overshrink'' the estimates is 
+if nearly all genes show no difference across condition, a very
+small set of genes have extremely large differences, and no genes in between.
+A simulated example of such a dataset is Figure~\ref{figure/overShrink-1}.
+This is not likely to be the case for most experiments, where typically
+there is a range of differences by size: some genes with medium-to-large
+differences across treatment, and some with small differences.
+
+<<overShrink, echo=FALSE, fig.width=5, fig.height=5>>=
+plot(c(10^rnorm(1000, 3, 2),2e3,5e3), 
+     c(rnorm(1000, 0, .2), -8.5, 7.5),
+     ylim=c(-10,10), log="x", cex=.4,
+     xlab="mean of normalized counts", 
+     ylab="log2 fold change")
+@ 
+
+\incfig{figure/overShrink-1}{.5\textwidth}{foo bar.}{
+  foo bar. note the y-axis is from -10 to 10 on the log2 scale.
+}
+
+
+There could be experiments in which a few genes have
+very large log fold changes, and the rest of the genes are
+nearly constant across treatment.
+Or, there could be artificially constructed libraries fitting this description,
+e.g. technical replicate where the only difference across libraries 
+is the concentration of a few spiked-in genes.
+If ``overshrinking'' very large log fold changes is a concern,
+it can be assessed by running \Rfunction{results} with \Rcode{addMLE=TRUE}
+and then comparing \Rfunction{plotMA} with \Rcode{MLE=TRUE} and \Rcode{MLE=FALSE}.
+If the above description seems to fit,
+it is better to turn of the log fold change prior by
+running \Rfunction{DESeq} with \Rcode{betaPrior=FALSE}.
 
 \subsection{What are the exact steps performed by \Rfunction{DESeq()}?}
 
