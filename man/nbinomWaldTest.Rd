@@ -84,8 +84,9 @@ the inverse of the expected variance of log counts, so the inverse of
 normalized counts and the trended dispersion fit. The weighting ensures
 that noisy estimates of log fold changes from small count genes do not
 overly influence the calculation of the prior variance.
+See \code{\link{estimateBetaPriorVar}}.
 The final prior variance for a factor level is the average of the
-estimated prior variance over all contrasts of all levels of the factor.
+estimated prior variance over all contrasts of all levels of the factor. 
 Another change since the 2014 paper: when interaction terms are present
 in the design, the prior on log fold changes is turned off
 (for more details, see the vignette section, "Methods changes since

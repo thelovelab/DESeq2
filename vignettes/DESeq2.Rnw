@@ -1392,7 +1392,7 @@ Plotting the dispersion estimates is a useful diagnostic. The dispersion
 plot in Figure \ref{figure/dispFit-1} is typical, with the final estimates shrunk
 from the gene-wise estimates towards the fitted estimates. Some gene-wise
 estimates are flagged as outliers and not shrunk towards the fitted value,
-(this outlier detection is described in the man page for \Rfunction{estimateDispersionsMAP}).
+(this outlier detection is described in the manual page for \Rfunction{estimateDispersionsMAP}).
 The amount of shrinkage can be more or less than seen here, depending 
 on the sample size, the number of coefficients, the row mean
 and the variability of the gene-wise estimates.
@@ -1624,6 +1624,14 @@ attribute of the dispersion function:
 <<dispPriorVar>>=
 dispersionFunction(dds)
 attr(dispersionFunction(dds), "dispPriorVar")
+@ 
+
+The version of \deseqtwo{} which was used to construct the
+\Rclass{DESeqDataSet} object, or the version used when
+\Rfunction{DESeq} was run, is stored here:
+
+<<versionNum>>=
+metadata(dds)[["version"]]
 @ 
 
 \subsection{Sample-/gene-dependent normalization factors} \label{sec:normfactors}
@@ -1904,7 +1912,7 @@ version \Biocpkg{DESeq}, are as follows:
     matching the empirical quantile to the quantile of a Normal
     distribution, \deseqtwo() now uses the weighted quantile function
     of the \CRANpkg{Hmisc} package. The weighting is described in the
-    man page for \Rfunction{nbinomWaldTest}.  The weights are the
+    manual page for \Rfunction{nbinomWaldTest}.  The weights are the
     inverse of the expected variance of log counts (as used in the
     diagonals of the matrix $W$ in the GLM). The effect of the change
     is that the estimated prior variance is robust against noisy
@@ -2155,7 +2163,7 @@ differences between the samples while estimating the effect due to
 the condition. The condition of interest should go at the end of the 
 design formula. See Section~\ref{sec:multifactor}.
 
-\subsection{If I have multiple groups, should I run them all together or split into pairs of groups?}
+\subsection{If I have multiple groups, should I run all together or split into pairs of groups?}
 
 Typically, we recommend users to run samples from all groups together, and then
 use the \Rcode{contrast} argument of the \Rfunction{results} function
@@ -2265,30 +2273,53 @@ there is a range of differences by size: some genes with medium-to-large
 differences across treatment, and some with small differences.
 
 <<overShrink, echo=FALSE, fig.width=5, fig.height=5>>=
-plot(c(10^rnorm(1000, 3, 2),2e3,5e3), 
-     c(rnorm(1000, 0, .2), -8.5, 7.5),
+plot(c(10^rnorm(1000, 3, 2),300,2000,5000), 
+     c(rnorm(1000, 0, .15), -5.5, -8.5, 7.5),
      ylim=c(-10,10), log="x", cex=.4,
      xlab="mean of normalized counts", 
      ylab="log2 fold change")
+abline(h=0, col=rgb(1,0,0,.7))
 @ 
 
-\incfig{figure/overShrink-1}{.5\textwidth}{foo bar.}{
-  foo bar. note the y-axis is from -10 to 10 on the log2 scale.
+\incfig{figure/overShrink-1}{.5\textwidth}{Example of a dataset with
+  where the log fold change prior should be turned off.}{
+  Here we show a simulated MA-plot, where nearly all of the log fold changes
+  are falling near the x-axis, with three genes that have very large log
+  fold changes (note the y-axis is from -10 to 10 on the log2 scale).
+  This would indicate a dataset where the log fold change prior would
+  ``overshrink'' the large fold changes, and so \Robject{betaPrior=FALSE}
+  should be used.
 }
 
-
-There could be experiments in which a few genes have
+There could be experiments in which only a few genes have
 very large log fold changes, and the rest of the genes are
 nearly constant across treatment.
 Or, there could be artificially constructed libraries fitting this description,
-e.g. technical replicate where the only difference across libraries 
+e.g. technical replicates where the only difference across libraries 
 is the concentration of a few spiked-in genes.
+``Overshrinking'' of a few large log fold changes
+can be assessed by running \Rfunction{results} with \Rcode{addMLE=TRUE},
+which will print a results table with columns for the shrunken and
+unshrunken (MLE) log fold changes.
+The two estimates can be visually compared by running \Rfunction{plotMA} with
+\Rcode{MLE=TRUE} and \Rcode{MLE=FALSE}. 
 If ``overshrinking'' very large log fold changes is a concern,
-it can be assessed by running \Rfunction{results} with \Rcode{addMLE=TRUE}
-and then comparing \Rfunction{plotMA} with \Rcode{MLE=TRUE} and \Rcode{MLE=FALSE}.
-If the above description seems to fit,
-it is better to turn of the log fold change prior by
+it is better to turn off the log fold change prior by
 running \Rfunction{DESeq} with \Rcode{betaPrior=FALSE}.
+
+Even more detail: how do we avoid overshrinking on typical datasets?
+The answer is that we estimate the width of the log fold change prior in a
+robust way to accommodate the very largest log fold changes, and so to
+avoid overshrinking. 
+The details of the prior estimation are described in the manual page for
+\Rfunction{nbinomWaldTest}. Briefly, a weighted upper quantile
+is used to match the width of the log fold change prior to the upper
+5\% of the MLE log fold changes, weighting by the expected sampling
+variability of the estimated log fold changes given the mean count for
+each gene. Note that this does not equal an assumption that 5\% of genes are
+differentially expressed, but that a reasonable width of a log fold
+change distribution can be obtained from the upper 5\% of MLE log fold
+changes. 
 
 \subsection{What are the exact steps performed by \Rfunction{DESeq()}?}
 

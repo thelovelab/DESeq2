@@ -974,8 +974,9 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' normalized counts and the trended dispersion fit. The weighting ensures
 #' that noisy estimates of log fold changes from small count genes do not
 #' overly influence the calculation of the prior variance.
+#' See \code{\link{estimateBetaPriorVar}}.
 #' The final prior variance for a factor level is the average of the
-#' estimated prior variance over all contrasts of all levels of the factor.
+#' estimated prior variance over all contrasts of all levels of the factor. 
 #' Another change since the 2014 paper: when interaction terms are present
 #' in the design, the prior on log fold changes is turned off
 #' (for more details, see the vignette section, "Methods changes since
@@ -1259,7 +1260,7 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
 #' @export
 estimateBetaPriorVar <- function(object, 
                                  betaPriorMethod=c("weighted","quantile"),
-                                 upperQuantile=.05) {
+                                 upperQuantile=0.05) {
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
   betaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_", names(mcols(object))),drop=FALSE])
