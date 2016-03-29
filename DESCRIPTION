@@ -36,6 +36,7 @@ Suggests:
     pheatmap,
     RColorBrewer,
     airway,
+    IHW,
     tximport,
     tximportData,
     readr,

@@ -151,10 +151,12 @@
 #' @param theta the quantiles at which to assess the number of rejections
 #' from independent filtering
 #' @param pAdjustMethod the method to use for adjusting p-values, see \code{?p.adjust}
-#' @param filterFun an optional custom function for independent filtering,
-#' with arguments \code{alpha}, \code{filter}, \code{test}, \code{theta}, and \code{method}
-#' similar to the \code{\link[genefilter]{filtered_R}} function in the genefilter package,
-#' and which returns \code{padj}
+#' @param filterFun an optional custom function for performing independent filtering
+#' and p-value adjustment, with arguments \code{res} (a DESeqResults object),
+#' \code{filter} (the quantitity for filtering tests),
+#' \code{alpha} (the target FDR),
+#' \code{pAdjustMethod}. This function should return a DESeqResults object
+#' with a \code{padj} column.
 #' @param format character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 #' whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 #' or if the results DataFrame should be attached as metadata columns to
@@ -176,6 +178,7 @@
 #' to \code{\link{bplapply}} when \code{parallel=TRUE}.
 #' If not specified, the parameters last registered with
 #' \code{\link{register}} will be used.
+#' @param ... optional arguments passed to \code{filterFun}
 #' 
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
 #' a simple subclass of DataFrame. This object contains the results columns:
@@ -289,7 +292,8 @@ results <- function(object, contrast, name,
                     test, 
                     addMLE=FALSE,
                     tidy=FALSE,
-                    parallel=FALSE, BPPARAM=bpparam()) {
+                    parallel=FALSE, BPPARAM=bpparam(),
+                    ...) {
   # match args
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
   altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
@@ -485,24 +489,15 @@ of length 3 to 'contrast' instead of using 'name'")
     res$pvalue[nowZero] <- 1
   }
 
-  # p-value adjustment
-  paRes <- pvalueAdjustment(res, independentFiltering, filter, theta, alpha, pAdjustMethod, filterFun)
-  res$padj <- paRes$padj
-
-  # adding metadata columns for padj
-  mcols(res)$type[names(res)=="padj"] <- "results"
-  mcols(res)$description[names(res)=="padj"] <- paste(pAdjustMethod,"adjusted p-values")
-
   # make results object
   deseqRes <- DESeqResults(res)
-
-  # finalize object / add metadata / make GRanges
-  if (independentFiltering) {
-    metadata(deseqRes)[["filterThreshold"]] <- paRes$filterThreshold
-    metadata(deseqRes)[["filterTheta"]] <- paRes$filterTheta
-    metadata(deseqRes)[["filterNumRej"]] <- paRes$filterNumRej
-    metadata(deseqRes)[["lo.fit"]] <- paRes$lo.fit
-    metadata(deseqRes)[["alpha"]] <- alpha
+  
+  # p-value adjustment
+  if (missing(filterFun)) {
+    deseqRes <- pvalueAdjustment(deseqRes, independentFiltering, filter,
+                                 theta, alpha, pAdjustMethod)
+  } else {
+    deseqRes <- filterFun(deseqRes, filter, alpha, pAdjustMethod)
   }
 
   # remove rownames and attach as a new column, 'row'
@@ -559,8 +554,7 @@ removeResults <- function(object) {
 ###########################################################
 
 pvalueAdjustment <- function(res, independentFiltering, filter,
-                             theta, alpha, pAdjustMethod,
-                             filterFun) {
+                             theta, alpha, pAdjustMethod) {
   # perform independent filtering
   if (independentFiltering) {
     if (missing(filter)) {
@@ -571,63 +565,58 @@ pvalueAdjustment <- function(res, independentFiltering, filter,
       if (lowerQuantile < .95) upperQuantile <- .95 else upperQuantile <- 1
       theta <- seq(lowerQuantile, upperQuantile, length=50)
     }
-    if (missing(filterFun)) {
-      # do filtering using genefilter
-      stopifnot(length(theta) > 1)
-      stopifnot(length(filter) == nrow(res))
-      filtPadj <- filtered_p(filter=filter, test=res$pvalue,
-                             theta=theta, method=pAdjustMethod) 
-      numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
-      # prevent over-aggressive filtering when all genes are null,
-      # by requiring the max number of rejections is above a fitted curve.
-      # If the max number of rejection is not greater than 10, then don't
-      # perform independent filtering at all.
-      lo.fit <- lowess(numRej ~ theta, f=1/5)
-      if (max(numRej) <= 10) {
-        j <- 1
-      } else { 
-          residual <- if (all(numRej==0)) {
-            0
-          } else {
-              numRej[numRej > 0] - lo.fit$y[numRej > 0]
-            }
-          thresh <- max(lo.fit$y) - sqrt(mean(residual^2))
-          j <- if (any(numRej > thresh)) {
-            which(numRej > thresh)[1]
-          } else {
-              1  
-            }
-        }
-      # j <- which.max(numRej) # old method
-      padj <- filtPadj[, j, drop=TRUE]
-      cutoffs <- quantile(filter, theta)
-      filterThreshold <- cutoffs[j]
-      filterNumRej <- data.frame(theta=theta, numRej=numRej)
-      filterTheta <- theta[j]
-    } else {
-      # use a custom filter function
-      padj <- filterFun(alpha=alpha,
-                        filter=filter,
-                        test=res$pvalue,
-                        theta=theta,
-                        method=pAdjustMethod)
-      filterThreshold <- NULL
-      filterTheta <- NULL
-      filterNumRej <- NULL
-      lo.fit <- NULL
+
+    # do filtering using genefilter
+    stopifnot(length(theta) > 1)
+    stopifnot(length(filter) == nrow(res))
+    filtPadj <- filtered_p(filter=filter, test=res$pvalue,
+                           theta=theta, method=pAdjustMethod) 
+    numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
+    # prevent over-aggressive filtering when all genes are null,
+    # by requiring the max number of rejections is above a fitted curve.
+    # If the max number of rejection is not greater than 10, then don't
+    # perform independent filtering at all.
+    lo.fit <- lowess(numRej ~ theta, f=1/5)
+    if (max(numRej) <= 10) {
+      j <- 1
+    } else { 
+      residual <- if (all(numRej==0)) {
+        0
+      } else {
+        numRej[numRej > 0] - lo.fit$y[numRej > 0]
+      }
+      thresh <- max(lo.fit$y) - sqrt(mean(residual^2))
+      j <- if (any(numRej > thresh)) {
+        which(numRej > thresh)[1]
+      } else {
+        1  
+      }
     }
-    return(list(padj=padj,
-                filterThreshold=filterThreshold,
-                filterTheta=filterTheta,
-                filterNumRej=filterNumRej,
-                lo.fit=lo.fit))
+    # j <- which.max(numRej) # old method
+    padj <- filtPadj[, j, drop=TRUE]
+    cutoffs <- quantile(filter, theta)
+    filterThreshold <- cutoffs[j]
+    filterNumRej <- data.frame(theta=theta, numRej=numRej)
+    filterTheta <- theta[j]
+
+    metadata(res)[["filterThreshold"]] <- filterThreshold
+    metadata(res)[["filterTheta"]] <- filterTheta
+    metadata(res)[["filterNumRej"]] <- filterNumRej
+    metadata(res)[["lo.fit"]] <- lo.fit
+    metadata(res)[["alpha"]] <- alpha
   } else {
     # regular p-value adjustment
     # does not include those rows which were removed
     # by maximum Cook's distance
-    padj <- p.adjust(res$pvalue,method=pAdjustMethod)
-    return(list(padj=padj))
+    padj <- p.adjust(res$pvalue,method=pAdjustMethod)  
   }
+  res$padj <- padj
+  
+  # add metadata to padj column
+  mcols(res)$type[names(res)=="padj"] <- "results"
+  mcols(res)$description[names(res)=="padj"] <- paste(pAdjustMethod,"adjusted p-values")
+  
+  res
 }
 
 

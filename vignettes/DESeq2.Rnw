@@ -507,6 +507,19 @@ summary(res05)
 sum(res05$padj < 0.05, na.rm=TRUE)
 @ 
 
+An alternative filtering package \Biocpkg{IHW} is now available,
+which implements the method of \textit{Independent Hypothesis Weighting} \cite{Ignatiadis2015}.
+\textit{IHW} is from the same research group that created \deseqtwo{}.
+Here we show the use of \textit{IHW} filtering for \deseqtwo{} results.
+For more details, please see the vignette of the \Biocpkg{IHW} package.
+Note that the \textit{IHW} result object is stored in the metadata.
+
+<<IHW>>=
+library("IHW")
+resIHW <- results(dds, filterFun=ihw)
+sum(resIHW$padj < 0.1, na.rm=TRUE)
+metadata(resIHW)[["ihwResult"]]
+@ 
 
 If a multi-factor design is used, or if the variable in the design
 formula has more than two levels, the \Robject{contrast} argument of

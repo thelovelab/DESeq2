@@ -11,7 +11,7 @@ results(object, contrast, name, lfcThreshold = 0,
   listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
   alpha = 0.1, filter, theta, pAdjustMethod = "BH", filterFun,
   format = c("DataFrame", "GRanges", "GRangesList"), test, addMLE = FALSE,
-  tidy = FALSE, parallel = FALSE, BPPARAM = bpparam())
+  tidy = FALSE, parallel = FALSE, BPPARAM = bpparam(), ...)
 
 resultsNames(object)
 
@@ -101,10 +101,12 @@ from independent filtering}
 
 \item{pAdjustMethod}{the method to use for adjusting p-values, see \code{?p.adjust}}
 
-\item{filterFun}{an optional custom function for independent filtering,
-with arguments \code{alpha}, \code{filter}, \code{test}, \code{theta}, and \code{method}
-similar to the \code{\link[genefilter]{filtered_R}} function in the genefilter package,
-and which returns \code{padj}}
+\item{filterFun}{an optional custom function for performing independent filtering
+and p-value adjustment, with arguments \code{res} (a DESeqResults object),
+\code{filter} (the quantitity for filtering tests),
+\code{alpha} (the target FDR),
+\code{pAdjustMethod}. This function should return a DESeqResults object
+with a \code{padj} column.}
 
 \item{format}{character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
 whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
@@ -132,6 +134,8 @@ execution using \code{BiocParallel}, see next argument \code{BPPARAM}}
 to \code{\link{bplapply}} when \code{parallel=TRUE}.
 If not specified, the parameters last registered with
 \code{\link{register}} will be used.}
+
+\item{...}{optional arguments passed to \code{filterFun}}
 }
 \value{
 For \code{results}: a \code{\link{DESeqResults}} object, which is

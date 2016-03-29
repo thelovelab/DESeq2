@@ -3,23 +3,23 @@ set.seed(1)
 dds <- makeExampleDESeqDataSet(n=200, m=4, betaSD=rep(c(0,2),c(150,50)))
 dds <- DESeq(dds)
 res <- results(dds)
-
-filter <- mcols(dds)$baseMean
-test <- res$pvalue
-theta <- seq(mean(filter == 0), 1, length=20)
 method <- "BH"
 alpha <- 0.1
 
-customFilt <- function(alpha, filter, test, theta, method) {
+customFilt <- function(res, filter, alpha, method) {
+  if (missing(filter)) {
+    filter <- res$baseMean
+  }
+  theta <- 0:10/10
   cutoff <- quantile(filter, theta)
-  numRej <- sapply(cutoff, function(x) sum(p.adjust(test[filter > x]) < alpha, na.rm=TRUE))
+  numRej <- sapply(cutoff, function(x) sum(p.adjust(res$pvalue[filter > x]) < alpha, na.rm=TRUE))
   threshold <- theta[which(numRej == max(numRej))[1]]
-  padj <- numeric(length(test))
-  padj <- NA
+  res$padj <- numeric(nrow(res))
   idx <- filter > quantile(filter, threshold)
-  padj[idx] <- p.adjust(test[idx], method=method)
-  return(padj)
+  res$padj[!idx] <- NA
+  res$padj[idx] <- p.adjust(res$pvalue[idx], method=method)
+  res
 }
 
 resCustom <- results(dds, filterFun=customFilt)
-#plot(res$padj, resCustom$padj);abline(0,1)
+plot(res$padj, resCustom$padj);abline(0,1)
