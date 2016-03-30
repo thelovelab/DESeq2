@@ -1,3 +1,11 @@
+CHANGES IN VERSION 1.11.33
+--------------------------
+
+    o Changed 'filterFun' API to accommodate IHW:
+      independent hypothesis weighting in results(),
+      see vignette.      
+      Thanks to Nikolaos Ignatiadis, maintainer of IHW package.
+
 CHANGES IN VERSION 1.11.18
 --------------------------
 

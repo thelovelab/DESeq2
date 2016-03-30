@@ -507,10 +507,10 @@ summary(res05)
 sum(res05$padj < 0.05, na.rm=TRUE)
 @ 
 
-An alternative filtering package \Biocpkg{IHW} is now available,
-which implements the method of \textit{Independent Hypothesis Weighting} \cite{Ignatiadis2015}.
-\textit{IHW} is from the same research group that created \deseqtwo{}.
-Here we show the use of \textit{IHW} filtering for \deseqtwo{} results.
+A generalization of the idea of $p$ value filtering is to \textit{weight} hypotheses
+to optimize power. A new Bioconductor package, \Biocpkg{IHW}, is now available
+that implements the method of \textit{Independent Hypothesis Weighting} \cite{Ignatiadis2015}.
+Here we show the use of \textit{IHW} for $p$ value adjustment of \deseqtwo{} results.
 For more details, please see the vignette of the \Biocpkg{IHW} package.
 Note that the \textit{IHW} result object is stored in the metadata.
 
@@ -2380,6 +2380,7 @@ We have benefited in the development of \deseqtwo{} from the help and
 feedback of many individuals, including but not limited to: 
 The Bionconductor Core Team,
 Alejandro Reyes, Andrzej Ole\'s, Aleksandra Pekowska, Felix Klein,
+Nikolaos Ignatiadis,
 Vince Carey,
 Owen Solberg,
 Ruping Sun,
