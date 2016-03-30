@@ -1,5 +1,5 @@
 # A command-line interface to DESeq2 for use with Galaxy
-# written by Bjoern Gruening and modified by Michael Love 2015.01.11
+# written by Bjoern Gruening and modified by Michael Love 2016.03.30
 #
 # one of these arguments is required:
 #
@@ -50,6 +50,8 @@ spec <- matrix(c(
   "factors", "f", 1, "character",
   "plots" , "p", 1, "character",
   "sample_table", "s", 1, "character",
+  "tximport", "x", 0, "logical",
+  "gtf_file", "g", 1, "character",
   "fit_type", "t", 1, "integer",
   "many_contrasts", "m", 0, "logical",
   "outlier_replace_off" , "a", 0, "logical",
@@ -82,10 +84,18 @@ verbose <- if (is.null(opt$quiet)) {
   FALSE
 }
 
+if (!is.null(opt$tximport)) {
+  if (is.null(opt$gtf_file)) stop("GTF file is required for tximport")
+  gtfFile <- opt$gtf_file
+  useTXI <- TRUE
+}
+
 suppressPackageStartupMessages({
   library("DESeq2")
   library("RColorBrewer")
   library("gplots")
+  library("tximport")
+  library("GenomicFeatures")
 })
 
 # build or read sample table
@@ -194,10 +204,26 @@ dir <- if (is.null(opt$factors)) {
   ""
 }
 
-# construct the object
-dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
-                                  directory = dir,
-                                  design =  designFormula)
+if (!useTXI) {
+  # construct the object from HTSeq files
+  dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                    directory = dir,
+                                    design =  designFormula)
+} else {
+    # construct the object using tximport
+    # first need to make the tx2gene table
+    # this takes ~2-3 minutes using Bioconductor functions
+    txdb <- makeTxDbFromGFF(gtfFile, format="gtf")
+    k <- keys(txdb, keytype = "GENEID")
+    df <- select(txdb, keys = k, keytype = "GENEID", columns = "TXNAME")
+    tx2gene <- df[, 2:1]  # tx ID, then gene ID
+    txiFiles <- sampleTable[,2]
+    names(txiFiles) <- sampleTable[,1]
+    txi <- tximport(txiFiles, type="sailfish", tx2gene=tx2gene)
+    dds <- DESeqDataSetFromTximport(txi,
+                                    sampleTable[,3:ncol(sampleTable)],
+                                    designFormula)
+}
 
 if (verbose) cat(paste(ncol(dds), "samples with counts over", nrow(dds), "genes\n"))
 
