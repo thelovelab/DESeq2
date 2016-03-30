@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 # A command-line interface to DESeq2 for use with Galaxy
 # written by Bjoern Gruening and modified by Michael Love 2016.03.30
 #
