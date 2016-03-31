@@ -40,7 +40,8 @@ options( show.error.messages=F, error = function () { cat( geterrmessage(), file
 loc <- Sys.setlocale("LC_MESSAGES", "en_US.UTF-8")
 
 library("getopt")
-options(stringAsfactors = FALSE, useFancyQuotes = FALSE)
+library("tools")
+options(stringAsFactors = FALSE, useFancyQuotes = FALSE)
 args <- commandArgs(trailingOnly = TRUE)
 
 # get options, using the spec as defined by the enclosed list.
@@ -52,8 +53,8 @@ spec <- matrix(c(
   "factors", "f", 1, "character",
   "plots" , "p", 1, "character",
   "sample_table", "s", 1, "character",
-  "tximport", "x", 0, "logical",
-  "gtf_file", "g", 1, "character",
+  "tximport", "i", 0, "logical",
+  "tx2gene", "x", 1, "character", # a space-sep tx-to-gene map or GTF file (auto detect .gtf/.GTF)
   "fit_type", "t", 1, "integer",
   "many_contrasts", "m", 0, "logical",
   "outlier_replace_off" , "a", 0, "logical",
@@ -87,8 +88,13 @@ verbose <- if (is.null(opt$quiet)) {
 }
 
 if (!is.null(opt$tximport)) {
-  if (is.null(opt$gtf_file)) stop("GTF file is required for tximport")
-  gtfFile <- opt$gtf_file
+  if (is.null(opt$tx2gene)) stop("A transcript-to-gene map or a GTF file is required for tximport")
+  if (tolower(file_ext(opt$tx2gene)) == "gtf") {
+    gtfFile <- opt$tx2gene
+  } else {
+    gtfFile <- NULL
+    tx2gene <- read.table(opt$tx2gene, header=FALSE)
+  }
   useTXI <- TRUE
 }
 
@@ -96,8 +102,6 @@ suppressPackageStartupMessages({
   library("DESeq2")
   library("RColorBrewer")
   library("gplots")
-  library("tximport")
-  library("GenomicFeatures")
 })
 
 # build or read sample table
@@ -113,7 +117,10 @@ if (!is.null(opt$factors)) {
   factors <- sapply(factorList, function(x) x[[1]])
   primaryFactor <- factors[1]
   filenamesIn <- unname(unlist(factorList[[1]][[2]]))
-  sampleTable <- data.frame(sample=basename(filenamesIn), filename=filenamesIn, row.names=filenamesIn)
+  sampleTable <- data.frame(sample=basename(filenamesIn),
+                            filename=filenamesIn,
+                            row.names=filenamesIn,
+                            stringsAsFactors=FALSE)
   for (factor in factorList) {
     factorName <- trim(factor[[1]])
     sampleTable[[factorName]] <- character(nrow(sampleTable))
@@ -130,7 +137,7 @@ if (!is.null(opt$factors)) {
   # this table is described in ?DESeqDataSet
   # one column for the sample name, one for the filename, and
   # the remaining columns for factors in the analysis
-  sampleTable <- read.delim(opt$sample_table)
+  sampleTable <- read.delim(opt$sample_table, stringsAsFactors=FALSE)
   factors <- colnames(sampleTable)[-c(1:2)]
   for (factor in factors) {
     lvls <- unique(as.character(sampleTable[[factor]]))
@@ -176,7 +183,7 @@ generateSpecificPlots <- function(res, threshold, title_suffix) {
     barplot(height = h$counts,
             col = "powderblue", space = 0, xlab="p-values", ylab="frequency",
             main=paste("Histogram of p-values for",title_suffix))
-    text(x = c(0, length(h1$counts)), y = 0, label=paste(c(0,1)), adj=c(0.5,1.7), xpd=NA)
+    text(x = c(0, length(h$counts)), y = 0, label=paste(c(0,1)), adj=c(0.5,1.7), xpd=NA)
   } else {
     h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
     h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
@@ -215,20 +222,25 @@ if (!useTXI) {
     # construct the object using tximport
     # first need to make the tx2gene table
     # this takes ~2-3 minutes using Bioconductor functions
-    txdb <- makeTxDbFromGFF(gtfFile, format="gtf")
-    k <- keys(txdb, keytype = "GENEID")
-    df <- select(txdb, keys = k, keytype = "GENEID", columns = "TXNAME")
-    tx2gene <- df[, 2:1]  # tx ID, then gene ID
-    txiFiles <- sampleTable[,2]
-    names(txiFiles) <- sampleTable[,1]
+    if (!is.null(gtfFile)) {
+      suppressPackageStartupMessages({
+        library("GenomicFeatures")
+      })
+      txdb <- makeTxDbFromGFF(gtfFile, format="gtf")
+      k <- keys(txdb, keytype = "GENEID")
+      df <- select(txdb, keys = k, keytype = "GENEID", columns = "TXNAME")
+      tx2gene <- df[, 2:1]  # tx ID, then gene ID
+    }
+    library("tximport")
+    txiFiles <- as.character(sampleTable[,2])
+    names(txiFiles) <- as.character(sampleTable[,1])
     txi <- tximport(txiFiles, type="sailfish", tx2gene=tx2gene)
     dds <- DESeqDataSetFromTximport(txi,
-                                    sampleTable[,3:ncol(sampleTable)],
+                                    sampleTable[,3:ncol(sampleTable),drop=FALSE],
                                     designFormula)
 }
 
 if (verbose) cat(paste(ncol(dds), "samples with counts over", nrow(dds), "genes\n"))
-
 # optional outlier behavior
 if (is.null(opt$outlier_replace_off)) {
   minRep <- 7
