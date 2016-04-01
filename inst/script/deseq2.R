@@ -96,6 +96,8 @@ if (!is.null(opt$tximport)) {
     tx2gene <- read.table(opt$tx2gene, header=FALSE)
   }
   useTXI <- TRUE
+} else {
+  useTXI <- FALSE
 }
 
 suppressPackageStartupMessages({
