@@ -1,9 +1,17 @@
+CHANGES IN VERSION 1.12.0
+--------------------------
+
+    o Added DESeqDataSetFromTximport() to import
+      counts using tximport.
+    o Added vst() a fast wrapper for the VST.
+    o Added support for IHW p-value adjustment.
+    
 CHANGES IN VERSION 1.11.33
 --------------------------
 
     o Changed 'filterFun' API to accommodate IHW:
       independent hypothesis weighting in results(),
-      see vignette.      
+      see vignette for example code. 
       Thanks to Nikolaos Ignatiadis, maintainer of IHW package.
 
 CHANGES IN VERSION 1.11.18

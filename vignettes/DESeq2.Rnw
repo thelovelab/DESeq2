@@ -261,22 +261,28 @@ This workflow allows users to import transcript abundance estimates
 from a variety of external software, including the following methods:
 
 \begin{itemize}
+\item \href{http://www.cs.cmu.edu/~ckingsf/software/sailfish/}{Sailfish} 
+  \cite{Patro2014Sailfish}
+\item \href{http://combine-lab.github.io/salmon/}{Salmon} 
+  \cite{Patro2015Salmon}
 \item
-  \href{http://www.cs.cmu.edu/~ckingsf/software/sailfish/}{Sailfish} \cite{Patro2014Sailfish}
-\item \href{http://combine-lab.github.io/salmon/}{Salmon} \cite{Patro2015Salmon}
-\item
-  \href{https://pachterlab.github.io/kallisto/about.html}{kallisto} \cite{Bray2015Near}
-\item \href{http://deweylab.github.io/RSEM/}{RSEM} \cite{Li2011RSEM}
+  \href{https://pachterlab.github.io/kallisto/about.html}{kallisto} 
+  \cite{Bray2015Near}
+\item \href{http://deweylab.github.io/RSEM/}{RSEM} 
+  \cite{Li2011RSEM}
 \end{itemize}
 
 Some advantages of using the above methods for transcript abundance
 estimation are: (i) this approach corrects for potential changes
-in gene length across samples (e.g. from differential isoform usage),
+in gene length across samples 
+(e.g. from differential isoform usage) \cite{Trapnell2013Differential},
 (ii) some of these methods (\textit{Sailfish, Salmon, kallisto}) 
 are substantially faster and require less memory
-and disk usage compared to alignment-based methods, and
+and disk usage compared to alignment-based methods that require
+creation and storage of BAM files, and
 (iii) it is possible to avoid discarding those fragments that can
-align to multiple genes with homologous sequence.
+align to multiple genes with homologous sequence, thus increasing
+sensitivity \cite{Robert2015Errors}.
 
 Full details on the motivation and methods for importing transcript
 level abundance and count estimates, summarizing to gene-level count matrices 
@@ -672,14 +678,22 @@ can be set to \Robject{NA} for one of the following reasons:
 \end{enumerate}
 
 \subsubsection{Exporting results to HTML or CSV files}
-An HTML report of the results with plots and sortable/filterable columns
-can be exported using the \Biocpkg{ReportingTools} package
+
+\textbf{ReportingTools.} An HTML report of the results with plots and sortable/filterable columns
+can be generated using the \Biocpkg{ReportingTools} package
 on a \Rclass{DESeqDataSet} that has been processed by the \Rfunction{DESeq} function.
 For a code example, see the ``RNA-seq differential expression'' vignette at
 the \Biocpkg{ReportingTools} page, or the manual page for the 
 \Rfunction{publish} method for the \Rclass{DESeqDataSet} class.
 
-A plain-text file of the results can be exported using the 
+\textbf{regionReport.} An HTML and PDF summary of the results with plots
+can also be generated using the \Biocpkg{regionReport} package.
+The \Rfunction{DESeq2Report} function should be run on a 
+\Rclass{DESeqDataSet} that has been processed by the \Rfunction{DESeq} function.
+For more details see the manual page for \Rfunction{DESeq2Report} 
+and an example vignette in the \Biocpkg{regionReport} package.
+
+\textbf{Plain text.} A plain-text file of the results can be exported using the 
 base \R{} functions \Rfunction{write.csv} or \Rfunction{write.delim}. 
 We suggest using a descriptive file name indicating the variable
 and levels which were tested.
@@ -2334,18 +2348,6 @@ differentially expressed, but that a reasonable width of a log fold
 change distribution can be obtained from the upper 5\% of MLE log fold
 changes. 
 
-\subsection{What are the exact steps performed by \Rfunction{DESeq()}?}
-
-See the manual page for \Rfunction{DESeq}, which links to the 
-subfunctions which are called in order, where complete details are listed.
-
-\subsection{Is there an official Galaxy tool for DESeq2?}
-
-Yes. The repository for the \deseqtwo{} tool is
-\url{https://github.com/galaxyproject/tools-iuc/tree/master/tools/deseq2} 
-and a link to its location in the Tool Shed is 
-\url{https://toolshed.g2.bx.psu.edu/view/iuc/deseq2/d983d19fbbab}.
-
 \subsection{I ran a likelihood ratio test, but \texttt{results()} only gives me one comparison.}
 
 ``\dots How do I get the $p$ values for all of the variables/levels 
@@ -2373,6 +2375,36 @@ This indicates that the $p$ value is for the likelihood ratio test of
 \textit{all the variables and all the levels}, while the log fold change is a single
 comparison from among those variables and levels.
 See the help page for \Rfunction{results} for more details.
+
+\subsection{What are the exact steps performed by \Rfunction{DESeq()}?}
+
+See the manual page for \Rfunction{DESeq}, which links to the 
+subfunctions which are called in order, where complete details are listed.
+
+\subsection{Is there an official Galaxy tool for DESeq2?}
+
+Yes. The repository for the \deseqtwo{} tool is
+\url{https://github.com/galaxyproject/tools-iuc/tree/master/tools/deseq2} 
+and a link to its location in the Tool Shed is 
+\url{https://toolshed.g2.bx.psu.edu/view/iuc/deseq2/d983d19fbbab}.
+
+\subsection{I want to benchmark DESeq2 comparing to other DE tools.}
+
+One aspect which can cause problems for comparison is that, by default,
+\deseqtwo{} outputs \Rcode{NA} values for adjusted $p$ values based on 
+independent filtering of genes which have low counts.
+This is a way for the \deseqtwo{} to give extra
+information on why the adjusted $p$ value for this gene is not small.
+Additionally, $p$ values can be set to \Rcode{NA} based on extreme 
+count outlier detection (see Section~\ref{sec:moreInfo} for full details). 
+These \Rcode{NA} values should be considered
+negatives for purposes of estimating sensitivity and specificity. The
+easiest way to work with the adjusted $p$ values in a benchmarking
+context is probably to convert these \Rcode{NA} values to 1:
+
+<<convertNA, eval=FALSE>>=
+res$padj <- ifelse(is.na(res$padj), 1, res$padj)
+@ 
 
 \section{Acknowledgments}
 
@@ -2403,7 +2435,8 @@ Jordan Ramilowski,
 Ian Dworkin,
 Bj\"orn Gr\"uning,
 Ryan McMinds,
-Paul Gordon.
+Paul Gordon,
+Leonardo Collado Torres.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=
