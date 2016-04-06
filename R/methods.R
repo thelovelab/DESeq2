@@ -777,15 +777,18 @@ summary.DESeqResults <- function(object, alpha, ...) {
   } else {
     round(metadata(object)$filterThreshold)
   }
+  ihw <- "ihwResult" %in% names(metadata(object))
+
   printsig <- function(x) format(x, digits=2) 
   cat("out of",notallzero,"with nonzero total read count\n")
   cat(paste0("adjusted p-value < ",alpha,"\n"))
   cat(paste0("LFC > 0 (up)     : ",up,", ",printsig(up/notallzero*100),"% \n"))
   cat(paste0("LFC < 0 (down)   : ",down,", ",printsig(down/notallzero*100),"% \n"))
   cat(paste0("outliers [1]     : ",outlier,", ",printsig(outlier/notallzero*100),"% \n"))
-  cat(paste0("low counts [2]   : ",filt,", ",printsig(filt/notallzero*100),"% \n"))
-  cat(paste0("(mean count < ",ft,")\n"))
+  if (!ihw) cat(paste0("low counts [2]   : ",filt,", ",printsig(filt/notallzero*100),"% \n"))
+  if (!ihw) cat(paste0("(mean count < ",ft,")\n"))
   cat("[1] see 'cooksCutoff' argument of ?results\n")
-  cat("[2] see 'independentFiltering' argument of ?results\n")
+  if (!ihw) cat("[2] see 'independentFiltering' argument of ?results\n")
+  if (ihw) cat("[2] see metadata(res)$ihwResult on hypothesis weighting\n")
   cat("\n")
 }

@@ -523,8 +523,9 @@ Note that the \textit{IHW} result object is stored in the metadata.
 <<IHW>>=
 library("IHW")
 resIHW <- results(dds, filterFun=ihw)
+summary(resIHW)
 sum(resIHW$padj < 0.1, na.rm=TRUE)
-metadata(resIHW)[["ihwResult"]]
+metadata(resIHW)$ihwResult
 @ 
 
 If a multi-factor design is used, or if the variable in the design
@@ -825,12 +826,15 @@ variance above the trend which will allow us to cluster samples into
 interesting groups.
 
 \textbf{Note on running time:} if you have many samples (e.g. 100s),
-the \Rfunction{rlog} function might take too long, and the variance
-stabilizing transformation might be a better choice.  The rlog and VST
-have similar properties, but the rlog requires fitting a shrinkage
+the \Rfunction{rlog} function might take too long, and the 
+\Rfunction{varianceStabilizingTransformation} is a faster choice.  
+The rlog and VST have similar properties, but the rlog requires fitting a shrinkage
 term for each sample and each gene which takes time.  See the
 \deseqtwo{} paper for more discussion on the differences
-\cite{Love2014}.
+\cite{Love2014}. In addition, a new function \Rfunction{vst} provides
+an even faster version of the \Rfunction{varianceStabilizingTransformation}
+but calculating the global dispersion trend on a subset of the genes
+(default 1000). \Rfunction{vst} may be attractive for interactive EDA.
 
 \subsubsection{Blind dispersion estimation}
 
@@ -848,7 +852,7 @@ assurance) as demonstrated below.
 However, blind dispersion estimation is not the appropriate choice if
 one expects that many or the majority of genes (rows) will have large
 differences in counts which are explainable by the experimental design,
-and one wishes to tranform the data for downstream analysis. In this
+and one wishes to transform the data for downstream analysis. In this
 case, using blind dispersion estimation will lead to large estimates
 of dispersion, as it attributes differences due to experimental design
 as unwanted ``noise'', and will result in overly shrinking the transformed
@@ -860,18 +864,23 @@ that only the fitted dispersion estimates from mean-dispersion trend
 line are used in the transformation (the global dependence of
 dispersion on mean for the entire experiment).
 So setting \Robject{blind} to \Robject{FALSE} is still for the most
-part unbiased by the information about which samples were in which
-experimental group. 
+part not using the information about which samples were in which
+experimental group in applying the transformation.
 
 \subsubsection{Extracting transformed values}
 
-The two functions return an object of class \Rclass{DESeqTransform}
+These functions return an object of class \Rclass{DESeqTransform}
 which is a subclass of \Rclass{RangedSummarizedExperiment}. 
-The \Rfunction{assay} function is used to extract the matrix of normalized values:
+For $\sim 20$ samples, \Rfunction{rlog} may take 30 seconds, 
+\Rfunction{varianceStabilizingTransformation} may take 5 seconds, and
+\Rfunction{vst} less than 1 second (by subsetting to 1000 genes for
+calculating the global dispersion trend).
+The \Rfunction{assay} function is used to extract the matrix of normalized values.
 
 <<rlogAndVST>>=
-rld <- rlog(dds)
-vsd <- varianceStabilizingTransformation(dds)
+system.time( rld <- rlog(dds, blind=FALSE) )
+system.time( vsd <- varianceStabilizingTransformation(dds, blind=FALSE) )
+system.time( vsd.fast <- vst(dds, blind=FALSE) )
 head(assay(rld), 3)
 @
 
