@@ -255,7 +255,7 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
   Rcpp::NumericVector iter(y_n);
   Rcpp::NumericVector deviance(y_n);
   // bound the estimated count, as weights include 1/mu
-  double minmu = 0.1;
+  double minmu = 0.5;
   for (int i = 0; i < y_n; i++) {
     Rcpp::checkUserInterrupt();
     nfrow = nf.row(i).t();

@@ -609,10 +609,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   fitidx <- rep(TRUE,nrow(objectNZ))
   mu <- matrix(0, nrow=nrow(objectNZ), ncol=ncol(objectNZ))
   dispIter <- numeric(nrow(objectNZ))
-  # bound the estimated count at 0.1.
+  # bound the estimated count
   # this helps make the fitting more robust,
   # because 1/mu occurs in the weights for the NB GLM
-  minmu <- 0.1
+  minmu <- 0.5
   for (iter in seq_len(niter)) {
     fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],
                          alpha_hat=alpha_hat[fitidx],
@@ -2281,7 +2281,7 @@ covarianceMatrix <- function(object, rowNumber) {
   sf <- sizeFactors(object)
   alpha <- dispersions(object)[rowNumber]
   mu.hat <- as.vector(sf * exp(x %*% beta))
-  minmu <- 0.1
+  minmu <- 0.5
   mu.hat[mu.hat < minmu] <- minmu
   w <- diag(1/(1/mu.hat^2 * ( mu.hat + alpha * mu.hat^2 )))
   betaPriorVar <- attr(object,"betaPriorVar")
@@ -2441,7 +2441,7 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     betaMatrix[row,] <- o$par / scaleCols
     # calculate the standard errors
     mu_row <- as.numeric(nf * 2^(x %*% o$par))
-    minmu <- 0.1
+    minmu <- 0.5
     mu_row[mu_row < minmu] <- minmu
     w <- diag((mu_row^-1 + alpha)^-1)
     xtwx <- t(x) %*% w %*% x

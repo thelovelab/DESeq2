@@ -374,7 +374,7 @@ has all zero counts, e.g.: $\{0,0,0\}$ vs $\{10,10,10\}$.
 ```{r onlyonecondition, fig.width=4, fig.height=4, fig.cap="Simulated gene expressed in only one condition"}
 library("DESeq2")
 m <- 6
-disp <- 0.5
+disp <- 0.1
 ii <- seq(from=1,to=4,length=7)
 coldata <- DataFrame(x=factor(rep(1:2,each=m/2)))
 pvals <- sapply(ii, function(i) {
@@ -385,7 +385,7 @@ pvals <- sapply(ii, function(i) {
   results(nbinomWaldTest(dds))$pvalue
 })
 plot(10^ii, -log10(pvals), log="x", type="b", xaxt="n",
-     xlab="group 2 counts", ylab=expression(-log[10](p~value)))
+     xlab="group 2 counts", ylab="-log10 pvalue")
 axis(1,10^(1:4),10^(1:4))
 ```
 

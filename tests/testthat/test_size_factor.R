@@ -7,6 +7,7 @@ estimateSizeFactorsForMatrix(m, geoMeans=1:4)
 estimateSizeFactorsForMatrix(m, controlGenes=1:2)
 
 # iterate method
+set.seed(1)
 true.sf <- 2^(rep(c(-2,-1,0,0,1,2),each=2))
 dds <- makeExampleDESeqDataSet(sizeFactors=true.sf, n=100)
 cts <- counts(dds)

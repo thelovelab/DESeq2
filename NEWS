@@ -5,7 +5,18 @@ CHANGES IN VERSION 1.12.0
       counts using tximport.
     o Added vst() a fast wrapper for the VST.
     o Added support for IHW p-value adjustment.
-    
+
+CHANGES IN VERSION 1.11.42
+--------------------------
+
+    o Update summary() to be IHW-results-aware.
+
+    o Small change to fitted mu values to improve fit stability
+      when counts are very low. Inference for high count genes
+      is not affected.
+
+    o Galaxy script inst/script/deseq2.R moves to Galaxy repo.
+
 CHANGES IN VERSION 1.11.33
 --------------------------
 
