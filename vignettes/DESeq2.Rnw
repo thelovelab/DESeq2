@@ -871,16 +871,20 @@ experimental group in applying the transformation.
 
 These functions return an object of class \Rclass{DESeqTransform}
 which is a subclass of \Rclass{RangedSummarizedExperiment}. 
-For $\sim 20$ samples, \Rfunction{rlog} may take 30 seconds, 
+For $\sim 20$ samples, running on a newly created \Robject{DESeqDataSet},
+\Rfunction{rlog} may take 30 seconds, 
 \Rfunction{varianceStabilizingTransformation} may take 5 seconds, and
 \Rfunction{vst} less than 1 second (by subsetting to 1000 genes for
 calculating the global dispersion trend).
+However, the running times are shorter and more similar with \Rcode{blind=FALSE} and
+if the function \Rfunction{DESeq} has already been run, because then
+it is not necessary to re-estimate the dispersion values.
 The \Rfunction{assay} function is used to extract the matrix of normalized values.
 
 <<rlogAndVST>>=
-system.time( rld <- rlog(dds, blind=FALSE) )
-system.time( vsd <- varianceStabilizingTransformation(dds, blind=FALSE) )
-system.time( vsd.fast <- vst(dds, blind=FALSE) )
+rld <- rlog(dds, blind=FALSE)
+vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
+vsd.fast <- vst(dds, blind=FALSE)
 head(assay(rld), 3)
 @
 
