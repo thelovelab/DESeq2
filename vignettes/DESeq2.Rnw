@@ -678,7 +678,7 @@ can be set to \Robject{NA} for one of the following reasons:
     described in Section~\ref{sec:autoFilt}.
 \end{enumerate}
 
-\subsubsection{Exporting results to HTML or CSV files}
+\subsubsection{Rich visualization and reporting of results}
 
 \textbf{ReportingTools.} An HTML report of the results with plots and sortable/filterable columns
 can be generated using the \Biocpkg{ReportingTools} package
@@ -694,7 +694,18 @@ The \Rfunction{DESeq2Report} function should be run on a
 For more details see the manual page for \Rfunction{DESeq2Report} 
 and an example vignette in the \Biocpkg{regionReport} package.
 
-\textbf{Plain text.} A plain-text file of the results can be exported using the 
+\textbf{Glimma.} Interactive visualization of \deseqtwo{} output, 
+including MA-plots (also called MD-plot) can be generated using the
+\Biocpkg{Glimma} package. See the manual page for \Rfunction{glMDPlot.DESeqResults}.
+
+\textbf{pcaExplorer.} Interactive visualization of \deseqtwo{} output,
+including PCA plots, boxplots of counts and other useful summaries can be
+generated using the \Biocpkg{pcaExplorer} package.
+See the ``Launching the application'' section of the package vignette.
+
+\subsubsection{Exporting results to CSV files}
+
+A plain-text file of the results can be exported using the 
 base \R{} functions \Rfunction{write.csv} or \Rfunction{write.delim}. 
 We suggest using a descriptive file name indicating the variable
 and levels which were tested.
