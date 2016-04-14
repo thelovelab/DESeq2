@@ -271,9 +271,10 @@ setMethod("sizeFactors", signature(object="DESeqDataSet"),
 #' @exportMethod "sizeFactors<-"
 setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"),
                  function( object, value ) {
-                   if (any(value <= 0)) {
-                     stop("size factors must be positive")
-                   }
+                   stopifnot(all(!is.na(value)))
+                   stopifnot(all(is.finite(value)))
+                   stopifnot(all(value > 0))
+
                    # Temporary hack for backward compatibility with "old"
                    # DESeqDataSet objects. Remove once all serialized
                    # DESeqDataSet objects around have been updated.
@@ -352,9 +353,10 @@ setMethod("normalizationFactors", signature(object="DESeqDataSet"),
 #' @exportMethod "normalizationFactors<-"
 setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value="matrix"),
                  function(object, value) {
-                   if (any(value <= 0)) {
-                     stop("normalization factors must be positive")
-                   }
+                   stopifnot(all(!is.na(value)))
+                   stopifnot(all(is.finite(value)))
+                   stopifnot(all(value > 0))
+
                    # Temporary hack for backward compatibility with "old"
                    # DESeqDataSet objects. Remove once all serialized
                    # DESeqDataSet objects around have been updated.
