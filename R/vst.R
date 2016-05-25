@@ -171,10 +171,14 @@ getVarianceStabilizedData <- function(object) {
   } else if ( attr( dispersionFunction(object), "fitType" ) == "local" ) {
     # non-parametric fit -> numerical integration
     if (is.null(sizeFactors(object))) {
-      stop("call estimateSizeFactors before calling getVarianceStabilizedData if using local dispersion fit")
+      stopifnot(!is.null(normalizationFactors(object)))
+      # approximate size factors from columns of NF
+      sf <- exp(colMeans(log(normalizationFactors(object))))
+    } else {
+      sf <- sizeFactors(object)
     }
     xg <- sinh( seq( asinh(0), asinh(max(ncounts)), length.out=1000 ) )[-1]
-    xim <- mean( 1/sizeFactors(object) )
+    xim <- mean( 1/sf )
     baseVarsAtGrid <- dispersionFunction(object)( xg ) * xg^2 + xim * xg
     integrand <- 1 / sqrt( baseVarsAtGrid )
     splf <- splinefun(

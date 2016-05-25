@@ -1,5 +1,14 @@
+CHANGES IN VERSION 1.13.3
+-------------------------
+
+    o Fixed bug: fpm() and fpkm() for tximport.
+    o Fixed bug: normalization factors and VST.
+    o Added an error if tximport lengths have 0.
+    o Added an error if user matrices are not full rank.
+    o More helpful error for constant factor in design.
+
 CHANGES IN VERSION 1.12.0
---------------------------
+-------------------------
 
     o Added DESeqDataSetFromTximport() to import
       counts using tximport.

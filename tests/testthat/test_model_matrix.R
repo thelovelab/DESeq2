@@ -16,3 +16,13 @@ dds <- removeResults(dds)
 dds <- DESeq(dds, full=m1, test="Wald", betaPrior=FALSE)
 results(dds)[1,]
 
+# test better error than "error: inv(): matrix seems singular"
+coldata <- data.frame(group=factor(rep(1:3,each=6)),
+                      group2=factor(rep(1:3,each=6)),
+                      condition=factor(rep(1:6,3)))
+counts <- matrix(rpois(180, 100), ncol=18)
+m1 <- model.matrix(~ group + group2, coldata)
+m2 <- model.matrix(~ condition + group, coldata)
+dds <- DESeqDataSetFromMatrix(counts, coldata, ~group)
+expect_error(dds <- DESeq(dds, full=m1, fitType="mean"), "full rank")
+expect_error(dds <- DESeq(dds, full=m2, reduced=m1, test="LRT", fitType="mean"), "full rank")

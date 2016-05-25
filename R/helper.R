@@ -72,8 +72,9 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' as in \code{\link{estimateSizeFactors}}).
 #'
 #' The length of the features (e.g. genes) is calculated one of two ways:
-#' (1) If there is a matrix named "avgTxLength" in \code{assays(dds)}, this will take precedence in the
-#' length normalization.
+#' (1) If there is a matrix named "avgTxLength" in \code{assays(dds)},
+#' this will take precedence in the length normalization.
+#' This occurs when using the tximport-DESeq2 pipeline.
 #' (2) Otherwise, feature length is calculated 
 #' from the \code{rowRanges} of the dds object,
 #' if a column \code{basepairs} is not present in \code{mcols(dds)}.
@@ -81,8 +82,8 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 #' assigned to a given row of \code{object}, e.g., 
 #' the union of all basepairs of exons of a given gene.
 #' Note that the second approach over-estimates the gene length
-#' (average transcript length, weighted by abundance is the appropriate
-#' normalization for counts), and so the FPKM will be an underestimate of the true value.
+#' (average transcript length, weighted by abundance is a more appropriate
+#' normalization for gene counts), and so the FPKM will be an underestimate of the true value.
 #' 
 #' Note that, when the read/fragment counting has inter-feature dependencies, a strict
 #' normalization would not incorporate the basepairs of a feature which
@@ -139,7 +140,14 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
 fpkm <- function(object, robust=TRUE) {
   fpm <- fpm(object, robust=robust)
   if ("avgTxLength" %in% assayNames(object)) {
-    return(1e3 * fpm / assays(object)[["avgTxLength"]])
+    exprs <- 1e3 * fpm / assays(object)[["avgTxLength"]]
+    if (robust) {
+      sf <- estimateSizeFactorsForMatrix(exprs)
+      exprs <- t(t(exprs)/sf)
+      return(exprs)
+    } else {
+      return(exprs)
+    }
   }
   if (is.null(mcols(object)$basepairs)) {
     if (class(rowRanges(object)) == "GRangesList") {
@@ -176,6 +184,7 @@ which will be used to produce FPKM values")
 #' rather than taking the column sums of the raw counts.
 #' If TRUE, the size factors and the geometric mean of
 #' column sums are multiplied to create a robust library size estimate.
+#' Robust normalization is not used if average transcript lengths are present.
 #' 
 #' @return a matrix which is normalized per million of mapped fragments,
 #' either using the robust median ratio method (robust=TRUE, default)
@@ -216,11 +225,13 @@ which will be used to produce FPKM values")
 #' 
 #' @export
 fpm <- function(object, robust=TRUE) {
-  if (robust & is.null(sizeFactors(object))) {
+  # we do something different if average tx lengths are present
+  noAvgTxLen <- !("avgTxLength" %in% assayNames(object))
+  if (robust & is.null(sizeFactors(object)) & noAvgTxLen) {
     object <- estimateSizeFactors(object)
   }
   k <- counts(object)
-  library.sizes <- if (robust) {
+  library.sizes <- if (robust & noAvgTxLen) {
     sizeFactors(object) * exp(mean(log(colSums(k))))
   } else {
     colSums(k)
@@ -241,7 +252,7 @@ fpm <- function(object, robust=TRUE) {
 #' 
 #' @export
 normalizeGeneLength <- function(...) {
-  .Deprecated("tximport, a separate package to be added to Bioconductor")
+  .Deprecated("tximport, a separate package on Bioconductor")
 }
 
 #' Normalized counts transformation

@@ -2460,7 +2460,8 @@ Ian Dworkin,
 Bj\"orn Gr\"uning,
 Ryan McMinds,
 Paul Gordon,
-Leonardo Collado Torres.
+Leonardo Collado Torres,
+Enrico Ferrero.
 \section{Session Info}
 
 <<sessInfo, results="asis", echo=FALSE>>=

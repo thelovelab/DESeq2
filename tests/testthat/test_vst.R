@@ -23,3 +23,9 @@ vsd <- varianceStabilizingTransformation(counts(dds))
 dds <- makeExampleDESeqDataSet(n=20000, m=10)
 vsd <- vst(dds)
 vsd <- vst(counts(dds))
+
+# test VST and normalization factors
+dds <- makeExampleDESeqDataSet(n=100, m=10, betaSD=1.5)
+nf <- matrix(exp(rnorm(1000,0,.2)),ncol=10)
+normalizationFactors(dds) <- nf
+vsd <- varianceStabilizingTransformation(dds, fitType="local")

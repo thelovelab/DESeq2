@@ -13,7 +13,8 @@ fpm(object, robust = TRUE)
 \item{robust}{whether to use size factors to normalize
 rather than taking the column sums of the raw counts.
 If TRUE, the size factors and the geometric mean of
-column sums are multiplied to create a robust library size estimate.}
+column sums are multiplied to create a robust library size estimate.
+Robust normalization is not used if average transcript lengths are present.}
 }
 \value{
 a matrix which is normalized per million of mapped fragments,

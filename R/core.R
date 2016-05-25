@@ -277,6 +277,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
     if (modelAsFormula) {
       checkLRT(full, reduced)
     } else {
+      checkFullRank(full)
+      checkFullRank(reduced)
       if (ncol(full) <= ncol(reduced)) {
         stop("the number of columns of 'full' should be more than the number of columns of 'reduced'")
       }
@@ -299,6 +301,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
     if (betaPrior == TRUE) {
       stop("betaPrior=TRUE is not supported for user-provided model matrices")
     }
+    checkFullRank(full)
     # this will be used for dispersion estimation and testing
     modelMatrix <- full
   }

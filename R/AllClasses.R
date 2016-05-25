@@ -186,21 +186,28 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
       }
     }
     if (warnIntVars) {
-      message(paste0("the design formula contains a numeric variable with integer values,
+      message("the design formula contains a numeric variable with integer values,
   specifying a model with increasing fold change for higher values.
   did you mean for this to be a factor? if so, first convert
-  this variable to a factor using the factor() function"))
+  this variable to a factor using the factor() function")
     }
   }
 
   designFactors <- designVars[designVarsClass == "factor"]
-  missingLevels <- sapply(designFactors,function(v) any(table(colData(se)[[v]]) == 0))
+  missingLevels <- sapply(designFactors, function(v) any(table(colData(se)[[v]]) == 0))
   if (any(missingLevels)) {
     message("factor levels were dropped which had no samples")
     for (v in designFactors[missingLevels]) {
       colData(se)[[v]] <- droplevels(colData(se)[[v]])
     }
   }
+
+  singleLevel <- sapply(designFactors, function(v) all(colData(se)[[v]] == colData(se)[[v]][1]))
+  if (any(singleLevel)) {
+    stop("design contains one or more variables with all samples having the same value,
+  remove these variables from the design")
+  }
+
   
   modelMatrix <- model.matrix(design, data=as.data.frame(colData(se)))
   if (!ignoreRank) {
@@ -336,6 +343,7 @@ DESeqDataSetFromTximport <- function(txi, colData, design, ...)
   } else {
     message("using counts and average transcript lengths from tximport")
     lengths <- txi$length
+    stopifnot(all(lengths > 0))
     dimnames(lengths) <- dimnames(object)
     assays(object)[["avgTxLength"]] <- lengths
   }

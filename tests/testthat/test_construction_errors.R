@@ -19,6 +19,7 @@ expect_error(DESeqDataSetFromMatrix(counts, coldata, ~ ident))
 expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ num))
 expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ missinglevels))
 expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ notref))
+expect_error(DESeqDataSetFromMatrix(counts, coldata, ~ident + x), "design contains")
 
 # same colnames but in different order:
 expect_error(DESeqDataSetFromMatrix(matrix(1:16, ncol=4, dimnames=list(1:4, 4:1)), coldata, ~ x))
