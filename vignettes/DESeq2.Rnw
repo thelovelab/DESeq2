@@ -1346,13 +1346,28 @@ Binomial GLM, we use an analysis of deviance (ANODEV), where the
 \emph{deviance} captures the difference in likelihood between a full
 and a reduced model.
 
-The likelihood ratio test can be specified using the \Robject{test}
-argument to \Rfunction{DESeq}, which substitutes
-\Rfunction{nbinomWaldTest} with \Rfunction{nbinomLRT}.  In this case,
-the user needs to provide a reduced formula, e.g. one in which a
+The likelihood ratio test can be performed by specifying \Rcode{test="LRT"}
+when using the \Rfunction{DESeq} function, and
+providing a reduced design formula, e.g. one in which a
 number of terms from \Robject{design(dds)} are removed.
 The degrees of freedom for the test is obtained from the difference
-between the number of parameters in the two models.
+between the number of parameters in the two models. 
+A simple likelihood ratio test, if the full design was
+\Robject{~condition} would look like:
+
+<<simpleLRT, eval=FALSE>>=
+dds <- DESeq(dds, test="LRT", reduced=~1)
+res <- results(dds)
+@ 
+
+If the full design contained other variables, 
+such as a batch variable,
+then the likelihood ratio test would look like:
+
+<<simpleLRT2, eval=FALSE>>=
+dds <- DESeq(dds, test="LRT", reduced=~batch)
+res <- results(dds)
+@ 
 
 \subsection{Approach to count outliers} \label{sec:outlierApproach}
 
