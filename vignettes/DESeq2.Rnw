@@ -5,7 +5,13 @@
 % To compile this document
 % library('knitr'); rm(list=ls()); knit('DESeq2.Rnw')
 
-\documentclass[11pt]{article}
+\documentclass{article}
+
+<<style, eval=TRUE, echo=FALSE, results="asis">>=
+BiocStyle::latex2()
+@
+
+\usepackage{subfig}% for combining multiple plots in one figure
 
 \newcommand{\deseqtwo}{\textit{DESeq2}}
 \newcommand{\lowtilde}{\raise.17ex\hbox{$\scriptstyle\mathtt{\sim}$}}
@@ -17,24 +23,23 @@ opts_chunk$set(
   dev="png",
   fig.show="hide",
   fig.width=4, fig.height=4.5,
+  fig.pos="tbh",
   cache=TRUE,
   message=FALSE)
 @ 
-
-<<style, eval=TRUE, echo=FALSE, results="asis">>=
-BiocStyle::latex()
-@
 
 <<loadDESeq2, echo=FALSE>>=
 library("DESeq2")
 @
 
+\author{Michael I.~Love}
+\affil{Department of Biostatistics, Dana-Farber Cancer Institute and Harvard TH Chan School of Public Health, Boston, US;}
 
-\author{Michael I. Love$^{1}$, Simon Anders$^{2,3}$, Wolfgang Huber$^{3}$ \\[1em] 
-  \small{$^{1}$ Department of Biostatistics, Dana-Farber Cancer Institute and} \\ 
-  \small{Harvard TH Chan School of Public Health, Boston, US;} \\ 
-  \small{$^{2}$ Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland;} \\ 
-  \small{$^{3}$ European Molecular Biology Laboratory (EMBL), Heidelberg, Germany} }
+\author{Simon Anders}
+\affil{Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland;}
+
+\author{Wolfgang Huber}
+\affil{European Molecular Biology Laboratory (EMBL), Heidelberg, Germany}
 
 \title{Differential analysis of count data -- the DESeq2 package}
 
@@ -60,14 +65,13 @@ library("DESeq2")
   on the Bioconductor website covers similar material to this vignette
   but at a slower pace, including the generation of count matrices
   from FASTQ files.
+\end{abstract}
 
-  \vspace{1em}
-  
-  \textbf{DESeq2 version:} \Sexpr{packageVersion("DESeq2")}
+\packageVersion{\Sexpr{BiocStyle::pkg_ver("DESeq2")}}
 
-  \vspace{1em}
+ \vspace{5mm}
   
-  \begin{center}
+  \begin{table}
     \begin{tabular}{ | l | }
       \hline 
       If you use \deseqtwo{} in published research, please cite:  \\
@@ -78,12 +82,11 @@ library("DESeq2")
       \url{http://dx.doi.org/10.1186/s13059-014-0550-8}  \\
       \hline 
     \end{tabular}
-  \end{center}
+  \end{table}
 
-\end{abstract}
 
 <<options, results="hide", echo=FALSE>>=
-options(digits=3, width=80, prompt=" ", continue=" ")
+options(digits=3, prompt=" ", continue=" ")
 @
 
 \newpage
@@ -324,7 +327,8 @@ from a column of \Robject{colData}, as shown in the code chunk above.
 <<txi2dds>>=
 coldata <- data.frame(condition=factor(rep(c("A","B"),each=3)))
 rownames(coldata) <- colnames(txi$counts)
-ddsTxi <- DESeqDataSetFromTximport(txi, colData=coldata, design=~ condition)
+ddsTxi <- DESeqDataSetFromTximport(txi, colData=coldata,
+                                   design=~ condition)
 @
 
 The \Robject{ddsTxi} object can then be used as \Robject{dds} in the
@@ -543,12 +547,11 @@ to these values is discussed in Section~\ref{sec:access}.
 
 \subsubsection{MA-plot}
 
-\begin{figure}
-\centering
-\includegraphics[width=.45\textwidth]{figure/MANoPrior-1}
-\includegraphics[width=.45\textwidth]{figure/MA-1}
+\begin{figure}[tb]
+\includegraphics[width=.49\textwidth]{figure/MANoPrior-1}
+\includegraphics[width=.49\textwidth]{figure/MA-1}
 \caption{
-  \textbf{MA-plot.} 
+  MA-plot.
   These plots show the log2 fold changes from the treatment over
   the mean of normalized counts, i.e. the average of counts normalized by
   size factors. The left plot shows the ``unshrunken'' log2 fold changes, 
@@ -630,11 +633,10 @@ ggplot(d, aes(x=condition, y=count)) +
 @ 
 
 \begin{figure}
-\centering
-\includegraphics[width=.45\textwidth]{figure/plotCounts-1}
-\includegraphics[width=.45\textwidth]{figure/plotCountsAdv-1}
+\includegraphics[width=.49\textwidth]{figure/plotCounts-1}
+\includegraphics[width=.49\textwidth]{figure/plotCountsAdv-1}
 \caption{
-  \textbf{Plot of counts for one gene.} 
+  Plot of counts for one gene.
   The plot of normalized counts (plus a pseudocount of $\frac{1}{2}$)
   either made using the \Rfunction{plotCounts} function (left)
   or using another plotting library (right, using \CRANpkg{ggplot2}).}
@@ -779,7 +781,8 @@ The \Robject{contrast} argument can also take other forms, as
 described in the help page for \Rfunction{results} and in Section~\ref{sec:contrasts}.
 
 <<multiTypeResults>>=
-resMFType <- results(ddsMF, contrast=c("type","single-read","paired-end"))
+resMFType <- results(ddsMF,
+                     contrast=c("type", "single-read", "paired-end"))
 head(resMFType)
 @
 
@@ -805,11 +808,11 @@ Maybe the most obvious choice of transformation is the logarithm.
 Since count values for a gene can be zero in some
 conditions (and non-zero in others), some advocate the use of
 \emph{pseudocounts}, i.\,e.\ transformations of the form
-
+%
 \begin{equation}\label{eq:shiftedlog}
   y = \log_2(n + 1)\quad\mbox{or more generally,}\quad y = \log_2(n + n_0),
 \end{equation}
-
+%
 where $n$ represents the count values and $n_0$ is a positive constant.
 
 In this section, we discuss two alternative
@@ -940,18 +943,7 @@ package alongside this vignette. If a local fit is used (option
 \Robject{fitType="locfit"} to \Rfunction{estimateDispersions}) a
 numerical integration is used instead.
 
-The resulting variance stabilizing transformation is shown in Figure
-\ref{figure/vsd1-1}.  The code that produces the figure is hidden from
-this vignette for the sake of brevity, but can be seen in the
-\texttt{.Rnw} or \texttt{.R} source file. Note that the vertical axis
-in such plots is the square root of the variance over all samples, so
-including the variance due to the experimental conditions.  While a
-flat curve of the square root of variance over the mean may seem like
-the goal of such transformations, this may be unreasonable in the case
-of datasets with many true differences due to the experimental
-conditions.
-
-<<vsd1, echo=FALSE, fig.width=4.5, fig.height=4.5>>=
+<<vsd1, echo=FALSE, fig.width=4.5, fig.height=4.5, fig.show="asis", fig.small=TRUE, fig.pos="!bt", fig.cap="VST and log2. Graphs of the variance stabilizing transformation for sample 1, in blue, and of the transformation $f(n) = \\log_2(n/s_1)$, in black. $n$ are the counts and $s_1$ is the size factor for the first sample.\\label{figure/vsd1-1}">>=
 px     <- counts(dds)[,1] / sizeFactors(dds)[1]
 ord    <- order(px)
 ord    <- ord[px[ord] < 150]
@@ -968,49 +960,35 @@ legend("bottomright",
        fill=vstcol)
 @
 
-\incfig{figure/vsd1-1}{.49\textwidth}{VST and log2.}{
-  Graphs of the variance stabilizing transformation for
-  sample 1, in blue, and of the transformation $f(n) = \log_2(n/s_1)$, in
-  black. $n$ are the counts and $s_1$ is the size factor for the first sample.
-}
+The resulting variance stabilizing transformation is shown in Figure
+\ref{figure/vsd1-1}.  The code that produces the figure is hidden from
+this vignette for the sake of brevity, but can be seen in the
+\texttt{.Rnw} or \texttt{.R} source file. Note that the vertical axis
+in such plots is the square root of the variance over all samples, so
+including the variance due to the experimental conditions.  While a
+flat curve of the square root of variance over the mean may seem like
+the goal of such transformations, this may be unreasonable in the case
+of datasets with many true differences due to the experimental
+conditions.
 
 \subsubsection{Effects of transformations on the variance}
 
-\begin{figure}
-\centering
-\includegraphics[width=.32\textwidth]{figure/log2meansd-1}
-\includegraphics[width=.32\textwidth]{figure/rlogmeansd-1}
-\includegraphics[width=.32\textwidth]{figure/vstmeansd-1}
-\caption{Per-gene standard deviation (taken across samples), against the rank
-  of the mean, for the shifted logarithm $\log_2(n+1)$ (left), the
-  regularized log transformation (center) and the variance stabilizing
-  transformation (right).}
-\label{fig:meansd}
-\end{figure}
-
 Figure~\ref{fig:meansd} plots the standard deviation of the transformed
 data, across samples, against the mean, using the shifted
-logarithm transformation (\ref{eq:shiftedlog}), the
+logarithm transformation \eqref{eq:shiftedlog}, the
 regularized log transformation and the variance stabilizing transformation.
 The shifted logarithm has elevated standard deviation in the lower
 count range, and the regularized log to a lesser extent, while for
 the variance stabilized data the standard deviation is roughly constant
 along the whole dynamic range.
 
-<<log2meansd, fig.width=4, fig.height=3>>=
+<<meansd, fig.width=4, fig.height=3, fig.show="asis", fig.wide=TRUE, fig.pos="tb", out.width=".32\\linewidth", fig.cap="Per-gene standard deviation (taken across samples), against the rank of the mean. {\\bfhelvet(a)} for the shifted logarithm $\\log_2(n+1)$, the regularized log transformation {\\bfhelvet(b)} and the variance stabilizing transformation {\\bfhelvet(c)}.\\label{fig:meansd}", fig.subcap="">>=
 library("vsn")
 notAllZero <- (rowSums(counts(dds))>0)
 meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1))
-@ 
-
-<<rlogmeansd, fig.width=4, fig.height=3>>=
 meanSdPlot(assay(rld[notAllZero,]))
-@ 
-
-<<vstmeansd, fig.width=4, fig.height=3>>=
 meanSdPlot(assay(vsd[notAllZero,]))
 @
-
 
 %---------------------------------------------------------------
 \subsection{Data quality assessment by sample clustering and visualization}\label{sec:quality}
@@ -1034,45 +1012,34 @@ To explore a count matrix, it is often instructive to look at it as a
 heatmap.  Below we show how to produce such a heatmap 
 for various transformations of the data.
 
-<<heatmap>>=
+<<heatmap, dev="pdf", fig.width=5, fig.height=7>>=
 library("pheatmap")
-select <- order(rowMeans(counts(dds,normalized=TRUE)),decreasing=TRUE)[1:20]
-@
+select <- order(rowMeans(counts(dds,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
 
-<<figHeatmap2a, dev="pdf", fig.width=5, fig.height=7>>=
 nt <- normTransform(dds) # defaults to log2(x+1)
 log2.norm.counts <- assay(nt)[select,]
 df <- as.data.frame(colData(dds)[,c("condition","type")])
 pheatmap(log2.norm.counts, cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
-@
 
-<<figHeatmap2b, dev="pdf", fig.width=5, fig.height=7>>=
 pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
-@
 
-<<figHeatmap2c, dev="pdf", fig.width=5, fig.height=7>>=
 pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 @
 
-\begin{figure}
-\centering
-\includegraphics[width=.32\textwidth]{figure/figHeatmap2a-1}
-\includegraphics[width=.32\textwidth]{figure/figHeatmap2b-1}
-\includegraphics[width=.32\textwidth]{figure/figHeatmap2c-1}
+\begin{figure*}
+\includegraphics[width=.32\textwidth]{figure/heatmap-1}
+\includegraphics[width=.32\textwidth]{figure/heatmap-2}
+\includegraphics[width=.32\textwidth]{figure/heatmap-3}
 \caption{Heatmaps showing the expression data of the \Sexpr{length(select)}
   most highly expressed genes. The data is of log2 normalized counts (left),
   from regularized log transformation (center) and from variance
   stabilizing transformation (right).}
 \label{fig:heatmap2}
-\end{figure}
-
-\incfig{figure/figHeatmapSamples-1}{.6\textwidth}{Sample-to-sample distances.}{
-  Heatmap showing the Euclidean distances between the samples
-  as calculated from the regularized log transformation.
-}
+\end{figure*}
 
 \subsubsection{Heatmap of the sample-to-sample distances}\label{sec:dists}
 
@@ -1092,7 +1059,7 @@ function based on the sample distances, or else the heatmap
 function would calculate a clustering based on the distances between
 the rows/columns of the distance matrix.
 
-<<figHeatmapSamples, dev="pdf", fig.width=7, fig.height=7>>=
+<<figHeatmapSamples, dev="pdf", fig.width=7, fig.height=7, fig.show="asis", fig.small=TRUE, fig.pos="tb", fig.cap="Sample-to-sample distances.  Heatmap showing the Euclidean distances between the samples as calculated from the regularized log transformation.\\label{figure/figHeatmapSamples-1}">>=
 library("RColorBrewer")
 sampleDistMatrix <- as.matrix(sampleDists)
 rownames(sampleDistMatrix) <- paste(rld$condition, rld$type, sep="-")
@@ -1113,7 +1080,7 @@ plot of the samples, which we obtain as follows (Figure \ref{figure/figPCA-1}).
 plotPCA(rld, intgroup=c("condition", "type"))
 @
 
-\incfig{figure/figPCA-1}{.7\textwidth}{PCA plot.}{
+\incfig[tbh]{figure/figPCA-1}{\textwidth}{PCA plot.}{
   PCA plot. The \Sexpr{ncol(rld)} samples shown in the 2D
   plane spanned by their first two principal components. This type of
   plot is useful for visualizing the overall effect of experimental
@@ -1132,7 +1099,7 @@ ggplot(data, aes(PC1, PC2, color=condition, shape=type)) +
   ylab(paste0("PC2: ",percentVar[2],"% variance"))
 @
 
-\incfig{figure/figPCA2-1}{.7\textwidth}{PCA plot.}{
+\incfig[tbh]{figure/figPCA2-1}{\textwidth}{PCA plot.}{
   PCA plot customized using the \CRANpkg{ggplot2} library.
 }
 
@@ -1249,12 +1216,11 @@ plotit(d2, "Gene 2") + ylim(7,13)
 lm(log2c ~ cond + geno + geno:cond, data=d2)
 @ 
 
-\begin{figure}
-\centering
+\begin{figure*}
 \includegraphics[width=.49\textwidth]{figure/interFig-1}
 \includegraphics[width=.49\textwidth]{figure/interFig2-1}
 \caption{
-  \textbf{Genotype-specific condition effects.} 
+  Genotype-specific condition effects.
   Here, the y-axis represents $\log_2(\textrm{counts}+1)$, and each
   group has 20 samples (black dots). A red line connects the mean of
   the groups within each genotype.
@@ -1277,7 +1243,7 @@ lm(log2c ~ cond + geno + geno:cond, data=d2)
   (Section~\ref{sec:plotcounts}).
 }
 \label{fig:inter}
-\end{figure}
+\end{figure*}
 
 Now we will continue to explain the use of interactions in order to
 test for \textit{differences} in condition effects. We continue with
@@ -1441,16 +1407,10 @@ advantageous to make a PCA plot using the code example in Section
 a boxplot of the Cook's distances to see if one sample is consistently
 higher than others: 
 
-<<boxplotCooks>>=
+<<boxplotCooks, fig.show="asis", fig.small=TRUE, fig.cap="Boxplot of Cook's distances.  Here we can look to see if one sample has much higher Cook's distances than the other samples. In this case, the samples all have comparable range of Cook's distances.\\label{figure/boxplotCooks-1}">>=
 par(mar=c(8,5,2,2))
 boxplot(log10(assays(dds)[["cooks"]]), range=0, las=2)
 @ 
-
-\incfig{figure/boxplotCooks-1}{.5\textwidth}{Boxplot of Cook's distances.}{
-  Here we can look to see if one sample has much higher Cook's distances
-  than the other samples. In this case, the samples all have
-  comparable range of Cook's distances.
-}
 
 \subsection{Dispersion plot and fitting alternatives}
 
@@ -1463,15 +1423,9 @@ The amount of shrinkage can be more or less than seen here, depending
 on the sample size, the number of coefficients, the row mean
 and the variability of the gene-wise estimates.
 
-<<dispFit>>=
+<<dispFit, fig.show="asis", fig.small=TRUE, fig.cap="Dispersion plot.  The dispersion estimate plot shows the gene-wise estimates (black), the fitted values (red), and the final maximum \\textit{a posteriori} estimates used in testing (blue).\\label{figure/dispFit-1}">>=
 plotDispEsts(dds)
 @
-
-\incfig{figure/dispFit-1}{.5\textwidth}{Dispersion plot.}{
-  The dispersion estimate plot shows the gene-wise estimates (black),
-  the fitted values (red), and the final maximum \textit{a posteriori}
-  estimates used in testing (blue).
-}
 
 \subsubsection{Local or mean dispersion fit}
 
@@ -1499,7 +1453,8 @@ estimates of dispersion.
 <<dispFitCustom>>=
 ddsCustom <- dds
 useForMedian <- mcols(ddsCustom)$dispGeneEst > 1e-7
-medianDisp <- median(mcols(ddsCustom)$dispGeneEst[useForMedian],na.rm=TRUE)
+medianDisp <- median(mcols(ddsCustom)$dispGeneEst[useForMedian],
+                     na.rm=TRUE)
 dispersionFunction(ddsCustom) <- function(mu) medianDisp
 ddsCustom <- estimateDispersionsMAP(ddsCustom)
 @
@@ -1527,7 +1482,7 @@ returned by \Rfunction{results}. For example, we can visualize
 the optimization by plotting the \Robject{filterNumRej} attribute of 
 the results object, as seen in Figure \ref{figure/filtByMean-1}.
 
-<<filtByMean, dev="pdf">>=
+<<filtByMean, dev="pdf", fig.show="asis", fig.small=TRUE, fig.cap="Independent filtering.  The \\Rfunction{results} function maximizes the number of rejections (adjusted $p$ value less than a significance level), over the quantiles of a filter statistic (the mean of normalized counts). The threshold chosen (vertical line) is the lowest quantile of the filter for which the number of rejections is within 1 residual standard deviation to the peak of a curve fit to the number of rejections over the filter quantiles.\\label{figure/filtByMean-1}">>=
 metadata(res)$alpha
 metadata(res)$filterThreshold
 plot(metadata(res)$filterNumRej, 
@@ -1537,24 +1492,13 @@ lines(metadata(res)$lo.fit, col="red")
 abline(v=metadata(res)$filterTheta)
 @
 
-\incfig{figure/filtByMean-1}{.5\textwidth}{Independent filtering.}{
-  The \Rfunction{results} function maximizes the 
-  number of rejections (adjusted $p$ value less than a 
-  significance level), over the quantiles 
-  of a filter statistic (the mean of normalized counts).
-  The threshold chosen (vertical line) is   
-  the lowest quantile of the filter for which the
-  number of rejections is within 1 residual standard deviation to the
-  peak of a curve fit 
-  to the number of rejections over the filter quantiles.
-}
-
 Independent filtering can be turned off by setting 
 \Robject{independentFiltering} to \Robject{FALSE}.
 
 <<noFilt>>=
 resNoFilt <- results(dds, independentFiltering=FALSE)
-addmargins(table(filtering=(res$padj < .1), noFiltering=(resNoFilt$padj < .1)))
+addmargins(table(filtering=(res$padj < .1),
+                 noFiltering=(resNoFilt$padj < .1)))
 @ 
 
 \subsection{Tests of log2 fold change above or below a threshold}
@@ -1601,7 +1545,7 @@ ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
 In order to produce results tables for the following tests, the same arguments
 (except \Robject{ylim}) would be provided to the \Rfunction{results} function. 
 
-<<lfcThresh>>=
+<<lfcThresh, fig.show="asis", fig.cap='MA-plots of tests of log2 fold change with respect to a threshold value.  Going left to right across rows, the tests are for \\Robject{altHypothesis = "greaterAbs"}, \\Robject{"lessAbs"}, \\Robject{"greater"}, and \\Robject{"less"}.\\label{figure/lfcThresh-1}'>>=
 par(mfrow=c(2,2),mar=c(2,2,1,1))
 yl <- c(-2.5,2.5)
 
@@ -1619,12 +1563,6 @@ abline(h=.5,col="dodgerblue",lwd=2)
 plotMA(resL, ylim=yl)
 abline(h=-.5,col="dodgerblue",lwd=2)
 @ 
-
-\incfig{figure/lfcThresh-1}{.5\textwidth}{MA-plots of tests of log2 fold
-  change with respect to a threshold value.}{
-  Going left to right across rows, the tests are for \Robject{altHypothesis = "greaterAbs"},
-  \Robject{"lessAbs"}, \Robject{"greater"}, and \Robject{"less"}.
-}
 
 \subsection{Access to all calculated values}\label{sec:access}
 
@@ -2021,7 +1959,7 @@ for the \Rfunction{results} function. Below we plot the maximum value of
 Cook's distance for each row over the rank of the test statistic 
 to justify its use as a filtering criterion.
 
-<<cooksPlot>>=
+<<cooksPlot, fig.show="asis", fig.small=TRUE, fig.cap="Cook's distance.  Plot of the maximum Cook's distance per gene over the rank of the Wald statistics for the condition. The two regions with small Cook's distances are genes with a single count in one sample. The horizontal line is the default cutoff used for 7 samples and 3 estimated parameters.\\label{figure/cooksPlot-1}">>=
 W <- res$stat
 maxCooks <- apply(assays(dds)[["cooks"]],1,max)
 idx <- !is.na(W)
@@ -2032,13 +1970,6 @@ m <- ncol(dds)
 p <- 3
 abline(h=qf(.99, p, m - p))
 @ 
-
-\incfig{figure/cooksPlot-1}{.5\textwidth}{Cook's distance.}{
-  Plot of the maximum Cook's distance per gene over the rank of
-  the Wald statistics for the condition. The two regions with small Cook's 
-  distances are genes with a single count in one sample. The horizontal 
-  line is the default cutoff used for 7 samples and 3 estimated parameters.
-}
 
 \subsection{Contrasts} \label{sec:ctrstTheory}
 
@@ -2115,20 +2046,13 @@ see significant differences typically due to high
 dispersion. For example, we can plot the $-\log_{10}$ $p$ values from all genes
 over the normalized mean counts.
 
-<<indFilt>>=
+<<indFilt, fig.show="asis", fig.small=TRUE, fig.cap="Mean counts as a filter statistic.  The mean of normalized counts provides an independent statistic for filtering the tests. It is independent because the information about the variables in the design formula is not used. By filtering out genes which fall on the left side of the plot, the majority of the low $p$ values are kept.\\label{figure/indFilt-1}">>=
 plot(res$baseMean+1, -log10(res$pvalue),
      log="x", xlab="mean of normalized counts",
      ylab=expression(-log[10](pvalue)),
      ylim=c(0,30),
      cex=.4, col=rgb(0,0,0,.3))
 @
-
-\incfig{figure/indFilt-1}{.5\textwidth}{Mean counts as a filter statistic.}{
-  The mean of normalized counts provides an independent statistic for
-  filtering the tests. It is independent because the information about the
-  variables in the design formula is not used. By filtering out genes which fall
-  on the left side of the plot, the majority of the low $p$ values are kept.
-}
 
 %--------------------------------------------------
 \subsubsection{Why does it work?}\label{sec:whyitworks}
@@ -2147,18 +2071,13 @@ h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
 colori <- c(`do not pass`="khaki", `pass`="powderblue")
 @ 
 
-<<fighistindepfilt>>=
+<<fighistindepfilt, fig.show="asis", fig.small=TRUE, fig.cap="Histogram of p values for all tests.  The area shaded in blue indicates the subset of those that pass the filtering, the area in khaki those that do not pass.\\label{figure/fighistindepfilt-1}">>=
 barplot(height = rbind(h1$counts, h2$counts), beside = FALSE,
         col = colori, space = 0, main = "", ylab="frequency")
 text(x = c(0, length(h1$counts)), y = 0, label = paste(c(0,1)),
      adj = c(0.5,1.7), xpd=NA)
 legend("topright", fill=rev(colori), legend=rev(names(colori)))
 @
-
-\incfig{figure/fighistindepfilt-1}{.5\textwidth}{Histogram of p values for all tests.}{
-  The area shaded in blue indicates the subset of those that pass the filtering,
-  the area in khaki those that do not pass.
-}
 
 \section{Frequently asked questions} \label{sec:faq}
 
@@ -2258,7 +2177,7 @@ treatments produce an extreme reaction (e.g. cell death).
 Again, this can be easily detected from the EDA plots such as PCA
 described in this vignette.
 
-<<varGroup, echo=FALSE, fig.width=5, fig.height=5>>=
+<<varGroup, echo=FALSE, fig.width=5, fig.height=5, fig.show="asis", fig.small=TRUE, fig.cap="Extreme range of within-group variability.  Typically, it is recommended to run \\Rfunction{DESeq} across samples from all groups, for datasets with multiple groups. However, this simulated dataset shows a case where it would be preferable to compare groups A and B by creating a smaller dataset without the C samples. Group C has much higher within-group variability, which would inflate the per-gene dispersion estimate for groups A and B as well.\\label{figure/varGroup-1}">>=
 set.seed(3)
 dds1 <- makeExampleDESeqDataSet(n=1000,m=12,betaSD=.3,dispMeanRel=function(x) 0.01)
 dds2 <- makeExampleDESeqDataSet(n=1000,m=12,
@@ -2273,16 +2192,6 @@ dds <- cbind(dds1, dds2)
 rld <- rlog(dds, blind=FALSE, fitType="mean")
 plotPCA(rld)
 @ 
-
-\incfig{figure/varGroup-1}{.5\textwidth}{Extreme range of within-group variability.}{
-  Typically, it is recommended to run \Rfunction{DESeq} across samples
-  from all groups, for datasets with multiple groups. 
-  However, this simulated dataset shows a case where
-  it would be preferable to compare groups A and B by creating a
-  smaller dataset without the C samples. Group C has much higher
-  within-group variability, which would inflate the per-gene dispersion
-  estimate for groups A and B as well. 
-}
 
 \subsection{Can I run DESeq2 to contrast the levels of 100 groups?}
 
@@ -2338,7 +2247,7 @@ This is not likely to be the case for most experiments, where typically
 there is a range of differences by size: some genes with medium-to-large
 differences across treatment, and some with small differences.
 
-<<overShrink, echo=FALSE, fig.width=5, fig.height=5>>=
+<<overShrink, echo=FALSE, fig.width=5, fig.height=5, fig.show="asis", fig.small=TRUE, fig.cap="Example of a dataset with where the log fold change prior should be turned off.  Here we show a simulated MA-plot, where nearly all of the log fold changes are falling near the x-axis, with three genes that have very large log fold changes (note the y-axis is from -10 to 10 on the log2 scale). This would indicate a dataset where the log fold change prior would ``overshrink'' the large fold changes, and so \\Robject{betaPrior=FALSE} should be used.\\label{figure/overShrink-1}">>=
 plot(c(10^rnorm(1000, 3, 2),300,2000,5000), 
      c(rnorm(1000, 0, .15), -5.5, -8.5, 7.5),
      ylim=c(-10,10), log="x", cex=.4,
@@ -2346,16 +2255,6 @@ plot(c(10^rnorm(1000, 3, 2),300,2000,5000),
      ylab="log2 fold change")
 abline(h=0, col=rgb(1,0,0,.7))
 @ 
-
-\incfig{figure/overShrink-1}{.5\textwidth}{Example of a dataset with
-  where the log fold change prior should be turned off.}{
-  Here we show a simulated MA-plot, where nearly all of the log fold changes
-  are falling near the x-axis, with three genes that have very large log
-  fold changes (note the y-axis is from -10 to 10 on the log2 scale).
-  This would indicate a dataset where the log fold change prior would
-  ``overshrink'' the large fold changes, and so \Robject{betaPrior=FALSE}
-  should be used.
-}
 
 There could be experiments in which only a few genes have
 very large log fold changes, and the rest of the genes are
