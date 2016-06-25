@@ -1096,7 +1096,8 @@ percentVar <- round(100 * attr(data, "percentVar"))
 ggplot(data, aes(PC1, PC2, color=condition, shape=type)) +
   geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
-  ylab(paste0("PC2: ",percentVar[2],"% variance"))
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed()
 @
 
 \incfig[tbh]{figure/figPCA2-1}{\textwidth}{PCA plot.}{
