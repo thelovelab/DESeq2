@@ -521,7 +521,11 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = stats::median, geoMe
 #' a substitute model matrix for gene-wise and MAP dispersion estimation
 #' @param niter number of times to iterate between estimation of means and
 #' estimation of dispersion
-#'
+#' @param linearMu estimate the expected counts matrix using a linear model,
+#' default is NULL, in which case a lienar model is used if the
+#' number of groups defined by the model matrix is equal to the number
+#' of columns of the model matrix
+#' 
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
 #' 
@@ -552,7 +556,7 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = stats::median, geoMe
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        dispTol=1e-6, maxit=100, quiet=FALSE,
-                                       modelMatrix=NULL, niter=1) {
+                                       modelMatrix=NULL, niter=1, linearMu=NULL) {
   if (!is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst")
@@ -608,6 +612,14 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
   stopifnot(length(niter) == 1 & niter > 0)
 
+  # use a linear model to estimate the expected counts
+  # if the number of groups according to the model matrix
+  # is equal to the number of columns
+  if (is.null(linearMu)) {
+    modelMatrixGroups <- modelMatrixGroups(modelMatrix)
+    linearMu <- nlevels(modelMatrixGroups) == ncol(modelMatrix)
+  }
+  
   # below, iterate between mean and dispersion estimation (niter) times
   fitidx <- rep(TRUE,nrow(objectNZ))
   mu <- matrix(0, nrow=nrow(objectNZ), ncol=ncol(objectNZ))
@@ -617,17 +629,22 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # because 1/mu occurs in the weights for the NB GLM
   minmu <- 0.5
   for (iter in seq_len(niter)) {
-    fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],
-                         alpha_hat=alpha_hat[fitidx],
-                         modelMatrix=modelMatrix)
-    fitMu <- fit$mu
+    if (!linearMu) {
+      fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],
+                           alpha_hat=alpha_hat[fitidx],
+                           modelMatrix=modelMatrix)
+      fitMu <- fit$mu
+    } else {
+      fitMu <- linearModelMuNormalized(objectNZ[fitidx,,drop=FALSE],
+                                       modelMatrix)
+    }
     fitMu[fitMu < minmu] <- minmu
     mu[fitidx,] <- fitMu
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
     dispRes <- fitDispWrapper(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
-                              xSEXP = fit$modelMatrix,
+                              xSEXP = modelMatrix,
                               mu_hatSEXP = fitMu,
                               log_alphaSEXP = log(alpha_hat)[fitidx],
                               log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
@@ -1847,6 +1864,16 @@ nbinomLogLike <- function(counts, mu, disp) {
                          log=TRUE),ncol=ncol(counts)))
 }
 
+# simple function to return a matrix of size factors
+# or normalization factors
+getSizeOrNormFactors <- function(object) {
+  if (!is.null(normalizationFactors(object))) {
+    return(normalizationFactors(object))
+  } else { 
+    return(matrix(rep(sizeFactors(object),each=nrow(object)),
+             ncol=ncol(object)))
+  }
+}
 
 # Unexported, low-level function for fitting negative binomial GLMs
 #
@@ -1905,12 +1932,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   }
   colnames(modelMatrix) <- modelMatrixNames
   
-  normalizationFactors <- if (!is.null(normalizationFactors(object))) {
-    normalizationFactors(object)
-  } else { 
-    matrix(rep(sizeFactors(object),each=nrow(object)),
-           ncol=ncol(object))
-  }
+  normalizationFactors <- getSizeOrNormFactors(object)
   
   if (missing(alpha_hat)) {
     alpha_hat <- dispersions(object)
@@ -2560,6 +2582,10 @@ momentsDispEstimate <- function(object) {
   (bv - xim*bm)/bm^2
 }
 
+modelMatrixGroups <- function(x) {
+  factor(unname(apply(x, 1, paste0, collapse="__")))
+}
+
 # fast, rough estimation of means for rough dispersion estimation (above)
 linearModelMu <- function(y, x) {
   qrx <- qr(x)
@@ -2567,6 +2593,14 @@ linearModelMu <- function(y, x) {
   Rinv <- solve(qr.R(qrx))
   hatmatrix <- x %*% Rinv %*% t(Q)
   t(hatmatrix %*% t(y))
+}
+
+linearModelMuNormalized <- function(object, x) {
+  cts <- counts(object)
+  norm.cts <- counts(object, normalized=TRUE)
+  muhat <- linearModelMu(norm.cts, x)
+  nf <- getSizeOrNormFactors(object)
+  muhat * nf
 }
 
 # checks for LRT formulas, written as function to remove duplicate code

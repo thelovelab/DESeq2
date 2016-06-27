@@ -650,12 +650,7 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
   
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,]
-  normalizationFactors <- if (!is.null(normalizationFactors(objectNZ))) {
-    normalizationFactors(objectNZ)
-  } else { 
-    matrix(rep(sizeFactors(objectNZ),each=nrow(objectNZ)),
-           ncol=ncol(objectNZ))
-  }
+  normalizationFactors <- getSizeOrNormFactors(objectNZ)
   alpha_hat <- dispersions(objectNZ)
   coefColumns <- names(mcols(objectNZ))[grep("log2 fold change",mcols(mcols(object))$description)]
   # convert betas to log scale
