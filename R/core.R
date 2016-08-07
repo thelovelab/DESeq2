@@ -574,7 +574,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   object <- sanitizeRowRanges(object)
 
   if (is.null(modelMatrix)) {
-    modelMatrix <- model.matrix(design(object), data=colData(object))
+    modelMatrix <- getModelMatrix(object) 
     checkFullRank(modelMatrix)
     if (nrow(modelMatrix) == ncol(modelMatrix)) {
       stop("the number of samples and the number of model coefficients are equal,
@@ -771,7 +771,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   }
 
   if (is.null(modelMatrix)) {
-    modelMatrix <- model.matrix(design(object), data=colData(object))
+    modelMatrix <- getModelMatrix(object)
   } else {
     message("using supplied model matrix")
   }
@@ -889,7 +889,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   aboveMinDisp <- mcols(objectNZ)$dispGeneEst >= minDisp*100
   if (is.null(modelMatrix)) {
-    modelMatrix <- model.matrix(design(object), data=colData(object))
+    modelMatrix <- getModelMatrix(object)
   }
   # estimate the variance of the distribution of the
   # log dispersion estimates around the fitted value
@@ -1166,7 +1166,7 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
 
   # calculate Cook's distance
   dispModelMatrix <- if (modelAsFormula) {
-    model.matrix(design(object), data=colData(object))
+    getModelMatrix(object)
   } else {
     modelMatrix
   }
@@ -1289,8 +1289,7 @@ estimateBetaPriorVar <- function(object,
 
   # renaming in reverse:
   # make these standard colnames as from model.matrix()
-  convertNames <- renameModelMatrixColumns(colData(object),
-                                           design(object))
+  convertNames <- renameModelMatrixColumns(colData(object),design(object))
   colnamesBM <- sapply(colnamesBM, function(x) {
     if (x %in% convertNames$to) {
       convertNames$from[convertNames$to == x]
@@ -1301,7 +1300,7 @@ estimateBetaPriorVar <- function(object,
   colnames(betaMatrix) <- colnamesBM
   
   # this is the model matrix from an MLE run
-  modelMatrix <- model.matrix(design(objectNZ), colData(object))
+  modelMatrix <- getModelMatrix(object)
 
   modelMatrixType <- attr(object, "modelMatrixType")
   
@@ -1502,10 +1501,8 @@ nbinomLRT <- function(object, full=design(object), reduced,
     
     # try to form model matrices, test for difference
     # in residual degrees of freedom
-    fullModelMatrix <- model.matrix(full,
-                                    data=colData(object))
-    reducedModelMatrix <- model.matrix(reduced,
-                                       data=colData(object))
+    fullModelMatrix <- model.matrix(full,data=as.data.frame(colData(object)))
+    reducedModelMatrix <- model.matrix(reduced,data=as.data.frame(colData(object)))
     df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
   } else {
     if (betaPrior) {
@@ -1911,7 +1908,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   }
   if (is.null(modelMatrix)) {
     modelAsFormula <- TRUE
-    modelMatrix <- model.matrix(modelFormula, data=colData(object))
+    modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
   } else {
     modelAsFormula <- FALSE
   }
@@ -1963,7 +1960,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
       mu <- normalizationFactors * as.numeric(2^betaMatrix)
       logLike <- rowSums(dnbinom(counts(object), mu=mu, size=1/alpha, log=TRUE))
       deviance <- -2 * logLike
-      modelMatrix <- model.matrix(~ 1, colData(object))
+      modelMatrix <- model.matrix(~ 1, as.data.frame(colData(object)))
       colnames(modelMatrix) <- modelMatrixNames <- "Intercept"
       w <- (mu^-1 + alpha)^-1
       xtwx <- rowSums(w)
@@ -2301,7 +2298,7 @@ covarianceMatrix <- function(object, rowNumber) {
   # convert coefficients to log scale
   coefColumns <- names(mcols(object))[grep("log2 fold change",mcols(mcols(object))$description)]
   beta <- log(2) * as.numeric(as.data.frame(mcols(object)[rowNumber,coefColumns,drop=FALSE]))
-  x <- model.matrix(design(object), colData(object))
+  x <- getModelMatrix(object)
   y <- counts(object)[rowNumber,]
   sf <- sizeFactors(object)
   alpha <- dispersions(object)[rowNumber]
@@ -2379,7 +2376,7 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
   } else {
     # we can skip the first MLE fit because the
     # beta prior variance and hat matrix diagonals were provided
-    modelMatrix <- model.matrix(design(objectNZ), colData(object))
+    modelMatrix <- getModelMatrix(object)
     H <- assays(objectNZ)[["H"]]
     mleBetaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_",names(mcols(objectNZ))),drop=FALSE])
   }
@@ -2820,3 +2817,6 @@ and then provide your custom matrix to 'full' argument of DESeq().
   }
 }
 
+getModelMatrix <- function(object) {
+  model.matrix(design(object), data=as.data.frame(colData(object)))
+}

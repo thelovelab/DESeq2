@@ -7,7 +7,7 @@ makeExpandedModelMatrix <- function(object) {
     coldata[[f]] <- relevel(coldata[[f]],"_null_level_")
     coldata[[f]][nrow(coldata)] <- "_null_level_"
   }
-  mm0 <- model.matrix(design(object), data=coldata)
+  mm0 <- model.matrix(design(object), data=as.data.frame(coldata))
   # these can appear when interactions are present without main effect variables
   nullLvls <- grepl("_null_level_",colnames(mm0))
   mm <- mm0[-nrow(mm0),!nullLvls,drop=FALSE]
