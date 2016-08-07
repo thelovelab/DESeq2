@@ -196,7 +196,7 @@ rlogData <- function(object, intercept, betaPriorVar) {
   if (missing(intercept)) {
     samples <- factor(c("null_level",as.character(samplesVector)),
                       levels=c("null_level",levels(samplesVector)))
-    modelMatrix <- model.matrix(~samples)[-1,]
+    modelMatrix <- stats::model.matrix.default(~samples)[-1,]
     modelMatrixNames <- colnames(modelMatrix)
     modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
   } else {
@@ -204,7 +204,7 @@ rlogData <- function(object, intercept, betaPriorVar) {
     # provided intercept instead
     samples <- factor(samplesVector)
     if (length(samples) > 1) {
-      modelMatrix <- model.matrix(~ 0 + samples)
+      modelMatrix <- stats::model.matrix.default(~ 0 + samples)
     } else {
       modelMatrix <- matrix(1,ncol=1)
       modelMatrixNames <- "samples1"

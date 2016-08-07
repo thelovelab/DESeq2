@@ -550,7 +550,7 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
   if (!.hasSlot(object, "rowRanges"))
     object <- updateObject(object)
   noReps <- if (is.null(modelMatrix)) {
-    mmtest <- model.matrix(design(object), data=as.data.frame(colData(object)))
+    mmtest <- getModelMatrix(object)
     nrow(mmtest) == ncol(mmtest)
   } else {
     nrow(modelMatrix) == ncol(modelMatrix)

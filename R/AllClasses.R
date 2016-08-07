@@ -209,7 +209,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   }
 
   
-  modelMatrix <- model.matrix(design, data=as.data.frame(colData(se)))
+  modelMatrix <- stats::model.matrix.default(design, data=as.data.frame(colData(se)))
   if (!ignoreRank) {
     checkFullRank(modelMatrix)
   }

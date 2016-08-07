@@ -389,7 +389,7 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
   dispersion <- dispMeanRel(2^(beta[,1]))
   colData <- DataFrame(condition=factor(rep(c("A","B"),times=c(ceiling(m/2),floor(m/2)))))
   x <- if (m > 1) {
-    model.matrix(~ colData$condition)
+    stats::model.matrix.default(~ colData$condition)
   } else {
     cbind(rep(1,m),rep(0,m))
   }
@@ -1288,7 +1288,7 @@ estimateBetaPriorVar <- function(object,
   colnamesBM <- gsub("MLE_(.*)","\\1",colnamesBM)
 
   # renaming in reverse:
-  # make these standard colnames as from model.matrix()
+  # make these standard colnames as from model.matrix
   convertNames <- renameModelMatrixColumns(colData(object),design(object))
   colnamesBM <- sapply(colnamesBM, function(x) {
     if (x %in% convertNames$to) {
@@ -1501,8 +1501,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
     
     # try to form model matrices, test for difference
     # in residual degrees of freedom
-    fullModelMatrix <- model.matrix(full,data=as.data.frame(colData(object)))
-    reducedModelMatrix <- model.matrix(reduced,data=as.data.frame(colData(object)))
+    fullModelMatrix <- stats::model.matrix.default(full,
+                         data=as.data.frame(colData(object)))
+    reducedModelMatrix <- stats::model.matrix.default(reduced,
+                            data=as.data.frame(colData(object)))
     df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
   } else {
     if (betaPrior) {
@@ -1908,7 +1910,8 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   }
   if (is.null(modelMatrix)) {
     modelAsFormula <- TRUE
-    modelMatrix <- model.matrix(modelFormula, data=as.data.frame(colData(object)))
+    modelMatrix <- stats::model.matrix.default(modelFormula,
+                     data=as.data.frame(colData(object)))
   } else {
     modelAsFormula <- FALSE
   }
@@ -1960,7 +1963,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
       mu <- normalizationFactors * as.numeric(2^betaMatrix)
       logLike <- rowSums(dnbinom(counts(object), mu=mu, size=1/alpha, log=TRUE))
       deviance <- -2 * logLike
-      modelMatrix <- model.matrix(~ 1, as.data.frame(colData(object)))
+      modelMatrix <- stats::model.matrix.default(~ 1, as.data.frame(colData(object)))
       colnames(modelMatrix) <- modelMatrixNames <- "Intercept"
       w <- (mu^-1 + alpha)^-1
       xtwx <- rowSums(w)
@@ -2810,13 +2813,13 @@ designAndArgChecker <- function(object, betaPrior) {
     if (any(sapply(designVars, function(v) is(colData(object)[[v]], "ordered")))) {
       stop("the design contains an ordered factor. The internal steps
 that estimate the beta prior variance and produce resultsNames
-do not work on ordered factors. You should instead use model.matrix()
-and then provide your custom matrix to 'full' argument of DESeq().
+do not work on ordered factors. You should instead use model.matrix
+and then provide your custom matrix to 'full' argument of DESeq.
 (You should also provide a matrix to 'reduced' for test='LRT'.)")
     }
   }
 }
 
 getModelMatrix <- function(object) {
-  model.matrix(design(object), data=as.data.frame(colData(object)))
+  stats::model.matrix.default(design(object), data=as.data.frame(colData(object)))
 }
