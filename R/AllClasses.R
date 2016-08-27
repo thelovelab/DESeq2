@@ -272,13 +272,16 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
 #' @export
 DESeqDataSetFromMatrix <- function( countData, colData, design, tidy=FALSE, ignoreRank=FALSE, ... )
 {
-
+  
   if (tidy) {
     stopifnot(ncol(countData) > 1)
     rownms <- as.character(countData[,1])
     countData <- countData[,-1,drop=FALSE]
     rownames(countData) <- rownms
   }
+
+  # check that these agree in number
+  stopifnot(ncol(countData) == nrow(colData))
 
   # we expect a matrix of counts, which are non-negative integers
   countData <- as.matrix( countData )
