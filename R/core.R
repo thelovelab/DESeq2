@@ -1261,6 +1261,8 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
 #' @param maxit as defined in \code{link{nbinomWaldTest}}
 #' @param useOptim as defined in \code{link{nbinomWaldTest}}
 #' @param useQR as defined in \code{link{nbinomWaldTest}}
+#'
+#' @param modelMatrixType an optional override for the type which is set internally
 #' 
 #' @param betaPriorMethod the method for calculating the beta prior variance,
 #' either "quanitle" or "weighted":
@@ -1381,18 +1383,21 @@ estimateBetaPriorVar <- function(object,
 
 #' @rdname estimateBetaPriorVar
 #' @export
-estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=TRUE) {
+estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=TRUE,
+                                       modelMatrixType=NULL) {
   # this function copies code from other functions,
   # in order to allow parallelization  
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
-  # this code copied from nbinomWaldTest()
-  blindDesign <- design(object) == formula(~ 1)
-  mmTypeTest <- !blindDesign
-  modelMatrixType <- if (mmTypeTest) {
-    "expanded"
-  } else {
-    "standard"
+  if (is.null(modelMatrixType)) {
+    # this code copied from nbinomWaldTest()
+    blindDesign <- design(object) == formula(~ 1)
+    mmTypeTest <- !blindDesign
+    modelMatrixType <- if (mmTypeTest) {
+                         "expanded"
+                       } else {
+                         "standard"
+                       }
   }
   attr(object, "modelMatrixType") <- modelMatrixType
 

@@ -298,7 +298,8 @@ normTransform <- function(object, f=log2, pc=1) {
 # TODO: recombining the resulting DESeqDataSets using rbind() is a bit wasteful,
 # as the count matrix and GRanges from the original object are unchanged.
 
-DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet, modelMatrix, modelMatrixType, BPPARAM) {
+DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
+                          quiet, modelMatrix, modelMatrixType, BPPARAM) {
 
   # size factors already estimated or supplied
   # break up the object into equal sized chunks
@@ -334,7 +335,20 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
   # need to condition on whether a beta prior needs to be fit
   if (betaPrior) {
 
-    # if so,
+    # if so:
+
+    # need to set standard model matrix for LRT with beta prior
+    if (test == "LRT") {
+      attr(object, "modelMatrixType") <- "standard"
+      attr(objectNZ, "modelMatrixType") <- "standard"
+      modelMatrixType <- "standard"
+    }
+
+    # also if explicitly set
+    if (!is.null(modelMatrixType) && modelMatrixType == "standard") {
+      attr(object, "modelMatrixType") <- "standard"
+      attr(objectNZ, "modelMatrixType") <- "standard"
+    }
 
     # second parallel execution: fit the final dispersion estimates and MLE betas 
     if (!quiet) message(paste("final dispersion estimates, MLE betas:",nworkers,"workers"))
@@ -343,22 +357,15 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced, quiet
                                             dispPriorVar=dispPriorVar, quiet=TRUE)
       # replace design
       if (noReps) design(objectNZSub) <- designIn
-      estimateMLEForBetaPriorVar(objectNZSub)
+      estimateMLEForBetaPriorVar(objectNZSub, modelMatrixType=modelMatrixType)
     }, BPPARAM=BPPARAM))
 
     # replace design
     if (noReps) design(objectNZ) <- designIn
     
-    # need to set standard model matrix for LRT with beta prior
-    if (test == "LRT") {
-      attr(object, "modelMatrixType") <- "standard"
-      attr(objectNZ, "modelMatrixType") <- "standard"
-      modelMatrixType <- "standard"
-    }
-    
     # the beta prior is estimated over all rows
     betaPriorVar <- estimateBetaPriorVar(objectNZ)
-    
+
     # the third parallel execution: the final GLM and statistics
     if (!quiet) message(paste("fitting model and testing:",nworkers,"workers"))
     if (test == "Wald") {

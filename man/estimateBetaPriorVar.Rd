@@ -9,7 +9,7 @@ estimateBetaPriorVar(object, betaPriorMethod = c("weighted", "quantile"),
   upperQuantile = 0.05)
 
 estimateMLEForBetaPriorVar(object, maxit = 100, useOptim = TRUE,
-  useQR = TRUE)
+  useQR = TRUE, modelMatrixType = NULL)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -27,6 +27,8 @@ either "quanitle" or "weighted":
 \item{useOptim}{as defined in \code{link{nbinomWaldTest}}}
 
 \item{useQR}{as defined in \code{link{nbinomWaldTest}}}
+
+\item{modelMatrixType}{an optional override for the type which is set internally}
 }
 \value{
 for \code{estimateMLEForBetaPriorVar}, a DESeqDataSet, with the
