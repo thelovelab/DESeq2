@@ -428,7 +428,10 @@ dds$condition <- droplevels(dds$condition)
 
 \deseqtwo{} provides a function \Rfunction{collapseReplicates} which can
 assist in combining the counts from technical replicates into single
-columns. See the manual page for an example of the use of
+columns of the count matrix. The term ``technical replicate'' 
+implies multiple sequencing runs of the same library. 
+You should not collapse biological replicates using this function.
+See the manual page for an example of the use of
 \Rfunction{collapseReplicates}. 
 
 \subsubsection{About the pasilla dataset}

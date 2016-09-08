@@ -29,6 +29,9 @@ Collapses the columns in \code{object} by summing within levels
 of a grouping factor \code{groupby}. The purpose of this function
 is to sum up read counts from technical replicates to create an object
 with a single column of read counts for each sample.
+Note: by "technical replicates", we mean multiple sequencing runs of the same
+library, in constrast to "biological replicates" in which multiple
+libraries are prepared from separate biological units.
 Optionally renames the columns of returned object with the levels of the
 grouping factor.
 Note: this function is written very simply and
