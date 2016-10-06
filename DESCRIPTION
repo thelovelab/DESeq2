@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based on the negative
     binomial distribution
-Version: 1.13.14
+Version: 1.13.15
 Author: Michael Love, Simon Anders, Wolfgang Huber
 Maintainer: Michael Love <michaelisaiahlove@gmail.com>
 Description: Estimate variance-mean dependence in count data from
@@ -39,8 +39,7 @@ Suggests:
     tximport,
     tximportData,
     readr,
-    pasilla (>= 0.2.10),
-    DESeq
+    pasilla (>= 0.2.10)
 LinkingTo: Rcpp, RcppArmadillo
 biocViews: Sequencing, ChIPSeq, RNASeq, SAGE, DifferentialExpression,
     GeneExpression, Transcription

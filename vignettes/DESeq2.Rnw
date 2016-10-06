@@ -208,24 +208,42 @@ count matrix) as a \Rclass{DataFrame} or \Rclass{data.frame},
 and the design formula.
 
 To demonstate the use of \Rfunction{DESeqDataSetFromMatrix}, 
-we will first load the \Robject{pasillaGenes} 
+we will read in count data from the \Biocexptpkg{pasilla} package.
 data object, pull out the count matrix which we will name \Robject{countData}, 
 and sample information, \Robject{colData}. Below we describe how to extract 
 these objects from, e.g. \Rfunction{featureCounts} output.
 
 <<loadPasilla>>=
 library("pasilla")
-library("Biobase")
-data("pasillaGenes")
-countData <- counts(pasillaGenes)
-colData <- pData(pasillaGenes)[,c("condition","type")]
+pasCts <- system.file("extdata", "pasilla_gene_counts.tsv",
+                 package="pasilla", mustWork=TRUE)
+pasAnno <- system.file("extdata", "pasilla_sample_annotation.csv",
+                       package="pasilla", mustWork=TRUE)
+countData <- as.matrix(read.csv(pasCts,sep="\t",row.names="gene_id"))
+colData <- read.csv(pasAnno, row.names=1)
+colData <- colData[,c("condition","type")]
 @ 
 
-The count matrix and column data:
+We examine the count matrix and column data to see if they are consisent:
 
 <<showPasilla>>=
 head(countData)
 head(colData)
+@ 
+
+Note that these are not in the same order with respect to samples! 
+It is critical that the columns of the count matrix and the rows of
+the column data (information about samples) are in the same order..
+We should re-arrange one or the other so that they are consistent in
+terms of sample order (if we do not, later functions would produce
+an error). We additionally need to chop off the \Robject{"fb"} of the 
+row names of \Robject{colData}, so the naming is consistent.
+
+<<reorderPasila>>=
+rownames(colData) <- sub("fb","",rownames(colData))
+all(rownames(colData) %in% colnames(countData))
+countData <- countData[, rownames(colData)]
+all(rownames(colData) == colnames(countData))
 @ 
 
 If you have used the \Rfunction{featureCounts} function in the 
@@ -252,7 +270,7 @@ constructed object. (Here we add redundant data just for demonstration, as
 the gene names are already the rownames of the \Robject{dds}.)
 
 <<addFeatureData>>=
-featureData <- data.frame(gene=rownames(pasillaGenes))
+featureData <- data.frame(gene=rownames(countData))
 (mcols(dds) <- DataFrame(mcols(dds), featureData))
 @ 
 
