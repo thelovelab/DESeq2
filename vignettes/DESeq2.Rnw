@@ -209,8 +209,9 @@ and the design formula.
 
 To demonstate the use of \Rfunction{DESeqDataSetFromMatrix}, 
 we will read in count data from the \Biocexptpkg{pasilla} package.
-data object, pull out the count matrix which we will name \Robject{countData}, 
-and sample information, \Robject{colData}. Below we describe how to extract 
+We read in a count matrix, which we will name \Robject{countData}, 
+and the sample information table, which we will name \Robject{colData}. 
+Further below we describe how to extract 
 these objects from, e.g. \Rfunction{featureCounts} output.
 
 <<loadPasilla>>=
@@ -249,9 +250,9 @@ all(rownames(colData) == colnames(countData))
 If you have used the \Rfunction{featureCounts} function in the 
 \Biocpkg{Rsubread} package, the matrix of read counts can be directly 
 provided from the \Robject{"counts"} element in the list output.
-The count matrix and column data can also be read into R 
+The count matrix and column data can typically be read into R 
 from flat files using base R functions such as \Rfunction{read.csv} 
-or \Rfunction{read.delim}. 
+or \Rfunction{read.delim}.
 For \textit{HTSeq} count files, see the dedicated input function below.
 
 With the count matrix, \Robject{countData}, and the sample
