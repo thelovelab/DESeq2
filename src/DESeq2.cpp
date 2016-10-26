@@ -56,7 +56,7 @@ double dlog_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numeri
   arma::mat dw = arma::diagmat(Rcpp::as<arma::vec>(dw_diag));
   arma::mat b = x.t() * w * x;
   arma::mat db = x.t() * dw * x;
-  double ddetb = ( det(b) * trace(b.i(true) * db) );
+  double ddetb = ( det(b) * trace(b.i() * db) );
   double cr_term = -0.5 * ddetb / det(b);
   double alpha_neg1 = R_pow_di(alpha, -1);
   double alpha_neg2 = R_pow_di(alpha, -2);
@@ -84,10 +84,10 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
   Rcpp::NumericVector d2w_diag = 2 * pow(pow(mu, -1) + alpha, -3);
   arma::mat d2w = arma::diagmat(as<arma::vec>(d2w_diag));
   arma::mat b = x.t() * w * x;
-  arma::mat b_i = b.i(true);
+  arma::mat b_i = b.i();
   arma::mat db = x.t() * dw * x;
   arma::mat d2b = x.t() * d2w * x;
-  double ddetb = ( det(b) * trace(b.i(true) * db) );
+  double ddetb = ( det(b) * trace(b.i() * db) );
   double d2detb = ( det(b) * (R_pow_di(trace(b_i * db), 2) - trace(b_i * db * b_i * db) + trace(b_i * d2b)) );
   double cr_term = 0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b); 
   double alpha_neg1 = R_pow_di(alpha, -1);
@@ -345,10 +345,10 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
     beta_mat.row(i) = beta_hat.t();
     // recalculate w so that this is identical if we start with beta_hat
     w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
-    hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i(true) * x.t() * sqrt(w);
+    hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i() * x.t() * sqrt(w);
     hat_diagonals.row(i) = diagvec(hat_matrix).t();
     // sigma is the covariance matrix for the betas
-    sigma = (x.t() * w * x + ridge).i(true) * x.t() * w * x * (x.t() * w * x + ridge).i(true);
+    sigma = (x.t() * w * x + ridge).i() * x.t() * w * x * (x.t() * w * x + ridge).i();
     contrast_num.row(i) = contrast.t() * beta_hat;
     contrast_denom.row(i) = sqrt(contrast.t() * sigma * contrast);
     beta_var_mat.row(i) = diagvec(sigma).t();
