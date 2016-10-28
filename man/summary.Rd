@@ -11,10 +11,11 @@
 \arguments{
 \item{object}{a \code{\link{DESeqResults}} object}
 
-\item{alpha}{the adjusted p-value cutoff. if not set, this
+\item{alpha}{the adjusted p-value cutoff. If not set, this
 defaults to the \code{alpha} argument which was used in
 \code{\link{results}} to set the target FDR for independent
-filtering.}
+filtering, or if independent filtering was not performed,
+to 0.1.}
 
 \item{...}{additional arguments}
 }
