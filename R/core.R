@@ -266,8 +266,11 @@ DESeq <- function(object, test=c("Wald","LRT"),
     if (missing(reduced)) {
       stop("likelihood ratio test requires a 'reduced' design, see ?DESeq")
     }
-    if (!missing(modelMatrixType) && modelMatrixType == "expanded") {
-      stop("test='LRT' only implemented for standard model matrices")
+    if (betaPrior) {
+      stop("test='LRT' does not support use of LFC shrinkage, use betaPrior=FALSE")
+    }
+    if (!missing(modelMatrixType) && modelMatrixType=="expanded") {
+      stop("test='LRT' does not support use of expanded model matrix")
     }
     if (is.matrix(full) | is.matrix(reduced)) {
       if (!(is.matrix(full) & is.matrix(reduced))) {
@@ -289,7 +292,6 @@ DESeq <- function(object, test=c("Wald","LRT"),
   }
   
   if (modelAsFormula) {
-
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
     designAndArgChecker(object, betaPrior)
     
@@ -331,8 +333,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
                                modelMatrix=modelMatrix,
                                modelMatrixType=modelMatrixType)
     } else if (test == "LRT") {
-      object <- nbinomLRT(object, full=full, reduced=reduced,
-                          betaPrior=betaPrior, quiet=quiet)
+      object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
     }
   } else if (parallel) {
     object <- DESeqParallel(object, test=test, fitType=fitType,
@@ -1440,7 +1441,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' with df = (reduced residual degrees of freedom - full residual degrees of freedom).
 #' This function is comparable to the \code{nbinomGLMTest} of the previous version of DESeq
 #' and an alternative to the default \code{\link{nbinomWaldTest}}.
-#' 
+#'
 #' @param object a DESeqDataSet
 #' @param full the full model formula, this should be the formula in
 #' \code{design(object)}.
@@ -1448,16 +1449,6 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model with a term or terms of interest removed.
 #' alternatively, can be a matrix
-#' @param betaPrior whether or not to put a zero-mean normal prior on
-#' the non-intercept coefficients 
-#' While the beta prior is used typically, for the Wald test, it can
-#' also be specified for the likelihood ratio test. For more details
-#' on the calculation, see \code{\link{nbinomWaldTest}}.
-#' @param betaPriorVar a vector with length equal to the number of
-#' model terms including the intercept.
-#  betaPriorVar gives the variance of the prior on the sample betas,
-#' which if missing is estimated from the rows which do not have any
-#' zeros
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -1482,7 +1473,6 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #'
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
-                      betaPrior=FALSE, betaPriorVar,
                       maxit=100, useOptim=TRUE, quiet=FALSE,
                       useQR=TRUE) {
 
@@ -1502,7 +1492,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
     checkLRT(full, reduced)
 
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
-    designAndArgChecker(object, betaPrior)
+    designAndArgChecker(object, betaPrior=FALSE)
     
     # try to form model matrices, test for difference
     # in residual degrees of freedom
@@ -1512,9 +1502,6 @@ nbinomLRT <- function(object, full=design(object), reduced,
                             data=as.data.frame(colData(object)))
     df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
   } else {
-    if (betaPrior) {
-      stop("user-supplied model matrices require betaPrior=FALSE")
-    }
     message("using supplied model matrix")
     df <- ncol(full) - ncol(reduced)
   }
@@ -1530,7 +1517,6 @@ nbinomLRT <- function(object, full=design(object), reduced,
     object <- getBaseMeansAndVariances(object)
   }
   
-  stopifnot(is.logical(betaPrior))
   if (modelAsFormula) {
     modelMatrixType <- "standard"
     # check for intercept
@@ -1541,57 +1527,31 @@ nbinomLRT <- function(object, full=design(object), reduced,
     renameCols <- FALSE
   }
 
-  # store modelMatrixType so it can be accessed by estimateBetaPriorVar
+  # store modelMatrixType
   attr(object,"modelMatrixType") <- modelMatrixType
 
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
-  if (!betaPrior) {
-    if (modelAsFormula) {
-      fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
-                                 renameCols=renameCols, maxit=maxit,
-                                 useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
-      modelMatrix <- fullModel$modelMatrix
-      reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
-                                    useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
-    } else {
-      fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
-                                 renameCols=FALSE, maxit=maxit,
-                                 useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
-      modelMatrix <- full
-      reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
-                                    renameCols=FALSE, maxit=maxit,
-                                    useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
-    }
-    betaPriorVar <- rep(1e6, ncol(modelMatrix))
-  } else {
-    priorFull <- fitGLMsWithPrior(object=object,
-                                  maxit=maxit, useOptim=useOptim, useQR=useQR,
-                                  betaPriorVar=betaPriorVar)
-    fullModel <- priorFull$fit
+  if (modelAsFormula) {
+    fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
+                               renameCols=renameCols, maxit=maxit,
+                               useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
     modelMatrix <- fullModel$modelMatrix
-    betaPriorVar <- priorFull$betaPriorVar
-    mleBetaMatrix <- priorFull$mleBetaMatrix
-    # form a reduced model matrix:
-    # first find the dropped terms
-    # then remove columns from the full model matrix which are
-    # assigned to these terms
-    fullModelTerms <- attr(terms(full),"term.labels")
-    reducedModelTerms <- attr(terms(reduced),"term.labels")
-    droppedTerms <- which(!fullModelTerms %in% reducedModelTerms)
-    fullAssign <- attr(modelMatrix,"assign")
-    idx <- !fullAssign %in% droppedTerms
-    # now subsetting the relevant columns
-    reducedModelMatrix <- modelMatrix[,idx,drop=FALSE]
-    reducedBetaPriorVar <- betaPriorVar[idx]
-    reducedLambda <- 1/reducedBetaPriorVar
-    reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reducedModelMatrix,
-                                  lambda=reducedLambda,
-                                  maxit=maxit, useOptim=useOptim, useQR=useQR)
+    reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
+                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+  } else {
+    fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
+                               renameCols=FALSE, maxit=maxit,
+                               useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+    modelMatrix <- full
+    reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
+                                  renameCols=FALSE, maxit=maxit,
+                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
   }
+  betaPriorVar <- rep(1e6, ncol(modelMatrix))
   
-  attr(object,"betaPrior") <- betaPrior
+  attr(object,"betaPrior") <- FALSE
   attr(object,"betaPriorVar") <- betaPriorVar
   attr(object,"modelMatrix") <- modelMatrix
   attr(object,"reducedModelMatrix") <- reducedModel$modelMatrix
@@ -1623,11 +1583,8 @@ nbinomLRT <- function(object, full=design(object), reduced,
   LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
   LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
 
-  mleBetas <- if (betaPrior) {
-    matrixToList(mleBetaMatrix)
-  } else {
-    NULL
-  }
+  # no need to store additional betas (no beta prior)
+  mleBetas <- NULL
   
   # continue storing LRT results
   resultsList <- c(matrixToList(fullModel$betaMatrix),
@@ -1651,14 +1608,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
 
   modelMatrixNames <- colnames(fullModel$betaMatrix)
   modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
-  lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
+  lfcType <- "MLE"
   coefInfo <- paste(paste0("log2 fold change (",lfcType,"):"),modelMatrixNamesSpaces)
   seInfo <- paste("standard error:",modelMatrixNamesSpaces)
-  mleInfo <- if (betaPrior) {
-    gsub("_"," ",colnames(mleBetaMatrix))
-  } else {
-    NULL
-  }
+  mleInfo <- NULL
   statInfo <- paste("LRT statistic:",modelComparison)
   pvalInfo <- paste("LRT p-value:",modelComparison)
 
@@ -2609,7 +2562,7 @@ linearModelMuNormalized <- function(object, x) {
 }
 
 # checks for LRT formulas, written as function to remove duplicate code
-# in DESeq() and nbinomLRT()
+# in DESeq and nbinomLRT
 checkLRT <- function(full, reduced) {
   reducedNotInFull <- !all.vars(reduced) %in% all.vars(full)
   if (any(reducedNotInFull)) {
@@ -2666,13 +2619,7 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
                                   modelMatrix=modelMatrix,
                                   modelMatrixType=modelMatrixType)
     } else if (test == "LRT") {
-      if (!betaPrior) {
-        objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet)
-      } else {
-        betaPriorVar <- attr(object, "betaPriorVar")
-        objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, betaPrior=betaPrior,
-                               betaPriorVar=betaPriorVar, quiet=quiet)
-      }
+      objectSub <- nbinomLRT(objectSub, full=full, reduced=reduced, quiet=quiet)
     }
     
     idx <- match(names(mcols(objectSub)), names(mcols(object)))

@@ -340,14 +340,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
 
     # if so:
 
-    # need to set standard model matrix for LRT with beta prior
-    if (test == "LRT") {
-      attr(object, "modelMatrixType") <- "standard"
-      attr(objectNZ, "modelMatrixType") <- "standard"
-      modelMatrixType <- "standard"
-    }
-
-    # also if explicitly set
+    # if explicitly set
     if (!is.null(modelMatrixType) && modelMatrixType == "standard") {
       attr(object, "modelMatrixType") <- "standard"
       attr(objectNZ, "modelMatrixType") <- "standard"
@@ -371,18 +364,10 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
 
     # the third parallel execution: the final GLM and statistics
     if (!quiet) message(paste("fitting model and testing:",nworkers,"workers"))
-    if (test == "Wald") {
-
-      objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
-        nbinomWaldTest(objectNZ[idx == l,,drop=FALSE], betaPriorVar=betaPriorVar,
-                       quiet=TRUE, modelMatrixType=modelMatrixType)
-      }, BPPARAM=BPPARAM))
-    } else if (test == "LRT") {
-      objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
-        nbinomLRT(objectNZ[idx == l,,drop=FALSE], full=full, reduced=reduced,
-                  betaPrior=betaPrior, betaPriorVar=betaPriorVar, quiet=TRUE)
-      }, BPPARAM=BPPARAM))
-    }
+    objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
+      nbinomWaldTest(objectNZ[idx == l,,drop=FALSE], betaPriorVar=betaPriorVar,
+                     quiet=TRUE, modelMatrixType=modelMatrixType)
+    }, BPPARAM=BPPARAM))
     
   } else {
     

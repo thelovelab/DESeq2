@@ -4,9 +4,8 @@
 \alias{nbinomLRT}
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
-nbinomLRT(object, full = design(object), reduced, betaPrior = FALSE,
-  betaPriorVar, maxit = 100, useOptim = TRUE, quiet = FALSE,
-  useQR = TRUE)
+nbinomLRT(object, full = design(object), reduced, maxit = 100,
+  useOptim = TRUE, quiet = FALSE, useQR = TRUE)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -18,17 +17,6 @@ alternatively, can be a matrix}
 \item{reduced}{a reduced formula to compare against, e.g.
 the full model with a term or terms of interest removed.
 alternatively, can be a matrix}
-
-\item{betaPrior}{whether or not to put a zero-mean normal prior on
-the non-intercept coefficients 
-While the beta prior is used typically, for the Wald test, it can
-also be specified for the likelihood ratio test. For more details
-on the calculation, see \code{\link{nbinomWaldTest}}.}
-
-\item{betaPriorVar}{a vector with length equal to the number of
-model terms including the intercept.
-which if missing is estimated from the rows which do not have any
-zeros}
 
 \item{maxit}{the maximum number of iterations to allow for convergence of the
 coefficient vector}

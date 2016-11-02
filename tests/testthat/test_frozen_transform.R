@@ -1,27 +1,28 @@
-set.seed(1)
-dds <- makeExampleDESeqDataSet(n=100)
-design(dds) <- ~ 1
-dds <- estimateSizeFactors(dds)
-dds <- estimateDispersions(dds)
+context("frozen_transform")
+test_that("frozen transforms works", {
+  set.seed(1)
+  dds <- makeExampleDESeqDataSet(n=100)
+  design(dds) <- ~ 1
+  dds <- estimateSizeFactors(dds)
+  dds <- estimateDispersions(dds)
 
-expect_warning(ddsNew <- makeExampleDESeqDataSet(m=1,n=100))
-counts(ddsNew)[,1] <- counts(dds)[,1]
-sizeFactors(ddsNew)[1] <- sizeFactors(dds)[1]
+  expect_warning(ddsNew <- makeExampleDESeqDataSet(m=1,n=100))
+  counts(ddsNew)[,1] <- counts(dds)[,1]
+  sizeFactors(ddsNew)[1] <- sizeFactors(dds)[1]
 
-# VST
-vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
-dispersionFunction(ddsNew) <- dispersionFunction(dds)
-vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
-expect_equal(assay(vsd)[,1],assay(vsdNew)[,1],tolerance=1e-3)
+  # VST
+  vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
+  dispersionFunction(ddsNew) <- dispersionFunction(dds)
+  vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
+  expect_equal(assay(vsd)[,1],assay(vsdNew)[,1],tolerance=1e-3)
 
-# rlog
-rld <- rlogTransformation(dds, blind=FALSE)  
-mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
-betaPriorVar <- attr(rld,"betaPriorVar")
-intercept <- mcols(rld)$rlogIntercept
-rldNew <- rlogTransformation(ddsNew, blind=FALSE,
-                             betaPriorVar=betaPriorVar,
-                             intercept=intercept)
-expect_equal(assay(rld)[,1],assay(rldNew)[,1],tolerance=1e-3)
-
-
+  # rlog
+  rld <- rlogTransformation(dds, blind=FALSE)  
+  mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
+  betaPriorVar <- attr(rld,"betaPriorVar")
+  intercept <- mcols(rld)$rlogIntercept
+  rldNew <- rlogTransformation(ddsNew, blind=FALSE,
+                               betaPriorVar=betaPriorVar,
+                               intercept=intercept)
+  expect_equal(assay(rld)[,1],assay(rldNew)[,1],tolerance=1e-3)
+})
