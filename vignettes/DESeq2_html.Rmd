@@ -3,9 +3,28 @@ title: "Analyzing RNA-seq data with the DESeq2 package"
 author: "Michael I. Love, Simon Anders, and Wolfgang Huber"
 date: "`r doc_date()`"
 package: "`r pkg_ver('DESeq2')`"
-output: 
+abstract: >
+  A basic task in the analysis of count data from RNA-seq is the
+  detection of differentially expressed genes. The count data are
+  presented as a table which reports, for each sample, the number of
+  sequence fragments that have been assigned to each gene. Analogous
+  data also arise for other assay types, including comparative ChIP-Seq,
+  HiC, shRNA screening, mass spectrometry.  An important analysis
+  question is the quantification and statistical inference of systematic
+  changes between conditions, as compared to within-condition
+  variability. The package DESeq2 provides methods to test for
+  differential expression by use of negative binomial generalized linear
+  models; the estimates of dispersion and logarithmic fold changes
+  incorporate data-driven prior distributions This vignette explains the
+  use of the package and demonstrates typical workflows.
+  [An RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene/)
+  on the Bioconductor website covers similar material to this vignette
+  but at a slower pace, including the generation of count matrices from
+  FASTQ files.
+output:
   BiocStyle::html_document2:
     toc: true
+    toc_float: true
 bibliography: library.bib
 vignette: >
   %\VignetteIndexEntry{Analyzing RNA-seq data with the DESeq2 package (HTML version)}
@@ -18,12 +37,127 @@ knitr::opts_chunk$set(tidy=FALSE, cache=TRUE,
                       dev="png", dpi=180,
                       message=FALSE, error=FALSE, warning=TRUE)
 ```	
-   
+
+# Vignette porting note
+
 <span style="color:red">This is an unfinished port of the package's
 "old" Sweave/PDF vignette into Rmarkdown/HTML. Please consult the
 [existing PDF vignette](DESeq2.pdf) in the mean time.</span>
 
-Here is a citation [@Love2014].
+# Standard workflow
+
+**If you use DESeq2 in published research, please cite:**
+
+> Love, M.I., Huber, W., Anders, S.,
+> Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2, 
+> *Genome Biology* 2014, **15**:550.
+> [10.1186/s13059-014-0550-8](http://dx.doi.org/10.1186/s13059-014-0550-8)
+
+Other Bioconductor packages with similar aims are
+`r Biocpkg("edgeR")`,
+`r Biocpkg("limma")`,
+`r Biocpkg("DSS")`,
+`r Biocpkg("EBSeq")`, and 
+`r Biocpkg("baySeq")`.
+
+## Quick start
+
+Here we show the most basic steps for a differential expression analysis.
+These steps assume you have a *RangedSummarizedExperiment* object
+`se` which contains the counts and information about samples.
+The `design` indicates that we want to
+measure the effect of condition, controlling for batch differences.
+The two factor variables `batch` and `condition` 
+should be columns of `colData(se)`.
+
+```{r quickStart, eval=FALSE}
+dds <- DESeqDataSet(se, design= ~ batch + condition)
+dds <- DESeq(dds)
+res <- results(dds, contrast=c("condition","trt","con"))
+```
+
+* If you have a count matrix, the first line would use
+  *DESeqDataSetFromMatrix* as shown below.
+* If you have transcript quantification files, as produced by
+  *Salmon*, *Sailfish*, or *kallisto*, you would use
+  *DESeqDataSetFromTximport*, as shown below.
+
+## How to get help
+
+All DESeq2 questions should be posted to the Bioconductor support
+site: <https://support.bioconductor.org>, which serves as a
+repository of questions and answers. See the first question in the
+list of Frequently Asked Questions (FAQ)
+for more information about how to construct an informative post.
+
+## Input data
+
+### Why un-normalized counts?
+
+As input, the DESeq2 package expects count data as obtained, e.g.,
+from RNA-seq or another high-throughput sequencing experiment, in the form of a
+matrix of integer values. The value in the *i*-th row and the *j*-th column of
+the matrix tells how many reads can be assigned to gene *i* in sample *j*.
+Analogously, for other types of assays, the rows of the matrix might correspond
+e.g. to binding regions (with ChIP-Seq) or peptide sequences (with
+quantitative mass spectrometry). We will list method for obtaining count matrices
+in sections below.
+
+The values in the matrix should be un-normalized counts of sequencing reads (for
+single-end RNA-seq) or fragments (for paired-end RNA-seq). 
+The [RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene/)
+describes multiple techniques for preparing such count matrices.  It
+is important to provide count matrices as input for DESeq2's
+statistical model [@Love2014] to hold, as only the count values allow
+assessing the measurement precision correctly. The DESeq2 model
+internally corrects for library size, so transformed or normalized
+values such as counts scaled by library size should not be used as
+input.
+
+### SummarizedExperiment input
+
+The class used by the DESeq2 package to store the read counts 
+is *DESeqDataSet* which extends the *RangedSummarizedExperiment*
+class of the `r Biocpkg("SummarizedExperiment")` package.
+The "Ranged" refer to the fact that the rows of the assay data (here
+counts) are associated with genomic ranges (the exons of genes).
+This facilitates downstream exploration of results, making use of
+other Bioconductor packages' range-based functionality
+(e.g. find the closest ChIP-seq peaks to the differentially expressed genes).
+
+An example of the steps to produce a *RangedSummarizedExperiment* can
+be found in the [RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene/)
+and in the vignette for the data package `r Biocexptpkg("airway")`.
+Here we load the *RangedSummarizedExperiment* from that package in
+order to build a *DESeqDataSet*.
+
+```{r loadSumExp}
+library("airway")
+data("airway")
+se <- airway
+```
+
+A *DESeqDataSet* object must have an associated design formula.
+The design formula expresses the variables which will be
+used in modeling. The formula should be a tilde (~) followed by the
+variables with plus signs between them (it will be coerced into an
+*formula* if it is not already).  An intercept is included,
+representing the base mean of counts. The design can be changed later, 
+however then all differential analysis steps should be repeated, 
+as the design formula is used to estimate the dispersions and 
+to estimate the log2 fold changes of the model. 
+The constructor function below shows the generation of a
+*DESeqDataSet* from a *RangedSummarizedExperiment* `se`.
+
+*Note*: In order to benefit from the default settings of the
+package, you should put the variable of interest at the end of the
+formula and make sure the control level is the first level.
+
+```{r sumExpInput}
+library("DESeq2")
+ddsSE <- DESeqDataSet(se, design = ~ cell + dex)
+ddsSE
+```
 
 # Session info
 
