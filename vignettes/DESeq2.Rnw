@@ -286,10 +286,10 @@ from a variety of external software, including the following methods:
 \item \href{http://www.cs.cmu.edu/~ckingsf/software/sailfish/}{Sailfish} 
   \cite{Patro2014Sailfish}
 \item \href{http://combine-lab.github.io/salmon/}{Salmon} 
-  \cite{Patro2015Salmon}
+  \cite{Patro2016Salmon}
 \item
   \href{https://pachterlab.github.io/kallisto/about.html}{kallisto} 
-  \cite{Bray2015Near}
+  \cite{Bray2016Near}
 \item \href{http://deweylab.github.io/RSEM/}{RSEM} 
   \cite{Li2011RSEM}
 \end{itemize}
@@ -316,7 +316,7 @@ which can be unambiguously assigned to a gene.
 
 Here, we demonstrate how to import transcript abundances
 and construct of a gene-level \Rclass{DESeqDataSet} object
-from \textit{Sailfish} \texttt{quant.sf} files, which are
+from \textit{Salmon} \texttt{quant.sf} files, which are
 stored in the \Biocexptpkg{tximportData} package.
 Note that, instead of locating \Robject{dir} using \Rfunction{system.file},
 a user would typically just provide a path, e.g. \texttt{/path/to/quant/files}.

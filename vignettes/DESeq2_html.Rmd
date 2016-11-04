@@ -1,5 +1,5 @@
 ---
-title: "Analyzing RNA-seq data with the DESeq2 package"
+title: "Analyzing RNA-seq data with DESeq2"
 author: "Michael I. Love, Simon Anders, and Wolfgang Huber"
 date: "`r doc_date()`"
 package: "`r pkg_ver('DESeq2')`"
@@ -27,7 +27,7 @@ output:
     toc_float: true
 bibliography: library.bib
 vignette: >
-  %\VignetteIndexEntry{Analyzing RNA-seq data with the DESeq2 package (HTML version)}
+  %\VignetteIndexEntry{Analyzing RNA-seq data with DESeq2 (HTML version)}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding[utf8]{inputenc}
 ---
@@ -66,15 +66,15 @@ Here we show the most basic steps for a differential expression
 analysis. There are a variety of steps upstream of DESeq2 that result
 in the generation of counts or estimated counts for each sample, which
 we will discuss in the sections below. This code chunk assumes that
-you have a count matrix called `counts` and a table of sample
+you have a count matrix called `cts` and a table of sample
 information called `coldata`.  The `design` indicates how to model the
 samples, here, that we want to measure the effect of the condition,
 controlling for batch differences. The two factor variables `batch`
 and `condition` should be columns of `coldata`.
 
 ```{r quickStart, eval=FALSE}
-dds <- DESeqDataSetFromMatrix(countData=counts,
-                              colData=coldata,
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = coldata,
                               design= ~ batch + condition)
 dds <- DESeq(dds)
 res <- results(dds, contrast=c("condition","treated","control"))
@@ -123,20 +123,271 @@ internally corrects for library size, so transformed or normalized
 values such as counts scaled by library size should not be used as
 input.
 
-### Transcript abundance quantifiers and *tximport* input
+### The DESeqDataSet
 
-**TODO**
+The object class used by the DESeq2 package to store the read counts 
+and the intermediate estimated quantities during statistical analysis
+is the *DESeqDataSet*, which will usually be represented in the code
+here as an object `dds`.
 
-### SummarizedExperiment input
-
-The class used by the DESeq2 package to store the read counts 
-is *DESeqDataSet* which extends the *RangedSummarizedExperiment*
-class of the `r Biocpkg("SummarizedExperiment")` package.
-The "Ranged" refer to the fact that the rows of the assay data (here
-counts) are associated with genomic ranges (the exons of genes).
-This facilitates downstream exploration of results, making use of
+A technical detail is that the *DESeqDataSet* class extends the
+*RangedSummarizedExperiment* class of the 
+`r Biocpkg("SummarizedExperiment")` package. 
+The "Ranged" part refers to the fact that the rows of the assay data 
+(here, the counts) can be associated with genomic ranges (the exons of genes).
+This association facilitates downstream exploration of results, making use of
 other Bioconductor packages' range-based functionality
 (e.g. find the closest ChIP-seq peaks to the differentially expressed genes).
+
+A *DESeqDataSet* object must have an associated *design formula*.
+The design formula expresses the variables which will be
+used in modeling. The formula should be a tilde (~) followed by the
+variables with plus signs between them (it will be coerced into an
+*formula* if it is not already). The design can be changed later, 
+however then all differential analysis steps should be repeated, 
+as the design formula is used to estimate the dispersions and 
+to estimate the log2 fold changes of the model. 
+
+*Note*: In order to benefit from the default settings of the
+package, you should put the variable of interest at the end of the
+formula and make sure the control level is the first level.
+
+We will now show 4 ways of constructing a *DESeqDataSet*, depending
+on what pipeline was used upstream of DESeq2 to generated counts or
+estimated counts:
+
+1) From [transcript abundance files and tximport](#tximport)
+2) From a [count matrix](#countmat)
+3) From [htseq-count files](#htseq)
+4) From a [SummarizedExperiment](#se) object
+
+<a name="tximport"/>
+
+### Transcript abundance files and *tximport*
+
+A newer and recommended pipeline is to use fast transcript 
+abundance quantifiers upstream of DESeq2, and then to create
+gene-level count matrices for use with DESeq2 
+by importing the quantification data using the `r Biocpkg("tximport")`
+package. This workflow allows users to import transcript abundance estimates
+from a variety of external software, including the following methods:
+
+* [Salmon](http://combine-lab.github.io/salmon/)
+  [@Patro2016Salmon]
+* [Sailfish](http://www.cs.cmu.edu/~ckingsf/software/sailfish/)
+  [@Patro2014Sailfish]
+* [kallisto](https://pachterlab.github.io/kallisto/about.html)
+  [@Bray2016Near]
+* [RSEM](http://deweylab.github.io/RSEM/)
+  [@Li2011RSEM]
+
+Some advantages of using the above methods for transcript abundance
+estimation are: 
+(i) this approach corrects for potential changes in gene length across samples 
+(e.g. from differential isoform usage) [@Trapnell2013Differential],
+(ii) some of these methods (*Salmon*, *Sailfish*, *kallisto*) 
+are substantially faster and require less memory
+and disk usage compared to alignment-based methods that require
+creation and storage of BAM files, and
+(iii) it is possible to avoid discarding those fragments that can
+align to multiple genes with homologous sequence, thus increasing
+sensitivity [@Robert2015Errors].
+
+Full details on the motivation and methods for importing transcript
+level abundance and count estimates, summarizing to gene-level count matrices 
+and producing an offset which corrects for potential changes in average
+transcript length across samples are described in [@Soneson2015].
+Note that the tximport-to-DESeq2 approach uses *estimated* gene
+counts from the transcript abundance quantifiers, but not *normalized*
+counts.
+
+Here, we demonstrate how to import transcript abundances
+and construct of a gene-level *DESeqDataSet* object
+from *Salmon* `quant.sf` files, which are
+stored in the `r Biocexptpkg("tximportData")` package.
+Note that, instead of locating `dir` using *system.file*,
+a user would typically just provide a path, e.g. `/path/to/quant/files`.
+For a typical use, the `condition` information should already be
+present as a column of the sample table `samples`, while here we
+construct artificial condition labels for demonstration.
+
+```{r txiSetup}
+library("tximport")
+library("readr")
+library("tximportData")
+dir <- system.file("extdata", package="tximportData")
+samples <- read.table(file.path(dir,"samples.txt"), header=TRUE)
+samples$condition <- factor(rep(c("A","B"),each=3))
+rownames(samples) <- samples$run
+samples[,c("pop","center","run","condition")]
+```
+
+Next we specify the path to the files using the appropriate columns of
+`samples`, and we read in a table that links transcripts to genes for
+this dataset.
+
+```{r txiFiles}
+files <- file.path(dir,"salmon", samples$run, "quant.sf")
+names(files) <- samples$run
+tx2gene <- read.csv(file.path(dir, "tx2gene.csv"))
+```
+
+We import the necessary quantification data for DESeq2 using the
+*tximport* function.  For further details on use of *tximport*,
+including the construction of the `tx2gene` table for linking
+transcripts to genes in your dataset, please refer to the 
+`r Biocpkg("tximport")` package vignette.
+
+```{r tximport, results="hide"}
+txi <- tximport(files, type="salmon",
+                tx2gene=tx2gene, reader=read_tsv)
+```
+
+Finally, we can construct a *DESeqDataSet* from the `txi` object and
+sample information in `samples`.
+
+```{r txi2dds}
+ddsTxi <- DESeqDataSetFromTximport(txi,
+                                   colData = samples,
+                                   design = ~ condition)
+```
+
+The `ddsTxi` object here can then be used as `dds` in the
+following analysis steps.
+
+<a name="countmat"/>
+
+### Count matrix input
+
+Alternatively, the function *DESeqDataSetFromMatrix* can be
+used if you already have a matrix of read counts prepared from another
+source. Another method for quickly producing count matrices 
+from alignment files is the *featureCounts* function [@Liao2013feature]
+in the `r Biocpkg("Rsubread")` package.
+To use *DESeqDataSetFromMatrix*, the user should provide 
+the counts matrix, the information about the samples (the columns of the 
+count matrix) as a *DataFrame* or *data.frame*, and the design formula.
+
+To demonstate the use of *DESeqDataSetFromMatrix*, 
+we will read in count data from the `r Biocexptpkg("pasilla")` package.
+We read in a count matrix, which we will name `cts`, 
+and the sample information table, which we will name `coldata`. 
+Further below we describe how to extract these objects from,
+e.g. *featureCounts* output. 
+
+```{r loadPasilla}
+library("pasilla")
+pasCts <- system.file("extdata",
+                      "pasilla_gene_counts.tsv",
+                      package="pasilla", mustWork=TRUE)
+pasAnno <- system.file("extdata",
+                       "pasilla_sample_annotation.csv",
+                       package="pasilla", mustWork=TRUE)
+cts <- as.matrix(read.csv(pasCts,sep="\t",row.names="gene_id"))
+coldata <- read.csv(pasAnno, row.names=1)
+coldata <- coldata[,c("condition","type")]
+```
+
+We examine the count matrix and column data to see if they are consisent:
+
+```{r showPasilla}
+head(cts)
+head(coldata)
+```
+
+Note that these are not in the same order with respect to samples! 
+
+It is critical that the columns of the count matrix and the rows of
+the column data (information about samples) are in the same order.
+We should re-arrange one or the other so that they are consistent in
+terms of sample order (if we do not, later functions would produce
+an error). We additionally need to chop off the `"fb"` of the 
+row names of `coldata`, so the naming is consistent.
+
+```{r reorderPasila}
+rownames(coldata) <- sub("fb","",rownames(coldata))
+all(rownames(coldata) %in% colnames(cts))
+cts <- cts[, rownames(coldata)]
+all(rownames(coldata) == colnames(cts))
+```
+
+If you have used the *featureCounts* function [@Liao2013feature] in the 
+`r Biocpkg("Rsubread")` package, the matrix of read counts can be directly 
+provided from the `"counts"` element in the list output.
+The count matrix and column data can typically be read into R 
+from flat files using base R functions such as *read.csv*
+or *read.delim*. For *htseq-count* files, see the dedicated input
+function below. 
+
+With the count matrix, `cts`, and the sample
+information, `coldata`, we can construct a *DESeqDataSet*:
+
+```{r matrixInput}
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = coldata,
+                              design = ~ condition)
+dds
+```
+
+If you have additional feature data, it can be added to the
+*DESeqDataSet* by adding to the metadata columns of a newly
+constructed object. (Here we add redundant data just for demonstration, as
+the gene names are already the rownames of the `dds`.)
+
+```{r addFeatureData}
+featureData <- data.frame(gene=rownames(cts))
+mcols(dds) <- DataFrame(mcols(dds), featureData)
+mcols(dds)
+```
+
+<a name="htseq"/>
+
+### *htseq-count* input
+
+You can use the function *DESeqDataSetFromHTSeqCount* if you
+have used *htseq-count* from the 
+[HTSeq](http://www-huber.embl.de/users/anders/HTSeq) 
+python package [@Anders:2014:htseq].
+For an example of using the python scripts, see the
+`r Biocexptpkg("pasilla")` data package. First you will want to specify a
+variable which points to the directory in which the *htseq-count*
+output files are located. 
+
+```{r htseqDirI, eval=FALSE}
+directory <- "/path/to/your/files/"
+```
+
+However, for demonstration purposes only, the following line of
+code points to the directory for the demo *htseq-count* output
+files packages for the `r Biocexptpkg("pasilla")` package.
+
+```{r htseqDirII}
+directory <- system.file("extdata", package="pasilla",
+                         mustWork=TRUE)
+```
+
+We specify which files to read in using *list.files*,
+and select those files which contain the string `"treated"`
+using *grep*. The *sub* function is used to 
+chop up the sample filename to obtain the condition status, or 
+you might alternatively read in a phenotypic table 
+using *read.table*.
+
+```{r htseqInput}
+sampleFiles <- grep("treated",list.files(directory),value=TRUE)
+sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
+sampleTable <- data.frame(sampleName = sampleFiles,
+                          fileName = sampleFiles,
+                          condition = sampleCondition)
+ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                       directory = directory,
+                                       design= ~ condition)
+ddsHTSeq
+```
+
+<a name="se"/>
+
+### *SummarizedExperiment* input
 
 An example of the steps to produce a *RangedSummarizedExperiment* can
 be found in the [RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene/)
@@ -149,22 +400,8 @@ library("airway")
 data("airway")
 se <- airway
 ```
-
-A *DESeqDataSet* object must have an associated design formula.
-The design formula expresses the variables which will be
-used in modeling. The formula should be a tilde (~) followed by the
-variables with plus signs between them (it will be coerced into an
-*formula* if it is not already).  An intercept is included,
-representing the base mean of counts. The design can be changed later, 
-however then all differential analysis steps should be repeated, 
-as the design formula is used to estimate the dispersions and 
-to estimate the log2 fold changes of the model. 
 The constructor function below shows the generation of a
 *DESeqDataSet* from a *RangedSummarizedExperiment* `se`.
-
-*Note*: In order to benefit from the default settings of the
-package, you should put the variable of interest at the end of the
-formula and make sure the control level is the first level.
 
 ```{r sumExpInput}
 library("DESeq2")
