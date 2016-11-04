@@ -62,25 +62,33 @@ Other Bioconductor packages with similar aims are
 
 ## Quick start
 
-Here we show the most basic steps for a differential expression analysis.
-These steps assume you have a *RangedSummarizedExperiment* object
-`se` which contains the counts and information about samples.
-The `design` indicates that we want to
-measure the effect of condition, controlling for batch differences.
-The two factor variables `batch` and `condition` 
-should be columns of `colData(se)`.
+Here we show the most basic steps for a differential expression
+analysis. There are a variety of steps upstream of DESeq2 that result
+in the generation of counts or estimated counts for each sample, which
+we will discuss in the sections below. This code chunk assumes that
+you have a count matrix called `counts` and a table of sample
+information called `coldata`.  The `design` indicates how to model the
+samples, here, that we want to measure the effect of the condition,
+controlling for batch differences. The two factor variables `batch`
+and `condition` should be columns of `coldata`.
 
 ```{r quickStart, eval=FALSE}
-dds <- DESeqDataSet(se, design= ~ batch + condition)
+dds <- DESeqDataSetFromMatrix(countData=counts,
+                              colData=coldata,
+                              design= ~ batch + condition)
 dds <- DESeq(dds)
-res <- results(dds, contrast=c("condition","trt","con"))
+res <- results(dds, contrast=c("condition","treated","control"))
 ```
 
-* If you have a count matrix, the first line would use
-  *DESeqDataSetFromMatrix* as shown below.
+The following starting functions will be explained below:
+
 * If you have transcript quantification files, as produced by
   *Salmon*, *Sailfish*, or *kallisto*, you would use
-  *DESeqDataSetFromTximport*, as shown below.
+  *DESeqDataSetFromTximport*.
+* If you have *htseq-count* files, the first line would use
+  *DESeqDataSetFromHTSeq*.
+* If you have a *RangedSummarizedExperiment*, the first line would use 
+  *DESeqDataSet*.
 
 ## How to get help
 
@@ -103,7 +111,8 @@ e.g. to binding regions (with ChIP-Seq) or peptide sequences (with
 quantitative mass spectrometry). We will list method for obtaining count matrices
 in sections below.
 
-The values in the matrix should be un-normalized counts of sequencing reads (for
+The values in the matrix should be un-normalized counts or estimated
+counts of sequencing reads (for
 single-end RNA-seq) or fragments (for paired-end RNA-seq). 
 The [RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene/)
 describes multiple techniques for preparing such count matrices.  It
@@ -113,6 +122,10 @@ assessing the measurement precision correctly. The DESeq2 model
 internally corrects for library size, so transformed or normalized
 values such as counts scaled by library size should not be used as
 input.
+
+### Transcript abundance quantifiers and *tximport* input
+
+**TODO**
 
 ### SummarizedExperiment input
 
