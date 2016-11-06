@@ -1,6 +1,6 @@
 citEntry(entry="article",
          title = "Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2",
-         author = personList( as.person("Michael I Love"),
+         author = personList( as.person("Michael I. Love"),
                               as.person("Wolfgang Huber"),
                               as.person("Simon Anders")),
          year = 2014,
@@ -10,6 +10,6 @@ citEntry(entry="article",
          issue = 12,
          pages = 550,
          textVersion = 
-         paste("Michael I Love, Wolfgang Huber and Simon Anders (2014):", 
-               "Moderated estimation of fold change and dispersion for RNA-Seq data with DESeq2.",
-                "Genome Biology" ) )
+         paste("Love, M.I., Huber, W., Anders, S.", 
+               "Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2",
+                "Genome Biology 15(12):550 (2014)" ) )

@@ -246,7 +246,8 @@ txi <- tximport(files, type="salmon",
 Finally, we can construct a *DESeqDataSet* from the `txi` object and
 sample information in `samples`.
 
-```{r txi2dds}
+```{r txi2dds, results="hide"}
+library("DESeq2")
 ddsTxi <- DESeqDataSetFromTximport(txi,
                                    colData = samples,
                                    design = ~ condition)
@@ -323,6 +324,7 @@ With the count matrix, `cts`, and the sample
 information, `coldata`, we can construct a *DESeqDataSet*:
 
 ```{r matrixInput}
+library("DESeq2")
 dds <- DESeqDataSetFromMatrix(countData = cts,
                               colData = coldata,
                               design = ~ condition)
@@ -379,6 +381,12 @@ sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
 sampleTable <- data.frame(sampleName = sampleFiles,
                           fileName = sampleFiles,
                           condition = sampleCondition)
+```
+
+Then we build the *DESeqDataSet* using the following function:
+
+```{r hsteqDds}
+library("DESeq2")
 ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
                                        directory = directory,
                                        design= ~ condition)
