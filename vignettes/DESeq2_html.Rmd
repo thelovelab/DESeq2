@@ -485,6 +485,8 @@ effect of RNAi knock-down of the splicing factor *pasilla*
 the `r Biocexptpkg("pasilla")` data is provided in the vignette of the 
 data package `r Biocexptpkg("pasilla")`.
 
+<a name="de">
+
 ## Differential expression analysis 
 
 The standard differential expression analysis steps are wrapped
@@ -715,7 +717,7 @@ including MA-plots (also called MD-plot) can be generated using the
 **pcaExplorer.** Interactive visualization of DESeq2 output,
 including PCA plots, boxplots of counts and other useful summaries can be
 generated using the `r Biocpkg("pcaExplorer")` package.
-See the ``Launching the application'' section of the package vignette.
+See the *Launching the application* section of the package vignette.
 
 ### Exporting results to CSV files
 
@@ -803,26 +805,27 @@ If the variable is continuous or an interaction term
 then the results can be extracted using the `name` argument to *results*,
 where the name is one of elements returned by `resultsNames(dds)`.
 
+<a name="transform">
+
 # Data transformations and visualization 
 
 ## Count data transformations
 
 In order to test for differential expression, we operate on raw counts
-and use discrete distributions as described in the previous Section~\ref{sec:de}.
-However for other downstream analyses -- 
+and use discrete distributions as described in the previous section on
+differential expression.
+However for other downstream analyses --
 e.g. for visualization or clustering -- it might be useful 
 to work with transformed versions of the count data. 
 
 Maybe the most obvious choice of transformation is the logarithm.
 Since count values for a gene can be zero in some
 conditions (and non-zero in others), some advocate the use of
-*pseudocounts*, i.\,e.\ transformations of the form
-%
-\begin{equation}
-  y = \log_2(n + 1)\quad\mbox{or more generally,}\quad y = \log_2(n + n_0),
-\end{equation}
-%
-where $n$ represents the count values and $n_0$ is a positive constant.
+*pseudocounts*, i.e. transformations of the form:
+
+$$ y = \log_2(n + n_0) $$
+
+where *n* represents the count values and $n_0$ is a positive constant.
 
 In this section, we discuss two alternative
 approaches that offer more theoretical justification and a rational way
@@ -831,7 +834,7 @@ The *regularized logarithm* or *rlog* incorporates a prior on
 the sample differences [@Love2014], 
 and the other uses the concept of variance stabilizing
 transformations (VST) [@Tibshirani1988,sagmb2003,Anders:2010:GB].
-Both transformations produce transformed data on the $\log_2$ scale
+Both transformations produce transformed data on the log2 scale
 which has been normalized with respect to library size.
 
 The point of these two transformations, the *rlog* and the VST,
@@ -841,33 +844,29 @@ mean is low. Both *rlog* and VST use the experiment-wide trend
 of variance over mean, in order to transform the data to remove the
 experiment-wide trend. Note that we do not require or
 desire that all the genes have *exactly* the same variance after
-transformation. Indeed, in Figure~\ref{fig:meansd} below, you will see
+transformation. Indeed, in a figure below, you will see
 that after the transformations the genes with the same mean do not
 have exactly the same standard deviations, but that the
 experiment-wide trend has flattened. It is those genes with row
 variance above the trend which will allow us to cluster samples into
 interesting groups.
 
-\textbf{Note on running time:} if you have many samples (e.g. 100s),
-the *rlog* function might take too long, and the 
-*varianceStabilizingTransformation* is a faster choice.  
-The rlog and VST have similar properties, but the rlog requires fitting a shrinkage
-term for each sample and each gene which takes time.  See the
-DESeq2 paper for more discussion on the differences
-[@Love2014]. In addition, a new function *vst* provides
-an even faster version of the *varianceStabilizingTransformation*
-but calculating the global dispersion trend on a subset of the genes
-(default 1000). *vst* may be attractive for interactive EDA.
+**Note on running time:** if you have many samples (e.g. 100s),
+the *rlog* function might take too long, and so the *vst* function
+will be a faster choice. 
+The rlog and VST have similar properties, but the rlog requires
+fitting a shrinkage term for each sample and each gene which takes
+time.  See the DESeq2 paper for more discussion on the differences
+[@Love2014].
 
 ### Blind dispersion estimation
 
-The two functions, *rlog* and
-*varianceStabilizingTransformation*, have an argument
+The two functions, *rlog* and *vst* have an argument
 `blind`, for whether the transformation should be blind to the
 sample information specified by the design formula. When
 `blind` equals `TRUE` (the default), the functions
-will re-estimate the dispersions using only an intercept (design
-formula $\sim 1$). This setting should be used in order to compare
+will re-estimate the dispersions using only an intercept.
+This setting should be used in order to compare
 samples in a manner wholly unbiased by the information about
 experimental groups, for example to perform sample QA (quality
 assurance) as demonstrated below.
@@ -878,7 +877,7 @@ differences in counts which are explainable by the experimental design,
 and one wishes to transform the data for downstream analysis. In this
 case, using blind dispersion estimation will lead to large estimates
 of dispersion, as it attributes differences due to experimental design
-as unwanted ``noise'', and will result in overly shrinking the transformed
+as unwanted *noise*, and will result in overly shrinking the transformed
 values towards each other. 
 By setting `blind` to `FALSE`, the dispersions
 already estimated will be used to perform transformations, or if not
@@ -892,9 +891,9 @@ experimental group in applying the transformation.
 
 ### Extracting transformed values
 
-These functions return an object of class *DESeqTransform*
+These transformation functions return an object of class *DESeqTransform*
 which is a subclass of *RangedSummarizedExperiment*. 
-For $\sim 20$ samples, running on a newly created `DESeqDataSet`,
+For ~20 samples, running on a newly created `DESeqDataSet`,
 *rlog* may take 30 seconds, 
 *varianceStabilizingTransformation* may take 5 seconds, and
 *vst* less than 1 second (by subsetting to 1000 genes for
@@ -919,28 +918,25 @@ model with a term for each sample and a prior distribution on the
 coefficients which is estimated from the data. This is the same kind
 of shrinkage (sometimes referred to as regularization, or moderation)
 of log fold changes used by the *DESeq* and
-*nbinomWaldTest*, as seen in Figure \ref{fig:MA}. The
-resulting data contains elements defined as:
+*nbinomWaldTest*. The resulting data contains elements defined as:
 
 $$ \log_2(q_{ij}) = \beta_{i0} + \beta_{ij} $$
 
 where $q_{ij}$ is a parameter proportional to the expected true
-concentration of fragments for gene $i$ and sample $j$ (see
-Section~\ref{sec:glm}), $\beta_{i0}$ is an intercept which does not
+concentration of fragments for gene *i* and sample *j* (see
+formula [below](#theory)), $\beta_{i0}$ is an intercept which does not
 undergo shrinkage, and $\beta_{ij}$ is the sample-specific effect
 which is shrunk toward zero based on the dispersion-mean trend over
 the entire dataset. The trend typically captures high dispersions for
 low counts, and therefore these genes exhibit higher shrinkage from
-the*rlog*.
+the *rlog*.
 
 Note that, as $q_{ij}$ represents the part of the mean value
 $\mu_{ij}$ after the size factor $s_j$ has been divided out, it is
 clear that the rlog transformation inherently accounts for differences
-in sequencing depth.  Without priors, this design matrix would lead to
+in sequencing depth. Without priors, this design matrix would lead to
 a non-unique solution, however the addition of a prior on
-non-intercept betas allows for a unique solution to be found.  The
-regularized log transformation is preferable to the variance
-stabilizing transformation if the size factors vary widely.
+non-intercept betas allows for a unique solution to be found. 
 
 ### Variance stabilizing transformation
 
@@ -949,66 +945,45 @@ closed-form expression for the variance stabilizing transformation is
 used by *varianceStabilizingTransformation*, which is
 derived in the file `vst.pdf`, that is distributed in the
 package alongside this vignette. If a local fit is used (option
-`fitType="locfit"` to *estimateDispersions*) a
-numerical integration is used instead.
-
-```{r vsd1, echo=FALSE, fig.width=4.5, fig.height=4.5, fig.show="asis", fig.small=TRUE, fig.pos="!bt", fig.cap="VST and log2. Graphs of the variance stabilizing transformation for sample 1, in blue, and of the transformation $f(n) = \\log_2(n/s_1)$, in black. $n$ are the counts and $s_1$ is the size factor for the first sample.\"}
-px     <- counts(dds)[,1] / sizeFactors(dds)[1]
-ord    <- order(px)
-ord    <- ord[px[ord] < 150]
-ord    <- ord[seq(1, length(ord), length=50)]
-last   <- ord[length(ord)]
-vstcol <- c("blue", "black")
-matplot(px[ord],
-        cbind(assay(vsd)[, 1], log2(px))[ord, ],
-        type="l", lty=1, col=vstcol, xlab="n", ylab="f(n)")
-legend("bottomright",
-       legend = c(
-        expression("variance stabilizing transformation"),
-        expression(log[2](n/s[1]))),
-       fill=vstcol)
-```
-
-The resulting variance stabilizing transformation is shown in Figure
-\ref{figure/vsd1-1}.  The code that produces the figure is hidden from
-this vignette for the sake of brevity, but can be seen in the
-`.Rnw` or `.R` source file. Note that the vertical axis
-in such plots is the square root of the variance over all samples, so
-including the variance due to the experimental conditions.  While a
-flat curve of the square root of variance over the mean may seem like
-the goal of such transformations, this may be unreasonable in the case
-of datasets with many true differences due to the experimental
-conditions.
+`fitType="locfit"` to *estimateDispersions*) a numerical integration
+is used instead. 
 
 ### Effects of transformations on the variance
 
-Figure~\ref{fig:meansd} plots the standard deviation of the transformed
-data, across samples, against the mean, using the shifted
-logarithm transformation \eqref{eq:shiftedlog}, the
-regularized log transformation and the variance stabilizing transformation.
-The shifted logarithm has elevated standard deviation in the lower
-count range, and the regularized log to a lesser extent, while for
-the variance stabilized data the standard deviation is roughly constant
-along the whole dynamic range.
+The figure below plots the standard deviation of the transformed data,
+across samples, against the mean, using the shifted logarithm
+transformation, the regularized log transformation and the variance
+stabilizing transformation.  The shifted logarithm has elevated
+standard deviation in the lower count range, and the regularized log
+to a lesser extent, while for the variance stabilized data the
+standard deviation is roughly constant along the whole dynamic range.
 
-```{r meansd, fig.width=4, fig.height=3, fig.show="asis", fig.wide=TRUE, fig.pos="tb", out.width=".32\\linewidth", fig.cap="Per-gene standard deviation (taken across samples), against the rank of the mean. {\\bfhelvet(a)} for the shifted logarithm $\\log_2(n+1)$, the regularized log transformation {\\bfhelvet(b)} and the variance stabilizing transformation {\\bfhelvet(c)}.\", fig.subcap=""}
+Note that the vertical axis in such plots is the square root of the
+variance over all samples, so including the variance due to the
+experimental conditions.  While a flat curve of the square root of
+variance over the mean may seem like the goal of such transformations,
+this may be unreasonable in the case of datasets with many true
+differences due to the experimental conditions.
+
+```{r meansd}
+# this gives log2(n + 1)
+ntd <- normTransform(dds)
 library("vsn")
 notAllZero <- (rowSums(counts(dds))>0)
-meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1))
+meanSdPlot(assay(ntd)[notAllZero,])
 meanSdPlot(assay(rld[notAllZero,]))
 meanSdPlot(assay(vsd[notAllZero,]))
 ```
 
 ## Data quality assessment by sample clustering and visualization
 
-Data quality assessment and quality control (i.\,e.\ the removal of
+Data quality assessment and quality control (i.e. the removal of
 insufficiently good data) are essential steps of any data
 analysis. These steps should typically be performed 
 very early in the analysis of a new data set,
 preceding or in parallel to the differential expression testing.
 
-We define the term *quality* as 
-*fitness for purpose*\footnote{<http://en.wikipedia.org/wiki/Quality_\%28business\%29>}.
+We define the term *quality* as *fitness for purpose*.
 Our purpose is the detection of differentially expressed genes, and we
 are looking in particular for samples whose experimental treatment
 suffered from an anormality that renders the data points obtained from
@@ -1017,37 +992,21 @@ these particular samples detrimental to our purpose.
 ### Heatmap of the count matrix
 
 To explore a count matrix, it is often instructive to look at it as a
-heatmap.  Below we show how to produce such a heatmap 
-for various transformations of the data.
+heatmap. Below we show how to produce such a heatmap for various
+transformations of the data. 
 
-```{r heatmap, dev="pdf", fig.width=5, fig.height=7}
+```{r heatmap}
 library("pheatmap")
 select <- order(rowMeans(counts(dds,normalized=TRUE)),
                 decreasing=TRUE)[1:20]
-
-nt <- normTransform(dds) # defaults to log2(x+1)
-log2.norm.counts <- assay(nt)[select,]
 df <- as.data.frame(colData(dds)[,c("condition","type")])
-pheatmap(log2.norm.counts, cluster_rows=FALSE, show_rownames=FALSE,
+pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
-
 pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
-
 pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 ```
-
-\begin{figure*}
-\includegraphics[width=.32\textwidth]{figure/heatmap-1}
-\includegraphics[width=.32\textwidth]{figure/heatmap-2}
-\includegraphics[width=.32\textwidth]{figure/heatmap-3}
-\caption{Heatmaps showing the expression data of the \Sexpr{length(select)}
-  most highly expressed genes. The data is of log2 normalized counts (left),
-  from regularized log transformation (center) and from variance
-  stabilizing transformation (right).}
-
-\end{figure*}
 
 ### Heatmap of the sample-to-sample distances
 
@@ -1061,13 +1020,13 @@ sampleDists <- dist(t(assay(rld)))
 ```
 
 A heatmap of this distance matrix gives us an overview over similarities
-and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples-1}):
+and dissimilarities between samples.
 We have to provide a hierarchical clustering `hc` to the heatmap
 function based on the sample distances, or else the heatmap
 function would calculate a clustering based on the distances between
 the rows/columns of the distance matrix.
 
-```{r figHeatmapSamples, dev="pdf", fig.width=7, fig.height=7, fig.show="asis", fig.small=TRUE, fig.pos="tb", fig.cap="Sample-to-sample distances.  Heatmap showing the Euclidean distances between the samples as calculated from the regularized log transformation.\"}
+```{r figHeatmapSamples}
 library("RColorBrewer")
 sampleDistMatrix <- as.matrix(sampleDists)
 rownames(sampleDistMatrix) <- paste(rld$condition, rld$type, sep="-")
@@ -1081,39 +1040,27 @@ pheatmap(sampleDistMatrix,
 
 ### Principal component plot of the samples
 
-Related to the distance matrix of Section~\ref{sec:dists} is the PCA
-plot of the samples, which we obtain as follows (Figure \ref{figure/figPCA-1}).
+Related to the distance matrix is the PCA plot, which shows 
+the samples in the 2D plane spanned by their first two principal
+components. This type of plot is useful for visualizing the overall
+effect of experimental covariates and batch effects.
 
-```{r figPCA, dev="pdf", fig.width=5, fig.height=3}
+```{r figPCA}
 plotPCA(rld, intgroup=c("condition", "type"))
 ```
-
-\incfig[tbh]{figure/figPCA-1}{\textwidth}{PCA plot.}{
-  PCA plot. The \Sexpr{ncol(rld)} samples shown in the 2D
-  plane spanned by their first two principal components. This type of
-  plot is useful for visualizing the overall effect of experimental
-  covariates and batch effects.
-}
 
 It is also possible to customize the PCA plot using the
 *ggplot* function.
 
-```{r figPCA2, dev="pdf", fig.width=5, fig.height=3}
-data <- plotPCA(rld, intgroup=c("condition", "type"), returnData=TRUE)
-percentVar <- round(100 * attr(data, "percentVar"))
-ggplot(data, aes(PC1, PC2, color=condition, shape=type)) +
+```{r figPCA2}
+pcaData <- plotPCA(rld, intgroup=c("condition", "type"), returnData=TRUE)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData, aes(PC1, PC2, color=condition, shape=type)) +
   geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
   coord_fixed()
 ```
-
-\incfig[tbh]{figure/figPCA2-1}{\textwidth}{PCA plot.}{
-  PCA plot customized using the \CRANpkg{ggplot2} library.
-}
-
-
-\newpage
 
 # Variations to the standard workflow
 
@@ -1155,8 +1102,8 @@ length of `resultsNames(dds)` can be provided, for manually
 specifying the linear combination of terms.  Demonstrations of the use
 of contrasts for various designs can be found in the examples section
 of the help page for the *results* function. The
-mathematical formula that is used to generate the contrasts can be found in
-Section~\ref{sec:ctrstTheory}.
+mathematical formula that is used to generate the contrasts can be
+found [below](#theory).
 
 <a name="interactions">
 
@@ -1176,11 +1123,9 @@ of a condition for different sets of samples, a simpler approach than
 adding interaction terms explicitly to the design formula is to
 perform the following steps:
 
-\begin{enumerate}
-\item combine the factors of interest into a single factor with all
+* combine the factors of interest into a single factor with all
   combinations of the original factors 
-\item change the design to include just this factor, e.g. `\lowtilde{` group}
-\end{enumerate}
+* change the design to include just this factor, e.g. ~ group
 
 Using this design is similar to adding an interaction term, 
 in that it models multiple condition effects which
@@ -1198,7 +1143,22 @@ resultsNames(dds)
 results(dds, contrast=c("group", "IB", "IA"))
 ```
 
-```{r interFig, dev="pdf", fig.width=4, fig.height=3, echo=FALSE, results="hide"}
+The following two plots diagram hypothetical genotype-specific
+condition effects, which could be modeled with interaction terms by
+using a design of `~genotype + condition + genotype:condition`.
+
+In the first plot (Gene 1), note that the condition effect
+is consistent across genotypes. Although condition A has a different
+baseline for I,II, and III, the condition effect is a log2 fold
+change of about 2 for each genotype.  Using a model with an
+interaction term `genotype:condition`, the interaction terms for
+genotype II and genotype III will be nearly 0.
+
+Here, the y-axis represents log2(n+1), and each
+group has 20 samples (black dots). A red line connects the mean of the
+groups within each genotype. 
+
+```{r interFig, echo=FALSE, results="hide"}
 npg <- 20
 mu <- 2^c(8,10,9,11,10,12)
 cond <- rep(rep(c("A","B"),each=npg),3)
@@ -1218,7 +1178,19 @@ plotit(d, "Gene 1") + ylim(7,13)
 lm(log2c ~ cond + geno + geno:cond, data=d)
 ``` 
 
-```{r interFig2, dev="pdf", fig.width=4, fig.height=3,  echo=FALSE, results="hide"}
+In the second plot
+(Gene 2), we can see that the condition effect is not consistent
+across genotype. Here the main condition effect (the effect for the
+reference genotype I) is again 2. However, this time the interaction
+terms will be around 1 for genotype II and -4 for genotype III. This
+is because the condition effect is higher by 1 for genotype II
+compared to genotype I, and lower by 4 for genotype III compared to
+genotype I.  The condition effect for genotype II (or III) is
+obtained by adding the main condition effect and the interaction
+term for that genotype.  Such a plot can be made using the
+*plotCounts* function as shown above.
+
+```{r interFig2, echo=FALSE, results="hide"}
 mu[4] <- 2^12
 mu[6] <- 2^8
 counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)
@@ -1227,44 +1199,13 @@ plotit(d2, "Gene 2") + ylim(7,13)
 lm(log2c ~ cond + geno + geno:cond, data=d2)
 ``` 
 
-\begin{figure*}
-\includegraphics[width=.49\textwidth]{figure/interFig-1}
-\includegraphics[width=.49\textwidth]{figure/interFig2-1}
-\caption{
-  Genotype-specific condition effects.
-  Here, the y-axis represents $\log_2(\textrm{counts}+1)$, and each
-  group has 20 samples (black dots). A red line connects the mean of
-  the groups within each genotype.
-  On the left side (Gene 1), note that the condition effect is consistent
-  across genotypes. Although condition A has a different baseline for
-  I,II, and III, the condition effect is a log2 fold change of about 2
-  for each genotype.
-  Using a model with an interaction term `genotype:condition`,
-  the interaction terms for genotype II and genotype III will be nearly 0.
-  On the right side (Gene 2), we can see that the condition effect is
-  not consistent across genotype. Here the main condition effect (the
-  effect for the reference genotype I) is again 2. However, this time
-  the interaction terms will be around 1 for genotype II and
-  -4 for genotype III. This is 
-  because the condition effect is higher by 1 for genotype II compared to
-  genotype I, and lower by 4 for genotype III compared to genotype I.
-  The condition effect for genotype II (or III) is obtained by adding the
-  main condition effect and the interaction term for that genotype.
-  Such a plot can be made using the *plotCounts* function
-  (Section~\ref{sec:plotcounts}).
-}
-
-\end{figure*}
-
 Now we will continue to explain the use of interactions in order to
 test for *differences* in condition effects. We continue with
 the example of condition effects across three genotypes (I, II, and III).
-For a diagram of how interactions might look across genotypes 
-please refer to Figure \ref{fig:inter}. 
 
 The key point to remember about designs with interaction terms is
-that, unlike for a design `\lowtilde{` 
-  genotype + condition}, where the condition effect represents the
+that, unlike for a design `~genotype + condition`, where the condition
+effect represents the 
 *overall* effect controlling for differences due to genotype, by adding
 `genotype:condition`, the main condition effect only
 represents the effect of condition for the *reference level* of
@@ -1279,8 +1220,9 @@ detail in Example 3 in the help page for *results*, which
 can be found by typing `?results`. In particular, we show how to
 test for differences in the condition effect across genotype, and we
 show how to obtain the condition effect for non-reference genotypes.
-Note that in DESeq2 version 1.10, the *DESeq* function will turn
-off log fold change shrinkage (setting `betaPrior=FALSE`),
+
+Note that for DESeq2 versions higher than 1.10, the *DESeq* function
+will turn off log fold change shrinkage (setting `betaPrior=FALSE`),
 for designs which contain an interaction term. Turning off the log
 fold change shrinkage allows the software to use standard model
 matrices (as would be produced by *model.matrix*), where the
@@ -1292,16 +1234,15 @@ There are a number of ways to analyze time-series experiments,
 depending on the biological question of interest. In order to test for
 any differences over multiple time points, once can use a design
 including the time factor, and then test using the likelihood ratio
-test as described in Section~\ref{sec:LRT}, where the time factor is
+test as described in the following section, where the time factor is
 removed in the reduced formula. For a control and treatment time
 series, one can use a design formula containing the condition factor,
 the time factor, and the interaction of the two. In this case, using
 the likelihood ratio test with a reduced model which does not contain
 the interaction terms will test whether the condition induces a change
 in gene expression at any time point after the reference level time point
-(time 0). An example of the later analysis is provided in an RNA-seq
-workflow on the Bioconductor
-website: <http://www.bioconductor.org/help/workflows/rnaseqGene/>.
+(time 0). An example of the later analysis is provided in our
+[RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene).
 
 ## Likelihood ratio test 
 
@@ -1338,7 +1279,7 @@ res <- results(dds)
 ``` 
 
 If the full design contained other variables, 
-such as a batch variable,
+such as a batch variable, e.g. `~batch + condition`
 then the likelihood ratio test would look like:
 
 ```{r simpleLRT2, eval=FALSE}
@@ -1350,15 +1291,17 @@ res <- results(dds)
 
 ## Approach to count outliers 
 
-RNA-seq data sometimes contain isolated instances of very large counts that are apparently
-unrelated to the experimental or study design, and which may be 
-considered outliers. There are many reasons why outliers can arise, including rare
-technical or experimental artifacts, read mapping problems in the case of genetically
-differing samples, and genuine, but rare biological events. In many cases, users appear
-primarily interested in genes that show a consistent behavior, and this is the reason why
-by default, genes that are affected by such outliers are set aside by DESeq2, 
-or if there are sufficient samples, outlier counts are replaced for model fitting. 
-These two behaviors are described below.
+RNA-seq data sometimes contain isolated instances of very large counts
+that are apparently unrelated to the experimental or study design, and
+which may be considered outliers. There are many reasons why outliers
+can arise, including rare technical or experimental artifacts, read
+mapping problems in the case of genetically differing samples, and
+genuine, but rare biological events. In many cases, users appear
+primarily interested in genes that show a consistent behavior, and
+this is the reason why by default, genes that are affected by such
+outliers are set aside by DESeq2, or if there are sufficient samples,
+outlier counts are replaced for model fitting.  These two behaviors
+are described below.
 
 The *DESeq* function calculates, for every gene and for every sample,
 a diagnostic test for outliers called *Cook's distance*. Cook's distance 
@@ -1390,9 +1333,9 @@ replicates, and can be turned off with
 
 The default Cook's distance cutoff for the two behaviors described above
 depends on the sample size and number of parameters
-to be estimated. The default is to use the $99\%$ quantile of the 
-$F(p,m-p)$ distribution (with *p* the number of parameters including the 
-intercept and $m$ number of samples).
+to be estimated. The default is to use the 99% quantile of the 
+F(p,m-p) distribution (with *p* the number of parameters including the 
+intercept and *m* number of samples).
 The default for gene flagging can be modified using the `cooksCutoff` 
 argument to the *results* function. 
 For outlier replacement, *DESeq* preserves the original counts in
@@ -1405,25 +1348,23 @@ which does not extend easily to continuous covariates. However, users
 can examine the Cook's distances in `assays(dds)[["cooks"]]`, in
 order to perform manual visualization and filtering if necessary.
 
-\textbf{Note on many outliers:} if there are very many outliers 
-(e.g. many hundreds or thousands) reported by
-`summary(res)`, one might consider further exploration to see if
-a single sample or a few samples should be removed due to low quality. 
-The automatic outlier filtering/replacement is most useful in situations which the number
-of outliers is limited. When there are thousands of reported outliers, 
-it might make more sense to turn off the outlier filtering/replacement
-(*DESeq* with `minReplicatesForReplace=Inf` and
-*results* with `cooksCutoff=FALSE`)
-and perform manual inspection: First it would be
-advantageous to make a PCA plot using the code example in Section
-\ref{sec:pca} to spot individual sample outliers; Second, one can make
-a boxplot of the Cook's distances to see if one sample is consistently
-higher than others: 
+**Note on many outliers:** if there are very many outliers (e.g. many
+hundreds or thousands) reported by `summary(res)`, one might consider
+further exploration to see if a single sample or a few samples should
+be removed due to low quality.  The automatic outlier
+filtering/replacement is most useful in situations which the number of
+outliers is limited. When there are thousands of reported outliers, it
+might make more sense to turn off the outlier filtering/replacement
+(*DESeq* with `minReplicatesForReplace=Inf` and *results* with
+`cooksCutoff=FALSE`) and perform manual inspection: First it would be
+advantageous to make a PCA plot as described above to spot individual
+sample outliers; Second, one can make a boxplot of the Cook's
+distances to see if one sample is consistently higher than others:
 
-```{r boxplotCooks, fig.show="asis", fig.small=TRUE, fig.cap="Boxplot of Cook's distances.  Here we can look to see if one sample has much higher Cook's distances than the other samples. In this case, the samples all have comparable range of Cook's distances.\"}
+```{r boxplotCooks}
 par(mar=c(8,5,2,2))
 boxplot(log10(assays(dds)[["cooks"]]), range=0, las=2)
-``` 
+```
 
 ## Dispersion plot and fitting alternatives
 
@@ -1619,7 +1560,7 @@ sizeFactors(dds)
 ``` 
 
 For advanced users, we also include a convenience function *coef* for 
-extracting the matrix of coefficients $[\beta_{ir}]$ for all genes $i$ and
+extracting the matrix of coefficients $[\beta_{ir}]$ for all genes *i* and
 parameters $r$, as in the formula in Section~\ref{sec:glm}.
 This function can also return a matrix of standard errors, see `?coef`.
 The columns of this matrix correspond to the effects returned by *resultsNames*.
@@ -1855,18 +1796,20 @@ The differential expression analysis in DESeq2 uses a generalized
 linear model of the form:
 
 $$ K_{ij} \sim \textrm{NB}(\mu_{ij}, \alpha_i) $$
+
 $$ \mu_{ij} = s_j q_{ij} $$
+
 $$ \log_2(q_{ij}) = x_{j.} \beta_i $$
 
-where counts $K_{ij}$ for gene $i$, sample $j$ are modeled using
+where counts $K_{ij}$ for gene *i*, sample *j* are modeled using
 a negative binomial distribution with fitted mean $\mu_{ij}$
 and a gene-specific dispersion parameter $\alpha_i$.
 The fitted mean is composed of a sample-specific size factor
 $s_j$\footnote{The model can be generalized to use sample- 
-\textbf{and} gene-dependent normalization factors, see
+and gene-dependent normalization factors, see
 Appendix~\ref{sec:normfactors}.} and a parameter $q_{ij}$ 
-proportional to the expected true concentration of fragments for sample $j$.
-The coefficients $\beta_i$ give the log2 fold changes for gene $i$ for each 
+proportional to the expected true concentration of fragments for sample *j*.
+The coefficients $\beta_i$ give the log2 fold changes for gene *i* for each 
 column of the model matrix $X$. 
 
 The dispersion parameter $\alpha_i$ defines the relationship between
@@ -1896,7 +1839,7 @@ manual page; briefly, they are:
 For access to all the values calculated during these steps,
 see Section~\ref{sec:access}
 
-## Changes compared to the  `r Biocpkg("DESeq package")`
+## Changes compared to DESeq
 
 The main changes in the package DESeq2, compared to the (older)
 version `r Biocpkg("DESeq")`, are as follows:
@@ -2244,14 +2187,14 @@ the trend over the continuous covariates.  In R, *numeric*
 vectors can be converted into *factors* using the function
 *cut*.
 
-## Will the log fold change shrinkage ``overshrink'' large differences?
+## Will the log fold change shrinkage overshrink large differences?
 
 For most datasets, the application of a prior to the log fold changes
 is a good choice, providing log fold change estimates that are
 more stable across the entire range of mean counts than the maximum
 likelihood estimates (see Figure~\ref{fig:MA} and the DESeq2 paper).
 One situation in which the prior on log fold changes might
-``overshrink'' the estimates is 
+overshrink the estimates is 
 if nearly all genes show no difference across condition, a very
 small set of genes have extremely large differences, and no genes in between.
 A simulated example of such a dataset is Figure~\ref{figure/overShrink-1}.
@@ -2259,7 +2202,7 @@ This is not likely to be the case for most experiments, where typically
 there is a range of differences by size: some genes with medium-to-large
 differences across treatment, and some with small differences.
 
-```{r overShrink, echo=FALSE, fig.width=5, fig.height=5, fig.show="asis", fig.small=TRUE, fig.cap="Example of a dataset with where the log fold change prior should be turned off.  Here we show a simulated MA-plot, where nearly all of the log fold changes are falling near the x-axis, with three genes that have very large log fold changes (note the y-axis is from -10 to 10 on the log2 scale). This would indicate a dataset where the log fold change prior would ``overshrink'' the large fold changes, and so \`betaPrior=FALSE` should be used.\"}
+```{r overShrink, echo=FALSE, fig.width=5, fig.height=5, fig.show="asis", fig.small=TRUE, fig.cap="Example of a dataset with where the log fold change prior should be turned off.  Here we show a simulated MA-plot, where nearly all of the log fold changes are falling near the x-axis, with three genes that have very large log fold changes (note the y-axis is from -10 to 10 on the log2 scale). This would indicate a dataset where the log fold change prior would overshrink the large fold changes, and so \`betaPrior=FALSE` should be used.\"}
 plot(c(10^rnorm(1000, 3, 2),300,2000,5000), 
      c(rnorm(1000, 0, .15), -5.5, -8.5, 7.5),
      ylim=c(-10,10), log="x", cex=.4,
@@ -2274,13 +2217,13 @@ nearly constant across treatment.
 Or, there could be artificially constructed libraries fitting this description,
 e.g. technical replicates where the only difference across libraries 
 is the concentration of a few spiked-in genes.
-``Overshrinking'' of a few large log fold changes
+Overshrinking of a few large log fold changes
 can be assessed by running *results* with `addMLE=TRUE`,
 which will print a results table with columns for the shrunken and
 unshrunken (MLE) log fold changes.
 The two estimates can be visually compared by running *plotMA* with
 `MLE=TRUE` and `MLE=FALSE`. 
-If ``overshrinking'' very large log fold changes is a concern,
+If overshrinking very large log fold changes is a concern,
 it is better to turn off the log fold change prior by
 running *DESeq* with `betaPrior=FALSE`.
 
@@ -2319,14 +2262,14 @@ one column of log fold change, so a single variable and a single
 comparison is shown (among the potentially multiple log fold changes
 which were tested in the likelihood ratio test). 
 This is indicated at the top of the results table
-with the text, e.g.: ``log2 fold change (MLE): condition C vs A'' followed
-by ``LRT p-value: '\lowtilde{} batch + condition' vs '\lowtilde{} batch' ''.
+with the text, e.g.: `log2 fold change (MLE): condition C vs A` followed
+by `LRT p-value: ~ batch + condition' vs '~ batch'`.
 This indicates that the *p* value is for the likelihood ratio test of
 *all the variables and all the levels*, while the log fold change is a single
 comparison from among those variables and levels.
 See the help page for *results* for more details.
 
-## What are the exact steps performed by *DESeq()*?
+## What are the exact steps performed by `DESeq()`?
 
 See the manual page for *DESeq*, which links to the 
 subfunctions which are called in order, where complete details are listed.
@@ -2360,6 +2303,7 @@ res$padj <- ifelse(is.na(res$padj), 1, res$padj)
 
 We have benefited in the development of DESeq2 from the help and
 feedback of many individuals, including but not limited to: 
+
 The Bionconductor Core Team,
 Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein,
 Nikolaos Ignatiadis,
