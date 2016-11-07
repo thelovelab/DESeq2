@@ -24,7 +24,6 @@ abstract: >
 output:
   BiocStyle::html_document2:
     toc: true
-    toc_float: true
 bibliography: library.bib
 vignette: >
   %\VignetteIndexEntry{Analyzing RNA-seq data with DESeq2 (HTML version)}
@@ -163,7 +162,7 @@ estimated counts:
 
 <a name="tximport"/>
 
-### Transcript abundance files and *tximport*
+### Transcript abundance files and *tximport* input
 
 A newer and recommended pipeline is to use fast transcript 
 abundance quantifiers upstream of DESeq2, and then to create
@@ -416,6 +415,1979 @@ library("DESeq2")
 ddsSE <- DESeqDataSet(se, design = ~ cell + dex)
 ddsSE
 ```
+
+### Pre-filtering
+
+While it is not necessary to pre-filter low count genes before running the DESeq2
+functions, there are two reasons which make pre-filtering useful:
+by removing rows in which there are no reads or nearly no reads,
+we reduce the memory size of the `dds` data object and 
+we increase the speed of the transformation
+and testing functions within DESeq2. Here we perform a minimal
+pre-filtering to remove rows that have only 0 or 1 read. Note that more strict
+filtering to increase power is *automatically* 
+applied via [independent filtering](#indfilt) on the mean of
+normalized counts within the *results* function. 
+
+```{r prefilter}
+dds <- dds[ rowSums(counts(dds)) > 1, ]
+``` 
+
+### Note on factor levels 
+
+By default, R will choose a *reference level* for factors based on
+alphabetical order. Then, if you never tell the DESeq2 functions which
+level you want to compare against (e.g. which level represents the
+control group), the comparisons will be based on the alphabetical
+order of the levels. There are two solutions: you can either
+explicitly tell *results* which comparison to make using the
+`contrast` argument (this will be shown later), or you can explicitly
+set the factors levels. Setting the factor levels can be done in two
+ways, either using factor:
+
+```{r factorlvl}
+dds$condition <- factor(dds$condition, levels=c("untreated","treated"))
+``` 
+
+...or using *relevel*, just specifying the reference level:
+
+```{r relevel}
+dds$condition <- relevel(dds$condition, ref="untreated")
+``` 
+
+If you need to subset the columns of a *DESeqDataSet*,
+i.e., when removing certain samples from the analysis, it is possible
+that all the samples for one or more levels of a variable in the design
+formula would be removed. In this case, the *droplevels* function can be used
+to remove those levels which do not have samples in the current *DESeqDataSet*:
+
+```{r droplevels}
+dds$condition <- droplevels(dds$condition)
+``` 
+
+### Collapsing technical replicates
+
+DESeq2 provides a function *collapseReplicates* which can
+assist in combining the counts from technical replicates into single
+columns of the count matrix. The term *technical replicate* 
+implies multiple sequencing runs of the same library. 
+You should not collapse biological replicates using this function.
+See the manual page for an example of the use of
+*collapseReplicates*.
+
+### About the pasilla dataset
+
+We continue with the `r Biocexptpkg("pasilla")` data constructed from the
+count matrix method above. This data set is from an experiment on
+*Drosophila melanogaster* cell cultures and investigated the
+effect of RNAi knock-down of the splicing factor *pasilla*
+[@Brooks2010].  The detailed transcript of the production of
+the `r Biocexptpkg("pasilla")` data is provided in the vignette of the 
+data package `r Biocexptpkg("pasilla")`.
+
+## Differential expression analysis 
+
+The standard differential expression analysis steps are wrapped
+into a single function, *DESeq*. The estimation steps performed
+by this function are described [below](#theory), in the manual page for
+`?DESeq` and in the Methods section of the DESeq2 publication [@Love2014]. 
+
+Results tables are generated using the function *results*, which
+extracts a results table with log2 fold changes, *p* values and adjusted
+*p* values. With no arguments to *results*, the results will be for
+the last variable in the design formula, and if this is a factor, 
+the comparison will be the last level of this variable over the first level. 
+Details about the comparison are printed to the console. The text, `condition`
+`treated vs untreated`, tells you that the estimates are of the logarithmic
+fold change log2(treated/untreated)$.
+
+```{r deseq}
+dds <- DESeq(dds)
+res <- results(dds)
+res
+``` 
+
+These steps should take less than 30 seconds for most analyses. For
+experiments with many samples (e.g. 100 samples), one can take
+advantage of parallelized computation.  Both of the above functions
+have an argument `parallel` which if set to `TRUE` can
+be used to distribute computation across cores specified by the
+*register* function of `r Biocpkg("BiocParallel")`. For example,
+the following chunk (not evaluated here), would register 4 cores, and
+then the two functions above, with `parallel=TRUE`, would
+split computation over these cores. 
+
+```{r parallel, eval=FALSE}
+library("BiocParallel")
+register(MulticoreParam(4))
+```
+
+We can order our results table by the smallest adjusted *p* value:
+
+```{r resOrder}
+resOrdered <- res[order(res$padj),]
+```
+
+We can summarize some basic tallies using the
+*summary* function.
+
+```{r sumRes}
+summary(res)
+``` 
+
+How many adjusted p-values were less than 0.1?
+
+```{r sumRes01}
+sum(res$padj < 0.1, na.rm=TRUE)
+``` 
+
+The *results* function contains a number of arguments to
+customize the results table which is generated. You can read about
+these arguments by looking up `?results`.
+Note that the *results* function automatically performs independent
+filtering based on the mean of normalized counts for each gene,
+optimizing the number of genes which will have an adjusted *p* value
+below a given FDR cutoff, `alpha`.
+Independent filtering is further discussed [below](#indfilt).
+By default the argument `alpha` is set to $0.1$.  If the adjusted *p*
+value cutoff will be a value other than $0.1$, `alpha` should be set to
+that value:
+
+```{r resAlpha05}
+res05 <- results(dds, alpha=0.05)
+summary(res05)
+sum(res05$padj < 0.05, na.rm=TRUE)
+``` 
+
+A generalization of the idea of *p* value filtering is to *weight* hypotheses
+to optimize power. A Bioconductor package, `r Biocpkg("IHW")`, is available
+that implements the method of *Independent Hypothesis Weighting* [@Ignatiadis2015].
+Here we show the use of *IHW* for *p* value adjustment of DESeq2 results.
+For more details, please see the vignette of the `r Biocpkg("IHW")` package.
+Note that the *IHW* result object is stored in the metadata.
+
+```{r IHW}
+library("IHW")
+resIHW <- results(dds, filterFun=ihw)
+summary(resIHW)
+sum(resIHW$padj < 0.1, na.rm=TRUE)
+metadata(resIHW)$ihwResult
+``` 
+
+If a multi-factor design is used, or if the variable in the design
+formula has more than two levels, the `contrast` argument of
+*results* can be used to extract different comparisons from
+the *DESeqDataSet* returned by *DESeq*.
+The use of the `contrast` argument is further discussed [below](#contrasts).
+
+For advanced users, note that all the values calculated by the DESeq2 
+package are stored in the *DESeqDataSet* object, and access 
+to these values is discussed [below](#access).
+
+## Exploring and exporting results
+
+### MA-plot
+
+In DESeq2, the function *plotMA* shows the log2
+fold changes attributable to a given variable over the mean of
+normalized counts for all the samples in the *DESeqDataSet*.
+Points will be colored red if the adjusted *p* value is less than 0.1.
+Points which fall out of the window are plotted as open triangles pointing 
+either up or down.
+
+```{r MA}
+plotMA(res, main="DESeq2", ylim=c(-2,2))
+```
+
+After calling *plotMA*, one can use the function
+*identify* to interactively detect the row number of
+individual genes by clicking on the plot. One can then recover
+the gene identifiers by saving the resulting indices:
+
+```{r MAidentify, eval=FALSE}
+idx <- identify(res$baseMean, res$log2FoldChange)
+rownames(res)[idx]
+``` 
+
+The MA-plot of log2 fold changes returned by DESeq2 allows us to
+see how the shrinkage of fold changes works for genes with low
+counts. You can still obtain results tables which include the
+unshrunken log2 fold changes (for a simple comparison, the ratio
+of the mean normalized counts in the two groups). A column
+`lfcMLE` with the unshrunken maximum likelihood estimate (MLE)
+for the log2 fold change will be added with an additional argument to
+*results*:
+
+```{r resMLE}
+resMLE <- results(dds, addMLE=TRUE)
+head(resMLE, 4)
+``` 
+
+One can make an MA-plot of the unshrunken estimates like so:
+
+```{r MANoPrior}
+plotMA(resMLE, MLE=TRUE, main="unshrunken LFC", ylim=c(-2,2))
+```
+
+### Plot counts 
+
+It can also be useful to examine the counts of reads for a single gene
+across the groups. A simple function for making this
+plot is *plotCounts*, which normalizes counts by sequencing depth
+and adds a pseudocount of 1/2 to allow for log scale plotting.
+The counts are grouped by the variables in `intgroup`, where
+more than one variable can be specified. Here we specify the gene
+which had the smallest *p* value from the results table created
+above. You can select the gene to plot by rowname or by numeric index.
+
+```{r plotCounts}
+plotCounts(dds, gene=which.min(res$padj), intgroup="condition")
+``` 
+
+For customized plotting, an argument `returnData` specifies
+that the function should only return a *data.frame* for
+plotting with *ggplot*.
+
+```{r plotCountsAdv}
+d <- plotCounts(dds, gene=which.min(res$padj), intgroup="condition", 
+                returnData=TRUE)
+library("ggplot2")
+ggplot(d, aes(x=condition, y=count)) + 
+  geom_point(position=position_jitter(w=0.1,h=0)) + 
+  scale_y_log10(breaks=c(25,100,400))
+``` 
+
+### More information on results columns 
+
+Information about which variables and tests were used can be found by calling
+the function *mcols* on the results object.
+
+```{r metadata}
+mcols(res)$description
+```
+
+For a particular gene, a log2 fold change of -1 for
+`condition treated vs untreated` means that the treatment
+induces a multiplicative change in observed gene expression level of
+$2^{-1} = 0.5$ compared to the untreated condition. If the variable of
+interest is continuous-valued, then the reported log2 fold change is
+per unit of change of that variable.
+
+**Note on p-values set to NA**: some values in the results table
+can be set to `NA` for one of the following reasons:
+
+* If within a row, all samples have zero counts, 
+  the `baseMean` column will be zero, and the
+  log2 fold change estimates, *p* value and adjusted *p* value
+  will all be set to `NA`.
+* If a row contains a sample with an extreme count outlier
+  then the *p* value and adjusted *p* value will be set to `NA`.
+  These outlier counts are detected by Cook's distance. Customization
+  of this outlier filtering and description of functionality for 
+  replacement of outlier counts and refitting is described 
+  [below](#outlier)
+* If a row is filtered by automatic independent filtering, 
+  for having a low mean normalized count, then only the adjusted *p*
+  value will be set to `NA`. 
+  Description and customization of independent filtering is 
+  described [below](#indfilt)
+
+### Rich visualization and reporting of results
+
+**ReportingTools.** An HTML report of the results with plots and sortable/filterable columns
+can be generated using the `r Biocpkg("ReportingTools")` package
+on a *DESeqDataSet* that has been processed by the *DESeq* function.
+For a code example, see the *RNA-seq differential expression* vignette at
+the `r Biocpkg("ReportingTools")` page, or the manual page for the 
+*publish* method for the *DESeqDataSet* class.
+
+**regionReport.** An HTML and PDF summary of the results with plots
+can also be generated using the `r Biocpkg("regionReport")` package.
+The *DESeq2Report* function should be run on a 
+*DESeqDataSet* that has been processed by the *DESeq* function.
+For more details see the manual page for *DESeq2Report* 
+and an example vignette in the `r Biocpkg("regionReport")` package.
+
+**Glimma.** Interactive visualization of DESeq2 output, 
+including MA-plots (also called MD-plot) can be generated using the
+`r Biocpkg("Glimma")` package. See the manual page for *glMDPlot.DESeqResults*.
+
+**pcaExplorer.** Interactive visualization of DESeq2 output,
+including PCA plots, boxplots of counts and other useful summaries can be
+generated using the `r Biocpkg("pcaExplorer")` package.
+See the ``Launching the application'' section of the package vignette.
+
+### Exporting results to CSV files
+
+A plain-text file of the results can be exported using the 
+base R functions *write.csv* or *write.delim*. 
+We suggest using a descriptive file name indicating the variable
+and levels which were tested.
+
+```{r export, eval=FALSE}
+write.csv(as.data.frame(resOrdered), 
+          file="condition_treated_results.csv")
+```
+
+Exporting only the results which pass an adjusted *p* value
+threshold can be accomplished with the *subset* function,
+followed by the *write.csv* function.
+
+```{r subset}
+resSig <- subset(resOrdered, padj < 0.1)
+resSig
+``` 
+
+## Multi-factor designs 
+
+Experiments with more than one factor influencing the counts can be
+analyzed using design formula that include the additional variables.
+By adding these to the design, one can control for additional variation
+in the counts. For example, if the condition samples are balanced
+across experimental batches, by including the `batch` factor to the
+design, one can increase the sensitivity for finding differences due
+to `condition`. There are multiple ways to analyze experiments when the
+additional variables are of interest and not just controlling factors 
+(see [section on interactions](#interactions)).
+
+The data in the `r Biocexptpkg("pasilla")` package have a condition of interest 
+(the column `condition`), as well as information on the type of sequencing 
+which was performed (the column `type`), as we can see below:
+
+```{r multifactor}
+colData(dds)
+```
+
+We create a copy of the *DESeqDataSet*, so that we can rerun
+the analysis using a multi-factor design.
+
+```{r copyMultifactor}
+ddsMF <- dds
+```
+
+We can account for the different types of sequencing, and get a clearer picture
+of the differences attributable to the treatment.  As `condition` is the
+variable of interest, we put it at the end of the formula. Thus the *results*
+function will by default pull the `condition` results unless 
+`contrast` or `name` arguments are specified. 
+Then we can re-run *DESeq*:
+
+```{r replaceDesign}
+design(ddsMF) <- formula(~ type + condition)
+ddsMF <- DESeq(ddsMF)
+```
+
+Again, we access the results using the *results* function.
+
+```{r multiResults}
+resMF <- results(ddsMF)
+head(resMF)
+```
+
+It is also possible to retrieve the log2 fold changes, *p* values and adjusted
+*p* values of the `type` variable. The `contrast` argument of 
+the function *results* takes a character vector of length three:
+the name of the variable, the name of the factor level for the numerator
+of the log2 ratio, and the name of the factor level for the denominator.
+The `contrast` argument can also take other forms, as
+described in the help page for *results* and [below](#contrasts)
+
+```{r multiTypeResults}
+resMFType <- results(ddsMF,
+                     contrast=c("type", "single-read", "paired-end"))
+head(resMFType)
+```
+
+If the variable is continuous or an interaction term
+(see [section on interactions](#interactions))
+then the results can be extracted using the `name` argument to *results*,
+where the name is one of elements returned by `resultsNames(dds)`.
+
+# Data transformations and visualization 
+
+## Count data transformations
+
+In order to test for differential expression, we operate on raw counts
+and use discrete distributions as described in the previous Section~\ref{sec:de}.
+However for other downstream analyses -- 
+e.g. for visualization or clustering -- it might be useful 
+to work with transformed versions of the count data. 
+
+Maybe the most obvious choice of transformation is the logarithm.
+Since count values for a gene can be zero in some
+conditions (and non-zero in others), some advocate the use of
+*pseudocounts*, i.\,e.\ transformations of the form
+%
+\begin{equation}
+  y = \log_2(n + 1)\quad\mbox{or more generally,}\quad y = \log_2(n + n_0),
+\end{equation}
+%
+where $n$ represents the count values and $n_0$ is a positive constant.
+
+In this section, we discuss two alternative
+approaches that offer more theoretical justification and a rational way
+of choosing the parameter equivalent to $n_0$ above.
+The *regularized logarithm* or *rlog* incorporates a prior on
+the sample differences [@Love2014], 
+and the other uses the concept of variance stabilizing
+transformations (VST) [@Tibshirani1988,sagmb2003,Anders:2010:GB].
+Both transformations produce transformed data on the $\log_2$ scale
+which has been normalized with respect to library size.
+
+The point of these two transformations, the *rlog* and the VST,
+is to remove the dependence of the variance on the mean,
+particularly the high variance of the logarithm of count data when the
+mean is low. Both *rlog* and VST use the experiment-wide trend
+of variance over mean, in order to transform the data to remove the
+experiment-wide trend. Note that we do not require or
+desire that all the genes have *exactly* the same variance after
+transformation. Indeed, in Figure~\ref{fig:meansd} below, you will see
+that after the transformations the genes with the same mean do not
+have exactly the same standard deviations, but that the
+experiment-wide trend has flattened. It is those genes with row
+variance above the trend which will allow us to cluster samples into
+interesting groups.
+
+\textbf{Note on running time:} if you have many samples (e.g. 100s),
+the *rlog* function might take too long, and the 
+*varianceStabilizingTransformation* is a faster choice.  
+The rlog and VST have similar properties, but the rlog requires fitting a shrinkage
+term for each sample and each gene which takes time.  See the
+DESeq2 paper for more discussion on the differences
+[@Love2014]. In addition, a new function *vst* provides
+an even faster version of the *varianceStabilizingTransformation*
+but calculating the global dispersion trend on a subset of the genes
+(default 1000). *vst* may be attractive for interactive EDA.
+
+### Blind dispersion estimation
+
+The two functions, *rlog* and
+*varianceStabilizingTransformation*, have an argument
+`blind`, for whether the transformation should be blind to the
+sample information specified by the design formula. When
+`blind` equals `TRUE` (the default), the functions
+will re-estimate the dispersions using only an intercept (design
+formula $\sim 1$). This setting should be used in order to compare
+samples in a manner wholly unbiased by the information about
+experimental groups, for example to perform sample QA (quality
+assurance) as demonstrated below.
+
+However, blind dispersion estimation is not the appropriate choice if
+one expects that many or the majority of genes (rows) will have large
+differences in counts which are explainable by the experimental design,
+and one wishes to transform the data for downstream analysis. In this
+case, using blind dispersion estimation will lead to large estimates
+of dispersion, as it attributes differences due to experimental design
+as unwanted ``noise'', and will result in overly shrinking the transformed
+values towards each other. 
+By setting `blind` to `FALSE`, the dispersions
+already estimated will be used to perform transformations, or if not
+present, they will be estimated using the current design formula. Note
+that only the fitted dispersion estimates from mean-dispersion trend
+line are used in the transformation (the global dependence of
+dispersion on mean for the entire experiment).
+So setting `blind` to `FALSE` is still for the most
+part not using the information about which samples were in which
+experimental group in applying the transformation.
+
+### Extracting transformed values
+
+These functions return an object of class *DESeqTransform*
+which is a subclass of *RangedSummarizedExperiment*. 
+For $\sim 20$ samples, running on a newly created `DESeqDataSet`,
+*rlog* may take 30 seconds, 
+*varianceStabilizingTransformation* may take 5 seconds, and
+*vst* less than 1 second (by subsetting to 1000 genes for
+calculating the global dispersion trend).
+However, the running times are shorter and more similar with `blind=FALSE` and
+if the function *DESeq* has already been run, because then
+it is not necessary to re-estimate the dispersion values.
+The *assay* function is used to extract the matrix of normalized values.
+
+```{r rlogAndVST}
+rld <- rlog(dds, blind=FALSE)
+vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
+vsd.fast <- vst(dds, blind=FALSE)
+head(assay(rld), 3)
+```
+
+### Regularized log transformation
+
+The function *rlog*, stands for *regularized log*,
+transforming the original count data to the log2 scale by fitting a
+model with a term for each sample and a prior distribution on the
+coefficients which is estimated from the data. This is the same kind
+of shrinkage (sometimes referred to as regularization, or moderation)
+of log fold changes used by the *DESeq* and
+*nbinomWaldTest*, as seen in Figure \ref{fig:MA}. The
+resulting data contains elements defined as:
+
+$$ \log_2(q_{ij}) = \beta_{i0} + \beta_{ij} $$
+
+where $q_{ij}$ is a parameter proportional to the expected true
+concentration of fragments for gene $i$ and sample $j$ (see
+Section~\ref{sec:glm}), $\beta_{i0}$ is an intercept which does not
+undergo shrinkage, and $\beta_{ij}$ is the sample-specific effect
+which is shrunk toward zero based on the dispersion-mean trend over
+the entire dataset. The trend typically captures high dispersions for
+low counts, and therefore these genes exhibit higher shrinkage from
+the*rlog*.
+
+Note that, as $q_{ij}$ represents the part of the mean value
+$\mu_{ij}$ after the size factor $s_j$ has been divided out, it is
+clear that the rlog transformation inherently accounts for differences
+in sequencing depth.  Without priors, this design matrix would lead to
+a non-unique solution, however the addition of a prior on
+non-intercept betas allows for a unique solution to be found.  The
+regularized log transformation is preferable to the variance
+stabilizing transformation if the size factors vary widely.
+
+### Variance stabilizing transformation
+
+Above, we used a parametric fit for the dispersion. In this case, the
+closed-form expression for the variance stabilizing transformation is
+used by *varianceStabilizingTransformation*, which is
+derived in the file `vst.pdf`, that is distributed in the
+package alongside this vignette. If a local fit is used (option
+`fitType="locfit"` to *estimateDispersions*) a
+numerical integration is used instead.
+
+```{r vsd1, echo=FALSE, fig.width=4.5, fig.height=4.5, fig.show="asis", fig.small=TRUE, fig.pos="!bt", fig.cap="VST and log2. Graphs of the variance stabilizing transformation for sample 1, in blue, and of the transformation $f(n) = \\log_2(n/s_1)$, in black. $n$ are the counts and $s_1$ is the size factor for the first sample.\"}
+px     <- counts(dds)[,1] / sizeFactors(dds)[1]
+ord    <- order(px)
+ord    <- ord[px[ord] < 150]
+ord    <- ord[seq(1, length(ord), length=50)]
+last   <- ord[length(ord)]
+vstcol <- c("blue", "black")
+matplot(px[ord],
+        cbind(assay(vsd)[, 1], log2(px))[ord, ],
+        type="l", lty=1, col=vstcol, xlab="n", ylab="f(n)")
+legend("bottomright",
+       legend = c(
+        expression("variance stabilizing transformation"),
+        expression(log[2](n/s[1]))),
+       fill=vstcol)
+```
+
+The resulting variance stabilizing transformation is shown in Figure
+\ref{figure/vsd1-1}.  The code that produces the figure is hidden from
+this vignette for the sake of brevity, but can be seen in the
+`.Rnw` or `.R` source file. Note that the vertical axis
+in such plots is the square root of the variance over all samples, so
+including the variance due to the experimental conditions.  While a
+flat curve of the square root of variance over the mean may seem like
+the goal of such transformations, this may be unreasonable in the case
+of datasets with many true differences due to the experimental
+conditions.
+
+### Effects of transformations on the variance
+
+Figure~\ref{fig:meansd} plots the standard deviation of the transformed
+data, across samples, against the mean, using the shifted
+logarithm transformation \eqref{eq:shiftedlog}, the
+regularized log transformation and the variance stabilizing transformation.
+The shifted logarithm has elevated standard deviation in the lower
+count range, and the regularized log to a lesser extent, while for
+the variance stabilized data the standard deviation is roughly constant
+along the whole dynamic range.
+
+```{r meansd, fig.width=4, fig.height=3, fig.show="asis", fig.wide=TRUE, fig.pos="tb", out.width=".32\\linewidth", fig.cap="Per-gene standard deviation (taken across samples), against the rank of the mean. {\\bfhelvet(a)} for the shifted logarithm $\\log_2(n+1)$, the regularized log transformation {\\bfhelvet(b)} and the variance stabilizing transformation {\\bfhelvet(c)}.\", fig.subcap=""}
+library("vsn")
+notAllZero <- (rowSums(counts(dds))>0)
+meanSdPlot(log2(counts(dds,normalized=TRUE)[notAllZero,] + 1))
+meanSdPlot(assay(rld[notAllZero,]))
+meanSdPlot(assay(vsd[notAllZero,]))
+```
+
+## Data quality assessment by sample clustering and visualization
+
+Data quality assessment and quality control (i.\,e.\ the removal of
+insufficiently good data) are essential steps of any data
+analysis. These steps should typically be performed 
+very early in the analysis of a new data set,
+preceding or in parallel to the differential expression testing.
+
+We define the term *quality* as 
+*fitness for purpose*\footnote{<http://en.wikipedia.org/wiki/Quality_\%28business\%29>}.
+Our purpose is the detection of differentially expressed genes, and we
+are looking in particular for samples whose experimental treatment
+suffered from an anormality that renders the data points obtained from
+these particular samples detrimental to our purpose.
+
+### Heatmap of the count matrix
+
+To explore a count matrix, it is often instructive to look at it as a
+heatmap.  Below we show how to produce such a heatmap 
+for various transformations of the data.
+
+```{r heatmap, dev="pdf", fig.width=5, fig.height=7}
+library("pheatmap")
+select <- order(rowMeans(counts(dds,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
+
+nt <- normTransform(dds) # defaults to log2(x+1)
+log2.norm.counts <- assay(nt)[select,]
+df <- as.data.frame(colData(dds)[,c("condition","type")])
+pheatmap(log2.norm.counts, cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
+
+pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
+
+pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
+```
+
+\begin{figure*}
+\includegraphics[width=.32\textwidth]{figure/heatmap-1}
+\includegraphics[width=.32\textwidth]{figure/heatmap-2}
+\includegraphics[width=.32\textwidth]{figure/heatmap-3}
+\caption{Heatmaps showing the expression data of the \Sexpr{length(select)}
+  most highly expressed genes. The data is of log2 normalized counts (left),
+  from regularized log transformation (center) and from variance
+  stabilizing transformation (right).}
+
+\end{figure*}
+
+### Heatmap of the sample-to-sample distances
+
+Another use of the transformed data is sample clustering. Here, we apply the
+*dist* function to the transpose of the transformed count matrix to get
+sample-to-sample distances. We could alternatively use the variance stabilized
+transformation here.
+
+```{r sampleClust}
+sampleDists <- dist(t(assay(rld)))
+```
+
+A heatmap of this distance matrix gives us an overview over similarities
+and dissimilarities between samples (Figure \ref{figure/figHeatmapSamples-1}):
+We have to provide a hierarchical clustering `hc` to the heatmap
+function based on the sample distances, or else the heatmap
+function would calculate a clustering based on the distances between
+the rows/columns of the distance matrix.
+
+```{r figHeatmapSamples, dev="pdf", fig.width=7, fig.height=7, fig.show="asis", fig.small=TRUE, fig.pos="tb", fig.cap="Sample-to-sample distances.  Heatmap showing the Euclidean distances between the samples as calculated from the regularized log transformation.\"}
+library("RColorBrewer")
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- paste(rld$condition, rld$type, sep="-")
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows=sampleDists,
+         clustering_distance_cols=sampleDists,
+         col=colors)
+```
+
+### Principal component plot of the samples
+
+Related to the distance matrix of Section~\ref{sec:dists} is the PCA
+plot of the samples, which we obtain as follows (Figure \ref{figure/figPCA-1}).
+
+```{r figPCA, dev="pdf", fig.width=5, fig.height=3}
+plotPCA(rld, intgroup=c("condition", "type"))
+```
+
+\incfig[tbh]{figure/figPCA-1}{\textwidth}{PCA plot.}{
+  PCA plot. The \Sexpr{ncol(rld)} samples shown in the 2D
+  plane spanned by their first two principal components. This type of
+  plot is useful for visualizing the overall effect of experimental
+  covariates and batch effects.
+}
+
+It is also possible to customize the PCA plot using the
+*ggplot* function.
+
+```{r figPCA2, dev="pdf", fig.width=5, fig.height=3}
+data <- plotPCA(rld, intgroup=c("condition", "type"), returnData=TRUE)
+percentVar <- round(100 * attr(data, "percentVar"))
+ggplot(data, aes(PC1, PC2, color=condition, shape=type)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed()
+```
+
+\incfig[tbh]{figure/figPCA2-1}{\textwidth}{PCA plot.}{
+  PCA plot customized using the \CRANpkg{ggplot2} library.
+}
+
+
+\newpage
+
+# Variations to the standard workflow
+
+## Wald test individual steps 
+
+The function *DESeq* runs the following functions in order:
+
+```{r WaldTest, eval=FALSE}
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+dds <- nbinomWaldTest(dds)
+```
+
+<a name="contrasts">
+
+## Contrasts 
+
+A contrast is a linear combination of estimated log2 fold changes,
+which can be used to test if differences between groups are equal to
+zero.  The simplest use case for contrasts is an experimental design
+containing a factor with three levels, say A, B and C.  Contrasts
+enable the user to generate results for all 3 possible differences:
+log2 fold change of B vs A, of C vs A, and of C vs B.
+The `contrast` argument of *results* function is
+used to extract test results of log2 fold changes of interest, for example:
+
+```{r simpleContrast, eval=FALSE}
+results(dds, contrast=c("condition","C","B"))
+``` 
+
+Log2 fold changes can also be added and subtracted by providing a
+`list` to the `contrast` argument which has two elements:
+the names of the log2 fold changes to add, and the names of the log2
+fold changes to subtract. The names used in the list should come from
+`resultsNames(dds)`.
+
+Alternatively, a numeric vector of the
+length of `resultsNames(dds)` can be provided, for manually
+specifying the linear combination of terms.  Demonstrations of the use
+of contrasts for various designs can be found in the examples section
+of the help page for the *results* function. The
+mathematical formula that is used to generate the contrasts can be found in
+Section~\ref{sec:ctrstTheory}.
+
+<a name="interactions">
+
+## Interactions 
+
+Interaction terms can be added to the design formula, in order to
+test, for example, if the log2 fold change attributable to a given
+condition is *different* based on another factor, for example if the
+condition effect differs across genotype.
+
+Many users begin to add interaction terms to the design formula, when
+in fact a much simpler approach would give all the results tables that
+are desired. We will explain this approach first, because it is much
+simpler to perform.
+If the comparisons of interest are, for example, the effect
+of a condition for different sets of samples, a simpler approach than
+adding interaction terms explicitly to the design formula is to
+perform the following steps:
+
+\begin{enumerate}
+\item combine the factors of interest into a single factor with all
+  combinations of the original factors 
+\item change the design to include just this factor, e.g. `\lowtilde{` group}
+\end{enumerate}
+
+Using this design is similar to adding an interaction term, 
+in that it models multiple condition effects which
+can be easily extracted with *results*.
+Suppose we have two factors `genotype` (with values I, II, and III) 
+and `condition` (with values A and B), and we want to extract 
+the condition effect specifically for each genotype. We could use the
+following approach to obtain, e.g. the condition effect for genotype I: 
+
+```{r combineFactors, eval=FALSE}
+dds$group <- factor(paste0(dds$genotype, dds$condition))
+design(dds) <- ~ group
+dds <- DESeq(dds)
+resultsNames(dds)
+results(dds, contrast=c("group", "IB", "IA"))
+```
+
+```{r interFig, dev="pdf", fig.width=4, fig.height=3, echo=FALSE, results="hide"}
+npg <- 20
+mu <- 2^c(8,10,9,11,10,12)
+cond <- rep(rep(c("A","B"),each=npg),3)
+geno <- rep(c("I","II","III"),each=2*npg)
+table(cond, geno)
+counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)
+d <- data.frame(log2c=log2(counts+1), cond, geno)
+library(ggplot2)
+plotit <- function(d, title) {
+  ggplot(d, aes(x=cond, y=log2c, group=geno)) + 
+    geom_jitter(size=1.5, position = position_jitter(width=.15)) +
+    facet_wrap(~ geno) + 
+    stat_summary(fun.y=mean, geom="line", colour="red", size=0.8) + 
+    xlab("condition") + ylab("log2(counts+1)") + ggtitle(title)
+}
+plotit(d, "Gene 1") + ylim(7,13)
+lm(log2c ~ cond + geno + geno:cond, data=d)
+``` 
+
+```{r interFig2, dev="pdf", fig.width=4, fig.height=3,  echo=FALSE, results="hide"}
+mu[4] <- 2^12
+mu[6] <- 2^8
+counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)
+d2 <- data.frame(log2c=log2(counts + 1), cond, geno)
+plotit(d2, "Gene 2") + ylim(7,13)
+lm(log2c ~ cond + geno + geno:cond, data=d2)
+``` 
+
+\begin{figure*}
+\includegraphics[width=.49\textwidth]{figure/interFig-1}
+\includegraphics[width=.49\textwidth]{figure/interFig2-1}
+\caption{
+  Genotype-specific condition effects.
+  Here, the y-axis represents $\log_2(\textrm{counts}+1)$, and each
+  group has 20 samples (black dots). A red line connects the mean of
+  the groups within each genotype.
+  On the left side (Gene 1), note that the condition effect is consistent
+  across genotypes. Although condition A has a different baseline for
+  I,II, and III, the condition effect is a log2 fold change of about 2
+  for each genotype.
+  Using a model with an interaction term `genotype:condition`,
+  the interaction terms for genotype II and genotype III will be nearly 0.
+  On the right side (Gene 2), we can see that the condition effect is
+  not consistent across genotype. Here the main condition effect (the
+  effect for the reference genotype I) is again 2. However, this time
+  the interaction terms will be around 1 for genotype II and
+  -4 for genotype III. This is 
+  because the condition effect is higher by 1 for genotype II compared to
+  genotype I, and lower by 4 for genotype III compared to genotype I.
+  The condition effect for genotype II (or III) is obtained by adding the
+  main condition effect and the interaction term for that genotype.
+  Such a plot can be made using the *plotCounts* function
+  (Section~\ref{sec:plotcounts}).
+}
+
+\end{figure*}
+
+Now we will continue to explain the use of interactions in order to
+test for *differences* in condition effects. We continue with
+the example of condition effects across three genotypes (I, II, and III).
+For a diagram of how interactions might look across genotypes 
+please refer to Figure \ref{fig:inter}. 
+
+The key point to remember about designs with interaction terms is
+that, unlike for a design `\lowtilde{` 
+  genotype + condition}, where the condition effect represents the
+*overall* effect controlling for differences due to genotype, by adding
+`genotype:condition`, the main condition effect only
+represents the effect of condition for the *reference level* of
+genotype (I, or whichever level was defined by the user as the
+reference level). The interaction terms `genotypeII.conditionB`
+and `genotypeIII.conditionB` give the *difference*
+between the condition effect for a given genotype and the condition
+effect for the reference genotype. 
+
+This genotype-condition interaction example is examined in further
+detail in Example 3 in the help page for *results*, which
+can be found by typing `?results`. In particular, we show how to
+test for differences in the condition effect across genotype, and we
+show how to obtain the condition effect for non-reference genotypes.
+Note that in DESeq2 version 1.10, the *DESeq* function will turn
+off log fold change shrinkage (setting `betaPrior=FALSE`),
+for designs which contain an interaction term. Turning off the log
+fold change shrinkage allows the software to use standard model
+matrices (as would be produced by *model.matrix*), where the
+interaction coefficients are easier to interpret.
+
+## Time-series experiments
+
+There are a number of ways to analyze time-series experiments,
+depending on the biological question of interest. In order to test for
+any differences over multiple time points, once can use a design
+including the time factor, and then test using the likelihood ratio
+test as described in Section~\ref{sec:LRT}, where the time factor is
+removed in the reduced formula. For a control and treatment time
+series, one can use a design formula containing the condition factor,
+the time factor, and the interaction of the two. In this case, using
+the likelihood ratio test with a reduced model which does not contain
+the interaction terms will test whether the condition induces a change
+in gene expression at any time point after the reference level time point
+(time 0). An example of the later analysis is provided in an RNA-seq
+workflow on the Bioconductor
+website: <http://www.bioconductor.org/help/workflows/rnaseqGene/>.
+
+## Likelihood ratio test 
+
+DESeq2 offers two kinds of hypothesis tests: the Wald test, where
+we use the estimated standard error of a log2 fold change to test if it is
+equal to zero, and the likelihood ratio test (LRT). The LRT examines
+two models for the counts, a *full* model with a certain number
+of terms and a *reduced* model, in which some of the terms of the
+*full* model are removed. The test determines if the increased
+likelihood of the data using the extra terms in the *full* model
+is more than expected if those extra terms are truly zero.
+
+The LRT is therefore useful for testing multiple
+terms at once, for example testing 3 or more levels of a factor at once,
+or all interactions between two variables. 
+The LRT for count data is conceptually similar to an analysis of variance (ANOVA)
+calculation in linear regression, except that in the case of the Negative
+Binomial GLM, we use an analysis of deviance (ANODEV), where the
+*deviance* captures the difference in likelihood between a full
+and a reduced model.
+
+The likelihood ratio test can be performed by specifying `test="LRT"`
+when using the *DESeq* function, and
+providing a reduced design formula, e.g. one in which a
+number of terms from `design(dds)` are removed.
+The degrees of freedom for the test is obtained from the difference
+between the number of parameters in the two models. 
+A simple likelihood ratio test, if the full design was
+`~condition` would look like:
+
+```{r simpleLRT, eval=FALSE}
+dds <- DESeq(dds, test="LRT", reduced=~1)
+res <- results(dds)
+``` 
+
+If the full design contained other variables, 
+such as a batch variable,
+then the likelihood ratio test would look like:
+
+```{r simpleLRT2, eval=FALSE}
+dds <- DESeq(dds, test="LRT", reduced=~batch)
+res <- results(dds)
+``` 
+
+<a name="outlier">
+
+## Approach to count outliers 
+
+RNA-seq data sometimes contain isolated instances of very large counts that are apparently
+unrelated to the experimental or study design, and which may be 
+considered outliers. There are many reasons why outliers can arise, including rare
+technical or experimental artifacts, read mapping problems in the case of genetically
+differing samples, and genuine, but rare biological events. In many cases, users appear
+primarily interested in genes that show a consistent behavior, and this is the reason why
+by default, genes that are affected by such outliers are set aside by DESeq2, 
+or if there are sufficient samples, outlier counts are replaced for model fitting. 
+These two behaviors are described below.
+
+The *DESeq* function calculates, for every gene and for every sample,
+a diagnostic test for outliers called *Cook's distance*. Cook's distance 
+is a measure of how much a single sample is influencing the fitted 
+coefficients for a gene, and a large value of Cook's distance is 
+intended to indicate an outlier count. 
+The Cook's distances are stored as a matrix available in 
+`assays(dds)[["cooks"]]`.
+
+The *results* function automatically flags genes which contain a 
+Cook's distance above a cutoff for samples which have 3 or more replicates. 
+The *p* values and adjusted *p* values for these genes are set to `NA`. 
+At least 3 replicates are required for flagging, as it is difficult to judge
+which sample might be an outlier with only 2 replicates.
+This filtering can be turned off with `results(dds, cooksCutoff=FALSE)`.
+
+With many degrees of freedom -- i.\,e., many more samples than number of parameters to 
+be estimated -- it is undesirable to remove entire genes from the analysis
+just because their data include a single count outlier. When there
+are 7 or more replicates for a given sample, the *DESeq*
+function will automatically replace counts with large Cook's distance 
+with the trimmed mean over all samples, scaled up by the size factor or 
+normalization factor for that sample. This approach is conservative, 
+it will not lead to false positives, as it replaces
+the outlier value with the value predicted by the null hypothesis.
+This outlier replacement only occurs when there are 7 or more
+replicates, and can be turned off with 
+`DESeq(dds, minReplicatesForReplace=Inf)`.
+
+The default Cook's distance cutoff for the two behaviors described above
+depends on the sample size and number of parameters
+to be estimated. The default is to use the $99\%$ quantile of the 
+$F(p,m-p)$ distribution (with *p* the number of parameters including the 
+intercept and $m$ number of samples).
+The default for gene flagging can be modified using the `cooksCutoff` 
+argument to the *results* function. 
+For outlier replacement, *DESeq* preserves the original counts in
+`counts(dds)` saving the replacement counts as a matrix named
+`replaceCounts` in `assays(dds)`.
+Note that with continuous variables in the design, outlier detection
+and replacement is not automatically performed, as our 
+current methods involve a robust estimation of within-group variance
+which does not extend easily to continuous covariates. However, users
+can examine the Cook's distances in `assays(dds)[["cooks"]]`, in
+order to perform manual visualization and filtering if necessary.
+
+\textbf{Note on many outliers:} if there are very many outliers 
+(e.g. many hundreds or thousands) reported by
+`summary(res)`, one might consider further exploration to see if
+a single sample or a few samples should be removed due to low quality. 
+The automatic outlier filtering/replacement is most useful in situations which the number
+of outliers is limited. When there are thousands of reported outliers, 
+it might make more sense to turn off the outlier filtering/replacement
+(*DESeq* with `minReplicatesForReplace=Inf` and
+*results* with `cooksCutoff=FALSE`)
+and perform manual inspection: First it would be
+advantageous to make a PCA plot using the code example in Section
+\ref{sec:pca} to spot individual sample outliers; Second, one can make
+a boxplot of the Cook's distances to see if one sample is consistently
+higher than others: 
+
+```{r boxplotCooks, fig.show="asis", fig.small=TRUE, fig.cap="Boxplot of Cook's distances.  Here we can look to see if one sample has much higher Cook's distances than the other samples. In this case, the samples all have comparable range of Cook's distances.\"}
+par(mar=c(8,5,2,2))
+boxplot(log10(assays(dds)[["cooks"]]), range=0, las=2)
+``` 
+
+## Dispersion plot and fitting alternatives
+
+Plotting the dispersion estimates is a useful diagnostic. The dispersion
+plot in Figure \ref{figure/dispFit-1} is typical, with the final estimates shrunk
+from the gene-wise estimates towards the fitted estimates. Some gene-wise
+estimates are flagged as outliers and not shrunk towards the fitted value,
+(this outlier detection is described in the manual page for *estimateDispersionsMAP*).
+The amount of shrinkage can be more or less than seen here, depending 
+on the sample size, the number of coefficients, the row mean
+and the variability of the gene-wise estimates.
+
+```{r dispFit, fig.show="asis", fig.small=TRUE, fig.cap="Dispersion plot.  The dispersion estimate plot shows the gene-wise estimates (black), the fitted values (red), and the final maximum \*a posteriori* estimates used in testing (blue).\"}
+plotDispEsts(dds)
+```
+
+### Local or mean dispersion fit
+
+A local smoothed dispersion fit is automatically substitited in the case that
+the parametric curve doesn't fit the observed dispersion mean relationship.
+This can be prespecified by providing the argument
+`fitType="local"` to either *DESeq* or *estimateDispersions*.
+Additionally, using the mean of gene-wise disperion estimates as the
+fitted value can be specified by providing the argument `fitType="mean"`. 
+
+### Supply a custom dispersion fit
+
+Any fitted values can be provided during dispersion estimation, using
+the lower-level functions described in the manual page for
+*estimateDispersionsGeneEst*. In the code chunk below, we
+store the gene-wise estimates which were already calculated and saved 
+in the metadata column `dispGeneEst`. Then we calculate the
+median value of the dispersion estimates above a threshold, and save
+these values as the fitted dispersions, using the replacement function
+for *dispersionFunction*. In the last line, the function
+*estimateDispersionsMAP*, uses the 
+fitted dispersions to generate maximum *a posteriori* (MAP)
+estimates of dispersion. 
+
+```{r dispFitCustom}
+ddsCustom <- dds
+useForMedian <- mcols(ddsCustom)$dispGeneEst > 1e-7
+medianDisp <- median(mcols(ddsCustom)$dispGeneEst[useForMedian],
+                     na.rm=TRUE)
+dispersionFunction(ddsCustom) <- function(mu) medianDisp
+ddsCustom <- estimateDispersionsMAP(ddsCustom)
+```
+
+<a name="indfilt">
+
+## Independent filtering of results
+
+The *results* function of the DESeq2 package 
+performs independent filtering by default using 
+the mean of normalized counts as a filter statistic. 
+A threshold on the filter statistic is found which optimizes the number
+of adjusted *p* values lower than a significance level `alpha`
+(we use the standard variable name for significance level, 
+though it is unrelated to the dispersion parameter $\alpha$). 
+The theory behind independent filtering is discussed in greater detail
+in Section~\ref{sec:indepfilt}. The adjusted *p* values for the genes
+which do not pass the filter threshold are set to `NA`.
+
+The independent filtering is performed using the *filtered\_p* function 
+of the `r Biocpkg("genefilter")` package, and all of the arguments of *filtered\_p*
+can be passed to the *results* function. 
+The filter threshold value and the number of rejections at each quantile
+of the filter statistic are available as metadata of the object 
+returned by *results*. For example, we can visualize
+the optimization by plotting the `filterNumRej` attribute of 
+the results object, as seen in Figure \ref{figure/filtByMean-1}.
+
+```{r filtByMean, dev="pdf", fig.show="asis", fig.small=TRUE, fig.cap="Independent filtering.  The \*results* function maximizes the number of rejections (adjusted *p* value less than a significance level), over the quantiles of a filter statistic (the mean of normalized counts). The threshold chosen (vertical line) is the lowest quantile of the filter for which the number of rejections is within 1 residual standard deviation to the peak of a curve fit to the number of rejections over the filter quantiles.\"}
+metadata(res)$alpha
+metadata(res)$filterThreshold
+plot(metadata(res)$filterNumRej, 
+     type="b", ylab="number of rejections",
+     xlab="quantiles of filter")
+lines(metadata(res)$lo.fit, col="red")
+abline(v=metadata(res)$filterTheta)
+```
+
+Independent filtering can be turned off by setting 
+`independentFiltering` to `FALSE`.
+
+```{r noFilt}
+resNoFilt <- results(dds, independentFiltering=FALSE)
+addmargins(table(filtering=(res$padj < .1),
+                 noFiltering=(resNoFilt$padj < .1)))
+``` 
+
+## Tests of log2 fold change above or below a threshold
+
+It is also possible to provide thresholds for constructing
+Wald tests of significance. Two arguments to the *results*
+function allow for threshold-based Wald tests: `lfcThreshold`,
+which takes a numeric of a non-negative threshold value, 
+and `altHypothesis`, which specifies the kind of test.
+Note that the *alternative hypothesis* is specified by the user, 
+i.e. those genes which the user is interested in finding, and the test 
+provides *p* values for the null hypothesis, the complement of the set 
+defined by the alternative. The `altHypothesis` argument can take one 
+of the following four values, where $\beta$ is the log2 fold change
+specified by the `name` argument:
+
+\begin{itemize}
+ \item `greaterAbs` - $|\beta| > \textrm{lfcThreshold}$ - tests are two-tailed
+ \item `lessAbs` - $|\beta| < \textrm{lfcThreshold}$ - *p* values are the maximum of the upper and lower tests
+ \item `greater` - $\beta > \textrm{lfcThreshold} $
+ \item `less` - $\beta < -\textrm{lfcThreshold} $
+\end{itemize}
+
+The test `altHypothesis="lessAbs"` requires that the user have
+run *DESeq* with the argument `betaPrior=FALSE`.  To
+understand the reason for this requirement, consider that during
+hypothesis testing, the null hypothesis is favored unless the data
+provide strong evidence to reject the null.  For this test, including
+a zero-centered prior on log fold change would favor the alternative
+hypothesis, shrinking log fold changes toward zero.  Removing the
+prior on log fold changes for tests of small log fold change allows
+for detection of only those genes where the data alone provides
+evidence against the null.
+
+The four possible values of `altHypothesis` are demonstrated
+in the following code and visually by MA-plots in Figure~\ref{figure/lfcThresh-1}. 
+First we run *DESeq* and specify `betaPrior=FALSE` in order 
+to demonstrate `altHypothesis="lessAbs"`.
+
+```{r ddsNoPrior}
+ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
+```
+
+In order to produce results tables for the following tests, the same arguments
+(except `ylim`) would be provided to the *results* function. 
+
+```{r lfcThresh, fig.show="asis", fig.cap='MA-plots of tests of log2 fold change with respect to a threshold value.  Going left to right across rows, the tests are for \`altHypothesis = "greaterAbs"`, \`"lessAbs"`, \`"greater"`, and \`"less"`.\'}
+par(mfrow=c(2,2),mar=c(2,2,1,1))
+yl <- c(-2.5,2.5)
+
+resGA <- results(dds, lfcThreshold=.5, altHypothesis="greaterAbs")
+resLA <- results(ddsNoPrior, lfcThreshold=.5, altHypothesis="lessAbs")
+resG <- results(dds, lfcThreshold=.5, altHypothesis="greater")
+resL <- results(dds, lfcThreshold=.5, altHypothesis="less")
+
+plotMA(resGA, ylim=yl)
+abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+plotMA(resLA, ylim=yl)
+abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+plotMA(resG, ylim=yl)
+abline(h=.5,col="dodgerblue",lwd=2)
+plotMA(resL, ylim=yl)
+abline(h=-.5,col="dodgerblue",lwd=2)
+``` 
+
+<a name="access">
+
+## Access to all calculated values
+
+All row-wise calculated values (intermediate dispersion calculations,
+coefficients, standard errors, etc.) are stored in the *DESeqDataSet* 
+object, e.g. `dds` in this vignette. These values are accessible 
+by calling *mcols* on `dds`. 
+Descriptions of the columns are accessible by two calls to 
+*mcols*. Note that the call to `substr` below is only for display
+purposes.
+
+```{r mcols}
+mcols(dds,use.names=TRUE)[1:4,1:4]
+substr(names(mcols(dds)),1,10) 
+mcols(mcols(dds), use.names=TRUE)[1:4,]
+```
+
+The mean values $\mu_{ij} = s_j q_{ij}$ and the Cook's distances for each gene and
+sample are stored as matrices in the assays slot:
+
+```{r muAndCooks}
+head(assays(dds)[["mu"]])
+head(assays(dds)[["cooks"]])
+``` 
+
+The dispersions $\alpha_i$ can be accessed with the
+*dispersions* function.
+
+```{r dispersions}
+head(dispersions(dds))
+head(mcols(dds)$dispersion)
+``` 
+
+The size factors $s_j$ are accessible via *sizeFactors*:
+
+```{r sizefactors}
+sizeFactors(dds)
+``` 
+
+For advanced users, we also include a convenience function *coef* for 
+extracting the matrix of coefficients $[\beta_{ir}]$ for all genes $i$ and
+parameters $r$, as in the formula in Section~\ref{sec:glm}.
+This function can also return a matrix of standard errors, see `?coef`.
+The columns of this matrix correspond to the effects returned by *resultsNames*.
+Note that the *results* function is best for building 
+results tables with *p* values and adjusted *p* values.
+
+```{r coef}
+head(coef(dds))
+``` 
+
+The beta prior variance $\sigma_r^2$ is stored as an attribute of the
+*DESeqDataSet*: 
+
+```{r betaPriorVar}
+attr(dds, "betaPriorVar")
+``` 
+
+The dispersion prior variance $\sigma_d^2$ is stored as an
+attribute of the dispersion function:
+
+```{r dispPriorVar}
+dispersionFunction(dds)
+attr(dispersionFunction(dds), "dispPriorVar")
+``` 
+
+The version of DESeq2 which was used to construct the
+*DESeqDataSet* object, or the version used when
+*DESeq* was run, is stored here:
+
+```{r versionNum}
+metadata(dds)[["version"]]
+``` 
+
+## Sample-/gene-dependent normalization factors 
+
+In some experiments, there might be gene-dependent dependencies
+which vary across samples. For instance, GC-content bias or length
+bias might vary across samples coming from different labs or
+processed at different times. We use the terms ``normalization factors''
+for a gene $\times$ sample matrix, and ``size factors'' for a
+single number per sample.  Incorporating normalization factors,
+the mean parameter $\mu_{ij}$ from Section~\ref{sec:glm} becomes:
+
+$$ \mu_{ij} = NF_{ij} q_{ij} $$
+
+with normalization factor matrix $NF$ having the same dimensions
+as the counts matrix $K$. This matrix can be incorporated as shown
+below. We recommend providing a matrix with row-wise geometric means of $1$, 
+so that the mean of normalized counts for a gene is close to the mean
+of the unnormalized counts.
+This can be accomplished by dividing out the current row geometric means.
+
+```{r normFactors, eval=FALSE}
+normFactors <- normFactors / exp(rowMeans(log(normFactors)))
+normalizationFactors(dds) <- normFactors
+```
+
+These steps then replace *estimateSizeFactors* in the steps
+described in Section~\ref{sec:steps}. Normalization factors, if present,
+will always be used in the place of size factors.
+
+The methods provided by the `r Biocpkg("cqn")` or `r Biocpkg("EDASeq")` packages
+can help correct for GC or length biases. They both describe in their
+vignettes how to create matrices which can be used by DESeq2.
+From the formula above, we see that normalization factors should be on
+the scale of the counts, like size factors, and unlike offsets which
+are typically on the scale of the predictors (i.e. the logarithmic scale for
+the negative binomial GLM). At the time of writing, the transformation
+from the matrices provided by these packages should be:
+
+```{r offsetTransform, eval=FALSE}
+cqnOffset <- cqnObject$glm.offset
+cqnNormFactors <- exp(cqnOffset)
+EDASeqNormFactors <- exp(-1 * EDASeqOffset)
+```
+
+## ``Model matrix not full rank''
+
+While most experimental designs run easily using design formula, some
+design formulas can cause problems and result in the *DESeq*
+function returning an error with the text: ``the model matrix is not
+full rank, so the model cannot be fit as specified.''  There are two
+main reasons for this problem: either one or more columns in the model
+matrix are linear combinations of other columns, or there are levels
+of factors or combinations of levels of multiple factors which are
+missing samples. We address these two problems below and discuss
+possible solutions:
+
+### Linear combinations
+
+The simplest case is the linear combination, or linear dependency
+problem, when two variables contain exactly the same information, such
+as in the following sample table. The software cannot fit an effect
+for `batch` and `condition`, because they produce
+identical columns in the model matrix. This is also referred to as
+``perfect confounding''. A unique solution of coefficients (the $\beta_i$ in
+the formula in Section~\ref{sec:glm}) is not possible.
+
+```{r lineardep, echo=FALSE}
+data.frame(batch=factor(c(1,1,2,2)), condition=factor(c("A","A","B","B")))
+``` 
+
+Another situation which will cause problems is when the variables are
+not identical, but one variable can be formed by the combination of
+other factor levels. In the following example, the effect of batch 2
+vs 1 cannot be fit because it is identical to a column in the model
+matrix which represents the condition C vs A effect.
+
+```{r lineardep2, echo=FALSE}
+data.frame(batch=factor(c(1,1,1,1,2,2)), condition=factor(c("A","A","B","B","C","C")))
+``` 
+
+In both of these cases above, the batch effect cannot be fit and must
+be removed from the model formula. There is just no way to tell apart
+the condition effects and the batch effects. The options are either to assume
+there is no batch effect (which we know is highly unlikely given the
+literature on batch effects in sequencing datasets) or to repeat the
+experiment and properly balance the conditions across batches.
+A balanced design would look like:
+
+```{r lineardep3, echo=FALSE}
+data.frame(batch=factor(c(1,1,1,2,2,2)), condition=factor(c("A","B","C","A","B","C")))
+``` 
+
+Finally, there is a case where we can in fact perform inference.
+Consider an experiment with grouped individuals,
+where we seek to test the group-specific effect of a treatment, while
+controlling for individual effects. A simple example of such a design is:
+
+```{r groupeffect}
+(coldata <- data.frame(grp=factor(rep(c("X","Y"),each=4)),
+                       ind=factor(rep(1:4,each=2)),
+                       cnd=factor(rep(c("A","B"),4))))
+```
+
+
+This design can be analyzed by DESeq2 but requires a bit of
+refactoring in order to fit the model terms. Here we will use a trick
+described in the `r Biocpkg("edgeR")` user guide, from the section
+``Comparisons Both Between and Within Subjects''.  If we try to
+analyze with a formula such as, `$\sim$ ind + grp*cnd`, we will
+obtain an error, because the effect for group is a linear combination
+of the individuals.
+
+However, the following steps allow for an analysis of group-specific
+condition effects, while controlling for differences in individual.
+For object construction, use a dummy design, such as \Rcode{$\sim$
+  1}. Then add a column `ind.n` which distinguishes the
+individuals ``nested'' within a group. Here, we add this column to
+coldata, but in practice you would add this column to `dds`.
+
+```{r groupeffect2}
+coldata$ind.n <- factor(rep(rep(1:2,each=2),2))
+coldata
+``` 
+
+Now we can reassign our *DESeqDataSet* a design of
+`$\sim$ grp + grp:ind.n + grp:cnd`, before we call
+*DESeq*. This new design will result in the following model
+matrix: 
+
+```{r groupeffect3}
+model.matrix(~ grp + grp:ind.n + grp:cnd, coldata)
+``` 
+
+where the terms `grpX.cndB` and `grpY.cndB` give the
+group-specific condition effects. These can be extracted using
+*results* with the `name` argument.
+Furthermore, `grpX.cndB` and
+`grpY.cndB` can be contrasted using the `contrast`
+argument, in order to test if the condition effect is different across group:
+
+```{r groupeffect4, eval=FALSE}
+results(dds, contrast=list("grpY.cndB","grpX.cndB"))
+``` 
+
+### Levels without samples
+
+The base R function for creating model matrices will produce a column
+of zeros if a level is missing from a factor or a combination of
+levels is missing from an interaction of factors. The solution to the
+first case is to call *droplevels* on the column, which will
+remove levels without samples. This was shown in the beginning of this
+vignette.
+
+The second case is also solvable, by manually editing the model
+matrix, and then providing this to *DESeq*. Here we
+construct an example dataset to illustrate:
+
+```{r missingcombo}
+group <- factor(rep(1:3,each=6))
+condition <- factor(rep(rep(c("A","B","C"),each=2),3))
+(d <- data.frame(group, condition)[-c(17,18),])
+``` 
+
+Note that if we try to estimate all interaction terms, we introduce a
+column with all zeros, as there are no condition C samples for group
+3. (Here, *unname* is used to display the matrix concisely.)
+
+```{r missingcombo2}
+m1 <- model.matrix(~ condition*group, d)
+colnames(m1)
+unname(m1)
+``` 
+
+We can remove this column like so:
+
+```{r missingcombo3}
+m1 <- m1[,-9]
+unname(m1)
+``` 
+
+Now this matrix `m1` can be provided to the `full`
+argument of *DESeq*.  For a likelihood ratio test of
+interactions, a model matrix using a reduced design such as
+`$\sim$ condition + group` can be given to the `reduced`
+argument. Wald tests can also be generated instead of the likelihood
+ratio test, but for user-supplied model matrices, the argument
+`betaPrior` must be set to `FALSE`.
+
+\newpage
+
+<a name="theory">
+
+# Theory behind DESeq2
+
+## The DESeq2 model 
+
+The DESeq2 model and all the steps taken in the software
+are described in detail in our publication [@Love2014],
+and we include the formula and descriptions in this section as well.
+The differential expression analysis in DESeq2 uses a generalized
+linear model of the form:
+
+$$ K_{ij} \sim \textrm{NB}(\mu_{ij}, \alpha_i) $$
+$$ \mu_{ij} = s_j q_{ij} $$
+$$ \log_2(q_{ij}) = x_{j.} \beta_i $$
+
+where counts $K_{ij}$ for gene $i$, sample $j$ are modeled using
+a negative binomial distribution with fitted mean $\mu_{ij}$
+and a gene-specific dispersion parameter $\alpha_i$.
+The fitted mean is composed of a sample-specific size factor
+$s_j$\footnote{The model can be generalized to use sample- 
+\textbf{and} gene-dependent normalization factors, see
+Appendix~\ref{sec:normfactors}.} and a parameter $q_{ij}$ 
+proportional to the expected true concentration of fragments for sample $j$.
+The coefficients $\beta_i$ give the log2 fold changes for gene $i$ for each 
+column of the model matrix $X$. 
+
+The dispersion parameter $\alpha_i$ defines the relationship between
+the variance of the observed count and its mean value. In other
+words, how far do we expected the observed count will be from the
+mean value, which depends both on the size factor $s_j$ and the
+covariate-dependent part $q_{ij}$ as defined above.
+
+$$ \textrm{Var}(K_{ij}) = E[ (K_{ij} - \mu_{ij})^2 ] = \mu_{ij} + \alpha_i \mu_{ij}^2 $$
+
+The log2 fold changes in $\beta_i$ are the maximum *a posteriori*
+estimates after incorporating a 
+zero-centered Normal prior -- in the software referrred to as a $\beta$-prior -- hence DESeq2
+provides ``moderated'' log2 fold change estimates.  Dispersions are estimated using expected mean
+values from the maximum likelihood estimate of log2 fold changes, and optimizing the Cox-Reid
+adjusted profile likelihood, as first implemented for RNA-seq data in `r Biocpkg("edgeR")`
+[@CR,edgeR_GLM]. The steps performed by the *DESeq* function are documented in its
+manual page; briefly, they are:
+
+\begin{enumerate}
+\item estimation of size factors $s_j$ by *estimateSizeFactors*
+\item estimation of dispersion $\alpha_i$ by *estimateDispersions*
+\item negative binomial GLM fitting for $\beta_i$ and Wald statistics by 
+*nbinomWaldTest*
+\end{enumerate}
+
+For access to all the values calculated during these steps,
+see Section~\ref{sec:access}
+
+## Changes compared to the  `r Biocpkg("DESeq package")`
+
+The main changes in the package DESeq2, compared to the (older)
+version `r Biocpkg("DESeq")`, are as follows:
+
+\begin{itemize}
+\item *RangedSummarizedExperiment* is used as the superclass for storage of input data,
+  intermediate calculations and results.
+\item Maximum *a posteriori* estimation of GLM coefficients
+  incorporating a zero-centered
+  Normal prior with variance estimated from data (equivalent to Tikhonov/ridge
+  regularization). This adjustment has little effect on genes with high counts, yet it
+  helps to moderate the otherwise large variance in log2 fold change estimates
+  for genes with low counts or highly variable counts.
+\item Maximum *a posteriori* estimation of dispersion replaces the
+  `sharingMode` options `fit-only` or `maximum` of the previous version
+  of the package. This is similar to the dispersion estimation methods of DSS [@Wu2012New].
+\item All estimation and inference is based on the generalized linear model, which
+  includes the two condition case (previously the *exact test* was used).
+\item The Wald test for significance of GLM coefficients is provided as the default
+  inference method, with the likelihood ratio test of the previous version still available.
+\item It is possible to provide a matrix of sample-/gene-dependent
+  normalization factors (Section \ref{sec:normfactors}).
+\item Automatic independent filtering on the mean of normalized counts
+  (Section \ref{sec:indepfilt}).
+\item Automatic outlier detection and handling (Section \ref{sec:cooks}).
+\end{itemize}
+
+## Methods changes since the 2014 DESeq2 paper
+
+\begin{itemize}
+  \item For the calculation of the beta prior variance, instead of
+    matching the empirical quantile to the quantile of a Normal
+    distribution, \deseqtwo() now uses the weighted quantile function
+    of the \CRANpkg{Hmisc} package. The weighting is described in the
+    manual page for *nbinomWaldTest*.  The weights are the
+    inverse of the expected variance of log counts (as used in the
+    diagonals of the matrix $W$ in the GLM). The effect of the change
+    is that the estimated prior variance is robust against noisy
+    estimates of log fold change from genes with very small
+    counts. This change was introduced in version 1.6 (October 2014).
+  \item For designs with interaction terms, the solution described in
+    the paper is no longer used (log fold change shrinkage only
+    applied to interaction terms). Instead, DESeq2 now turns off
+    log fold change shrinkage for all terms if an interaction term is
+    present (`betaPrior=FALSE`).  While the inference on
+    interaction terms was correct with `betaPrior=TRUE`, the
+    interpretation of the individual terms and the extraction of
+    contrasts was too confusing.  This change was introduced in version 1.10
+    (October 2015).
+  \item A small change to the independent filtering routine: instead
+    of taking the quantile of the filter (the mean of normalized counts) which
+    directly *maximizes* the number of rejections, the threshold chosen is 
+    the lowest quantile of the filter for which the
+    number of rejections is close to the peak of a curve fit
+    to the number of rejections over the filter quantiles.
+    ``Close to'' is defined as within 1 residual standard deviation.
+    This change was introduced in version 1.10 (October 2015).
+\end{itemize}
+
+For a list of all changes since version 1.0.0, see the NEWS file
+included in the package.
+
+## Count outlier detection 
+
+DESeq2 relies on the negative binomial distribution to make
+estimates and perform statistical inference on differences.  While the
+negative binomial is versatile in having a mean and dispersion
+parameter, extreme counts in individual samples might not fit well to
+the negative binomial. For this reason, we perform automatic detection
+of count outliers. We use Cook's distance, which is a measure of how
+much the fitted coefficients would change if an individual sample were
+removed [@Cook1977Detection]. For more on the implementation of 
+Cook's distance see Section~\ref{sec:outlierApproach} and the manual page
+for the *results* function. Below we plot the maximum value of
+Cook's distance for each row over the rank of the test statistic 
+to justify its use as a filtering criterion.
+
+```{r cooksPlot, fig.show="asis", fig.small=TRUE, fig.cap="Cook's distance.  Plot of the maximum Cook's distance per gene over the rank of the Wald statistics for the condition. The two regions with small Cook's distances are genes with a single count in one sample. The horizontal line is the default cutoff used for 7 samples and 3 estimated parameters.\"}
+W <- res$stat
+maxCooks <- apply(assays(dds)[["cooks"]],1,max)
+idx <- !is.na(W)
+plot(rank(W[idx]), maxCooks[idx], xlab="rank of Wald statistic", 
+     ylab="maximum Cook's distance per gene",
+     ylim=c(0,5), cex=.4, col=rgb(0,0,0,.3))
+m <- ncol(dds)
+p <- 3
+abline(h=qf(.99, p, m - p))
+``` 
+
+## Contrasts 
+
+Contrasts can be calculated for a *DESeqDataSet* object for which
+the GLM coefficients have already been fit using the Wald test steps
+(*DESeq* with `test="Wald"` or using *nbinomWaldTest*).
+The vector of coefficients $\beta$ is left multiplied by the contrast vector $c$
+to form the numerator of the test statistic. The denominator is formed by multiplying
+the covariance matrix $\Sigma$ for the coefficients on either side by the 
+contrast vector $c$. The square root of this product is an estimate
+of the standard error for the contrast. The contrast statistic is then compared
+to a normal distribution as are the Wald statistics for the DESeq2
+package.
+
+$$ W = \frac{c^t \beta}{\sqrt{c^t \Sigma c}} $$
+
+## Expanded model matrices 
+
+DESeq2 uses ``expanded model matrices'' with the log2 fold change prior, 
+in order to produce shrunken log2 fold change estimates and test 
+results which are independent of the choice of reference level. 
+Another way of saying this is that the shrinkage is *symmetric*
+with respect to all the levels of the factors in the design.
+The expanded model matrices differ from the standard model matrices, in that
+they have an indicator column (and therefore a coefficient) for
+each level of factors in the design formula in addition to an intercept. 
+Note that in version 1.10 and onward, standard model matrices are used for
+designs with interaction terms, as the shrinkage of log2 fold changes
+is not recommended for these designs.
+
+The expanded model matrices are not full rank, but a coefficient
+vector $\beta_i$ can still be found due to the zero-centered prior on
+non-intercept coefficients. The prior variance for the log2 fold
+changes is calculated by first generating maximum likelihood estimates
+for a standard model matrix. The prior variance for each level of a
+factor is then set as the average of the mean squared maximum
+likelihood estimates for each level and every possible contrast, such
+that that this prior value will be reference-level-independent. The
+`contrast` argument of the *results* function is
+used in order to generate comparisons of interest.
+
+## Independent filtering and multiple testing 
+
+### Filtering criteria 
+
+The goal of independent filtering is to filter out those tests from the procedure 
+that have no, or little chance of showing significant evidence, without even
+looking at their test statistic. Typically, this results in increased detection
+power at the same experiment-wide type I error. Here, we  measure experiment-wide
+type I error in terms of the false discovery rate.
+
+A good choice for a filtering criterion is one that
+\begin{enumerate}
+  \item is statistically independent from the test statistic under the null hypothesis,
+  \item is correlated with the test statistic under the alternative, and
+  \item does not notably change the dependence structure --if there is any--
+    between the tests that pass the filter, compared to the dependence structure between the tests before filtering.
+\end{enumerate}
+
+The benefit from filtering relies on property \ref{it:corr}, and we will explore
+it further in Section~\ref{sec:whyitworks}. Its statistical validity relies on
+property \ref{it:indp} -- which is simple to formally prove for many combinations
+of filter criteria with test statistics-- and \ref{it:joint}, which is less
+easy to theoretically imply from first principles, but rarely a problem in practice.
+We refer to [@Bourgon:2010:PNAS] for further discussion of this topic.
+
+A simple filtering criterion readily available in the results object is the
+mean of normalized counts irrespective of biological condition (Figure \ref{figure/indFilt-1}),
+and so this is the criterion which is used automatically by the
+*results* function to perform independent filtering.
+Genes with very low counts are not likely to 
+see significant differences typically due to high
+dispersion. For example, we can plot the $-\log_{10}$ *p* values from all genes
+over the normalized mean counts.
+
+```{r indFilt, fig.show="asis", fig.small=TRUE, fig.cap="Mean counts as a filter statistic.  The mean of normalized counts provides an independent statistic for filtering the tests. It is independent because the information about the variables in the design formula is not used. By filtering out genes which fall on the left side of the plot, the majority of the low *p* values are kept.\"}
+plot(res$baseMean+1, -log10(res$pvalue),
+     log="x", xlab="mean of normalized counts",
+     ylab=expression(-log[10](pvalue)),
+     ylim=c(0,30),
+     cex=.4, col=rgb(0,0,0,.3))
+```
+
+### Why does it work?
+
+Consider the *p* value histogram in Figure \ref{figure/fighistindepfilt-1}.
+It shows how the filtering ameliorates the multiple testing problem
+-- and thus the severity of a multiple testing adjustment -- by
+removing a background set of hypotheses whose *p* values are distributed
+more or less uniformly in $[0,1]$.
+
+```{r histindepfilt, dev="pdf", fig.width=7, fig.height=5}
+use <- res$baseMean > metadata(res)$filterThreshold
+h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
+h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
+colori <- c(`do not pass`="khaki", `pass`="powderblue")
+``` 
+
+```{r fighistindepfilt, fig.show="asis", fig.small=TRUE, fig.cap="Histogram of p values for all tests.  The area shaded in blue indicates the subset of those that pass the filtering, the area in khaki those that do not pass.\"}
+barplot(height = rbind(h1$counts, h2$counts), beside = FALSE,
+        col = colori, space = 0, main = "", ylab="frequency")
+text(x = c(0, length(h1$counts)), y = 0, label = paste(c(0,1)),
+     adj = c(0.5,1.7), xpd=NA)
+legend("topright", fill=rev(colori), legend=rev(names(colori)))
+```
+
+# Frequently asked questions 
+
+## How can I get support for DESeq2?
+
+We welcome questions about our software, and want to
+ensure that we eliminate issues if and when they appear. We have a few
+requests to optimize the process:
+
+\begin{itemize}
+\item all questions should take place on the Bioconductor support
+  site: <https://support.bioconductor.org>, which serves as a
+  repository of questions and answers. This helps to save the
+  developers' time in responding to similar questions. Make sure to
+  tag your post with ``deseq2''. It is often very helpful in addition 
+  to describe the aim of your experiment.
+\item before posting, first search the Bioconductor support site
+  mentioned above for past threads which might have answered your
+  question.
+\item if you have a question about the behavior of a function, read
+  the sections of the manual page for this function by typing a
+  question mark and the function name, e.g. `?results`.  We
+  spend a lot of time documenting individual functions and the exact
+  steps that the software is performing.
+\item include all of your R code, especially the creation of the
+  *DESeqDataSet* and the design formula.  Include complete
+  warning or error messages, and conclude your message with the full
+  output of `sessionInfo()`.
+\item if possible, include the output of
+  `as.data.frame(colData(dds))`, so that we can have a sense
+  of the experimental setup. If this contains confidential
+  information, you can replace the levels of those factors using
+  *levels()*.
+\end{itemize}
+
+## Why are some *p* values set to `NA`?
+  
+See the details in Section~\ref{sec:moreInfo}.
+
+## How can I get unfiltered DESeq results?
+
+Users can obtain unfiltered GLM results, i.e. without outlier removal
+or independent filtering with the following call:
+
+```{r vanillaDESeq, eval=FALSE}
+dds <- DESeq(dds, minReplicatesForReplace=Inf)
+res <- results(dds, cooksCutoff=FALSE, independentFiltering=FALSE)
+```
+
+In this case, the only *p* values set to `NA` are those from
+genes with all counts equal to zero.
+
+\subsection{How do I use the variance stabilized or rlog 
+  transformed data for differential testing?}
+  
+  The variance stabilizing and rlog transformations are provided for
+  applications other than differential testing, for example clustering
+  of samples or other machine learning applications. For differential
+  testing we recommend the *DESeq* function applied to raw
+  counts as outlined in Section~\ref{sec:de}.
+      
+  
+## Can I use DESeq2 to analyze paired samples?
+
+Yes, you should use a multi-factor design which includes the sample
+information as a term in the design formula. This will account for 
+differences between the samples while estimating the effect due to 
+the condition. The condition of interest should go at the end of the 
+design formula. See Section~\ref{sec:multifactor}.
+
+## If I have multiple groups, should I run all together or split into pairs of groups?
+
+Typically, we recommend users to run samples from all groups together, and then
+use the `contrast` argument of the *results* function
+to extract comparisons of interest after fitting the model using *DESeq*.
+
+The model fit by *DESeq* estimates a single dispersion
+parameter for each gene, which defines how far we expect the observed
+count for a sample will be from the mean value from the model 
+given its size factor and its condition group. See Section~\ref{sec:glm} 
+and the DESeq2 paper for full details.
+Having a single dispersion parameter for each gene is usually
+sufficient for analyzing multi-group data, as the final dispersion value will
+incorporate the within-group variability across all groups. 
+
+However, for some datasets, exploratory data analysis (EDA) plots as outlined
+in Section~\ref{sec:pca} could reveal that one or more groups has much
+higher within-group variability than the others. A simulated example
+of such a set of samples is shown in Figure~\ref{figure/varGroup-1}.
+This is case where, by comparing groups A and B separately --
+subsetting a *DESeqDataSet* to only samples from those two
+groups and then running *DESeq* on this subset -- will be
+more sensitive than a model including all samples together.
+It should be noted that such an extreme range of within-group
+variability is not common, although it could arise if certain
+treatments produce an extreme reaction (e.g. cell death).
+Again, this can be easily detected from the EDA plots such as PCA
+described in this vignette.
+
+```{r varGroup, echo=FALSE, fig.width=5, fig.height=5, fig.show="asis", fig.small=TRUE, fig.cap="Extreme range of within-group variability.  Typically, it is recommended to run \*DESeq* across samples from all groups, for datasets with multiple groups. However, this simulated dataset shows a case where it would be preferable to compare groups A and B by creating a smaller dataset without the C samples. Group C has much higher within-group variability, which would inflate the per-gene dispersion estimate for groups A and B as well.\"}
+set.seed(3)
+dds1 <- makeExampleDESeqDataSet(n=1000,m=12,betaSD=.3,dispMeanRel=function(x) 0.01)
+dds2 <- makeExampleDESeqDataSet(n=1000,m=12,
+                                betaSD=.3,
+                                interceptMean=mcols(dds1)$trueIntercept,
+                                interceptSD=0,
+                                dispMeanRel=function(x) 0.2)
+dds2 <- dds2[,7:12]
+dds2$condition <- rep("C",6)
+mcols(dds2) <- NULL
+dds <- cbind(dds1, dds2)
+rld <- rlog(dds, blind=FALSE, fitType="mean")
+plotPCA(rld)
+``` 
+
+## Can I run DESeq2 to contrast the levels of 100 groups?
+
+DESeq2 will work with any kind of design specified using the R
+formula. We enourage users to consider exploratory data analysis such
+as principal components analysis as described in Section~\ref{sec:pca}, 
+rather than performing statistical testing of all combinations of
+dozens of groups. 
+
+As a speed concern with fitting very large models, 
+note that each additional level of a factor in the
+design formula adds another parameter to the GLM which is fit by
+\deseqtwo. Users might consider first removing genes with very few
+reads, e.g.\ genes with row sum of 1, as this will speed up the
+fitting procedure.
+
+## Can I use DESeq2 to analyze a dataset without replicates?
+
+If a *DESeqDataSet* is provided with an experimental design without replicates,
+a warning is printed, that the samples are treated as replicates
+for estimation of dispersion. This kind of analysis is
+only useful for exploring the data, but will not provide the kind of
+proper statistical inference on differences between groups.
+Without biological replicates, it is not possible to estimate the biological
+variability of each gene. 
+More details can be found in the manual page for *?DESeq*.
+
+## How can I include a continuous covariate in the design formula?
+
+Continuous covariates can be included in the design formula in the
+same manner as factorial covariates. Continuous covariates might make
+sense in certain experiments, where a constant fold change might be
+expected for each unit of the covariate.  However, in many cases, more
+meaningful results can be obtained by cutting continuous covariates
+into a factor defined over a small number of bins (e.g. 3-5).  In this
+way, the average effect of each group is controlled for, regardless of
+the trend over the continuous covariates.  In R, *numeric*
+vectors can be converted into *factors* using the function
+*cut*.
+
+## Will the log fold change shrinkage ``overshrink'' large differences?
+
+For most datasets, the application of a prior to the log fold changes
+is a good choice, providing log fold change estimates that are
+more stable across the entire range of mean counts than the maximum
+likelihood estimates (see Figure~\ref{fig:MA} and the DESeq2 paper).
+One situation in which the prior on log fold changes might
+``overshrink'' the estimates is 
+if nearly all genes show no difference across condition, a very
+small set of genes have extremely large differences, and no genes in between.
+A simulated example of such a dataset is Figure~\ref{figure/overShrink-1}.
+This is not likely to be the case for most experiments, where typically
+there is a range of differences by size: some genes with medium-to-large
+differences across treatment, and some with small differences.
+
+```{r overShrink, echo=FALSE, fig.width=5, fig.height=5, fig.show="asis", fig.small=TRUE, fig.cap="Example of a dataset with where the log fold change prior should be turned off.  Here we show a simulated MA-plot, where nearly all of the log fold changes are falling near the x-axis, with three genes that have very large log fold changes (note the y-axis is from -10 to 10 on the log2 scale). This would indicate a dataset where the log fold change prior would ``overshrink'' the large fold changes, and so \`betaPrior=FALSE` should be used.\"}
+plot(c(10^rnorm(1000, 3, 2),300,2000,5000), 
+     c(rnorm(1000, 0, .15), -5.5, -8.5, 7.5),
+     ylim=c(-10,10), log="x", cex=.4,
+     xlab="mean of normalized counts", 
+     ylab="log2 fold change")
+abline(h=0, col=rgb(1,0,0,.7))
+``` 
+
+There could be experiments in which only a few genes have
+very large log fold changes, and the rest of the genes are
+nearly constant across treatment.
+Or, there could be artificially constructed libraries fitting this description,
+e.g. technical replicates where the only difference across libraries 
+is the concentration of a few spiked-in genes.
+``Overshrinking'' of a few large log fold changes
+can be assessed by running *results* with `addMLE=TRUE`,
+which will print a results table with columns for the shrunken and
+unshrunken (MLE) log fold changes.
+The two estimates can be visually compared by running *plotMA* with
+`MLE=TRUE` and `MLE=FALSE`. 
+If ``overshrinking'' very large log fold changes is a concern,
+it is better to turn off the log fold change prior by
+running *DESeq* with `betaPrior=FALSE`.
+
+Even more detail: how do we avoid overshrinking on typical datasets?
+The answer is that we estimate the width of the log fold change prior in a
+robust way to accommodate the very largest log fold changes, and so to
+avoid overshrinking. 
+The details of the prior estimation are described in the manual page for
+*nbinomWaldTest*. Briefly, a weighted upper quantile
+is used to match the width of the log fold change prior to the upper
+5\% of the MLE log fold changes, weighting by the expected sampling
+variability of the estimated log fold changes given the mean count for
+each gene. Note that this does not equal an assumption that 5\% of genes are
+differentially expressed, but that a reasonable width of a log fold
+change distribution can be obtained from the upper 5\% of MLE log fold
+changes. 
+
+## I ran a likelihood ratio test, but `results()` only gives me one comparison.
+
+``\dots How do I get the *p* values for all of the variables/levels 
+that were removed in the reduced design?''
+
+This is explained in the help page for `?results` in the
+section about likelihood ratio test p-values, but we will restate the
+answer here. When one performs a likelihood ratio test, the *p* values and
+the test statistic (the `stat` column) are values for the test
+that removes all of the variables which are present in the full
+design and not in the reduced design. This tests the null hypothesis
+that all the coefficients from these variables and levels of these factors
+are equal to zero.
+
+The likelihood ratio test *p* values therefore
+represent a test of *all the variables and all the levels of factors*
+which are among these variables. However, the results table only has space for
+one column of log fold change, so a single variable and a single
+comparison is shown (among the potentially multiple log fold changes
+which were tested in the likelihood ratio test). 
+This is indicated at the top of the results table
+with the text, e.g.: ``log2 fold change (MLE): condition C vs A'' followed
+by ``LRT p-value: '\lowtilde{} batch + condition' vs '\lowtilde{} batch' ''.
+This indicates that the *p* value is for the likelihood ratio test of
+*all the variables and all the levels*, while the log fold change is a single
+comparison from among those variables and levels.
+See the help page for *results* for more details.
+
+## What are the exact steps performed by *DESeq()*?
+
+See the manual page for *DESeq*, which links to the 
+subfunctions which are called in order, where complete details are listed.
+
+## Is there an official Galaxy tool for DESeq2?
+
+Yes. The repository for the DESeq2 tool is
+<https://github.com/galaxyproject/tools-iuc/tree/master/tools/deseq2> 
+and a link to its location in the Tool Shed is 
+<https://toolshed.g2.bx.psu.edu/view/iuc/deseq2/d983d19fbbab>.
+
+## I want to benchmark DESeq2 comparing to other DE tools.
+
+One aspect which can cause problems for comparison is that, by default,
+DESeq2 outputs `NA` values for adjusted *p* values based on 
+independent filtering of genes which have low counts.
+This is a way for the DESeq2 to give extra
+information on why the adjusted *p* value for this gene is not small.
+Additionally, *p* values can be set to `NA` based on extreme 
+count outlier detection (see Section~\ref{sec:moreInfo} for full details). 
+These `NA` values should be considered
+negatives for purposes of estimating sensitivity and specificity. The
+easiest way to work with the adjusted *p* values in a benchmarking
+context is probably to convert these `NA` values to 1:
+
+```{r convertNA, eval=FALSE}
+res$padj <- ifelse(is.na(res$padj), 1, res$padj)
+``` 
+
+# Acknowledgments
+
+We have benefited in the development of DESeq2 from the help and
+feedback of many individuals, including but not limited to: 
+The Bionconductor Core Team,
+Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein,
+Nikolaos Ignatiadis,
+Vince Carey,
+Owen Solberg,
+Ruping Sun,
+Devon Ryan, 
+Steve Lianoglou, Jessica Larson, Christina Chaivorapol, Pan Du, Richard Bourgon,
+Willem Talloen, 
+Elin Videvall, Hanneke van Deutekom,
+Todd Burwell, 
+Jesse Rowley,
+Igor Dolgalev,
+Stephen Turner,
+Ryan C Thompson,
+Tyr Wiesner-Hanks,
+Konrad Rudolph,
+David Robinson,
+Mingxiang Teng,
+Mathias Lesche,
+Sonali Arora,
+Jordan Ramilowski,
+Ian Dworkin,
+Bjorn Gruning,
+Ryan McMinds,
+Paul Gordon,
+Leonardo Collado Torres,
+Enrico Ferrero.
 
 # Session info
 
