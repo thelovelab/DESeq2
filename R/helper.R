@@ -1,3 +1,55 @@
+#' Shrink log2 fold changes
+#'
+#' This function adds shrunken log2 fold changes (LFC) to a
+#' results table which was run without LFC moderation.
+#' Note: this function is still being prototyped.
+#'
+#' @param dds a DESeqDataSet object, which has been run through
+#' \code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}
+#' @param coef the number of the coefficient (LFC) to shrink,
+#' consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}
+#' @param coefVar the variance (width) of the prior to use in shrinking the LFC
+#' @param res a DESeqResults object (can be missing)
+#'
+#' @return if \code{res} is not missing, a DESeqResults object with
+#' the \code{log2FoldChange} column replaced with a shrunken LFC.
+#' If \code{res} is missing, just the shrunken LFC vector.
+#'
+#' @export
+#' 
+#' @examples
+#'
+#'  dds <- makeExampleDESeqDataSet(betaSD=1)
+#'  dds <- DESeq(dds, betaPrior=FALSE)
+#'  res <- results(dds)
+#'  res.shr <- lfcShrink(dds, coef=2, coefVar=1, res)
+#' 
+lfcShrink <- function(dds, coef, coefVar, res) {
+  if (is.null(dispersions(dds))) {
+    stop("lfcShrink requires dispersion estimates, first call estimateDispersions()")
+  }
+  mm <- model.matrix(design(dds), colData(dds))
+  betaPriorVar <- rep(1e6, ncol(mm))
+  betaPriorVar[coef] <- coefVar
+  dds.shr <- nbinomWaldTest(dds,
+                            betaPrior=TRUE,
+                            betaPriorVar=betaPriorVar,
+                            modelMatrixType="standard",
+                            quiet=TRUE)
+  rn <- resultsNames(dds.shr)
+  res.shr <- results(dds.shr, name=rn[coef])
+  if (!missing(res)) {
+    df <- DataFrame(baseMean=res$baseMean,
+                    log2FoldChange=res.shr$log2FoldChange,
+                    stat=res$stat,
+                    pvalue=res$pvalue,
+                    padj=res$padj)
+    return(DESeqResults(df))
+  } else {
+    return(res.shr$log2FoldChange)
+  }
+}
+
 #' Collapse technical replicates in a RangedSummarizedExperiment or DESeqDataSet
 #'
 #' Collapses the columns in \code{object} by summing within levels

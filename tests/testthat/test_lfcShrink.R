@@ -1,0 +1,12 @@
+context("lfcShrink")
+test_that("LFC shrinkage works", {
+  dds <- makeExampleDESeqDataSet(betaSD=1)
+  dds <- estimateSizeFactors(dds)
+  expect_error(lfcShrink(dds, 2, 1))
+  dds <- estimateDispersions(dds)
+  lfc <- lfcShrink(dds, 2, 1)
+  dds <- DESeq(dds, betaPrior=FALSE)
+  res <- results(dds)
+  res.shr <- lfcShrink(dds, 2, 1, res)
+  plotMA(res.shr)
+})  

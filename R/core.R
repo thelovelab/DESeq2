@@ -1346,25 +1346,6 @@ estimateBetaPriorVar <- function(object,
     (betaMatrix)^2
   }
   names(betaPriorVar) <- colnames(betaMatrix)
-
-  # pre-v1.10 code for interactions and beta prior:
-  # ------------------------------------------------------
-  # find the names of betaPriorVar which correspond
-  # to non-interaction terms and set these to a wide prior
-  ## termsOrder <- attr(terms.formula(design(object)),"order")
-  ## interactionPresent <- any(termsOrder > 1)  
-  ## if (interactionPresent) {
-  ##   nonInteractionCols <- getNonInteractionColumnIndices(objectNZ, modelMatrix)
-  ##   if (modelMatrixType == "standard") widePrior <- 1e6 else widePrior <- 1e3
-  ##   betaPriorVar[nonInteractionCols] <- widePrior
-  ##   if (modelMatrixType == "expanded") {
-  ##     # also set a wide prior for additional contrasts which were added
-  ##     # for calculation of the prior variance in the case of
-  ##     # expanded model matrices
-  ##     designFactors <- getDesignFactors(objectNZ)
-  ##     betaPriorVar[which(names(betaPriorVar) %in% paste0(designFactors,"Cntrst"))] <- widePrior
-  ##   }
-  ## }
   
   # intercept set to wide prior
   if ("Intercept" %in% names(betaPriorVar)) {
@@ -1426,9 +1407,6 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
   assays(object)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
   object
 }
-
-
-
 
 #' Likelihood ratio test (chi-squared test) for GLMs
 #'
