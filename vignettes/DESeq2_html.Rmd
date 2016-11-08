@@ -37,12 +37,6 @@ knitr::opts_chunk$set(tidy=FALSE, cache=TRUE,
                       message=FALSE, error=FALSE, warning=TRUE)
 ```	
 
-# Vignette porting note
-
-<span style="color:red">This is an unfinished port of the package's
-"old" Sweave/PDF vignette into Rmarkdown/HTML. Please consult the
-[existing PDF vignette](DESeq2.pdf) in the mean time.</span>
-
 # Standard workflow
 
 **If you use DESeq2 in published research, please cite:**
@@ -501,7 +495,7 @@ the last variable in the design formula, and if this is a factor,
 the comparison will be the last level of this variable over the first level. 
 Details about the comparison are printed to the console. The text, `condition`
 `treated vs untreated`, tells you that the estimates are of the logarithmic
-fold change log2(treated/untreated)$.
+fold change log2(treated/untreated).
 
 ```{r deseq}
 dds <- DESeq(dds)
@@ -598,7 +592,7 @@ Points which fall out of the window are plotted as open triangles pointing
 either up or down.
 
 ```{r MA}
-plotMA(res, main="DESeq2", ylim=c(-2,2))
+plotMA(res, ylim=c(-2,2))
 ```
 
 After calling *plotMA*, one can use the function
@@ -1361,7 +1355,8 @@ might make more sense to turn off the outlier filtering/replacement
 `cooksCutoff=FALSE`) and perform manual inspection: First it would be
 advantageous to make a PCA plot as described above to spot individual
 sample outliers; Second, one can make a boxplot of the Cook's
-distances to see if one sample is consistently higher than others:
+distances to see if one sample is consistently higher than others
+(here this is not the case):
 
 ```{r boxplotCooks}
 par(mar=c(8,5,2,2))
@@ -1476,14 +1471,12 @@ i.e. those genes which the user is interested in finding, and the test
 provides *p* values for the null hypothesis, the complement of the set 
 defined by the alternative. The `altHypothesis` argument can take one 
 of the following four values, where $\beta$ is the log2 fold change
-specified by the `name` argument:
+specified by the `name` argument, and $x$ is the `lfcThreshold`.
 
-
-* `greaterAbs` - $|\beta| > \textrm{lfcThreshold}$ - tests are two-tailed
-* `lessAbs` - $|\beta| < \textrm{lfcThreshold}$ - *p* values are the maximum of the upper and lower tests
-* `greater` - $\beta > \textrm{lfcThreshold} $
-* `less` - $\beta < -\textrm{lfcThreshold} $
-
+* `greaterAbs` - $|\beta| > x$ - tests are two-tailed
+* `lessAbs` - $|\beta| < x$ - *p* values are the maximum of the upper and lower tests
+* `greater` - $\beta > x$
+* `less` - $\beta < -x$
 
 The test `altHypothesis="lessAbs"` requires that the user have
 run *DESeq* with the argument `betaPrior=FALSE`.  To
@@ -2075,7 +2068,7 @@ requests to optimize the process:
   *levels()*.
 
 
-## Why are some *p* values set to `NA`?
+## Why are some *p* values set to NA?
   
 See the details [above](#pvaluesNA)
 
@@ -2269,7 +2262,7 @@ differentially expressed, but that a reasonable width of a log fold
 change distribution can be obtained from the upper 5% of MLE log fold
 changes. 
 
-## I ran a likelihood ratio test, but `results()` only gives me one comparison.
+## I ran a likelihood ratio test, but results() only gives me one comparison.
 
 "... How do I get the *p* values for all of the variables/levels 
 that were removed in the reduced design?"
@@ -2297,10 +2290,13 @@ This indicates that the *p* value is for the likelihood ratio test of
 comparison from among those variables and levels.
 See the help page for *results* for more details.
 
-## What are the exact steps performed by `DESeq()`?
+## What are the exact steps performed by DESeq()?
 
 See the manual page for *DESeq*, which links to the 
-subfunctions which are called in order, where complete details are listed.
+subfunctions which are called in order, where complete details are
+listed. Also you can read the three steps listed in the 
+[the DESeq2 model](#theory) in this document.
+
 
 ## Is there an official Galaxy tool for DESeq2?
 
