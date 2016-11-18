@@ -26,7 +26,7 @@ output:
     toc: true
 bibliography: library.bib
 vignette: >
-  %\VignetteIndexEntry{Analyzing RNA-seq data with DESeq2 (HTML version)}
+  %\VignetteIndexEntry{Analyzing RNA-seq data with DESeq2}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding[utf8]{inputenc}
 ---

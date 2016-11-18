@@ -9,7 +9,7 @@
 #' @param coef the number of the coefficient (LFC) to shrink,
 #' consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}.
 #' only \code{coef} or \code{contrast} can be specified, not both
-#' @param constrast see argument description in \code{\link{results}}.
+#' @param contrast see argument description in \code{\link{results}}.
 #' only \code{coef} or \code{contrast} can be specified, not both
 #' @param res a DESeqResults object (can be missing)
 #'

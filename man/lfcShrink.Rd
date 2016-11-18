@@ -14,10 +14,10 @@ lfcShrink(dds, coef, contrast, res)
 consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}.
 only \code{coef} or \code{contrast} can be specified, not both}
 
-\item{res}{a DESeqResults object (can be missing)}
-
-\item{constrast}{see argument description in \code{\link{results}}.
+\item{contrast}{see argument description in \code{\link{results}}.
 only \code{coef} or \code{contrast} can be specified, not both}
+
+\item{res}{a DESeqResults object (can be missing)}
 }
 \value{
 if \code{res} is not missing, a DESeqResults object with
