@@ -4,18 +4,20 @@
 \alias{lfcShrink}
 \title{Shrink log2 fold changes}
 \usage{
-lfcShrink(dds, coef, coefVar, res)
+lfcShrink(dds, coef, contrast, res)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, which has been run through
 \code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}}
 
 \item{coef}{the number of the coefficient (LFC) to shrink,
-consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}}
-
-\item{coefVar}{the variance (width) of the prior to use in shrinking the LFC}
+consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}.
+only \code{coef} or \code{contrast} can be specified, not both}
 
 \item{res}{a DESeqResults object (can be missing)}
+
+\item{constrast}{see argument description in \code{\link{results}}.
+only \code{coef} or \code{contrast} can be specified, not both}
 }
 \value{
 if \code{res} is not missing, a DESeqResults object with
@@ -32,7 +34,8 @@ Note: this function is still being prototyped.
  dds <- makeExampleDESeqDataSet(betaSD=1)
  dds <- DESeq(dds, betaPrior=FALSE)
  res <- results(dds)
- res.shr <- lfcShrink(dds, coef=2, coefVar=1, res)
+ res.shr <- lfcShrink(dds=dds, coef=2, res=res)
+ res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"), res=res)
 
 }
 

@@ -7,8 +7,10 @@
 #' @param dds a DESeqDataSet object, which has been run through
 #' \code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}
 #' @param coef the number of the coefficient (LFC) to shrink,
-#' consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}
-#' @param coefVar the variance (width) of the prior to use in shrinking the LFC
+#' consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}.
+#' only \code{coef} or \code{contrast} can be specified, not both
+#' @param constrast see argument description in \code{\link{results}}.
+#' only \code{coef} or \code{contrast} can be specified, not both
 #' @param res a DESeqResults object (can be missing)
 #'
 #' @return if \code{res} is not missing, a DESeqResults object with
@@ -22,22 +24,39 @@
 #'  dds <- makeExampleDESeqDataSet(betaSD=1)
 #'  dds <- DESeq(dds, betaPrior=FALSE)
 #'  res <- results(dds)
-#'  res.shr <- lfcShrink(dds, coef=2, coefVar=1, res)
+#'  res.shr <- lfcShrink(dds=dds, coef=2, res=res)
+#'  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"), res=res)
 #' 
-lfcShrink <- function(dds, coef, coefVar, res) {
+lfcShrink <- function(dds, coef, contrast, res) {
   if (is.null(dispersions(dds))) {
     stop("lfcShrink requires dispersion estimates, first call estimateDispersions()")
   }
-  mm <- model.matrix(design(dds), colData(dds))
-  betaPriorVar <- rep(1e6, ncol(mm))
-  betaPriorVar[coef] <- coefVar
+
+  # fit MLE coefficients... TODO skip this step
+  dds <- estimateMLEForBetaPriorVar(dds)
+
+  stopifnot(missing(coef) | missing(contrast))
+  if (missing(contrast)) {
+    modelMatrixType <- "standard"
+  } else {
+    modelMatrixType <- "expanded"
+  }
+  attr(dds,"modelMatrixType") <- modelMatrixType
+  betaPriorVar <- estimateBetaPriorVar(dds)
+
   dds.shr <- nbinomWaldTest(dds,
                             betaPrior=TRUE,
                             betaPriorVar=betaPriorVar,
-                            modelMatrixType="standard",
+                            modelMatrixType=modelMatrixType,
                             quiet=TRUE)
-  rn <- resultsNames(dds.shr)
-  res.shr <- results(dds.shr, name=rn[coef])
+
+  if (missing(contrast)) {
+    rn <- resultsNames(dds.shr)
+    res.shr <- results(dds.shr, name=rn[coef])
+  } else {
+    res.shr <- results(dds.shr, contrast=contrast)
+  }
+  
   if (!missing(res)) {
     df <- DataFrame(baseMean=res$baseMean,
                     log2FoldChange=res.shr$log2FoldChange,
