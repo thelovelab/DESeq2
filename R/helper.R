@@ -436,7 +436,9 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
     # the third parallel execution: the final GLM and statistics
     if (!quiet) message(paste("fitting model and testing:",nworkers,"workers"))
     objectNZ <- do.call(rbind, bplapply(levels(idx), function(l) {
-      nbinomWaldTest(objectNZ[idx == l,,drop=FALSE], betaPriorVar=betaPriorVar,
+      nbinomWaldTest(objectNZ[idx == l,,drop=FALSE],
+                     betaPrior=TRUE,
+                     betaPriorVar=betaPriorVar,
                      quiet=TRUE, modelMatrixType=modelMatrixType)
     }, BPPARAM=BPPARAM))
     
@@ -452,7 +454,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
                                               dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
         # replace design
         if (noReps) design(objectNZSub) <- designIn
-        nbinomWaldTest(objectNZSub, betaPrior=betaPrior,
+        nbinomWaldTest(objectNZSub, betaPrior=FALSE,
                        quiet=TRUE, modelMatrix=modelMatrix, modelMatrixType="standard")
       }, BPPARAM=BPPARAM))
     } else if (test == "LRT") {

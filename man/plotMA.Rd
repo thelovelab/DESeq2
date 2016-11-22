@@ -26,10 +26,12 @@ individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}}
 
 \item{ylim}{optional y limits}
 
-\item{MLE}{whether to plot the MLE (unshrunken estimates), defaults to FALSE.
+\item{MLE}{if \code{betaPrior=TRUE} was used,
+whether to plot the MLE (unshrunken estimates), defaults to FALSE.
 Requires that \code{\link{results}} was run with \code{addMLE=TRUE}.
-Note that the MLE will be plotted regardless of this argument, if DESeq() was run
-with \code{betaPrior=FALSE}.}
+Note that the MLE will be plotted regardless of this argument,
+if DESeq() was run with \code{betaPrior=FALSE}. See \code{\link{lfcShrink}}
+for examples on how to plot shrunken log2 fold changes.}
 
 \item{...}{further arguments passed to \code{plotMA} if object
 is \code{DESeqResults} or to \code{\link{results}} if object is

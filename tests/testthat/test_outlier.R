@@ -29,13 +29,12 @@ test_that("outlier filtering and replacement works as expected", {
   # the pvalue for those not replaced is equal
   expect_equal(results(dds1)$pvalue[idx], results(dds0)$pvalue[idx])
 
-
   # check that outlier filtering catches throughout range of mu
   beta0 <- seq(from=1,to=16,length=100)
   idx <- rep(rep(c(TRUE,FALSE),c(1,9)),10)
   set.seed(1)
-  #par(mfrow=c(2,3))
-  for (disp0 in c(.01,.5)) {
+  par(mfrow=c(2,3))
+  for (disp0 in c(.01,.25)) {
     for (m in c(10,20,80)) {
       dds <- makeExampleDESeqDataSet(n=100, m=m, interceptMean=beta0, interceptSD=0,
                                      dispMeanRel=function(x) 4/x + disp0)
@@ -48,10 +47,10 @@ test_that("outlier filtering and replacement works as expected", {
       expect_true(all(is.na(res$pvalue[idx])))
       expect_true(all(outlierCooks))
       expect_true(all(maxOtherCooks))
-      #col <- rep("black", 100)
-      #col[idx] <- ifelse(outlierCooks, ifelse(maxOtherCooks, "blue", "red"), "purple")
-      #plot(assays(dds)[["cooks"]][,1], col=col, log="y",
-      #     main=paste(m,"-",disp0), ylab="cooks");abline(h=qf(.99,2,m-2))
+      col <- rep("black", 100)
+      col[idx] <- ifelse(outlierCooks, ifelse(maxOtherCooks, "blue", "red"), "purple")
+      plot(assays(dds)[["cooks"]][,1], col=col, log="y",
+          main=paste(m,"-",disp0), ylab="cooks");abline(h=qf(.99,2,m-2))
     }
   }
 

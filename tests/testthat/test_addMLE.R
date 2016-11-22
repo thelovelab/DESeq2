@@ -3,7 +3,7 @@ test_that("adding MLE works as expected", {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=200,m=12,betaSD=1)
   dds$condition <- factor(rep(letters[1:3],each=4))
-  dds <- DESeq(dds)
+  dds <- DESeq(dds, betaPrior=TRUE)
   ddsNP <- nbinomWaldTest(dds, betaPrior=FALSE)
 
   res1 <- results(dds, contrast=c("condition","c","a"), addMLE=TRUE)

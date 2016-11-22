@@ -20,6 +20,7 @@ test_that("plots work", {
   plotSparsity(dds)
 
   # plotMA MLE
+  dds <- DESeq(dds, betaPrior=TRUE)
   res <- results(dds)
   expect_error(plotMA(res, MLE=TRUE))
   res <- results(dds, addMLE=TRUE)

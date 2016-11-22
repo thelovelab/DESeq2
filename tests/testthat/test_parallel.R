@@ -26,14 +26,14 @@ test_that("parallel execution works as expected", {
   }))
   betaPriorVar <- estimateBetaPriorVar(dds)
   dds <- do.call(rbind, lapply(levels(idx), function(l) {
-    nbinomWaldTest(dds[idx == l,,drop=FALSE], betaPriorVar=betaPriorVar)
+    nbinomWaldTest(dds[idx == l,,drop=FALSE], betaPrior=TRUE, betaPriorVar=betaPriorVar)
   }))  
 
   ### END ###
 
   res1 <- results(dds)
 
-  dds2 <- DESeq(dds0)
+  dds2 <- DESeq(dds0, betaPrior=TRUE)
   res2 <- results(dds2)
 
   expect_equal(mcols(dds)$dispGeneEst, mcols(dds2)$dispGeneEst)
@@ -54,12 +54,14 @@ test_that("parallel execution works as expected", {
 
   library("BiocParallel")
   register(SerialParam())
-  dds3 <- DESeq(dds0, parallel=TRUE)
+  dds3 <- DESeq(dds0, betaPrior=TRUE, parallel=TRUE)
   res3 <- results(dds3, parallel=TRUE)
   res4 <- results(dds3)
   expect_equal(res2$pvalue, res3$pvalue)
   expect_equal(res3$pvalue, res4$pvalue)  
-
+  expect_equal(res2$log2FoldChange, res3$log2FoldChange)
+  expect_equal(res3$log2FoldChange, res4$log2FoldChange)  
+  
   dds <- makeExampleDESeqDataSet(n=100,m=8)
   dds <- DESeq(dds, parallel=TRUE, test="LRT", reduced=~1)
 })

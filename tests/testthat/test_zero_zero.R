@@ -8,13 +8,15 @@ test_that("comparison of two groups with all zeros makes sense", {
   dds <- DESeq(dds)
   res <- results(dds, contrast=c("condition","D","B"))[1,]
   expect_equal(res$log2FoldChange, 0)
-  res <- results(dds, contrast=c(0,0,-1,0,1))[1,]
+  res <- results(dds, contrast=c(0,-1,0,1))[1,]
   expect_equal(res$log2FoldChange, 0)
-  res <- results(dds,c(0,0,0,0,1))[1,]
+  res <- results(dds, name="condition_D_vs_A")[1,]
+  expect_true(res$log2FoldChange != 0)  
+  res <- results(dds,c(0,0,0,1))[1,]
   expect_true(res$log2FoldChange != 0)
   # if all samples have 0, should be NA
   res <- results(dds, contrast=c("condition","D","B"))[2,]
   expect_true(is.na(res$log2FoldChange))
-  res <- results(dds, contrast=c(0,0,-1,0,1))[2,]
+  res <- results(dds, contrast=c(0,-1,0,1))[2,]
   expect_true(is.na(res$log2FoldChange))
 })

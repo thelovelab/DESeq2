@@ -127,10 +127,12 @@ plotMA.DESeqResults <- function(object, alpha, main="", xlab="mean of normalized
 #' or a \code{DESeqDataSet} processed by \code{\link{DESeq}}, or the
 #' individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}
 #' @param alpha the significance level for thresholding adjusted p-values
-#' @param MLE whether to plot the MLE (unshrunken estimates), defaults to FALSE.
+#' @param MLE if \code{betaPrior=TRUE} was used,
+#' whether to plot the MLE (unshrunken estimates), defaults to FALSE.
 #' Requires that \code{\link{results}} was run with \code{addMLE=TRUE}.
-#' Note that the MLE will be plotted regardless of this argument, if DESeq() was run
-#' with \code{betaPrior=FALSE}.
+#' Note that the MLE will be plotted regardless of this argument,
+#' if DESeq() was run with \code{betaPrior=FALSE}. See \code{\link{lfcShrink}}
+#' for examples on how to plot shrunken log2 fold changes.
 #' @param main optional title for the plot
 #' @param xlab optional defaults to "mean of normalized counts"
 #' @param ylim optional y limits

@@ -12,6 +12,7 @@ test_that("results works as expected and throws errors", {
   # calling results too early
   expect_error(results(dds))
 
+  sizeFactors(dds) <- rep(1, ncol(dds))
   dds <- DESeq(dds)
   head(coef(dds))
   res <- results(dds)
@@ -29,19 +30,20 @@ test_that("results works as expected and throws errors", {
   expect_error(results(dds, contrast=letters[1:4]))
   expect_error(results(dds, contrast=c("condition","1","1")))
   results(dds, independentFiltering=FALSE)
-  results(dds, contrast=list("condition1"))
-  expect_error(results(dds, contrast=list("condition1","condition2","condition3")))
-  expect_error(results(dds, contrast=list("condition1",1)))
-  expect_error(results(dds, contrast=list("condition1","foo")))
-  expect_error(results(dds, contrast=list("condition1","condition1")))
+  results(dds, contrast=list("condition_2_vs_1"))
+  expect_error(results(dds, contrast=list("condition_2_vs_1","condition_3_vs_1","condition_3_vs_1")))
+  expect_error(results(dds, contrast=list("condition_2_vs_1",1)))
+  expect_error(results(dds, contrast=list("condition_2_vs_1","foo")))
+  expect_error(results(dds, contrast=list("condition_2_vs_1","condition_2_vs_1")))
   expect_error(results(dds, contrast=list(character(), character())))
   expect_error(results(dds, contrast=rep(0, 6)))
 
   # check to see if the contrasts with expanded model matrix
-  # are close to expected (although shrunk due to the beta prior)
-  lfc31 <- results(dds,contrast=c("condition","3","1"))[1,2]
-  lfc21 <- results(dds,contrast=c("condition","2","1"))[1,2]
-  lfc32 <- results(dds,contrast=c("condition","3","2"))[1,2]
+  # are close to expected (although shrunk due to the beta prior).
+  # lfcShrink() here calls results()
+  lfc31 <- lfcShrink(dds,contrast=c("condition","3","1"))[1]
+  lfc21 <- lfcShrink(dds,contrast=c("condition","2","1"))[1]
+  lfc32 <- lfcShrink(dds,contrast=c("condition","3","2"))[1]
   expect_equal(lfc31, 3, tolerance=.1)
   expect_equal(lfc21, 1, tolerance=.1)
   expect_equal(lfc32, 2, tolerance=.1)
@@ -53,29 +55,30 @@ test_that("results works as expected and throws errors", {
   dds2 <- dds
   colData(dds2)$condition <- relevel(colData(dds2)$condition, "2")
   dds2 <- DESeq(dds2)
-  expect_equal(results(dds2,contrast=c("condition","3","1"))[1,2], lfc31, tolerance=1e-6)
-  expect_equal(results(dds2,contrast=c("condition","2","1"))[1,2], lfc21, tolerance=1e-6)
-  expect_equal(results(dds2,contrast=c("condition","3","2"))[1,2], lfc32, tolerance=1e-6)
+  expect_equal(lfcShrink(dds2,contrast=c("condition","3","1"))[1], lfc31, tolerance=1e-6)
+  expect_equal(lfcShrink(dds2,contrast=c("condition","2","1"))[1], lfc21, tolerance=1e-6)
+  expect_equal(lfcShrink(dds2,contrast=c("condition","3","2"))[1], lfc32, tolerance=1e-6)
 
   # test a number of contrast as list options
-  expect_equal(results(dds, contrast=list("condition3","condition1"))[1,2], lfc31, tolerance=1e-6)
-  results(dds, contrast=list("condition3","condition1"), listValues=c(.5,-.5))
-  results(dds, contrast=list("condition3",character()))
-  results(dds, contrast=list("condition3",character()), listValues=c(.5,-.5))
-  results(dds, contrast=list(character(),"condition1"))
-  results(dds, contrast=list(character(),"condition1"), listValues=c(.5,-.5))
+  expect_equal(results(dds, contrast=list("condition_3_vs_1","condition_2_vs_1"))[1,2],
+               2, tolerance=1e-6)
+  results(dds, contrast=list("condition_3_vs_1","condition_2_vs_1"), listValues=c(.5,-.5))
+  results(dds, contrast=list("condition_3_vs_1",character()))
+  results(dds, contrast=list("condition_3_vs_1",character()), listValues=c(.5,-.5))
+  results(dds, contrast=list(character(),"condition_2_vs_1"))
+  results(dds, contrast=list(character(),"condition_2_vs_1"), listValues=c(.5,-.5))
 
   # test no prior on intercept
-  expect_equivalent(attr(dds,"betaPriorVar")[1], 1e6)  
+  expect_equivalent(attr(dds,"betaPriorVar"), rep(1e6, 4))
 
   # test thresholding
   results(dds, lfcThreshold=1)
-  expect_error(results(dds, lfcThreshold=1, altHypothesis="lessAbs"))
+  results(dds, lfcThreshold=1, altHypothesis="lessAbs")
   results(dds, lfcThreshold=1, altHypothesis="greater")
   results(dds, lfcThreshold=1, altHypothesis="less")
 
-  ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
-  results(ddsNoPrior, lfcThreshold=1, altHypothesis="lessAbs")
+  dds3 <- DESeq(dds, betaPrior=TRUE)
+  expect_error(results(dds3, lfcThreshold=1, altHypothesis="lessAbs"))
 })
 
 test_that("results: designs with zero intercept", {
@@ -144,7 +147,8 @@ test_that("results basics regarding format, tidy, MLE, remove are working", {
   expect_true(is(res, "data.frame"))
 
   # test MLE and 'name'
-  results(dds, addMLE=TRUE)
+  dds2 <- DESeq(dds, betaPrior=TRUE)
+  results(dds2, addMLE=TRUE)
   expect_error(results(dds, name="condition_B_vs_A", addMLE=TRUE))
 
   # test remove results
