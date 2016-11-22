@@ -27,8 +27,9 @@ See \code{\link{estimateDispersions}} for description.}
 \item{betaPrior}{whether or not to put a zero-mean normal prior on
 the non-intercept coefficients 
 See \code{\link{nbinomWaldTest}} for description of the calculation
-of the beta prior. By default, the beta prior is used only for the
-Wald test, but can also be specified for the likelihood ratio test.}
+of the beta prior. In versions \code{>=1.16}, the default is set
+to \code{FALSE}, and shrunken LFCs are obtained afterwards using
+\code{\link{lfcShrink}}.}
 
 \item{full}{for \code{test="LRT"}, the full model formula,
 which is restricted to the formula in \code{design(object)}.

@@ -159,8 +159,9 @@ NULL
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients 
 #' See \code{\link{nbinomWaldTest}} for description of the calculation
-#' of the beta prior. By default, the beta prior is used only for the
-#' Wald test, but can also be specified for the likelihood ratio test.
+#' of the beta prior. In versions \code{>=1.16}, the default is set
+#' to \code{FALSE}, and shrunken LFCs are obtained afterwards using
+#' \code{\link{lfcShrink}}.
 #' @param full for \code{test="LRT"}, the full model formula,
 #' which is restricted to the formula in \code{design(object)}.
 #' alternatively, it can be a model matrix constructed by the user.
@@ -248,14 +249,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   modelAsFormula <- !is.matrix(full)
   
   if (missing(betaPrior)) {
-    betaPrior <- if (modelAsFormula) {
-      termsOrder <- attr(terms.formula(design(object)),"order")
-      interactionPresent <- any(termsOrder > 1)
-      # use beta prior for Wald tests and when no interaction terms are included
-      (test == "Wald") & !interactionPresent
-    } else {
-      FALSE
-    }
+    betaPrior <- FALSE
   } else {
     stopifnot(is.logical(betaPrior))
   }
@@ -972,18 +966,37 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' 
 #' The fitting proceeds as follows: standard maximum likelihood estimates
 #' for GLM coefficients (synonymous with "beta", "log2 fold change", "effect size")
-#' are calculated. A zero-centered Normal prior distribution 
-#' is assumed for the coefficients other than the intercept.
+#' are calculated.
+#' Then, optionally, a zero-centered Normal prior distribution 
+#' (\code{betaPrior}) is assumed for the coefficients other than the intercept.
+#'
+#' Note that this posterior log2 fold change
+#' estimation is now not the default setting for \code{nbinomWaldTest},
+#' as the standard workflow for coefficient shrinkage has moved to
+#' an additional function \code{link{lfcShrink}}.
+#'
+#' For calculating Wald test p-values, the coefficients are scaled by their
+#' standard errors and then compared to a standard Normal distribution. 
+#' The \code{\link{results}}
+#' function without any arguments will automatically perform a contrast of the
+#' last level of the last variable in the design formula over the first level.
+#' The \code{contrast} argument of the \code{\link{results}} function can be used
+#' to generate other comparisons.
+#'  
+#' The Wald test can be replaced with the \code{\link{nbinomLRT}}
+#' for an alternative test of significance.
+#' 
+#' Notes on the log2 fold change prior:
+#' 
 #' The variance of the prior distribution for each
 #' non-intercept coefficient is calculated using the observed
 #' distribution of the maximum likelihood coefficients.  
 #' The final coefficients are then maximum a posteriori estimates
-#' using this prior (Tikhonov/ridge regularization). See below for details on the
+#' using this prior (Tikhonov/ridge regularization). 
+#' See below for details on the
 #' prior variance and the Methods section of the DESeq2 manuscript for more detail.
 #' The use of a prior has little effect on genes with high counts and helps to
 #' moderate the large spread in coefficients for genes with low counts.
-#' For calculating Wald test p-values, the coefficients are scaled by their
-#' standard errors and then compared to a standard Normal distribution. 
 #'
 #' The prior variance is calculated by matching the 0.05 upper quantile
 #' of the observed MLE coefficients to a zero-centered Normal distribution.
@@ -998,11 +1011,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' See \code{\link{estimateBetaPriorVar}}.
 #' The final prior variance for a factor level is the average of the
 #' estimated prior variance over all contrasts of all levels of the factor. 
-#' Another change since the 2014 paper: when interaction terms are present
-#' in the design, the prior on log fold changes is turned off
-#' (for more details, see the vignette section, "Methods changes since
-#' the 2014 DESeq2 paper").
-#' 
+#'
 #' When a log2 fold change prior is used (betaPrior=TRUE),
 #' then \code{nbinomWaldTest} will by default use expanded model matrices,
 #' as described in the \code{modelMatrixType} argument, unless this argument
@@ -1010,14 +1019,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' This ensures that log2 fold changes will be independent of the choice
 #' of reference level. In this case, the beta prior variance for each factor
 #' is calculated as the average of the mean squared maximum likelihood
-#' estimates for each level and every possible contrast. The \code{\link{results}}
-#' function without any arguments will automatically perform a contrast of the
-#' last level of the last variable in the design formula over the first level.
-#' The \code{contrast} argument of the \code{\link{results}} function can be used
-#' to generate other comparisons.
-#'  
-#' The Wald test can be replaced with the \code{\link{nbinomLRT}}
-#' for an alternative test of significance.
+#' estimates for each level and every possible contrast. 
 #'
 #' @param object a DESeqDataSet
 #' @param betaPrior whether or not to put a zero-mean normal prior on
@@ -1062,7 +1064,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
+nbinomWaldTest <- function(object, betaPrior=FALSE, betaPriorVar,
                            modelMatrix=NULL, modelMatrixType,
                            maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df, useQR=TRUE) {
@@ -1084,12 +1086,13 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
+  # model matrix not provided...
   if (is.null(modelMatrix)) {
     modelAsFormula <- TRUE
     termsOrder <- attr(terms.formula(design(object)),"order")
     interactionPresent <- any(termsOrder > 1)
     if (missing(betaPrior)) {
-      betaPrior <- !interactionPresent
+      betaPrior <- FALSE
     }
 
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
@@ -1116,6 +1119,7 @@ nbinomWaldTest <- function(object, betaPrior, betaPriorVar,
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
     renameCols <- hasIntercept
   } else {
+    # model matrix was provided...
     if (missing(betaPrior)) {
       betaPrior <- FALSE
     } else {

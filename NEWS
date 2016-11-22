@@ -1,3 +1,14 @@
+CHANGES IN VERSION 1.15.12
+--------------------------
+
+    o DESeq() and nbinomWaldTest() the default setting
+      will be betaPrior=FALSE, and the recommended pipeline
+      will be to use lfcShrink() for producing shrunken
+      log2 fold changes for visualization and ranking.
+      Explanation for the change is presented in the
+      vignette section:
+      "Methods changes since the 2014 DESeq2 paper"
+
 CHANGES IN VERSION 1.15.9
 -------------------------
 
