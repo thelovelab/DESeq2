@@ -58,12 +58,10 @@ lfcShrink <- function(dds, coef, contrast, res) {
   }
   
   if (!missing(res)) {
-    df <- DataFrame(baseMean=res$baseMean,
-                    log2FoldChange=res.shr$log2FoldChange,
-                    stat=res$stat,
-                    pvalue=res$pvalue,
-                    padj=res$padj)
-    return(DESeqResults(df))
+    res <- res[,c("baseMean","log2FoldChange","stat","pvalue","padj")]
+    res$log2FoldChange <- res.shr$log2FoldChange
+    mcols(res)$description[2] <- mcols(res.shr)$description[2]
+    return(res)
   } else {
     return(res.shr$log2FoldChange)
   }
