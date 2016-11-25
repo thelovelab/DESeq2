@@ -1,5 +1,5 @@
 ---
-title: "Analyzing RNA-seq data with DESeq2"
+title: "Analyzing RNA-seq data with DESeq2 (PDF)"
 author: "Michael I. Love, Simon Anders, and Wolfgang Huber"
 date: "`r BiocStyle::doc_date()`"
 package: "`r BiocStyle::pkg_ver('DESeq2')`"
@@ -21,21 +21,19 @@ abstract: >
   on the Bioconductor website covers similar material to this vignette
   but at a slower pace, including the generation of count matrices from
   FASTQ files.
-  DESeq2 package version: `r packageVersion("DESeq2")`
 output:
-  rmarkdown::html_document:
-    highlight: pygments
+  BiocStyle::pdf_document2:
     toc: true
     fig_width: 5
 bibliography: library.bib
 vignette: >
-  %\VignetteIndexEntry{Analyzing RNA-seq data with DESeq2}
+  %\VignetteIndexEntry{Analyzing RNA-seq data with DESeq2 (PDF)}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding[utf8]{inputenc}
 ---
 
 
-<!-- This is the source document -->
+<!-- This is a derived document, DO NOT EDIT -->
 
 
 ```{r setup, echo=FALSE, results="hide"}
