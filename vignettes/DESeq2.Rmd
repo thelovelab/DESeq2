@@ -1,8 +1,7 @@
 ---
 title: "Analyzing RNA-seq data with DESeq2"
 author: "Michael I. Love, Simon Anders, and Wolfgang Huber"
-date: "`r doc_date()`"
-package: "`r pkg_ver('DESeq2')`"
+date: "`r BiocStyle::doc_date()`"
 abstract: >
   A basic task in the analysis of count data from RNA-seq is the
   detection of differentially expressed genes. The count data are
@@ -21,9 +20,11 @@ abstract: >
   on the Bioconductor website covers similar material to this vignette
   but at a slower pace, including the generation of count matrices from
   FASTQ files.
+  **Package version**: `r packageVersion("DESeq2")`
 output:
   BiocStyle::html_document2:
     toc: true
+    fig_width: 5
 bibliography: library.bib
 vignette: >
   %\VignetteIndexEntry{Analyzing RNA-seq data with DESeq2}
@@ -33,7 +34,7 @@ vignette: >
 
 ```{r setup, echo=FALSE, results="hide"}
 knitr::opts_chunk$set(tidy=FALSE, cache=TRUE,
-                      dev="png", dpi=180,
+                      dev="png",
                       message=FALSE, error=FALSE, warning=TRUE)
 ```	
 
@@ -47,11 +48,11 @@ knitr::opts_chunk$set(tidy=FALSE, cache=TRUE,
 > [10.1186/s13059-014-0550-8](http://dx.doi.org/10.1186/s13059-014-0550-8)
 
 Other Bioconductor packages with similar aims are
-`r Biocpkg("edgeR")`,
-`r Biocpkg("limma")`,
-`r Biocpkg("DSS")`,
-`r Biocpkg("EBSeq")`, and 
-`r Biocpkg("baySeq")`.
+[edgeR](http://bioconductor.org/packages/edgeR),
+[limma](http://bioconductor.org/packages/limma),
+[DSS](http://bioconductor.org/packages/DSS),
+[EBSeq](http://bioconductor.org/packages/EBSeq), and 
+[baySeq](http://bioconductor.org/packages/baySeq).
 
 ## Quick start
 
@@ -83,13 +84,22 @@ The following starting functions will be explained below:
 * If you have a *RangedSummarizedExperiment*, the first line would use 
   *DESeqDataSet*.
 
-## How to get help
+## How to get help for DESeq2
 
-All DESeq2 questions should be posted to the Bioconductor support
-site: <https://support.bioconductor.org>, which serves as a
-repository of questions and answers. See the first question in the
-list of Frequently Asked Questions (FAQ)
-for more information about how to construct an informative post.
+Any and all DESeq2 questions should be posted to the 
+**Bioconductor support site**, which serves as a searchable knowledge
+base of questions and answers:
+
+<https://support.bioconductor.org>
+
+Posting a question and tagging with "DESeq2" will automatically send
+an alert to the package authors to respond on the support site.  See
+the first question in the list of [Frequently Asked Questions](#FAQ)
+(FAQ) for information about how to construct an informative post. 
+
+You should **not** email your question to the package authors, as we will
+just reply that the question should be posted to the 
+**Bioconductor support site**.
 
 ## Input data
 
@@ -125,7 +135,7 @@ here as an object `dds`.
 
 A technical detail is that the *DESeqDataSet* class extends the
 *RangedSummarizedExperiment* class of the 
-`r Biocpkg("SummarizedExperiment")` package. 
+[SummarizedExperiment](http://bioconductor.org/packages/SummarizedExperiment) package. 
 The "Ranged" part refers to the fact that the rows of the assay data 
 (here, the counts) can be associated with genomic ranges (the exons of genes).
 This association facilitates downstream exploration of results, making use of
@@ -161,7 +171,8 @@ estimated counts:
 A newer and recommended pipeline is to use fast transcript 
 abundance quantifiers upstream of DESeq2, and then to create
 gene-level count matrices for use with DESeq2 
-by importing the quantification data using the `r Biocpkg("tximport")`
+by importing the quantification data using the
+[tximport](http://bioconductor.org/packages/tximport) 
 package. This workflow allows users to import transcript abundance estimates
 from a variety of external software, including the following methods:
 
@@ -197,7 +208,7 @@ counts.
 Here, we demonstrate how to import transcript abundances
 and construct of a gene-level *DESeqDataSet* object
 from *Salmon* `quant.sf` files, which are
-stored in the `r Biocexptpkg("tximportData")` package.
+stored in the [tximportData](http://bioconductor.org/packages/tximportData) package.
 Note that, instead of locating `dir` using *system.file*,
 a user would typically just provide a path, e.g. `/path/to/quant/files`.
 For a typical use, the `condition` information should already be
@@ -229,7 +240,7 @@ We import the necessary quantification data for DESeq2 using the
 *tximport* function.  For further details on use of *tximport*,
 including the construction of the `tx2gene` table for linking
 transcripts to genes in your dataset, please refer to the 
-`r Biocpkg("tximport")` package vignette.
+[tximport](http://bioconductor.org/packages/tximport) package vignette.
 
 ```{r tximport, results="hide"}
 txi <- tximport(files, type="salmon",
@@ -257,13 +268,14 @@ Alternatively, the function *DESeqDataSetFromMatrix* can be
 used if you already have a matrix of read counts prepared from another
 source. Another method for quickly producing count matrices 
 from alignment files is the *featureCounts* function [@Liao2013feature]
-in the `r Biocpkg("Rsubread")` package.
+in the [Rsubread](http://bioconductor.org/packages/Rsubread) package.
 To use *DESeqDataSetFromMatrix*, the user should provide 
 the counts matrix, the information about the samples (the columns of the 
 count matrix) as a *DataFrame* or *data.frame*, and the design formula.
 
 To demonstate the use of *DESeqDataSetFromMatrix*, 
-we will read in count data from the `r Biocexptpkg("pasilla")` package.
+we will read in count data from the
+[pasilla](http://bioconductor.org/packages/pasilla) package. 
 We read in a count matrix, which we will name `cts`, 
 and the sample information table, which we will name `coldata`. 
 Further below we describe how to extract these objects from,
@@ -306,7 +318,7 @@ all(rownames(coldata) == colnames(cts))
 ```
 
 If you have used the *featureCounts* function [@Liao2013feature] in the 
-`r Biocpkg("Rsubread")` package, the matrix of read counts can be directly 
+[Rsubread](http://bioconductor.org/packages/Rsubread) package, the matrix of read counts can be directly 
 provided from the `"counts"` element in the list output.
 The count matrix and column data can typically be read into R 
 from flat files using base R functions such as *read.csv*
@@ -344,7 +356,7 @@ have used *htseq-count* from the
 [HTSeq](http://www-huber.embl.de/users/anders/HTSeq) 
 python package [@Anders:2014:htseq].
 For an example of using the python scripts, see the
-`r Biocexptpkg("pasilla")` data package. First you will want to specify a
+[pasilla](http://bioconductor.org/packages/pasilla) data package. First you will want to specify a
 variable which points to the directory in which the *htseq-count*
 output files are located. 
 
@@ -354,7 +366,7 @@ directory <- "/path/to/your/files/"
 
 However, for demonstration purposes only, the following line of
 code points to the directory for the demo *htseq-count* output
-files packages for the `r Biocexptpkg("pasilla")` package.
+files packages for the [pasilla](http://bioconductor.org/packages/pasilla) package.
 
 ```{r htseqDirII}
 directory <- system.file("extdata", package="pasilla",
@@ -392,7 +404,7 @@ ddsHTSeq
 
 An example of the steps to produce a *RangedSummarizedExperiment* can
 be found in the [RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene/)
-and in the vignette for the data package `r Biocexptpkg("airway")`.
+and in the vignette for the data package [airway](http://bioconductor.org/packages/airway).
 Here we load the *RangedSummarizedExperiment* from that package in
 order to build a *DESeqDataSet*.
 
@@ -471,13 +483,13 @@ See the manual page for an example of the use of
 
 ### About the pasilla dataset
 
-We continue with the `r Biocexptpkg("pasilla")` data constructed from the
+We continue with the [pasilla](http://bioconductor.org/packages/pasilla) data constructed from the
 count matrix method above. This data set is from an experiment on
 *Drosophila melanogaster* cell cultures and investigated the
 effect of RNAi knock-down of the splicing factor *pasilla*
 [@Brooks2010].  The detailed transcript of the production of
-the `r Biocexptpkg("pasilla")` data is provided in the vignette of the 
-data package `r Biocexptpkg("pasilla")`.
+the [pasilla](http://bioconductor.org/packages/pasilla) data is provided in the vignette of the 
+data package [pasilla](http://bioconductor.org/packages/pasilla).
 
 <a name="de"/>
 
@@ -531,7 +543,7 @@ experiments with many samples (e.g. 100 samples), one can take
 advantage of parallelized computation.  Both of the above functions
 have an argument `parallel` which if set to `TRUE` can
 be used to distribute computation across cores specified by the
-*register* function of `r Biocpkg("BiocParallel")`. For example,
+*register* function of [BiocParallel](http://bioconductor.org/packages/BiocParallel). For example,
 the following chunk (not evaluated here), would register 4 cores, and
 then the two functions above, with `parallel=TRUE`, would
 split computation over these cores. 
@@ -581,10 +593,10 @@ sum(res05$padj < 0.05, na.rm=TRUE)
 <a name="IHW"/>
 
 A generalization of the idea of *p* value filtering is to *weight* hypotheses
-to optimize power. A Bioconductor package, `r Biocpkg("IHW")`, is available
+to optimize power. A Bioconductor package, [IHW](http://bioconductor.org/packages/IHW), is available
 that implements the method of *Independent Hypothesis Weighting* [@Ignatiadis2015].
 Here we show the use of *IHW* for *p* value adjustment of DESeq2 results.
-For more details, please see the vignette of the `r Biocpkg("IHW")` package.
+For more details, please see the vignette of the [IHW](http://bioconductor.org/packages/IHW) package.
 Note that the *IHW* result object is stored in the metadata.
 
 ```{r IHW}
@@ -706,26 +718,26 @@ can be set to `NA` for one of the following reasons:
 ### Rich visualization and reporting of results
 
 **ReportingTools.** An HTML report of the results with plots and sortable/filterable columns
-can be generated using the `r Biocpkg("ReportingTools")` package
+can be generated using the [ReportingTools](http://bioconductor.org/packages/ReportingTools) package
 on a *DESeqDataSet* that has been processed by the *DESeq* function.
 For a code example, see the *RNA-seq differential expression* vignette at
-the `r Biocpkg("ReportingTools")` page, or the manual page for the 
+the [ReportingTools](http://bioconductor.org/packages/ReportingTools) page, or the manual page for the 
 *publish* method for the *DESeqDataSet* class.
 
 **regionReport.** An HTML and PDF summary of the results with plots
-can also be generated using the `r Biocpkg("regionReport")` package.
+can also be generated using the [regionReport](http://bioconductor.org/packages/regionReport) package.
 The *DESeq2Report* function should be run on a 
 *DESeqDataSet* that has been processed by the *DESeq* function.
 For more details see the manual page for *DESeq2Report* 
-and an example vignette in the `r Biocpkg("regionReport")` package.
+and an example vignette in the [regionReport](http://bioconductor.org/packages/regionReport) package.
 
 **Glimma.** Interactive visualization of DESeq2 output, 
 including MA-plots (also called MD-plot) can be generated using the
-`r Biocpkg("Glimma")` package. See the manual page for *glMDPlot.DESeqResults*.
+[Glimma](http://bioconductor.org/packages/Glimma) package. See the manual page for *glMDPlot.DESeqResults*.
 
 **pcaExplorer.** Interactive visualization of DESeq2 output,
 including PCA plots, boxplots of counts and other useful summaries can be
-generated using the `r Biocpkg("pcaExplorer")` package.
+generated using the [pcaExplorer](http://bioconductor.org/packages/pcaExplorer) package.
 See the *Launching the application* section of the package vignette.
 
 ### Exporting results to CSV files
@@ -761,7 +773,8 @@ to `condition`. There are multiple ways to analyze experiments when the
 additional variables are of interest and not just controlling factors 
 (see [section on interactions](#interactions)).
 
-The data in the `r Biocexptpkg("pasilla")` package have a condition of interest 
+The data in the [pasilla](http://bioconductor.org/packages/pasilla) 
+package have a condition of interest 
 (the column `condition`), as well as information on the type of sequencing 
 which was performed (the column `type`), as we can see below:
 
@@ -1438,7 +1451,7 @@ The theory behind independent filtering is discussed in greater detail
 which do not pass the filter threshold are set to `NA`.
 
 The default independent filtering is performed using the *filtered_p*
-function of the `r Biocpkg("genefilter")` package, and all of the
+function of the [genefilter](http://bioconductor.org/packages/genefilter) package, and all of the
 arguments of *filtered_p* can be passed to the *results* function.
 The filter threshold value and the number of rejections at each
 quantile of the filter statistic are available as metadata of the
@@ -1635,7 +1648,9 @@ These steps then replace *estimateSizeFactors* which occurs within the
 normalization factors and use these in the place of size factors
 (and a message will be printed confirming this).
 
-The methods provided by the `r Biocpkg("cqn")` or `r Biocpkg("EDASeq")` packages
+The methods provided by the
+[cqn](http://bioconductor.org/packages/cqn) or 
+[EDASeq](http://bioconductor.org/packages/EDASeq) packages
 can help correct for GC or length biases. They both describe in their
 vignettes how to create matrices which can be used by DESeq2.
 From the formula above, we see that normalization factors should be on
@@ -1712,7 +1727,8 @@ controlling for individual effects. A simple example of such a design is:
 
 This design can be analyzed by DESeq2 but requires a bit of
 refactoring in order to fit the model terms. Here we will use a trick
-described in the `r Biocpkg("edgeR")` user guide, from the section
+described in the [edgeR](http://bioconductor.org/packages/edgeR) user
+guide, from the section 
 *Comparisons Both Between and Within Subjects*.  If we try to
 analyze with a formula such as, `~ ind + grp*cnd`, we will
 obtain an error, because the effect for group is a linear combination
@@ -1841,7 +1857,8 @@ these moderated, or shrunken, estimates were generated by
 *lfcShrink* function.
 Dispersions are estimated using expected mean values from the maximum
 likelihood estimate of log2 fold changes, and optimizing the Cox-Reid 
-adjusted profile likelihood, as first implemented for RNA-seq data in `r Biocpkg("edgeR")`
+adjusted profile likelihood, as first implemented for RNA-seq data in
+[edgeR](http://bioconductor.org/packages/edgeR) 
 [@CR,edgeR_GLM]. The steps performed by the *DESeq* function are
 documented in its manual page `?DESeq`; briefly, they are:
 
@@ -1855,8 +1872,8 @@ section [above](#access).
 
 ## Changes compared to DESeq
 
-The main changes in the package DESeq2, compared to the (older)
-version `r Biocpkg("DESeq")`, are as follows:
+The main changes in the package *DESeq2*, compared to the (older)
+version *DESeq*, are as follows: 
 
 * *RangedSummarizedExperiment* is used as the superclass for storage of input data,
   intermediate calculations and results.
@@ -2055,6 +2072,8 @@ text(x = c(0, length(h1$counts)), y = 0, label = paste(c(0,1)),
 legend("topright", fill=rev(colori), legend=rev(names(colori)))
 ```
 
+<a name="FAQ"/>
+
 # Frequently asked questions 
 
 ## How can I get support for DESeq2?
@@ -2090,7 +2109,7 @@ requests to optimize the process:
 
 ## Why are some *p* values set to NA?
   
-See the details [above](#pvaluesNA)
+See the details [above](#pvaluesNA).
 
 ## How can I get unfiltered DESeq2 results?
 
