@@ -31,15 +31,15 @@ test_that("outlier filtering and replacement works as expected", {
 
   # check that outlier filtering catches throughout range of mu
   beta0 <- seq(from=1,to=16,length=100)
-  idx <- rep(rep(c(TRUE,FALSE),c(1,9)),10)
+  idx <- rep(rep(c(TRUE,FALSE),c(1,19)),5)
   set.seed(1)
   par(mfrow=c(2,3))
-  for (disp0 in c(.01,.25)) {
+  for (disp0 in c(.01,.1)) {
     for (m in c(10,20,80)) {
       dds <- makeExampleDESeqDataSet(n=100, m=m, interceptMean=beta0, interceptSD=0,
-                                     dispMeanRel=function(x) 4/x + disp0)
+                                     dispMeanRel=function(x) disp0)
       counts(dds)[idx,1] <- as.integer(1000 * 2^beta0[idx])
-      dds <- DESeq(dds, minReplicatesForReplace=Inf, quiet=TRUE)
+      dds <- DESeq(dds, minReplicatesForReplace=Inf, quiet=TRUE, fitType="mean")
       res <- results(dds)
       cutoff <- qf(.99, 2, m-2)
       outlierCooks <- assays(dds)[["cooks"]][idx,1] > cutoff
