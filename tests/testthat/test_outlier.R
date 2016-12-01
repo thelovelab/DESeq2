@@ -31,7 +31,7 @@ test_that("outlier filtering and replacement works as expected", {
 
   # check that outlier filtering catches throughout range of mu
   beta0 <- seq(from=1,to=16,length=100)
-  idx <- rep(rep(c(TRUE,FALSE),c(1,19)),5)
+  idx <- rep(rep(c(TRUE,FALSE),c(1,9)),10)
   set.seed(1)
   par(mfrow=c(2,3))
   for (disp0 in c(.01,.1)) {
@@ -43,14 +43,15 @@ test_that("outlier filtering and replacement works as expected", {
       res <- results(dds)
       cutoff <- qf(.99, 2, m-2)
       outlierCooks <- assays(dds)[["cooks"]][idx,1] > cutoff
-      maxOtherCooks <- apply(assays(dds)[["cooks"]][idx,-1], 1, max) < cutoff
+      nonoutlierCooks <- mcols(dds)$maxCooks[!idx] < cutoff
       expect_true(all(is.na(res$pvalue[idx])))
       expect_true(all(outlierCooks))
-      expect_true(all(maxOtherCooks))
+      expect_true(all(nonoutlierCooks))
       col <- rep("black", 100)
       col[idx] <- ifelse(outlierCooks, ifelse(maxOtherCooks, "blue", "red"), "purple")
-      plot(assays(dds)[["cooks"]][,1], col=col, log="y",
-          main=paste(m,"-",disp0), ylab="cooks");abline(h=qf(.99,2,m-2))
+      plot(2^beta0, mcols(dds)$maxCooks, col=col, log="xy",
+           main=paste(m,"-",disp0), xlab="mean", ylab="cooks")
+      abline(h=qf(.99,2,m-2))
     }
   }
 
