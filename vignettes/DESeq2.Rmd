@@ -511,9 +511,9 @@ extracts a results table with log2 fold changes, *p* values and adjusted
 *p* values. With no arguments to *results*, the results will be for
 the last variable in the design formula, and if this is a factor, 
 the comparison will be the last level of this variable over the first level. 
-Details about the comparison are printed to the console. The text, `condition`
-`treated vs untreated`, tells you that the estimates are of the logarithmic
-fold change log2(treated/untreated).
+Details about the comparison are printed to the console. 
+The text, `condition treated vs untreated`, tells you that the
+estimates are of the logarithmic fold change log2(treated/untreated).
 
 ```{r deseq}
 dds <- DESeq(dds)
