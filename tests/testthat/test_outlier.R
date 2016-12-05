@@ -48,7 +48,7 @@ test_that("outlier filtering and replacement works as expected", {
       expect_true(all(outlierCooks))
       expect_true(all(nonoutlierCooks))
       col <- rep("black", 100)
-      col[idx] <- ifelse(outlierCooks, ifelse(maxOtherCooks, "blue", "red"), "purple")
+      col[idx] <- "blue"
       plot(2^beta0, mcols(dds)$maxCooks, col=col, log="xy",
            main=paste(m,"-",disp0), xlab="mean", ylab="cooks")
       abline(h=qf(.99,2,m-2))
