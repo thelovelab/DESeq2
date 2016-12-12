@@ -249,8 +249,7 @@ transcripts to genes in your dataset, please refer to the
 [tximport](http://bioconductor.org/packages/tximport) package vignette.
 
 ```{r tximport, results="hide"}
-txi <- tximport(files, type="salmon",
-                tx2gene=tx2gene, reader=read_tsv)
+txi <- tximport(files, type="salmon", tx2gene=tx2gene)
 ```
 
 Finally, we can construct a *DESeqDataSet* from the `txi` object and
