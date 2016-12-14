@@ -9,9 +9,7 @@ test_that("tximport works", {
   names(files) <- paste0("sample",1:6)
   tx2gene <- read.csv(file.path(dir, "tx2gene.csv"))
   
-  out <- capture.output({
-    txi <- tximport(files, type="salmon", tx2gene=tx2gene, reader=read_tsv)
-  })
+  txi <- tximport(files, type="salmon", tx2gene=tx2gene)
 
   dds <- DESeqDataSetFromTximport(txi, samples, ~1)
 
