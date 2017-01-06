@@ -2414,6 +2414,8 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     betaMatrix[row,] <- o$par / scaleCols
     # calculate the standard errors
     mu_row <- as.numeric(nf * 2^(x %*% o$par))
+    # store the new mu vector
+    mu[row,] <- mu_row
     minmu <- 0.5
     mu_row[mu_row < minmu] <- minmu
     w <- diag((mu_row^-1 + alpha)^-1)
@@ -2422,8 +2424,6 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     sigma <- xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv
     # warn below regarding these rows with negative variance
     betaSE[row,] <- log2(exp(1)) * sqrt(pmax(diag(sigma),0)) / scaleCols
-    # store the new mu vector
-    mu[row,] <- mu_row
     logLike[row] <- sum(dnbinom(k, mu=mu_row, size=1/alpha, log=TRUE))
   }
   return(list(betaMatrix=betaMatrix,betaSE=betaSE,
