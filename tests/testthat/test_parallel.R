@@ -33,7 +33,7 @@ test_that("parallel execution works as expected", {
 
   res1 <- results(dds)
 
-  dds2 <- DESeq(dds0, betaPrior=TRUE)
+  dds2 <- DESeq(dds0, betaPrior=TRUE, minRep=Inf)
   res2 <- results(dds2)
 
   expect_equal(mcols(dds)$dispGeneEst, mcols(dds2)$dispGeneEst)

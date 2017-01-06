@@ -1141,6 +1141,7 @@ nbinomWaldTest <- function(object, betaPrior=FALSE, betaPriorVar,
     fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
                          renameCols=renameCols, modelMatrix=modelMatrix)
     H <- fit$hat_diagonals
+    mu <- fit$mu
     modelMatrix <- fit$modelMatrix
     modelMatrixNames <- fit$modelMatrixNames
     # record the wide prior variance which was used in fitting
@@ -1151,6 +1152,7 @@ nbinomWaldTest <- function(object, betaPrior=FALSE, betaPriorVar,
                                      betaPriorVar=betaPriorVar)
     fit <- priorFitList$fit
     H <- priorFitList$H
+    mu <- priorFitList$mu
     betaPriorVar <- priorFitList$betaPriorVar
     modelMatrix <- priorFitList$modelMatrix
     mleBetaMatrix <- priorFitList$mleBetaMatrix
@@ -1161,9 +1163,9 @@ nbinomWaldTest <- function(object, betaPrior=FALSE, betaPriorVar,
   }
 
   # store mu in case the user did not call estimateDispersionsGeneEst
-  dimnames(fit$mu) <- NULL
-  assays(objectNZ)[["mu"]] <- fit$mu
-  assays(object)[["mu"]] <- buildMatrixWithNARows(fit$mu, mcols(object)$allZero)
+  dimnames(mu) <- NULL
+  assays(objectNZ)[["mu"]] <- mu
+  assays(object)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
 
   # store the prior variance directly as an attribute
   # of the DESeqDataSet object, so it can be pulled later by
@@ -2294,8 +2296,8 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
   
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   modelMatrixType <- attr(object, "modelMatrixType")
-  
-  if (missing(betaPriorVar) | !("H" %in% assayNames(objectNZ))) {
+
+  if (missing(betaPriorVar) | !(all(c("mu","H") %in% assayNames(objectNZ)))) {
     # first, fit the negative binomial GLM without a prior,
     # used to construct the prior variances
     # and for the hat matrix diagonals for calculating Cook's distance
@@ -2305,6 +2307,7 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
     modelMatrixNames <- colnames(modelMatrix)
     H <- fit$hat_diagonal
     betaMatrix <- fit$betaMatrix
+    mu <- fit$mu
 
     modelMatrixNames[modelMatrixNames == "(Intercept)"] <- "Intercept"
     modelMatrixNames <- make.names(modelMatrixNames)
@@ -2325,6 +2328,7 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
     # beta prior variance and hat matrix diagonals were provided
     modelMatrix <- getModelMatrix(object)
     H <- assays(objectNZ)[["H"]]
+    mu <- assays(objectNZ)[["mu"]]
     mleBetaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_",names(mcols(objectNZ))),drop=FALSE])
   }
      
@@ -2359,7 +2363,7 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
                          useQR=useQR, modelMatrix=modelMatrix, renameCols=FALSE)
   }
 
-  res <- list(fit=fit, H=H, betaPriorVar=betaPriorVar,
+  res <- list(fit=fit, H=H, betaPriorVar=betaPriorVar, mu=mu,
               modelMatrix=modelMatrix, mleBetaMatrix=mleBetaMatrix)
   res
 }
