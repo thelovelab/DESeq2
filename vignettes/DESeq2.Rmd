@@ -2307,6 +2307,22 @@ context is probably to convert these `NA` values to 1:
 res$padj <- ifelse(is.na(res$padj), 1, res$padj)
 ``` 
 
+## I have trouble installing DESeq2 on Ubuntu/Linux...
+
+"*I try to install DESeq2 using biocLite(), but I get an error trying to
+install the R packages XML and/or RCurl:*"
+
+`ERROR: configuration failed for package XML`
+
+`ERROR: configuration failed for package RCurl`
+
+You need to install the following devel versions of packages using
+your standard package manager, e.g. `sudo apt-get install` or 
+`sudo apt install`
+
+* libxml2-dev
+* libcurl4-openssl-dev
+
 # Acknowledgments
 
 We have benefited in the development of DESeq2 from the help and
