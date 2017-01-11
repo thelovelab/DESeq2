@@ -1041,6 +1041,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' level of factors in addition to an intercept.
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
+#' @param betaTol control parameter defining convergence
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -1070,7 +1071,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' @export
 nbinomWaldTest <- function(object, betaPrior=FALSE, betaPriorVar,
                            modelMatrix=NULL, modelMatrixType,
-                           maxit=100, useOptim=TRUE, quiet=FALSE,
+                           betaTol=1e-8, maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df, useQR=TRUE) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
@@ -1138,7 +1139,9 @@ nbinomWaldTest <- function(object, betaPrior=FALSE, betaPriorVar,
   if (!betaPrior) {
     # fit the negative binomial GLM without a prior
     # (in actuality a very wide prior with standard deviation 1e3 on log2 fold changes)
-    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
+    fit <- fitNbinomGLMs(objectNZ,
+                         betaTol=betaTol, maxit=maxit,
+                         useOptim=useOptim, useQR=useQR,
                          renameCols=renameCols, modelMatrix=modelMatrix)
     H <- fit$hat_diagonals
     mu <- fit$mu
@@ -1148,7 +1151,8 @@ nbinomWaldTest <- function(object, betaPrior=FALSE, betaPriorVar,
     betaPriorVar <- rep(1e6, ncol(fit$modelMatrix))
   } else {
     priorFitList <- fitGLMsWithPrior(object=object,
-                                     maxit=maxit, useOptim=useOptim, useQR=useQR,
+                                     betaTol=betaTol, maxit=maxit,
+                                     useOptim=useOptim, useQR=useQR,
                                      betaPriorVar=betaPriorVar)
     fit <- priorFitList$fit
     H <- priorFitList$H
@@ -1437,6 +1441,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @param reduced a reduced formula to compare against, e.g.
 #' the full model with a term or terms of interest removed.
 #' alternatively, can be a matrix
+#' @param betaTol control parameter defining convergence
 #' @param maxit the maximum number of iterations to allow for convergence of the
 #' coefficient vector
 #' @param useOptim whether to use the native optim function on rows which do not
@@ -1461,7 +1466,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #'
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
-                      maxit=100, useOptim=TRUE, quiet=FALSE,
+                      betaTol=1e-8, maxit=100, useOptim=TRUE, quiet=FALSE,
                       useQR=TRUE) {
 
   if (is.null(dispersions(object))) {
@@ -1523,19 +1528,27 @@ nbinomLRT <- function(object, full=design(object), reduced,
 
   if (modelAsFormula) {
     fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
-                               renameCols=renameCols, maxit=maxit,
-                               useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+                               renameCols=renameCols,
+                               betaTol=betaTol, maxit=maxit,
+                               useOptim=useOptim, useQR=useQR,
+                               warnNonposVar=FALSE)
     modelMatrix <- fullModel$modelMatrix
-    reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced, maxit=maxit,
-                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+    reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced,
+                                  betaTol=betaTol, maxit=maxit,
+                                  useOptim=useOptim, useQR=useQR,
+                                  warnNonposVar=FALSE)
   } else {
     fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
-                               renameCols=FALSE, maxit=maxit,
-                               useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+                               renameCols=FALSE,
+                               betaTol=betaTol, maxit=maxit,
+                               useOptim=useOptim, useQR=useQR,
+                               warnNonposVar=FALSE)
     modelMatrix <- full
     reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
-                                  renameCols=FALSE, maxit=maxit,
-                                  useOptim=useOptim, useQR=useQR, warnNonposVar=FALSE)
+                                  renameCols=FALSE,
+                                  betaTol=betaTol, maxit=maxit,
+                                  useOptim=useOptim, useQR=useQR,
+                                  warnNonposVar=FALSE)
   }
   betaPriorVar <- rep(1e6, ncol(modelMatrix))
   
@@ -2292,7 +2305,7 @@ matchWeightedUpperQuantileForVariance <- function(x, weights, upperQuantile=.05)
 # 1 - without the beta prior, in order to calculate the
 #     beta prior variance and hat matrix
 # 2 - again but with the prior in order to get beta matrix and standard errors
-fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
+fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorVar) {
   
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   modelMatrixType <- attr(object, "modelMatrixType")
@@ -2301,7 +2314,9 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
     # first, fit the negative binomial GLM without a prior,
     # used to construct the prior variances
     # and for the hat matrix diagonals for calculating Cook's distance
-    fit <- fitNbinomGLMs(objectNZ, maxit=maxit, useOptim=useOptim, useQR=useQR,
+    fit <- fitNbinomGLMs(objectNZ,
+                         betaTol=betaTol, maxit=maxit,
+                         useOptim=useOptim, useQR=useQR,
                          renameCols = (modelMatrixType == "standard"))
     modelMatrix <- fit$modelMatrix
     modelMatrixNames <- colnames(modelMatrix)
@@ -2354,13 +2369,16 @@ fitGLMsWithPrior <- function(object, maxit, useOptim, useQR, betaPriorVar) {
   lambda <- 1/betaPriorVar
 
   if (modelMatrixType == "standard") {
-    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
-                         useQR=useQR)
+    fit <- fitNbinomGLMs(objectNZ, lambda=lambda,
+                         betaTol=betaTol, maxit=maxit,
+                         useOptim=useOptim, useQR=useQR)
     modelMatrix <- fit$modelMatrix
   } else {
     modelMatrix <- makeExpandedModelMatrix(objectNZ)
-    fit <- fitNbinomGLMs(objectNZ, lambda=lambda, maxit=maxit, useOptim=useOptim,
-                         useQR=useQR, modelMatrix=modelMatrix, renameCols=FALSE)
+    fit <- fitNbinomGLMs(objectNZ, lambda=lambda,
+                         betaTol=betaTol, maxit=maxit,
+                         useOptim=useOptim, useQR=useQR,
+                         modelMatrix=modelMatrix, renameCols=FALSE)
   }
 
   res <- list(fit=fit, H=H, betaPriorVar=betaPriorVar, mu=mu,

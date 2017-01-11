@@ -5,8 +5,8 @@
 \title{Wald test for the GLM coefficients}
 \usage{
 nbinomWaldTest(object, betaPrior = FALSE, betaPriorVar, modelMatrix = NULL,
-  modelMatrixType, maxit = 100, useOptim = TRUE, quiet = FALSE,
-  useT = FALSE, df, useQR = TRUE)
+  modelMatrixType, betaTol = 1e-08, maxit = 100, useOptim = TRUE,
+  quiet = FALSE, useT = FALSE, df, useQR = TRUE)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -29,6 +29,8 @@ design formula. "expanded" includes an indicator variable for each
 level of factors in addition to an intercept.
 betaPrior must be set to TRUE in order for expanded model matrices
 to be fit.}
+
+\item{betaTol}{control parameter defining convergence}
 
 \item{maxit}{the maximum number of iterations to allow for convergence of the
 coefficient vector}

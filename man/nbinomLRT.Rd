@@ -4,8 +4,8 @@
 \alias{nbinomLRT}
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
-nbinomLRT(object, full = design(object), reduced, maxit = 100,
-  useOptim = TRUE, quiet = FALSE, useQR = TRUE)
+nbinomLRT(object, full = design(object), reduced, betaTol = 1e-08,
+  maxit = 100, useOptim = TRUE, quiet = FALSE, useQR = TRUE)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -17,6 +17,8 @@ alternatively, can be a matrix}
 \item{reduced}{a reduced formula to compare against, e.g.
 the full model with a term or terms of interest removed.
 alternatively, can be a matrix}
+
+\item{betaTol}{control parameter defining convergence}
 
 \item{maxit}{the maximum number of iterations to allow for convergence of the
 coefficient vector}
