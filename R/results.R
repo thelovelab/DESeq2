@@ -418,8 +418,6 @@ of length 3 to 'contrast' instead of using 'name'")
     if (is.list(contrast)) stop("addMLE only implemented for: contrast=c('condition','B','A')")
     res <- cbind(res, mleContrast(object, contrast))
     res <- res[,c("baseMean","log2FoldChange","lfcMLE","lfcSE","stat","pvalue")]
-    # if an all zero contrast, also zero out the lfcMLE
-    res$lfcMLE[ which(res$log2FoldChange == 0 & res$stat == 0) ] <- 0
   }
   
   # only if we need to generate new p-values
@@ -819,11 +817,6 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
                    "are expected to be in resultsNames(object)"))
       }
     }
-
-    # check if both levels have all zero counts
-    # (this has to be down here to make use of error checking above)
-    contrastAllZero <- contrastAllZeroCharacter(object, contrastFactor,
-                         contrastNumLevel, contrastDenomLevel)
     
   }
 
@@ -868,8 +861,6 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
       contrastName <- paste(contrastFactor,contrastNumLevel,"vs",contrastDenomLevel)
     }
 
-    contrastAllZero <- contrastAllZeroNumeric(object, contrast)
-    
     # now get the contrast
     contrastResults <- getContrast(object, contrast, useT=FALSE, df)
     lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
@@ -883,15 +874,6 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
     res <- cbind(mcols(object)["baseMean"],
                  contrastResults)
     
-  }
-
-  # if the counts in all samples included in contrast are zero
-  # then zero out the LFC, Wald stat and p-value set to 1
-  contrastAllZero <- contrastAllZero & !mcols(object)$allZero
-  if (sum(contrastAllZero) > 0) {
-    res$log2FoldChange[contrastAllZero] <- 0
-    res$stat[contrastAllZero] <- 0
-    res$pvalue[contrastAllZero] <- 1
   }
   
   # if test is "LRT", overwrite the statistic and p-value
@@ -1066,35 +1048,3 @@ or the denominator (second element of contrast list), but not both")
   return(contrast)
 }
 
-
-contrastAllZeroCharacter <- function(object, contrastFactor, contrastNumLevel, contrastDenomLevel) {
-  cts <- counts(object)
-  f <- colData(object)[[contrastFactor]]
-  cts.sub <- cts[ , f %in% c(contrastNumLevel, contrastDenomLevel), drop=FALSE ]
-  rowSums( cts.sub == 0 ) == ncol(cts.sub)
-}
-
-contrastAllZeroNumeric <- function(object, contrast) {
-  if (is.null(attr(object,"modelMatrix"))) {
-    stop("was expecting a model matrix stored as an attribute of the DESeqDataSet")
-  }
-  modelMatrix <- attr(object, "modelMatrix")
-
-  # note: this extra leg-work to zero out LFC, lfcSE, and set p-value to 1
-  # for contrasts comparing groups where both groups have all zeros
-  # is only implemented for the case in which we can identify
-  # the relevant samples by multiplying the model matrix
-  # with a vector where the non-zero elements of the numeric contrast are replaced with 1
-
-  # so this code will not zero out in the case of standard model matrices
-  # where the user supplies a numeric vector that pulls out a single column
-  # of the model matrix, for example.
-  
-  if (all(contrast >= 0) | all(contrast <= 0)) {
-    return( rep(FALSE, nrow(object)) )
-  }
-  contrastBinary <- ifelse(contrast == 0, 0, 1)
-  whichSamples <- ifelse(modelMatrix %*% contrastBinary == 0, 0, 1)
-  zeroTest <- counts(object) %*% whichSamples
-  zeroTest == 0
-}
