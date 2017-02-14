@@ -4,7 +4,7 @@
 \alias{lfcShrink}
 \title{Shrink log2 fold changes}
 \usage{
-lfcShrink(dds, coef, contrast, res)
+lfcShrink(dds, coef, contrast, res, type = "normal")
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, which has been run through
@@ -18,6 +18,9 @@ only \code{coef} or \code{contrast} can be specified, not both}
 only \code{coef} or \code{contrast} can be specified, not both}
 
 \item{res}{a DESeqResults object (can be missing)}
+
+\item{type}{at this time, ignored argument, because only one
+shrinkage estimator, but more to come!}
 }
 \value{
 if \code{res} is not missing, a DESeqResults object with

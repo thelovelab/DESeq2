@@ -12,6 +12,8 @@
 #' @param contrast see argument description in \code{\link{results}}.
 #' only \code{coef} or \code{contrast} can be specified, not both
 #' @param res a DESeqResults object (can be missing)
+#' @param type at this time, ignored argument, because only one
+#' shrinkage estimator, but more to come!
 #'
 #' @return if \code{res} is not missing, a DESeqResults object with
 #' the \code{log2FoldChange} column replaced with a shrunken LFC.
@@ -27,10 +29,13 @@
 #'  res.shr <- lfcShrink(dds=dds, coef=2, res=res)
 #'  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"), res=res)
 #' 
-lfcShrink <- function(dds, coef, contrast, res) {
+lfcShrink <- function(dds, coef, contrast, res, type="normal") {
   if (is.null(dispersions(dds))) {
     stop("lfcShrink requires dispersion estimates, first call estimateDispersions()")
   }
+
+  # match the shrinkage type
+  type <- match.arg(type, choices=c("normal"))
 
   # fit MLE coefficients... TODO skip this step
   dds <- estimateMLEForBetaPriorVar(dds)
