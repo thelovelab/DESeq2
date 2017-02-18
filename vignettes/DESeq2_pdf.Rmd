@@ -1691,7 +1691,7 @@ identical columns in the model matrix. This is also referred to as
 the formula [below](#theory)) is not possible.
 
 ```{r lineardep, echo=FALSE}
-data.frame(batch=factor(c(1,1,2,2)), condition=factor(c("A","A","B","B")))
+DataFrame(batch=factor(c(1,1,2,2)), condition=factor(c("A","A","B","B")))
 ``` 
 
 Another situation which will cause problems is when the variables are
@@ -1701,7 +1701,7 @@ vs 1 cannot be fit because it is identical to a column in the model
 matrix which represents the condition C vs A effect.
 
 ```{r lineardep2, echo=FALSE}
-data.frame(batch=factor(c(1,1,1,1,2,2)), condition=factor(c("A","A","B","B","C","C")))
+DataFrame(batch=factor(c(1,1,1,1,2,2)), condition=factor(c("A","A","B","B","C","C")))
 ``` 
 
 In both of these cases above, the batch effect cannot be fit and must
@@ -1713,20 +1713,42 @@ experiment and properly balance the conditions across batches.
 A balanced design would look like:
 
 ```{r lineardep3, echo=FALSE}
-data.frame(batch=factor(c(1,1,1,2,2,2)), condition=factor(c("A","B","C","A","B","C")))
+DataFrame(batch=factor(c(1,1,1,2,2,2)), condition=factor(c("A","B","C","A","B","C")))
 ``` 
 
-Finally, there is a case where we *can* in fact perform inference.
-Consider an experiment with grouped individuals,
-where we seek to test the group-specific effect of a treatment, while
-controlling for individual effects. A simple example of such a design is:
+<a name="nested-indiv"/>
+
+### Group-specific condition effects, individuals nested within groups
+
+Finally, there is a case where we *can* in fact perform inference, but
+we may need to re-arrange terms to do so. Consider an experiment with
+grouped individuals, where we seek to test the group-specific effect
+of a condition or treatment, while controlling for individual
+effects. The individuals are nested within the groups: an individual
+can only be in one of the groups, although each individual has one or
+more observations across condition.
+
+An example of such an experiment is below:
 
 ```{r groupeffect}
-(coldata <- data.frame(grp=factor(rep(c("X","Y"),each=4)),
-                       ind=factor(rep(1:4,each=2)),
-                       cnd=factor(rep(c("A","B"),4))))
+coldata <- DataFrame(grp=factor(rep(c("X","Y"),each=6)),
+                       ind=factor(rep(1:6,each=2)),
+                      cnd=factor(rep(c("A","B"),6)))
+coldata
 ```
 
+Note that individual (`ind`) is a *factor* not a numeric. This is very
+important. 
+
+To make R display all the rows, we can do:
+
+```{r}
+as.data.frame(coldata)
+```
+
+We have two groups of samples X and Y, each with three distinct
+individuals (labeled here 1-6). For each individual, we have
+conditions A and B (for example, this could be control and treated).
 
 This design can be analyzed by DESeq2 but requires a bit of
 refactoring in order to fit the model terms. Here we will use a trick
@@ -1739,15 +1761,16 @@ of the individuals.
 
 However, the following steps allow for an analysis of group-specific
 condition effects, while controlling for differences in individual.
-For object construction, you can use a blank design, such as `~1`, as
+For object construction, you can use a simple design, such as 
+`~ ind + cnd`, as
 long as you remember to replace it before running *DESeq*.
 Then add a column `ind.n` which distinguishes the
 individuals nested within a group. Here, we add this column to
 coldata, but in practice you would add this column to `dds`.
 
 ```{r groupeffect2}
-coldata$ind.n <- factor(rep(rep(1:2,each=2),2))
-coldata
+coldata$ind.n <- factor(rep(rep(1:3,each=2),2))
+as.data.frame(coldata)
 ``` 
 
 Now we can reassign our *DESeqDataSet* a design of
@@ -1759,12 +1782,22 @@ matrix:
 model.matrix(~ grp + grp:ind.n + grp:cnd, coldata)
 ``` 
 
-where the terms `grpX.cndB` and `grpY.cndB` give the
-group-specific condition effects. These can be extracted using
-*results* with the `name` argument.
-Furthermore, `grpX.cndB` and
-`grpY.cndB` can be contrasted using the `contrast`
-argument, in order to test if the condition effect is different across group:
+Note that, if you have unbalanced numbers of individuals in the two
+groups, you will have zeros for some of the interactions between `grp`
+and `ind.n`. You can remove these columns manually from the model
+matrix and pass the corrected model matrix to the `full` argument of
+the *DESeq* function. See example code in the next section.
+
+Above, the terms `grpX.cndB` and `grpY.cndB` give the
+group-specific condition effects, in other words, the condition B vs A
+effect for group X samples, and likewise for group Y samples. These
+terms control for all of the six individual effects.
+These group-specific condition effects can be extracted using
+*results* with the `name` argument. 
+
+Furthermore, `grpX.cndB` and `grpY.cndB` can be contrasted using the
+`contrast` argument, in order to test if the condition effect is
+different across group: 
 
 ```{r groupeffect4, eval=FALSE}
 results(dds, contrast=list("grpY.cndB","grpX.cndB"))
@@ -1786,8 +1819,8 @@ construct an example dataset to illustrate:
 ```{r missingcombo}
 group <- factor(rep(1:3,each=6))
 condition <- factor(rep(rep(c("A","B","C"),each=2),3))
-d <- data.frame(group, condition)[-c(17,18),]
-d
+d <- DataFrame(group, condition)[-c(17,18),]
+as.data.frame(d)
 ``` 
 
 Note that if we try to estimate all interaction terms, we introduce a
@@ -1798,12 +1831,15 @@ column with all zeros, as there are no condition C samples for group
 m1 <- model.matrix(~ condition*group, d)
 colnames(m1)
 unname(m1)
+all.zero <- apply(m1, 2, function(x) all(x==0))
+all.zero
 ``` 
 
 We can remove this column like so:
 
 ```{r missingcombo3}
-m1 <- m1[,-9]
+idx <- which(all.zero)
+m1 <- m1[,-idx]
 unname(m1)
 ``` 
 

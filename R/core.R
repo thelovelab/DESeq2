@@ -292,6 +292,10 @@ DESeq <- function(object, test=c("Wald","LRT"),
   if (modelAsFormula) {
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
     designAndArgChecker(object, betaPrior)
+
+    if (design(object) == formula(~1)) {
+      warning("the design is ~ 1 (just an intercept). is this intended?")
+    }
     
     if (full != design(object)) {
       stop("'full' specified as formula should equal design(object)")

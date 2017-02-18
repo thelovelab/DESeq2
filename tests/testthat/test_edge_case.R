@@ -15,7 +15,7 @@ test_that("edge cases work or throw proper errors", {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=100)
   design(dds) <- ~ 1
-  dds <- DESeq(dds)
+  expect_warning({dds <- DESeq(dds)})
   res <- results(dds)
 
 
