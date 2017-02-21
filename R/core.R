@@ -1073,7 +1073,8 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' res <- results(dds)
 #'
 #' @export
-nbinomWaldTest <- function(object, betaPrior=FALSE, betaPriorVar,
+nbinomWaldTest <- function(object,
+                           betaPrior=FALSE, betaPriorVar,
                            modelMatrix=NULL, modelMatrixType,
                            betaTol=1e-8, maxit=100, useOptim=TRUE, quiet=FALSE,
                            useT=FALSE, df, useQR=TRUE) {
@@ -1909,6 +1910,17 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   if (missing(lambda)) {
     lambda <- rep(1e-6, ncol(modelMatrix))
   }
+
+  # use weights if they are present in assays(object)
+  if ("weights" %in% assayNames(object)) {
+    useWeights <- TRUE
+    weights <- assays(object)[["weights"]]
+    stopifnot(all(weights >= 0))
+    weights <- weights / apply(weights, 1, max)
+  } else {
+    useWeights <- FALSE
+    weights <- matrix(1, nrow=nrow(object), ncol=ncol(object))
+  }
   
   # bypass the beta fitting if the model formula is only intercept and
   # the prior variance is large (1e6)
@@ -1922,13 +1934,26 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
       alpha <- alpha_hat
       betaConv <- rep(TRUE, nrow(object))
       betaIter <- rep(1,nrow(object))
-      betaMatrix <- matrix(log2(mcols(object)$baseMean),ncol=1)
+      betaMatrix <- if (useWeights) {
+        matrix(log2(rowSums(weights*counts(object, normalized=TRUE))/rowSums(weights)))
+      } else {
+        matrix(log2(mcols(object)$baseMean),ncol=1)
+      }
       mu <- normalizationFactors * as.numeric(2^betaMatrix)
-      logLike <- rowSums(dnbinom(counts(object), mu=mu, size=1/alpha, log=TRUE))
+      logLikeMat <- dnbinom(counts(object), mu=mu, size=1/alpha, log=TRUE)
+      logLike <- if (useWeights) {
+        rowSums(weights*logLikeMat)
+      } else {
+        rowSums(logLikeMat)
+      }
       deviance <- -2 * logLike
       modelMatrix <- stats::model.matrix.default(~ 1, as.data.frame(colData(object)))
       colnames(modelMatrix) <- modelMatrixNames <- "Intercept"
-      w <- (mu^-1 + alpha)^-1
+      w <- if (useWeights) {
+        weights * (mu^-1 + alpha)^-1
+      } else {
+        (mu^-1 + alpha)^-1
+      }
       xtwx <- rowSums(w)
       sigma <- xtwx^-1
       betaSE <- matrix(log2(exp(1)) * sqrt(sigma),ncol=1)      
@@ -1965,12 +1990,14 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   # so we divide by the square of the
   # conversion factor, log(2)
   lambdaLogScale <- lambda / log(2)^2
-
+  
   betaRes <- fitBetaWrapper(ySEXP = counts(object), xSEXP = modelMatrix,
                             nfSEXP = normalizationFactors,
                             alpha_hatSEXP = alpha_hat,
                             beta_matSEXP = beta_mat,
                             lambdaSEXP = lambdaLogScale,
+                            weightsSEXP = weights,
+                            useWeightsSEXP = useWeights,
                             tolSEXP = betaTol, maxitSEXP = maxit,
                             useQRSEXP=useQR)
   mu <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
@@ -2011,6 +2038,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
     resOptim <- fitNbinomGLMsOptim(object,modelMatrix,lambda,
                                    rowsForOptim,rowStable,
                                    normalizationFactors,alpha_hat,
+                                   weights,useWeights,
                                    betaMatrix,betaSE,betaConv,
                                    beta_mat,
                                    mu,logLike)
@@ -2080,13 +2108,16 @@ fitDispWrapper <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_p
 # contrastSEXP a k length vector for a possible contrast
 # beta_matSEXP n by k matrix of the initial estimates for the betas
 # lambdaSEXP k length vector of the ridge values
+# weightsSEXP n by m matrix of weights
+# useWeightsSEXP whether to use weights
 # tolSEXP tolerance for convergence in estimates
 # maxitSEXP maximum number of iterations
 # useQRSEXP whether to use QR decomposition
 #
 # Note: at this level the betas are on the natural log scale
 fitBetaWrapper <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
-                            beta_matSEXP, lambdaSEXP, tolSEXP, maxitSEXP, useQRSEXP) {
+                            beta_matSEXP, lambdaSEXP, weightsSEXP, useWeightsSEXP,
+                            tolSEXP, maxitSEXP, useQRSEXP) {
   if ( missing(contrastSEXP) ) {
     # contrast is not required, just give 1,0,0,...
     contrastSEXP <- c(1,rep(0,ncol(xSEXP)-1))
@@ -2099,8 +2130,8 @@ fitBetaWrapper <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
   
   fitBeta(ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP, alpha_hatSEXP=alpha_hatSEXP,
           contrastSEXP=contrastSEXP, beta_matSEXP=beta_matSEXP,
-          lambdaSEXP=lambdaSEXP, tolSEXP=tolSEXP, maxitSEXP=maxitSEXP,
-          useQRSEXP=useQRSEXP)
+          lambdaSEXP=lambdaSEXP, weightsSEXP=weightsSEXP, useWeightsSEXP=useWeightsSEXP,
+          tolSEXP=tolSEXP, maxitSEXP=maxitSEXP, useQRSEXP=useQRSEXP)
 }
 
 
@@ -2395,6 +2426,7 @@ fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorV
 fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
                                rowsForOptim,rowStable,
                                normalizationFactors,alpha_hat,
+                               weights,useWeights,
                                betaMatrix,betaSE,betaConv,
                                beta_mat,
                                mu,logLike) {
@@ -2417,7 +2449,12 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     alpha <- alpha_hat[row]
     objectiveFn <- function(p) {
       mu_row <- as.numeric(nf * 2^(x %*% p))
-      logLike <- sum(dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE))
+      logLikeVector <- dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE)
+      logLike <- if (useWeights) {
+                   sum(weights[row,] * logLikeVector)
+                 } else {
+                   sum(logLikeVector)
+                 }
       logPrior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
       negLogPost <- -1 * (logLike + logPrior)
       if (is.finite(negLogPost)) negLogPost else 10^300
@@ -2440,13 +2477,22 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     mu[row,] <- mu_row
     minmu <- 0.5
     mu_row[mu_row < minmu] <- minmu
-    w <- diag((mu_row^-1 + alpha)^-1)
+    w <- if (useWeights) {
+           diag((mu_row^-1 + alpha)^-1)
+         } else {
+           diag(weights[row,] * (mu_row^-1 + alpha)^-1)
+         }
     xtwx <- t(x) %*% w %*% x
     xtwxRidgeInv <- solve(xtwx + ridge)
     sigma <- xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv
     # warn below regarding these rows with negative variance
     betaSE[row,] <- log2(exp(1)) * sqrt(pmax(diag(sigma),0)) / scaleCols
-    logLike[row] <- sum(dnbinom(k, mu=mu_row, size=1/alpha, log=TRUE))
+    logLikeVector <- dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE)
+    logLike[row] <- if (useWeights) {
+                      sum(weights[row,] * logLikeVector)
+                    } else {
+                      sum(logLikeVector)
+                    }
   }
   return(list(betaMatrix=betaMatrix,betaSE=betaSE,
               betaConv=betaConv,
@@ -2787,3 +2833,4 @@ and then provide your custom matrix to 'full' argument of DESeq.
 getModelMatrix <- function(object) {
   stats::model.matrix.default(design(object), data=as.data.frame(colData(object)))
 }
+

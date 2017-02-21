@@ -1,6 +1,11 @@
 CHANGES IN VERSION 1.15.28
 --------------------------
 
+    o Ability to specify observation-specific weights.
+
+CHANGES IN VERSION 1.15.28
+--------------------------
+
     o Remove some code that would "zero out" LFCs
       when both groups involved in a contrast had zero counts.
       This lead to inconsistency when similarly contrasts

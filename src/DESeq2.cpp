@@ -224,7 +224,7 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
 // note: the betas are on the natural log scale
 //
 // [[Rcpp::export]]
-Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP) {
+Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP) {
   arma::mat y = Rcpp::as<arma::mat>(ySEXP);
   arma::mat nf = Rcpp::as<arma::mat>(nfSEXP);
   arma::mat x = Rcpp::as<arma::mat>(xSEXP);
@@ -243,6 +243,9 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
   int maxit = Rcpp::as<int>(maxitSEXP);
   arma::colvec yrow, nfrow, beta_hat, mu_hat, z;
   arma::mat w, ridge, sigma;
+  // weights
+  arma::mat weights = Rcpp::as<arma::mat>(weightsSEXP);
+  bool useWeights = Rcpp::as<bool>(useWeightsSEXP);
   // vars for QR
   bool useQR = Rcpp::as<bool>(useQRSEXP);
   arma::colvec gamma_hat, big_z;
@@ -273,7 +276,11 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
       // the ridge penalty
       for (int t = 0; t < maxit; t++) {
 	iter(i)++;
-	w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	if (useWeights) {
+	  w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	} else {
+	  w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	}
 	// prepare matrices
 	weighted_x_ridge = join_cols(sqrt(w) * x, sqrt(ridge));
 	qr(q, r, weighted_x_ridge);
@@ -314,7 +321,11 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
       // and matrix inversion
       for (int t = 0; t < maxit; t++) {
 	iter(i)++;
-	w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	if (useWeights) {
+	  w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	} else {
+	  w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	}
 	z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
 	solve(beta_hat, x.t() * w * x + ridge, x.t() * w * z);
 	if (sum(abs(beta_hat) > large) > 0) {
@@ -344,7 +355,11 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
     deviance(i) = dev;
     beta_mat.row(i) = beta_hat.t();
     // recalculate w so that this is identical if we start with beta_hat
-    w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+    if (useWeights) {
+      w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+    } else {
+      w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+    }
     hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i() * x.t() * sqrt(w);
     hat_diagonals.row(i) = diagvec(hat_matrix).t();
     // sigma is the covariance matrix for the betas

@@ -666,12 +666,25 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
     counts(objectNZ)
   }
 
+  # use weights if they are present in assays(object)
+  if ("weights" %in% assayNames(object)) {
+    useWeights <- TRUE
+    weights <- assays(object)[["weights"]]
+    stopifnot(all(weights >= 0))
+    weights <- weights / apply(weights, 1, max)
+  } else {
+    useWeights <- FALSE
+    weights <- matrix(1, nrow=nrow(object), ncol=ncol(object))
+  }
+  
   betaRes <- fitBeta(ySEXP = countsMatrix, xSEXP = modelMatrix,
                      nfSEXP = normalizationFactors,
                      alpha_hatSEXP = alpha_hat,
                      contrastSEXP = contrast,
                      beta_matSEXP = beta_mat,
                      lambdaSEXP = lambda,
+                     weightsSEXP = weights,
+                     useWeightsSEXP = useWeights,
                      tolSEXP = 1e-8, maxitSEXP = 0,
                      useQRSEXP=FALSE) # QR not relevant, fitting loop isn't entered
   # convert back to log2 scale
