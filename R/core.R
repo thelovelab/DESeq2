@@ -638,6 +638,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                            modelMatrix=modelMatrix)
       fitMu <- fit$mu
     } else {
+
+      # TODO needs to incorporate weights
+      
       fitMu <- linearModelMuNormalized(objectNZ[fitidx,,drop=FALSE],
                                        modelMatrix)
     }
@@ -646,6 +649,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
+
+    # TODO needs to incorporate weights
+    
     dispRes <- fitDispWrapper(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
                               xSEXP = modelMatrix,
                               mu_hatSEXP = fitMu,
@@ -654,6 +660,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                               log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
                               kappa_0SEXP = kappa_0, tolSEXP = dispTol,
                               maxitSEXP = maxit, use_priorSEXP = FALSE)
+    
     dispIter[fitidx] <- dispRes$iter
     alpha_hat_new[fitidx] <- pmin(exp(dispRes$log_alpha), maxDisp)
     # only rerun those rows which moved
@@ -672,11 +679,12 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   }
   dispGeneEstConv <- dispIter < maxit
  
-  # when lacking convergence from the C++ routine
-  # we use an R function to estimate dispersions
-  # by evaluating a grid of posterior evaluations
+  # if lacking convergence from fitDisp() (C++)...
   refitDisp <- !dispGeneEstConv & dispGeneEst > minDisp*10
   if (sum(refitDisp) > 0) {
+
+    # TODO needs to incorporate weights
+    
     dispGrid <- fitDispGridWrapper(y=counts(objectNZ)[refitDisp,,drop=FALSE],x=modelMatrix,
                                    mu=mu[refitDisp,,drop=FALSE],
                                    logAlphaPriorMean=rep(0,sum(refitDisp)),
@@ -824,6 +832,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
   # if any missing values, fill in the fitted value to initialize
   dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
+
+  # TODO needs to incorporate weights
   
   # run with prior
   dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ), xSEXP = modelMatrix, mu_hatSEXP = mu,
@@ -837,19 +847,21 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   # prepare dispersions for storage in mcols(object)
   dispMAP <- exp(dispResMAP$log_alpha) 
 
-  # when lacking convergence from the C++ routine
-  # we use an R function to estimate dispersions.
-  # This finds the maximum of a smooth curve along a
-  # grid of posterior evaluations
+  # when lacking convergence from fitDisp() (C++)
+  # we use a function to maximize dispersion parameter
+  # along an adaptive grid (also C++)
   dispConv <- dispResMAP$iter < maxit
   refitDisp <- !dispConv
   if (sum(refitDisp) > 0) {
-    dispInR <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
+
+    # TODO needs to incorporate weights
+    
+    dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
                                   mu = mu[refitDisp,,drop=FALSE],
                                   logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
                                   logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
                                   usePrior=TRUE)
-    dispMAP[refitDisp] <- dispInR
+    dispMAP[refitDisp] <- dispGrid
   }
 
   # bound the dispersion estimate between minDisp and maxDisp for numeric stability
@@ -1822,9 +1834,14 @@ localDispersionFit <- function( means, disps, minDisp ) {
 
 # convenience function for testing the log likelihood
 # for a count matrix, mu matrix and vector disp
-nbinomLogLike <- function(counts, mu, disp) {
-  rowSums(matrix(dnbinom(counts, mu=mu,size=1/disp,
-                         log=TRUE),ncol=ncol(counts)))
+nbinomLogLike <- function(counts, mu, disp, weights, useWeights) {
+  if (useWeights) {
+    rowSums(weights * matrix(dnbinom(counts, mu=mu,size=1/disp,
+                           log=TRUE),ncol=ncol(counts)))
+  } else {
+    rowSums(matrix(dnbinom(counts, mu=mu,size=1/disp,
+                           log=TRUE),ncol=ncol(counts)))    
+  }
 }
 
 # simple function to return a matrix of size factors
@@ -1914,9 +1931,12 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   # use weights if they are present in assays(object)
   if ("weights" %in% assayNames(object)) {
     useWeights <- TRUE
-    weights <- assays(object)[["weights"]]
+    weights <- unname(assays(object)[["weights"]])
     stopifnot(all(weights >= 0))
     weights <- weights / apply(weights, 1, max)
+
+    # TODO weights * model matrix full rank check
+    
   } else {
     useWeights <- FALSE
     weights <- matrix(1, nrow=nrow(object), ncol=ncol(object))
@@ -1947,7 +1967,6 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
                  } else {
                    rowSums(logLikeMat)
                  }
-      deviance <- -2 * logLike
       modelMatrix <- stats::model.matrix.default(~ 1, as.data.frame(colData(object)))
       colnames(modelMatrix) <- modelMatrixNames <- "Intercept"
       w <- if (useWeights) {
@@ -1961,7 +1980,6 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
       hat_diagonals <- w * xtwx^-1;
       res <- list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
                   betaSE = betaSE, mu = mu, betaIter = betaIter,
-                  deviance = deviance,
                   modelMatrix=modelMatrix, 
                   nterms=1, hat_diagonals=hat_diagonals)
       return(res)
@@ -2001,9 +2019,16 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
                             useWeightsSEXP = useWeights,
                             tolSEXP = betaTol, maxitSEXP = maxit,
                             useQRSEXP=useQR)
+
+  # Note on deviance: the 'deviance' calculated in fitBeta() (C++)
+  # is not returned in mcols(object)$deviance. instead, we calculate
+  # the log likelihood below and use -2 * logLike.
+  # (reason is that we have other ways of estimating beta:
+  # above intercept code, and below optim code)
+  
   mu <- normalizationFactors * t(exp(modelMatrix %*% t(betaRes$beta_mat)))
   dispersionVector <- rep(dispersions(object), times=ncol(object))
-  logLike <- nbinomLogLike(counts(object), mu, dispersions(object))
+  logLike <- nbinomLogLike(counts(object), mu, dispersions(object), weights, useWeights)
 
   # test for stability
   rowStable <- apply(betaRes$beta_mat,1,function(row) sum(is.na(row))) == 0
@@ -2055,9 +2080,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   if (warnNonposVar & nNonposVar > 0) warning(nNonposVar,"rows had non-positive estimates of variance for coefficients")
   
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,
-       betaSE = betaSE, mu = mu, betaIter = betaRes$iter,
-       deviance = betaRes$deviance,
-       modelMatrix=modelMatrix, 
+       betaSE = betaSE, mu = mu, betaIter = betaRes$iter, modelMatrix=modelMatrix, 
        nterms=ncol(modelMatrix), hat_diagonals=betaRes$hat_diagonals)
 }
 

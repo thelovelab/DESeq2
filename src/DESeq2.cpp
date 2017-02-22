@@ -304,7 +304,11 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
 	dev = 0.0;
 	for (int j = 0; j < y_m; j++) {
 	  // note the order for Rf_dnbinom_mu: x, sz, mu, lg
-	  dev = dev + -2.0 * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	  if (useWeights) {
+	    dev = dev + -2.0 * weights(i,j) * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	  } else {
+	    dev = dev + -2.0 * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	  }
 	}
 	conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
 	if (std::isnan(conv_test)) {
@@ -339,7 +343,11 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
 	dev = 0.0;
 	for (int j = 0; j < y_m; j++) {
 	  // note the order for Rf_dnbinom_mu: x, sz, mu, lg
-	  dev = dev + -2.0 * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	  if (useWeights) {
+	    dev = dev + -2.0 * weights(i,j) * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	  } else {
+	    dev = dev + -2.0 * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	  }
 	}
 	conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
 	if (std::isnan(conv_test)) {
