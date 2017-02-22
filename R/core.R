@@ -1935,25 +1935,26 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
       betaConv <- rep(TRUE, nrow(object))
       betaIter <- rep(1,nrow(object))
       betaMatrix <- if (useWeights) {
-        matrix(log2(rowSums(weights*counts(object, normalized=TRUE))/rowSums(weights)))
-      } else {
-        matrix(log2(mcols(object)$baseMean),ncol=1)
-      }
+                      matrix(log2(rowSums(weights*counts(object, normalized=TRUE))
+                                  /rowSums(weights)),ncol=1)
+                    } else {
+                      matrix(log2(rowMeans(counts(object, normalized=TRUE))),ncol=1)
+                    }
       mu <- normalizationFactors * as.numeric(2^betaMatrix)
       logLikeMat <- dnbinom(counts(object), mu=mu, size=1/alpha, log=TRUE)
       logLike <- if (useWeights) {
-        rowSums(weights*logLikeMat)
-      } else {
-        rowSums(logLikeMat)
-      }
+                   rowSums(weights*logLikeMat)
+                 } else {
+                   rowSums(logLikeMat)
+                 }
       deviance <- -2 * logLike
       modelMatrix <- stats::model.matrix.default(~ 1, as.data.frame(colData(object)))
       colnames(modelMatrix) <- modelMatrixNames <- "Intercept"
       w <- if (useWeights) {
-        weights * (mu^-1 + alpha)^-1
-      } else {
-        (mu^-1 + alpha)^-1
-      }
+             weights * (mu^-1 + alpha)^-1
+           } else {
+             (mu^-1 + alpha)^-1
+           }
       xtwx <- rowSums(w)
       sigma <- xtwx^-1
       betaSE <- matrix(log2(exp(1)) * sqrt(sigma),ncol=1)      
@@ -1989,13 +1990,13 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   # used in fitBeta.
   # so we divide by the square of the
   # conversion factor, log(2)
-  lambdaLogScale <- lambda / log(2)^2
+  lambdaNatLogScale <- lambda / log(2)^2
   
   betaRes <- fitBetaWrapper(ySEXP = counts(object), xSEXP = modelMatrix,
                             nfSEXP = normalizationFactors,
                             alpha_hatSEXP = alpha_hat,
                             beta_matSEXP = beta_mat,
-                            lambdaSEXP = lambdaLogScale,
+                            lambdaSEXP = lambdaNatLogScale,
                             weightsSEXP = weights,
                             useWeightsSEXP = useWeights,
                             tolSEXP = betaTol, maxitSEXP = maxit,
@@ -2430,19 +2431,14 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
                                betaMatrix,betaSE,betaConv,
                                beta_mat,
                                mu,logLike) {
-  scaleCols <- apply(modelMatrix,2,function(z) max(abs(z)))
-  stopifnot(all(scaleCols > 0))
-  x <- sweep(modelMatrix,2,scaleCols,"/")
-  lambdaColScale <- lambda / scaleCols^2
-  lambdaColScale <- ifelse(lambdaColScale == 0, 1e-6, lambdaColScale)
-  lambdaLogScale <- lambda / log(2)^2
-  lambdaLogScaleColScale <- lambdaLogScale / scaleCols^2
+  x <- modelMatrix
+  lambdaNatLogScale <- lambda / log(2)^2
   large <- 30
   for (row in rowsForOptim) {
     betaRow <- if (rowStable[row] & all(abs(betaMatrix[row,]) < large)) {
-      betaMatrix[row,] * scaleCols
+      betaMatrix[row,]
     } else {
-      beta_mat[row,] * scaleCols
+      beta_mat[row,]
     }
     nf <- normalizationFactors[row,]
     k <- counts(object)[row,]
@@ -2455,22 +2451,22 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
                  } else {
                    sum(logLikeVector)
                  }
-      logPrior <- sum(dnorm(p,0,sqrt(1/lambdaColScale),log=TRUE))
+      logPrior <- sum(dnorm(p,0,sqrt(1/lambda),log=TRUE))
       negLogPost <- -1 * (logLike + logPrior)
       if (is.finite(negLogPost)) negLogPost else 10^300
     }
     o <- optim(betaRow, objectiveFn, method="L-BFGS-B",lower=-large, upper=large)
-    ridge <- if (length(lambdaLogScale) > 1) {
-      diag(lambdaLogScaleColScale)
+    ridge <- if (length(lambdaNatLogScale) > 1) {
+      diag(lambdaNatLogScale)
     } else {
-      as.matrix(lambdaLogScaleColScale,ncol=1)
+      as.matrix(lambdaNatLogScale,ncol=1)
     }
     # if we converged, change betaConv to TRUE
     if (o$convergence == 0) {
       betaConv[row] <- TRUE
     }
     # with or without convergence, store the estimate from optim
-    betaMatrix[row,] <- o$par / scaleCols
+    betaMatrix[row,] <- o$par
     # calculate the standard errors
     mu_row <- as.numeric(nf * 2^(x %*% o$par))
     # store the new mu vector
@@ -2486,7 +2482,7 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     xtwxRidgeInv <- solve(xtwx + ridge)
     sigma <- xtwxRidgeInv %*% xtwx %*% xtwxRidgeInv
     # warn below regarding these rows with negative variance
-    betaSE[row,] <- log2(exp(1)) * sqrt(pmax(diag(sigma),0)) / scaleCols
+    betaSE[row,] <- log2(exp(1)) * sqrt(pmax(diag(sigma),0))
     logLikeVector <- dnbinom(k,mu=mu_row,size=1/alpha,log=TRUE)
     logLike[row] <- if (useWeights) {
                       sum(weights[row,] * logLikeVector)
@@ -2495,8 +2491,7 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
                     }
   }
   return(list(betaMatrix=betaMatrix,betaSE=betaSE,
-              betaConv=betaConv,
-              mu=mu,logLike=logLike))
+              betaConv=betaConv,mu=mu,logLike=logLike))
 }
 
 
