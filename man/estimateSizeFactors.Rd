@@ -87,9 +87,6 @@ dds <- estimateSizeFactors(dds,geoMeans=geoMeans)
 sizeFactors(dds)
 
 }
-\author{
-Simon Anders
-}
 \references{
 Reference for the median ratio method:
 
@@ -98,4 +95,6 @@ Simon Anders, Wolfgang Huber: Differential expression analysis for sequence coun
 \seealso{
 \code{\link{estimateSizeFactorsForMatrix}}
 }
-
+\author{
+Simon Anders
+}

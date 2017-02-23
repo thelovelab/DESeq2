@@ -49,4 +49,3 @@ plotDispEsts(dds)
 \author{
 Simon Anders
 }
-

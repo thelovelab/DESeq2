@@ -59,4 +59,3 @@ colSums(fpm(dds, robust=FALSE))/1e6
 \seealso{
 \code{\link{fpkm}}
 }
-

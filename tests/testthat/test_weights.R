@@ -1,7 +1,7 @@
 context("weights")
 test_that("weights work", {
   set.seed(1)
-  dds <- makeExampleDESeqDataSet(n=100)
+  dds <- makeExampleDESeqDataSet(n=10)
   dds <- DESeq(dds, quiet=TRUE)
   dds2 <- dds
   w <- matrix(1, nrow=nrow(dds), ncol=12)
@@ -10,12 +10,10 @@ test_that("weights work", {
   dds2 <- nbinomWaldTest(dds2)
   dds3 <- dds[,-1]
   dds3 <- nbinomWaldTest(dds3)
-  rbind(results(dds)[1,],
-        results(dds2)[1,],
-        results(dds3)[1,])
-
-  mcols(dds2)[1,"deviance"]
-  mcols(dds3)[1,"deviance"]
+  
+  expect_equal(results(dds2)$log2FoldChange[1], results(dds3)$log2FoldChange[1])
+  expect_equal(results(dds2)$lfcSE[1], results(dds3)$lfcSE[1])
+  expect_equal(mcols(dds2)[1,"deviance"],mcols(dds3)[1,"deviance"])
   
   nf <- matrix(sizeFactors(dds),nrow=nrow(dds),ncol=ncol(dds),byrow=TRUE)
   
@@ -35,8 +33,7 @@ test_that("weights work", {
                           mu=matrix(0,nrow=nrow(dds),ncol=ncol(dds)),
                           logLike=rep(0,nrow(dds)))
 
-  results(dds3)[1,2:3]
-  c(o$betaMatrix[1,2], o$betaSE[1,2])
+  expect_equal(results(dds3)$log2FoldChange[1], o$betaMatrix[1,2], tolerance=1e-4)
   
   design(dds) <- ~1
   suppressWarnings({ dds <- DESeq(dds, quiet=TRUE) })
@@ -45,13 +42,26 @@ test_that("weights work", {
   dds2 <- nbinomWaldTest(dds2)
   dds3 <- dds[,-1]
   dds3 <- nbinomWaldTest(dds3)
-  rbind(results(dds)[1,],
-        results(dds2)[1,],
-        results(dds3)[1,])
 
-  mcols(dds2)[1,"deviance"]
-  mcols(dds3)[1,"deviance"]
+  expect_equal(results(dds2)$log2FoldChange[1], results(dds3)$log2FoldChange[1])
+  expect_equal(results(dds2)$lfcSE[1], results(dds3)$lfcSE[1])
+  expect_equal(mcols(dds2)[1,"deviance"],mcols(dds3)[1,"deviance"])
+
+  set.seed(1)
+  dds <- makeExampleDESeqDataSet(n=10)
+  counts(dds)[1,1] <- 100L
+  sizeFactors(dds) <- rep(1,12)
+  dds <- estimateDispersions(dds)
+  dds2 <- dds
+  w <- matrix(1, nrow=nrow(dds), ncol=12)
+  w[1,1] <- 0
+  assays(dds2)[["weights"]] <- w
+  dds2 <- estimateDispersions(dds2)
+  dds3 <- dds[,-1]
+  dds3 <- estimateDispersions(dds3)
   
-  # need to implement dispersion weights
+  expect_equal(mcols(dds2)[1,"dispGeneEst"],mcols(dds3)[1,"dispGeneEst"],tolerance=1e-3)
+  # MAP estimates won't be equal because of different dispersion prior widths...
+  expect_true(mcols(dds)[1,"dispMAP"] > mcols(dds2)[1,"dispMAP"])
   
 })

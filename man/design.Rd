@@ -5,6 +5,7 @@
 \alias{design}
 \alias{design,DESeqDataSet-method}
 \alias{design<-,DESeqDataSet,formula-method}
+\alias{design}
 \title{Accessors for the 'design' slot of a DESeqDataSet object.}
 \usage{
 \S4method{design}{DESeqDataSet}(object)
@@ -28,4 +29,3 @@ dds <- makeExampleDESeqDataSet(m=4)
 design(dds) <- formula(~ 1)
 
 }
-

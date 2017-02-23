@@ -171,13 +171,12 @@ ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)
 resLRT <- results(ddsLRT)
 
 }
-\author{
-Michael Love
-}
 \references{
 Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 2014, 15:550. \url{http://dx.doi.org/10.1186/s13059-014-0550-8}
 }
 \seealso{
 \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
 }
-
+\author{
+Michael Love
+}

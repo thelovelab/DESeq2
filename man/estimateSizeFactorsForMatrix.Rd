@@ -42,10 +42,9 @@ geoMeans <- exp(rowMeans(log(counts(dds))))
 estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
 
 }
-\author{
-Simon Anders
-}
 \seealso{
 \code{\link{estimateSizeFactors}}
 }
-
+\author{
+Simon Anders
+}

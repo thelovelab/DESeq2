@@ -3,9 +3,11 @@
 \docType{methods}
 \name{dispersionFunction}
 \alias{dispersionFunction}
-\alias{dispersionFunction,DESeqDataSet-method}
 \alias{dispersionFunction<-}
+\alias{dispersionFunction}
+\alias{dispersionFunction,DESeqDataSet-method}
 \alias{dispersionFunction<-,DESeqDataSet,function-method}
+\alias{dispersionFunction}
 \title{Accessors for the 'dispersionFunction' slot of a DESeqDataSet object.}
 \usage{
 dispersionFunction(object, ...)
@@ -48,4 +50,3 @@ dispersionFunction(dds)
 \seealso{
 \code{\link{estimateDispersions}}
 }
-

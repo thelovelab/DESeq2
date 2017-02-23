@@ -20,4 +20,3 @@ standard method.
 \author{
 Michael Love
 }
-

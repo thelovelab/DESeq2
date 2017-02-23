@@ -41,4 +41,3 @@ dds <- makeExampleDESeqDataSet()
 plotCounts(dds, "gene1")
 
 }
-

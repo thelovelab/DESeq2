@@ -5,6 +5,7 @@
 \alias{plotMA}
 \alias{plotMA,DESeqDataSet-method}
 \alias{plotMA,DESeqResults-method}
+\alias{plotMA}
 \title{MA-plot from base means and log fold changes}
 \usage{
 \S4method{plotMA}{DESeqDataSet}(object, alpha = 0.1, main = "",
@@ -64,4 +65,3 @@ plotMA(res)
 \author{
 Michael Love
 }
-

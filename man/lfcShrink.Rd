@@ -41,4 +41,3 @@ Note: this function is still being prototyped.
  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"), res=res)
 
 }
-

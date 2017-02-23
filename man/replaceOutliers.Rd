@@ -3,6 +3,7 @@
 \name{replaceOutliers}
 \alias{replaceOutliers}
 \alias{replaceOutliersWithTrimmedMean}
+\alias{replaceOutliersWithTrimmedMean}
 \title{Replace outliers with trimmed mean}
 \usage{
 replaceOutliers(object, trim = 0.2, cooksCutoff, minReplicates = 7,
@@ -69,4 +70,3 @@ sections of the vignette: 'Dealing with count outliers' and 'Count outlier detec
 \seealso{
 \code{\link{DESeq}}
 }
-

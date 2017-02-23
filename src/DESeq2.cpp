@@ -27,7 +27,7 @@ using namespace Rcpp;
 // this function returns the log posterior of dispersion parameter alpha, for negative binomial variables
 // given the counts y, the expected means mu, the design matrix x (used for calculating the Cox-Reid adjustment),
 // and the parameters for the normal prior on log alpha
-double log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool use_prior) {
+double log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, Rcpp::NumericMatrix::Row weights, bool useWeights) {
   double prior_part;
   double alpha = exp(log_alpha);
   Rcpp::NumericVector w_diag = pow(pow(mu, -1) + alpha, -1);
@@ -35,8 +35,13 @@ double log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numeric
   arma::mat b = x.t() * w * x;
   double cr_term = -0.5 * log(det(b));
   double alpha_neg1 = R_pow_di(alpha, -1);
-  double ll_part = sum(lgamma(y + alpha_neg1) - Rf_lgammafn(alpha_neg1) - y * log(mu + alpha_neg1) - alpha_neg1 * log(1.0 + mu * alpha));
-  if (use_prior) {
+  double ll_part;
+  if (useWeights) {
+    ll_part = sum(weights * (lgamma(y + alpha_neg1) - Rf_lgammafn(alpha_neg1) - y * log(mu + alpha_neg1) - alpha_neg1 * log(1.0 + mu * alpha)));
+  } else {
+    ll_part = sum(lgamma(y + alpha_neg1) - Rf_lgammafn(alpha_neg1) - y * log(mu + alpha_neg1) - alpha_neg1 * log(1.0 + mu * alpha));
+  }
+  if (usePrior) {
     prior_part = -0.5 * R_pow_di(log_alpha - log_alpha_prior_mean,2)/log_alpha_prior_sigmasq;
   } else {
     prior_part = 0.0;
@@ -47,7 +52,7 @@ double log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numeric
 
 // this function returns the derivative of the log posterior with respect to the log of the 
 // dispersion parameter alpha, given the same inputs as the previous function
-double dlog_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool use_prior) {
+double dlog_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, Rcpp::NumericMatrix::Row weights, bool useWeights) {
   double prior_part;
   double alpha = exp(log_alpha);
   Rcpp::NumericVector w_diag = pow(pow(mu, -1) + alpha, -1);
@@ -60,9 +65,14 @@ double dlog_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numeri
   double cr_term = -0.5 * ddetb / det(b);
   double alpha_neg1 = R_pow_di(alpha, -1);
   double alpha_neg2 = R_pow_di(alpha, -2);
-  double ll_part = alpha_neg2 * sum(Rf_digamma(alpha_neg1) + log(1 + mu*alpha) - mu*alpha*pow(1.0 + mu*alpha, -1) - digamma(y + alpha_neg1) + y * pow(mu + alpha_neg1, -1));
+  double ll_part;
+  if (useWeights) {
+    ll_part = alpha_neg2 * sum(weights * (Rf_digamma(alpha_neg1) + log(1 + mu*alpha) - mu*alpha*pow(1.0 + mu*alpha, -1) - digamma(y + alpha_neg1) + y * pow(mu + alpha_neg1, -1)));
+  } else {
+    ll_part = alpha_neg2 * sum(Rf_digamma(alpha_neg1) + log(1 + mu*alpha) - mu*alpha*pow(1.0 + mu*alpha, -1) - digamma(y + alpha_neg1) + y * pow(mu + alpha_neg1, -1));
+  }
   // only the prior part is w.r.t log alpha
-  if (use_prior) {
+  if (usePrior) {
     prior_part = -1.0 * (log_alpha - log_alpha_prior_mean)/log_alpha_prior_sigmasq;
   } else {
     prior_part = 0.0;
@@ -74,7 +84,7 @@ double dlog_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numeri
 
 // this function returns the second derivative of the log posterior with respect to the log of the 
 // dispersion parameter alpha, given the same inputs as the previous function
-double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool use_prior) {
+double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, Rcpp::NumericMatrix::Row weights, bool useWeights) {
   double prior_part;
   double alpha = exp(log_alpha);
   Rcpp::NumericVector w_diag = pow(pow(mu, -1) + alpha, -1);
@@ -92,9 +102,14 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
   double cr_term = 0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b); 
   double alpha_neg1 = R_pow_di(alpha, -1);
   double alpha_neg2 = R_pow_di(alpha, -2);
-  double ll_part = -2 * R_pow_di(alpha, -3) * sum(Rf_digamma(alpha_neg1) + log(1 + mu*alpha) - mu*alpha*pow(1 + mu*alpha, -1) - digamma(y + alpha_neg1) + y * pow(mu + alpha_neg1, -1)) + alpha_neg2 * sum(-1 * alpha_neg2 * Rf_trigamma(alpha_neg1) + pow(mu, 2) * alpha * pow(1 + mu*alpha, -2) + alpha_neg2 * trigamma(y + alpha_neg1) + alpha_neg2 * y * pow(mu + alpha_neg1, -2));
+  double ll_part;
+  if (useWeights) {
+    ll_part = -2 * R_pow_di(alpha, -3) * sum(weights * (Rf_digamma(alpha_neg1) + log(1 + mu*alpha) - mu*alpha*pow(1 + mu*alpha, -1) - digamma(y + alpha_neg1) + y * pow(mu + alpha_neg1, -1))) + alpha_neg2 * sum(weights * (-1 * alpha_neg2 * Rf_trigamma(alpha_neg1) + pow(mu, 2) * alpha * pow(1 + mu*alpha, -2) + alpha_neg2 * trigamma(y + alpha_neg1) + alpha_neg2 * y * pow(mu + alpha_neg1, -2)));
+  } else {
+    ll_part = -2 * R_pow_di(alpha, -3) * sum(Rf_digamma(alpha_neg1) + log(1 + mu*alpha) - mu*alpha*pow(1 + mu*alpha, -1) - digamma(y + alpha_neg1) + y * pow(mu + alpha_neg1, -1)) + alpha_neg2 * sum(-1 * alpha_neg2 * Rf_trigamma(alpha_neg1) + pow(mu, 2) * alpha * pow(1 + mu*alpha, -2) + alpha_neg2 * trigamma(y + alpha_neg1) + alpha_neg2 * y * pow(mu + alpha_neg1, -2));
+  }
   // only the prior part is w.r.t log alpha
-  if (use_prior) {
+  if (usePrior) {
     prior_part = -1.0/log_alpha_prior_sigmasq; 
   } else {
     prior_part = 0.0;
@@ -102,7 +117,7 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
   // Note: return (d2log_post/dalpha2 * alpha^2 + dlog_post/dalpha * alpha) 
   //            = (d2log_post/dalpha2 * alpha^2 + dlog_post/dlogalpha)
   // because we take derivatives w.r.t log alpha
-  double res = ((ll_part + cr_term) * R_pow_di(alpha, 2) + dlog_posterior(log_alpha, y, mu, x, log_alpha_prior_mean, log_alpha_prior_sigmasq, false)) + prior_part;
+  double res = ((ll_part + cr_term) * R_pow_di(alpha, 2) + dlog_posterior(log_alpha, y, mu, x, log_alpha_prior_mean, log_alpha_prior_sigmasq, false, weights, useWeights)) + prior_part;
   return(res);
 }
 
@@ -110,7 +125,7 @@ double d2log_posterior(double log_alpha, Rcpp::NumericMatrix::Row y, Rcpp::Numer
 // fitting occurs on the scale of log(alpha)
 //
 // [[Rcpp::export]]
-Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP use_priorSEXP) {
+Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP) {
   Rcpp::NumericMatrix y(ySEXP);
   arma::mat x = Rcpp::as<arma::mat>(xSEXP);
   int y_n = y.nrow();
@@ -133,7 +148,10 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
   Rcpp::IntegerVector iter(y_n);
   Rcpp::IntegerVector iter_accept(y_n);
   double tol = Rcpp::as<double>(tolSEXP);
-  bool use_prior = Rcpp::as<bool>(use_priorSEXP);
+  bool usePrior = Rcpp::as<bool>(usePriorSEXP);
+  // observation weights
+  Rcpp::NumericMatrix weights(weightsSEXP);
+  bool useWeights = Rcpp::as<bool>(useWeightsSEXP);
 
   for (int i = 0; i < y_n; i++) {
     Rcpp::checkUserInterrupt();
@@ -146,8 +164,8 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
     // we use a line search based on the Armijo rule.
     // define a function theta(kappa) = f(a + kappa * d), where d is the search direction.
     // in this case the search direction is taken by the first derivative of the log likelihood
-    lp = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
-    dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+    lp = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
+    dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
     kappa = kappa_0;
     initial_lp(i) = lp;
     initial_dlp(i) = dlp;
@@ -166,7 +184,7 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
       if (a_propose > 10.0) {
 	kappa = (10.0 - a)/dlp;
       }
-      theta_kappa = -1.0 * log_posterior(a + kappa*dlp, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+      theta_kappa = -1.0 * log_posterior(a + kappa*dlp, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
       theta_hat_kappa = -1.0 * lp - kappa * epsilon * R_pow_di(dlp, 2);
       // if this inequality is true, we have satisfied the Armijo rule and 
       // accept the step size kappa, otherwise we halve kappa
@@ -174,7 +192,7 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
 	// iter_accept counts the number of accepted proposals;
 	iter_accept(i)++;
 	a = a + kappa * dlp;
-	lpnew = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+	lpnew = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
 	// look for change in log likelihood
 	change = lpnew - lp;
 	if (change < tol) {
@@ -187,7 +205,7 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
 	  break;
 	}
 	lp = lpnew;
-	dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+	dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
 	// instead of resetting kappa to kappa_0 
 	// multiple kappa by 1.1
 	kappa = fmin(kappa * 1.1, kappa_0);
@@ -203,7 +221,7 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
     }
     last_lp(i) = lp;
     last_dlp(i) = dlp;
-    last_d2lp(i) = d2log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+    last_d2lp(i) = d2log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
     log_alpha(i) = a;
     // last change indicates the change for the final iteration
     last_change(i) = change;
@@ -243,7 +261,7 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
   int maxit = Rcpp::as<int>(maxitSEXP);
   arma::colvec yrow, nfrow, beta_hat, mu_hat, z;
   arma::mat w, ridge, sigma;
-  // weights
+  // observation weights
   arma::mat weights = Rcpp::as<arma::mat>(weightsSEXP);
   bool useWeights = Rcpp::as<bool>(useWeightsSEXP);
   // vars for QR
@@ -277,9 +295,9 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
       for (int t = 0; t < maxit; t++) {
 	iter(i)++;
 	if (useWeights) {
-	  w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	  w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat));
 	} else {
-	  w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	  w = diagmat(mu_hat/(1.0 + alpha_hat(i) * mu_hat));
 	}
 	// prepare matrices
 	weighted_x_ridge = join_cols(sqrt(w) * x, sqrt(ridge));
@@ -305,9 +323,9 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
 	for (int j = 0; j < y_m; j++) {
 	  // note the order for Rf_dnbinom_mu: x, sz, mu, lg
 	  if (useWeights) {
-	    dev = dev + -2.0 * weights(i,j) * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	    dev = dev + -2.0 * weights(i,j) * Rf_dnbinom_mu(yrow(j), 1.0/alpha_hat(i), mu_hat(j), 1);
 	  } else {
-	    dev = dev + -2.0 * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	    dev = dev + -2.0 * Rf_dnbinom_mu(yrow(j), 1.0/alpha_hat(i), mu_hat(j), 1);
 	  }
 	}
 	conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
@@ -326,9 +344,9 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
       for (int t = 0; t < maxit; t++) {
 	iter(i)++;
 	if (useWeights) {
-	  w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	  w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat));
 	} else {
-	  w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+	  w = diagmat(mu_hat/(1.0 + alpha_hat(i) * mu_hat));
 	}
 	z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
 	solve(beta_hat, x.t() * w * x + ridge, x.t() * w * z);
@@ -344,9 +362,9 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
 	for (int j = 0; j < y_m; j++) {
 	  // note the order for Rf_dnbinom_mu: x, sz, mu, lg
 	  if (useWeights) {
-	    dev = dev + -2.0 * weights(i,j) * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	    dev = dev + -2.0 * weights(i,j) * Rf_dnbinom_mu(yrow(j), 1.0/alpha_hat(i), mu_hat(j), 1);
 	  } else {
-	    dev = dev + -2.0 * Rf_dnbinom_mu(yrow[j], 1.0/alpha_hat[i], mu_hat[j], 1);
+	    dev = dev + -2.0 * Rf_dnbinom_mu(yrow(j), 1.0/alpha_hat(i), mu_hat(j), 1);
 	  }
 	}
 	conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
@@ -364,9 +382,9 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
     beta_mat.row(i) = beta_hat.t();
     // recalculate w so that this is identical if we start with beta_hat
     if (useWeights) {
-      w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+      w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat));
     } else {
-      w = diagmat(mu_hat/(1.0 + alpha_hat[i] * mu_hat));
+      w = diagmat(mu_hat/(1.0 + alpha_hat(i) * mu_hat));
     }
     hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i() * x.t() * sqrt(w);
     hat_diagonals.row(i) = diagvec(hat_matrix).t();
@@ -388,7 +406,7 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
 
 
 // [[Rcpp::export]]
-Rcpp::List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP use_priorSEXP) {
+Rcpp::List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP) {
   Rcpp::NumericMatrix y(ySEXP);
   arma::mat x = Rcpp::as<arma::mat>(xSEXP);
   int y_n = y.nrow();
@@ -397,7 +415,7 @@ Rcpp::List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSE
   int disp_grid_n = disp_grid.n_elem;
   Rcpp::NumericVector log_alpha_prior_mean(log_alpha_prior_meanSEXP);
   double log_alpha_prior_sigmasq = Rcpp::as<double>(log_alpha_prior_sigmasqSEXP);
-  bool use_prior = Rcpp::as<bool>(use_priorSEXP);
+  bool usePrior = Rcpp::as<bool>(usePriorSEXP);
   double a;
   double delta = disp_grid(1) - disp_grid(0);
   double a_hat;
@@ -405,6 +423,10 @@ Rcpp::List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSE
   arma::vec logpostvec = arma::zeros(disp_grid.n_elem);
   arma::vec log_alpha = arma::zeros(y_n);
   arma::uword idxmax;
+  // observation weights
+  Rcpp::NumericMatrix weights(weightsSEXP);
+  bool useWeights = Rcpp::as<bool>(useWeightsSEXP);
+
   for (int i = 0; i < y_n; i++) {
     Rcpp::checkUserInterrupt();
     Rcpp::NumericMatrix::Row yrow = y(i,_);
@@ -412,14 +434,14 @@ Rcpp::List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSE
     for (int t = 0; t < disp_grid_n; t++) {
       // maximize the log likelihood over the variable a, the log of alpha, the dispersion parameter
       a = disp_grid(t);
-      logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+      logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
     }
     logpostvec.max(idxmax);
     a_hat = disp_grid(idxmax);
     disp_grid_fine = arma::linspace<arma::vec>(a_hat - delta, a_hat + delta, disp_grid_n);
     for (int t = 0; t < disp_grid_n; t++) {
       a = disp_grid_fine(t);
-      logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, use_prior);
+      logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
     }
     logpostvec.max(idxmax);
     log_alpha(i) = disp_grid_fine(idxmax);

@@ -39,4 +39,3 @@ coef(dds, SE=TRUE)[1,]
 \author{
 Michael Love
 }
-

@@ -27,4 +27,3 @@ dds <- estimateSizeFactors(dds)
 plotSparsity(dds)
 
 }
-

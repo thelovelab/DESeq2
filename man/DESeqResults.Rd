@@ -2,6 +2,7 @@
 % Please edit documentation in R/AllClasses.R
 \docType{class}
 \name{DESeqResults-class}
+\alias{DESeqResults-class}
 \alias{DESeqResults}
 \alias{DESeqResults-class}
 \title{DESeqResults object and constructor}
@@ -22,4 +23,3 @@ to allow other packages to write methods for results
 objects from the DESeq2 package. It is used by \code{\link{results}}
 to wrap up the results table.
 }
-

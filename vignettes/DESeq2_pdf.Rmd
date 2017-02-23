@@ -2232,14 +2232,17 @@ rld <- rlog(dds, blind=FALSE, fitType="mean")
 plotPCA(rld)
 ``` 
 
-## Can I run DESeq2 to contrast the levels of 100 groups?
+## Can I run DESeq2 to contrast the levels of many groups?
 
 DESeq2 will work with any kind of design specified using the R
 formula. We enourage users to consider exploratory data analysis such
 as principal components analysis rather than performing statistical
-testing of all pairs of many groups of samples. Furthermore, if one
-is contrasting all pairs of many levels, and then only presenting the
-results of a *subset* of those pairs, one needs to perform multiple testing
+testing of all pairs of many groups of samples. Statistical testing is
+one of many ways of describing differences between samples.
+
+Regarding multiple test correction, if a user is planning to
+contrast all pairs of many levels, and then selectively reporting the
+results of only a *subset* of those pairs, one needs to perform multiple testing
 across *contrasts* as well as genes to control for this additional
 form of multiple testing. This can be done by using the `p.adjust`
 function across a long vector of *p* values from all pairs of

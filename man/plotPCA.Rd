@@ -57,4 +57,3 @@ plotPCA( DESeqTransform( se ) )
 \author{
 Wolfgang Huber
 }
-

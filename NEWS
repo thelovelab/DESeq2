@@ -1,7 +1,9 @@
-CHANGES IN VERSION 1.15.28
+CHANGES IN VERSION 1.15.36
 --------------------------
 
-    o Ability to specify observation-specific weights.
+    o Ability to specify observation-specific weights,
+      using assays(dds)[["weights"]]. These weights are
+      picked up by dispersion and NB GLM fitting functions.
 
 CHANGES IN VERSION 1.15.28
 --------------------------

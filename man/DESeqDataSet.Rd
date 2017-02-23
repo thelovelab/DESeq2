@@ -2,10 +2,13 @@
 % Please edit documentation in R/AllClasses.R
 \docType{class}
 \name{DESeqDataSet-class}
+\alias{DESeqDataSet-class}
 \alias{DESeqDataSet}
 \alias{DESeqDataSet-class}
+\alias{DESeqDataSetFromMatrix}
 \alias{DESeqDataSetFromHTSeqCount}
 \alias{DESeqDataSetFromMatrix}
+\alias{DESeqDataSetFromHTSeqCount}
 \alias{DESeqDataSetFromTximport}
 \title{DESeqDataSet object and constructors}
 \usage{
@@ -95,4 +98,3 @@ dds <- DESeqDataSetFromMatrix(countData, DataFrame(condition), ~ condition)
 \references{
 See \url{http://www-huber.embl.de/users/anders/HTSeq} for htseq-count
 }
-

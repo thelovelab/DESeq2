@@ -40,4 +40,3 @@ dds <- makeExampleDESeqDataSet()
 dds
 
 }
-

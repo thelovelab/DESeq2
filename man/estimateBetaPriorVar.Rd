@@ -3,6 +3,7 @@
 \name{estimateBetaPriorVar}
 \alias{estimateBetaPriorVar}
 \alias{estimateMLEForBetaPriorVar}
+\alias{estimateMLEForBetaPriorVar}
 \title{Steps for estimating the beta prior variance}
 \usage{
 estimateBetaPriorVar(object, betaPriorMethod = c("weighted", "quantile"),
@@ -43,4 +44,3 @@ NOTE: \code{estimateBetaPriorVar} returns a numeric vector, not a DESEqDataSet!
 For advanced users: to use these functions, first run \code{estimateMLEForBetaPriorVar}
 and then run \code{estimateBetaPriorVar}.
 }
-

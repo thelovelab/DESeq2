@@ -5,6 +5,7 @@
 \alias{sizeFactors}
 \alias{sizeFactors,DESeqDataSet-method}
 \alias{sizeFactors<-,DESeqDataSet,numeric-method}
+\alias{sizeFactors}
 \title{Accessor functions for the 'sizeFactors' information in a DESeqDataSet
 object.}
 \usage{
@@ -26,10 +27,9 @@ scale by dividing by the corresponding size factor (as performed by
 See \code{\link{DESeq}} for a description of the use of size factors. If gene-specific normalization
 is desired for each sample, use \code{\link{normalizationFactors}}.
 }
-\author{
-Simon Anders
-}
 \seealso{
 \code{\link{estimateSizeFactors}}
 }
-
+\author{
+Simon Anders
+}

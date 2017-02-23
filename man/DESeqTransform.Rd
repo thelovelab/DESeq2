@@ -2,6 +2,7 @@
 % Please edit documentation in R/AllClasses.R
 \docType{class}
 \name{DESeqTransform-class}
+\alias{DESeqTransform-class}
 \alias{DESeqTransform}
 \alias{DESeqTransform-class}
 \title{DESeqTransform object and constructor}
@@ -23,4 +24,3 @@ It is used by \code{\link{rlog}} and
 to wrap up the results into a class for downstream methods,
 such as \code{\link{plotPCA}}.
 }
-

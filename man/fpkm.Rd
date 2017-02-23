@@ -80,4 +80,3 @@ fpkm(dds)
 \seealso{
 \code{\link{fpm}}
 }
-

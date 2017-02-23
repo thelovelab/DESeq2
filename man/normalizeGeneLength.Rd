@@ -16,4 +16,3 @@ Normalize for gene length using the output of transcript abundance estimators
 This function is deprecated and moved to a new general purpose package,
 tximport, which will be added to Bioconductor.
 }
-

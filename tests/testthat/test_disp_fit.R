@@ -36,7 +36,8 @@ test_that("the fitting of dispersion gives expected values using various methods
                               log_alpha_prior_meanSEXP = log_alpha_prior_mean,
                               log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
                               min_log_alphaSEXP = log(1e-8), kappa_0SEXP = 1,
-                              tolSEXP = 1e-16, maxitSEXP = 100, use_priorSEXP = TRUE)
+                              tolSEXP = 1e-16, maxitSEXP = 100, usePriorSEXP = TRUE,
+                              weightsSEXP=matrix(1,nrow=1,ncol=length(y)), useWeightsSEXP=FALSE)
   
   # maximum a posteriori (MAP) estimate from DESeq
   dispDESeq <- dispRes$log_alpha
@@ -94,19 +95,4 @@ test_that("the fitting of dispersion gives expected values using various methods
   with(mcols(dds)[!mcols(dds)$allZero,],
        expect_equal(log(trueDisp), log(dispGeneEst),tol=0.2))
 
-
-  # test dispersion fitting in R
-  set.seed(1)
-  trueDisp <- c(.005,.01,.05,.1,.2,.5)
-  trueMu <- 1000
-  m <- 200
-  x <- cbind(rep(1,m),rep(0:1,each=m/2))
-  y <- matrix(rnbinom(length(trueDisp)*m, mu=trueMu, size=1/rep(trueDisp,m)),ncol=m)
-  mu <- matrix(rep(rowMeans(y),m),ncol=m)
-  disp <- DESeq2:::fitDispInR(y = y, x = x, mu = mu,
-                              logAlphaPriorMean = NA,
-                              logAlphaPriorSigmaSq = NA,
-                              usePrior=FALSE)
-  # plot(log(trueDisp), log(disp));abline(0,1)
-  expect_equal(log(trueDisp), log(disp), tol=.5)
 })

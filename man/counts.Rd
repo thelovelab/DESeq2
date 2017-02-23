@@ -5,6 +5,7 @@
 \alias{counts}
 \alias{counts,DESeqDataSet-method}
 \alias{counts<-,DESeqDataSet,matrix-method}
+\alias{counts}
 \title{Accessors for the 'counts' slot of a DESeqDataSet object.}
 \usage{
 \S4method{counts}{DESeqDataSet}(object, normalized = FALSE,
@@ -39,10 +40,9 @@ dds <- estimateSizeFactors(dds) # run this or DESeq() first
 head(counts(dds, normalized=TRUE))
 
 }
-\author{
-Simon Anders
-}
 \seealso{
 \code{\link{sizeFactors}}, \code{\link{normalizationFactors}}
 }
-
+\author{
+Simon Anders
+}

@@ -130,4 +130,3 @@ res <- results(dds)
 \seealso{
 \code{\link{DESeq}}, \code{\link{nbinomLRT}}
 }
-

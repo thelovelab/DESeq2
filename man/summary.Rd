@@ -33,4 +33,3 @@ summary(res)
 \author{
 Michael Love
 }
-

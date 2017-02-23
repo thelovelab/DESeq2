@@ -3,6 +3,7 @@
 \name{rlog}
 \alias{rlog}
 \alias{rlogTransformation}
+\alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
 rlog(object, blind = TRUE, intercept, betaPriorVar, fitType = "parametric")
@@ -133,4 +134,3 @@ Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold chang
 \seealso{
 \code{\link{plotPCA}}, \code{\link{varianceStabilizingTransformation}}, \code{\link{normTransform}}
 }
-

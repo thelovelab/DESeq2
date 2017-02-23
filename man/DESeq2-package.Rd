@@ -15,9 +15,6 @@ For more detailed information on usage, see the package vignette, by typing
 of the vignette. All support questions should be posted to the Bioconductor
 support site: \url{http://support.bioconductor.org}.
 }
-\author{
-Michael Love, Wolfgang Huber, Simon Anders
-}
 \references{
 DESeq2 reference:
 
@@ -27,5 +24,7 @@ DESeq reference:
 
 Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 2010, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 }
+\author{
+Michael Love, Wolfgang Huber, Simon Anders
+}
 \keyword{package}
-

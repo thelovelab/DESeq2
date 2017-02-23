@@ -20,4 +20,3 @@ object after applying: f(count + pc).
 \seealso{
 \code{\link{varianceStabilizingTransformation}}, \code{\link{rlog}}
 }
-

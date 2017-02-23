@@ -57,4 +57,3 @@ matchFirstLevel <- dds$sample == levels(dds$sample)[1]
 stopifnot(all(rowSums(counts(dds[,matchFirstLevel])) == counts(ddsColl[,1])))
 
 }
-

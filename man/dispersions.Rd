@@ -3,9 +3,11 @@
 \docType{methods}
 \name{dispersions}
 \alias{dispersions}
-\alias{dispersions,DESeqDataSet-method}
 \alias{dispersions<-}
+\alias{dispersions}
+\alias{dispersions,DESeqDataSet-method}
 \alias{dispersions<-,DESeqDataSet,numeric-method}
+\alias{dispersions}
 \title{Accessor functions for the dispersion estimates in a DESeqDataSet
 object.}
 \usage{
@@ -28,10 +30,9 @@ dispersions(object, ...) <- value
 The dispersions for each row of the DESeqDataSet.  Generally,
 these are set by \code{\link{estimateDispersions}}.
 }
-\author{
-Simon Anders
-}
 \seealso{
 \code{\link{estimateDispersions}}
 }
-
+\author{
+Simon Anders
+}

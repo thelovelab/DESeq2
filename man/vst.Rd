@@ -40,4 +40,3 @@ dds <- makeExampleDESeqDataSet(n=20000, m=20)
 vsd <- vst(dds)
 
 }
-
