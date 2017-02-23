@@ -53,17 +53,5 @@ test_that("weights work", {
   mcols(dds3)[1,"deviance"]
   
   # need to implement dispersion weights
-
-  # some code for testing whether still full rank
-  x <- model.matrix(~ condition, colData(dds))
-  w <- matrix(runif(20000*12), nrow=20000, ncol=12)
-  test <- logical(nrow(w))
-  m <- ncol(x)
-  system.time({
-    for (i in 1:nrow(w)) {
-      test[i] <- qr(w[i,] * x)$rank == m
-    }
-  })
-  stopifnot(all(test))
   
 })

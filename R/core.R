@@ -8,7 +8,7 @@
 # AllGenerics.R .. the generics defined in DESeq2
 # results.R ...... results() function and helpers
 # plots.R ........ all plotting functions
-# helper.R ....... collapseReplicates, fpkm, fpm, DESeqParallel
+# helper.R ....... lfcShrink, collapseReplicates, fpkm, fpm, DESeqParallel
 # expanded.R ..... helpers for dealing with expanded model matrices
 # RcppExports.R .. the R wrappers for the C++ functions
 # rlogTransformation.R
@@ -615,12 +615,22 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
   stopifnot(length(niter) == 1 & niter > 0)
 
+  # use weights if they are present in assays(object)
+  # (we need this already to decide about linear mu fitting)
+  wlist <- getAndCheckWeights(object, modelMatrix)
+  weights <- wlist$weights
+  useWeights <- wlist$useWeights
+  
   # use a linear model to estimate the expected counts
   # if the number of groups according to the model matrix
   # is equal to the number of columns
   if (is.null(linearMu)) {
     modelMatrixGroups <- modelMatrixGroups(modelMatrix)
     linearMu <- nlevels(modelMatrixGroups) == ncol(modelMatrix)
+    # also check for weights (then can't do linear mu)
+    if (useWeights) {
+      linearMu <- FALSE
+    }
   }
   
   # below, iterate between mean and dispersion estimation (niter) times
@@ -638,14 +648,12 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                            modelMatrix=modelMatrix)
       fitMu <- fit$mu
     } else {
-
-      # TODO needs to incorporate weights
-      
       fitMu <- linearModelMuNormalized(objectNZ[fitidx,,drop=FALSE],
                                        modelMatrix)
     }
     fitMu[fitMu < minmu] <- minmu
     mu[fitidx,] <- fitMu
+
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
@@ -1929,18 +1937,9 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   }
 
   # use weights if they are present in assays(object)
-  if ("weights" %in% assayNames(object)) {
-    useWeights <- TRUE
-    weights <- unname(assays(object)[["weights"]])
-    stopifnot(all(weights >= 0))
-    weights <- weights / apply(weights, 1, max)
-
-    # TODO weights * model matrix full rank check
-    
-  } else {
-    useWeights <- FALSE
-    weights <- matrix(1, nrow=nrow(object), ncol=ncol(object))
-  }
+  wlist <- getAndCheckWeights(object, modelMatrix)
+  weights <- wlist$weights
+  useWeights <- wlist$useWeights
   
   # bypass the beta fitting if the model formula is only intercept and
   # the prior variance is large (1e6)
@@ -2620,7 +2619,6 @@ modelMatrixGroups <- function(x) {
   factor(unname(apply(x, 1, paste0, collapse="__")))
 }
 
-# fast, rough estimation of means for rough dispersion estimation (above)
 linearModelMu <- function(y, x) {
   qrx <- qr(x)
   Q <- qr.Q(qrx)
@@ -2852,3 +2850,26 @@ getModelMatrix <- function(object) {
   stats::model.matrix.default(design(object), data=as.data.frame(colData(object)))
 }
 
+getAndCheckWeights <- function(object, modelMatrix) {
+  if ("weights" %in% assayNames(object)) {
+    useWeights <- TRUE
+    weights <- unname(assays(object)[["weights"]])
+    stopifnot(all(weights >= 0))
+    weights <- weights / apply(weights, 1, max)
+    # some code for testing whether still full rank
+    # only performed once per analysis, by setting object attribute
+    if (is.null(attr(object, "weightsOK"))) {
+      weights.ok <- logical(nrow(weights))
+      m <- ncol(modelMatrix)
+      for (i in seq_len(nrow(weights))) {
+        weights.ok[i] <- qr(weights[i,] * modelMatrix)$rank == m
+      }
+      stopifnot(all(weights.ok))
+    }
+    attr(object, "weightsOK") <- TRUE
+  } else {
+    useWeights <- FALSE
+    weights <- matrix(1, nrow=nrow(object), ncol=ncol(object))
+  }
+  list(weights=weights,useWeights=useWeights)
+}

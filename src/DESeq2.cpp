@@ -2,7 +2,7 @@
  * DESeq2 C++ functions
  * 
  * Author: Michael I. Love
- * Last modified: September 30, 2015
+ * Last modified: February 22, 2017
  * License: LGPL (>= 3)
  *
  * Note: The canonical, up-to-date DESeq2.cpp lives in 
