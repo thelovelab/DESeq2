@@ -2336,10 +2336,22 @@ getAndCheckWeights <- function(object, modelMatrix) {
     # some code for testing whether still full rank
     # only performed once per analysis, by setting object attribute
     if (is.null(attr(object, "weightsOK"))) {
-      weights.ok <- logical(nrow(weights))
       m <- ncol(modelMatrix)
-      for (i in seq_len(nrow(weights))) {
-        weights.ok[i] <- qr(weights[i,] * modelMatrix)$rank == m
+      full.rank <- qr(modelMatrix)$rank == m
+      weights.ok <- logical(nrow(weights))
+      if (full.rank) {
+        for (i in seq_len(nrow(weights))) {
+          weights.ok[i] <- qr(weights[i,] * modelMatrix)$rank == m
+        }
+      } else {
+        # model matrix is not full rank,
+        # e.g. expanded model matrix from betaPrior=TRUE:
+        # just check zero columns
+        weights.ok <- rep(TRUE, nrow(weights))
+        for (j in seq_len(ncol(modelMatrix))) {
+          num.zero <- colSums(t(weights) * modelMatrix[,j] == 0)
+          weights.ok <- weights.ok & (num.zero != nrow(modelMatrix))
+        }
       }
       stopifnot(all(weights.ok))
     }

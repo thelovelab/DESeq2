@@ -34,6 +34,13 @@ test_that("weights work", {
                           logLike=rep(0,nrow(dds)))
 
   expect_equal(results(dds3)$log2FoldChange[1], o$betaMatrix[1,2], tolerance=1e-4)
+
+  set.seed(1)
+  dds <- makeExampleDESeqDataSet(n=10)
+  w <- matrix(1, nrow=nrow(dds), ncol=12)
+  w[1,1] <- 0
+  assays(dds)[["weights"]] <- w
+  dds <- DESeq(dds, betaPrior=TRUE, quiet=TRUE)
   
   design(dds) <- ~1
   suppressWarnings({ dds <- DESeq(dds, quiet=TRUE) })
