@@ -70,5 +70,22 @@ test_that("weights work", {
   expect_equal(mcols(dds2)[1,"dispGeneEst"],mcols(dds3)[1,"dispGeneEst"],tolerance=1e-3)
   # MAP estimates won't be equal because of different dispersion prior widths...
   expect_true(mcols(dds)[1,"dispMAP"] > mcols(dds2)[1,"dispMAP"])
+
+  # test grid of weights
+  ## set.seed(1)
+  ## dds <- makeExampleDESeqDataSet(n=10, dispMeanRel=function(x) 0.01)
+  ## counts(dds)[1,1] <- 100L
+  ## sizeFactors(dds) <- rep(1,12)
+  ## dds <- DESeq(dds, quiet=TRUE, fitType="mean")
+  ## dds2 <- dds
+  ## w <- matrix(1, nrow=nrow(dds), ncol=12)
+  ## lfc <- sapply(1:11, function(i) {
+  ##   w[1,1] <- (i-1)/10
+  ##   assays(dds2)[["weights"]] <- w
+  ##   dds2 <- DESeq(dds2, quiet=TRUE, fitType="mean")
+  ##   results(dds2)$log2FoldChange[1]
+  ## })
+  ## plot((1:11-1)/10, lfc, type="b")
+  ## abline(h=results(dds)$log2FoldChange[1])
   
 })
