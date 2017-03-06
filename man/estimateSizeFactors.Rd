@@ -7,17 +7,23 @@
 \title{Estimate the size factors for a \code{\link{DESeqDataSet}}}
 \usage{
 \S4method{estimateSizeFactors}{DESeqDataSet}(object, type = c("ratio",
-  "iterate"), locfunc = stats::median, geoMeans, controlGenes, normMatrix)
+  "poscounts", "iterate"), locfunc = stats::median, geoMeans, controlGenes,
+  normMatrix)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
 
-\item{type}{either "ratio" or "iterate". "ratio" uses the standard
-median ratio method introduced in DESeq. The size factor is the
-median ratio of the sample over a pseudosample: for each gene, the geometric mean
-of all samples. "iterate" offers an alternative estimator, which can be
-used even when all genes contain a sample with a zero. This estimator
-iterates between estimating the dispersion with a design of ~1, and
+\item{type}{Method for estimation: either "ratio", "poscounts", or "iterate".
+"ratio" uses the standard median ratio method introduced in DESeq. The size factor is the
+median ratio of the sample over a "pseudosample": for each gene, the geometric mean
+of all samples.
+"poscounts" and "iterate" offer alternative estimators, which can be
+used even when all genes contain a sample with a zero (a problem for the
+default method, as the geometric mean becomes zero, and the ratio undefined).
+The "poscounts" estimator deals with a gene with some zeros, by calculating a
+modified geometric mean by taking the 1/n-th root of the product of the non-zero counts.
+This evolved out of use cases with Paul McMurdie's phyloseq package for metagenomic samples.
+The "iterate" estimator iterates between estimating the dispersion with a design of ~1, and
 finding a size factor vector by numerically optimizing the likelihood
 of the ~1 model.}
 

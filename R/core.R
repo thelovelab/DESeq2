@@ -462,11 +462,13 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' estimateSizeFactorsForMatrix(counts(dds),geoMeans=geoMeans)
 #' 
 #' @export
-estimateSizeFactorsForMatrix <- function( counts, locfunc = stats::median, geoMeans, controlGenes )
-{
+estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
+                                         geoMeans, controlGenes) {
   if (missing(geoMeans)) {
+    incomingGeoMeans <- FALSE
     loggeomeans <- rowMeans(log(counts))
   } else {
+    incomingGeoMeans <- TRUE
     if (length(geoMeans) != nrow(counts)) {
       stop("geoMeans should be as long as the number of rows of counts")
     }
@@ -487,6 +489,10 @@ estimateSizeFactorsForMatrix <- function( counts, locfunc = stats::median, geoMe
     apply(counts[controlGenes,,drop=FALSE], 2, function(cnts) {
       exp(locfunc((log(cnts) - loggeomeansSub)[is.finite(loggeomeansSub) & cnts > 0]))
     })
+  }
+  if (incomingGeoMeans) {
+    # stabilize size factors to have geometric mean of 1
+    sf <- sf/exp(mean(log(sf)))
   }
   sf
 }

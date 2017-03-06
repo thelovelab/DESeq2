@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.15.39
+--------------------------
+
+    o Added a new size factor estimator, "poscounts",
+      which evolved out of use cases in Paul McMurdie's
+      phyloseq package.
+
 CHANGES IN VERSION 1.15.36
 --------------------------
 
