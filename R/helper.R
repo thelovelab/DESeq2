@@ -72,6 +72,76 @@ lfcShrink <- function(dds, coef, contrast, res, type="normal") {
   }
 }
 
+#' Unmix samples using loss in a variance stabilized space
+#'
+#' Unmixes samples in \code{x} according to \code{pure} components,
+#' using numerical optimization. The components in \code{pure}
+#' are added on the scale of gene expression (either normalized counts, or TPMs).
+#' The loss function when comparing fitted expression to the
+#' samples in \code{x} occurs in a variance stabilized space.
+#' This task is sometimes referred to as "deconvolution",
+#' and can be used, for example, to identify contributions from
+#' various tissues.
+#'
+#' @param x normalized counts or TPMs of the samples to be unmixed
+#' @param pure normalized counts or TPMs of the "pure" samples
+#' @param alpha for normalized counts, the dispersion of the data
+#' when a negative binomial model is fit. this can be found by examining
+#' the asymptotic value of \code{dispersionFunction(dds)}, when using
+#' \code{fitType="parametric"} or the mean value when using
+#' \code{fitType="mean"}.
+#' @param shift for TPMs, the shift which approximately stabilizes the variance
+#' of log shifted TPMs. Can be assessed with \code{vsn::meanSdPlot}.
+#' @param loss either 1 (for L1) or 2 (for squared) loss function.
+#' Default is 1.
+#'
+#' @return mixture components for each sample (rows), which add to 1.
+#'
+#' @export
+unmix <- function(x, pure, alpha, shift, loss=1) {
+
+  if (missing(alpha)) stopifnot(!missing(shift))
+  if (missing(shift)) stopifnot(!missing(alpha))
+  stopifnot(missing(shift) | missing(alpha))
+  stopifnot(loss %in% 0:1)
+  stopifnot(nrow(x) == nrow(pure))
+  stopifnot(ncol(pure) > 1)
+  
+  if (requireNamespace("pbapply", quietly=TRUE)) {
+    lapply <- pbapply::pblapply
+  }
+  
+  if (missing(shift)) {
+    stopifnot(alpha > 0)
+    # variance stabilizing transformation for fixed dispersion alpha
+    vst <- function(q, alpha) ( 2 * asinh(sqrt(alpha * q)) - log(alpha) - log(4) ) / log(2)
+    dist <- function(p, i, vst, alpha, loss) {
+      sum(abs(vst(x[,i], alpha) - vst(pure %*% p, alpha))^loss)
+    }
+    res <- lapply(seq_len(ncol(x)), function(i) {
+      optim(par=rep(1, ncol(pure)), fn=dist, gr=NULL, i, vst, alpha, loss,
+            method="L-BFGS-B", lower=0, upper=100)$par
+    })
+  } else {
+    stopifnot(shift > 0)
+    # VST of shifted log
+    vst <- function(q, shift) log(q + shift)
+    dist <- function(p, i, vst, shift, loss) {
+      sum(abs(vst(x[,i], shift) - vst(pure %*% p, shift))^loss)
+    }
+    res <- lapply(seq_len(ncol(x)), function(i) {
+      optim(par=rep(1, ncol(pure)), fn=dist, gr=NULL, i, vst, shift, loss,
+            method="L-BFGS-B", lower=0, upper=100)$par
+    })
+  }
+
+  mix <- do.call(rbind, res)
+  mix <- mix / rowSums(mix)
+
+  return(mix)
+  
+}
+
 #' Collapse technical replicates in a RangedSummarizedExperiment or DESeqDataSet
 #'
 #' Collapses the columns in \code{object} by summing within levels

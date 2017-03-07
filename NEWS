@@ -1,3 +1,13 @@
+CHANGES IN VERSION 1.15.40
+--------------------------
+
+    o Adding a new function unmix(), for
+      unmixing samples according to pure components,
+      e.g. "tissue deconvolution". The pure components
+      are added on the gene expression scale
+      (either normalized counts or TPMs), and the loss
+      is calculated in a variance stabilized space.
+
 CHANGES IN VERSION 1.15.39
 --------------------------
 
