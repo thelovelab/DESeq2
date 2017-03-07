@@ -873,9 +873,6 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispConv <- dispResMAP$iter < maxit
   refitDisp <- !dispConv
   if (sum(refitDisp) > 0) {
-
-    # TODO needs to incorporate weights
-    
     dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
                                   mu = mu[refitDisp,,drop=FALSE],
                                   logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],

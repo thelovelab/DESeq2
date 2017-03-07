@@ -96,11 +96,13 @@ lfcShrink <- function(dds, coef, contrast, res, type="normal") {
 #' of log shifted TPMs. Can be assessed with \code{vsn::meanSdPlot}.
 #' @param loss either 1 (for L1) or 2 (for squared) loss function.
 #' Default is 1.
+#' @param quiet suppress progress bar. default is FALSE, show progress bar
+#' if pbapply is installed.
 #'
 #' @return mixture components for each sample (rows), which sum to 1.
 #'
 #' @export
-unmix <- function(x, pure, alpha, shift, loss=1) {
+unmix <- function(x, pure, alpha, shift, loss=1, quiet=FALSE) {
 
   if (missing(alpha)) stopifnot(!missing(shift))
   if (missing(shift)) stopifnot(!missing(alpha))
@@ -109,7 +111,7 @@ unmix <- function(x, pure, alpha, shift, loss=1) {
   stopifnot(nrow(x) == nrow(pure))
   stopifnot(ncol(pure) > 1)
   
-  if (requireNamespace("pbapply", quietly=TRUE)) {
+  if (requireNamespace("pbapply", quietly=TRUE) & !quiet) {
     lapply <- pbapply::pblapply
   }
   

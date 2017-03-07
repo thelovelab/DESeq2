@@ -13,6 +13,10 @@ test_that("tximport works", {
 
   dds <- DESeqDataSetFromTximport(txi, samples, ~1)
 
+  # test library size correction taking into account
+  # the average transcript lengths
+  dds <- estimateSizeFactors(dds)
+  
   # test fpkm
   exprs <- fpm(dds)
   exprs <- fpkm(dds)

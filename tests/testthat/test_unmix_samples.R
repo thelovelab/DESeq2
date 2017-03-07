@@ -35,7 +35,7 @@ test_that("unmixing samples works", {
   
   alpha <- attr(dispersionFunction(dds),"mean")
 
-  mix <- unmix(counts, pure=pure, alpha=alpha)
+  mix <- unmix(counts, pure=pure, alpha=alpha, quiet=TRUE)
 
   max(abs(dds$a - mix[,1]))
   max(abs(dds$b - mix[,2]))
@@ -44,5 +44,8 @@ test_that("unmixing samples works", {
   expect_lt(max(abs(dds$a - mix[,1])), .01)
   expect_lt(max(abs(dds$b - mix[,2])), .01)
   expect_lt(max(abs(dds$c - mix[,3])), .01)
+
+  # test the shifted log (designed for TPMs)
+  mix2 <- unmix(counts, pure=pure, shift=0.5, quiet=TRUE)
   
 })

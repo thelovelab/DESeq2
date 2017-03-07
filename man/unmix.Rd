@@ -4,7 +4,7 @@
 \alias{unmix}
 \title{Unmix samples using loss in a variance stabilized space}
 \usage{
-unmix(x, pure, alpha, shift, loss = 1)
+unmix(x, pure, alpha, shift, loss = 1, quiet = FALSE)
 }
 \arguments{
 \item{x}{normalized counts or TPMs of the samples to be unmixed}
@@ -22,6 +22,9 @@ of log shifted TPMs. Can be assessed with \code{vsn::meanSdPlot}.}
 
 \item{loss}{either 1 (for L1) or 2 (for squared) loss function.
 Default is 1.}
+
+\item{quiet}{suppress progress bar. default is FALSE, show progress bar
+if pbapply is installed.}
 }
 \value{
 mixture components for each sample (rows), which sum to 1.
