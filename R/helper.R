@@ -82,6 +82,8 @@ lfcShrink <- function(dds, coef, contrast, res, type="normal") {
 #' This task is sometimes referred to as "deconvolution",
 #' and can be used, for example, to identify contributions from
 #' various tissues.
+#' Note: if the \code{pbapply} package is installed a progress bar
+#' will be displayed while mixing components are fit.
 #'
 #' @param x normalized counts or TPMs of the samples to be unmixed
 #' @param pure normalized counts or TPMs of the "pure" samples
@@ -103,7 +105,7 @@ unmix <- function(x, pure, alpha, shift, loss=1) {
   if (missing(alpha)) stopifnot(!missing(shift))
   if (missing(shift)) stopifnot(!missing(alpha))
   stopifnot(missing(shift) | missing(alpha))
-  stopifnot(loss %in% 0:1)
+  stopifnot(loss %in% 1:2)
   stopifnot(nrow(x) == nrow(pure))
   stopifnot(ncol(pure) > 1)
   

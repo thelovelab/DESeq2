@@ -35,4 +35,6 @@ samples in \code{x} occurs in a variance stabilized space.
 This task is sometimes referred to as "deconvolution",
 and can be used, for example, to identify contributions from
 various tissues.
+Note: if the \code{pbapply} package is installed a progress bar
+will be displayed while mixing components are fit.
 }
