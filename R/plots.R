@@ -251,22 +251,23 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
 #' @export
 setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
 
-#' Plot of normalized counts for a single gene on log scale
+#' Plot of normalized counts for a single gene
 #'
-#' Note: normalized counts plus a pseudocount of 0.5 are shown.
+#' Normalized counts plus a pseudocount of 0.5 are shown by default.
 #' 
 #' @param dds a \code{DESeqDataSet}
 #' @param gene a character, specifying the name of the gene to plot
 #' @param intgroup interesting groups: a character vector of names in \code{colData(x)} to use for grouping
 #' @param normalized whether the counts should be normalized by size factor
 #' (default is TRUE)
-#' @param transform whether to present log2 counts (TRUE) or
-#' to present the counts on the log scale (FALSE, default)
+#' @param transform whether to have log scale y-axis or not.
+#' defaults to TRUE
 #' @param main as in 'plot'
 #' @param xlab as in 'plot'
 #' @param returnData should the function only return the data.frame of counts and
 #' covariates for custom plotting (default is FALSE)
 #' @param replaced use the outlier-replaced counts if they exist
+#' @param pc pseudocount for log transform
 #' @param ... arguments passed to plot
 #' 
 #' @examples
@@ -276,13 +277,19 @@ setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
 #' 
 #' @export
 plotCounts <- function(dds, gene, intgroup="condition",
-                       normalized=TRUE, transform=FALSE,
+                       normalized=TRUE, transform=TRUE,
                        main, xlab="group",
                        returnData=FALSE,
-                       replaced=FALSE, ...) {
+                       replaced=FALSE,
+                       pc, ...) {
   stopifnot(length(gene) == 1 & (is.character(gene) | (is.numeric(gene) & (gene >= 1 & gene <= nrow(dds)))))
   if (!all(intgroup %in% names(colData(dds)))) stop("all variables in 'intgroup' must be columns of colData")
   stopifnot(returnData | all(sapply(intgroup, function(v) is(colData(dds)[[v]], "factor"))))
+
+  if (missing(pc)) {
+    pc <- if (transform) 0.5 else 0
+  }
+  
   if (is.null(sizeFactors(dds)) & is.null(normalizationFactors(dds))) {
     dds <- estimateSizeFactors(dds)
   }
@@ -299,15 +306,8 @@ plotCounts <- function(dds, gene, intgroup="condition",
     factor(apply( as.data.frame(colData(dds)[, intgroup, drop=FALSE]),
                  1, paste, collapse=" : "))
   }
-  data <- data.frame(count=cnts + .5, group=as.integer(group))
-  if (transform) {
-    data$count <- log2(data$count)
-    ylab <- expression(log[2]~count)
-    logxy <- ""
-  } else {
-    ylab <- ifelse(normalized,"normalized count","count")
-    logxy <- "y"
-  }
+  data <- data.frame(count=cnts + pc, group=as.integer(group))
+  logxy <- if (transform) "y" else "" 
   if (missing(main)) {
     main <- if (is.numeric(gene)) {
       rownames(dds)[gene]
@@ -315,6 +315,7 @@ plotCounts <- function(dds, gene, intgroup="condition",
       gene
     }
   }
+  ylab <- ifelse(normalized,"normalized count","count")
   if (returnData) return(data.frame(count=data$count, colData(dds)[intgroup]))
   plot(data$group + runif(ncol(dds),-.05,.05), data$count, xlim=c(.5,max(data$group)+.5),
        log=logxy, xaxt="n", xlab=xlab, ylab=ylab, main=main, ...)

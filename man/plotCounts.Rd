@@ -2,11 +2,11 @@
 % Please edit documentation in R/plots.R
 \name{plotCounts}
 \alias{plotCounts}
-\title{Plot of normalized counts for a single gene on log scale}
+\title{Plot of normalized counts for a single gene}
 \usage{
 plotCounts(dds, gene, intgroup = "condition", normalized = TRUE,
-  transform = FALSE, main, xlab = "group", returnData = FALSE,
-  replaced = FALSE, ...)
+  transform = TRUE, main, xlab = "group", returnData = FALSE,
+  replaced = FALSE, pc, ...)
 }
 \arguments{
 \item{dds}{a \code{DESeqDataSet}}
@@ -18,8 +18,8 @@ plotCounts(dds, gene, intgroup = "condition", normalized = TRUE,
 \item{normalized}{whether the counts should be normalized by size factor
 (default is TRUE)}
 
-\item{transform}{whether to present log2 counts (TRUE) or
-to present the counts on the log scale (FALSE, default)}
+\item{transform}{whether to have log scale y-axis or not.
+defaults to TRUE}
 
 \item{main}{as in 'plot'}
 
@@ -30,10 +30,12 @@ covariates for custom plotting (default is FALSE)}
 
 \item{replaced}{use the outlier-replaced counts if they exist}
 
+\item{pc}{pseudocount for log transform}
+
 \item{...}{arguments passed to plot}
 }
 \description{
-Note: normalized counts plus a pseudocount of 0.5 are shown.
+Normalized counts plus a pseudocount of 0.5 are shown by default.
 }
 \examples{
 
