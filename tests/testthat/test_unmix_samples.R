@@ -29,6 +29,8 @@ test_that("unmixing samples works", {
   #plotPCA(vsd, intgroup=c("a","b","c")) + geom_point(size=5)
 
   pure <- matrix(rnbinom(3*n,mu=1e4*c(a,b,c),size=1/disp),ncol=3)
+  colnames(pure) <- c("a","b","c")
+  
   x <- counts
   
   alpha <- attr(dispersionFunction(dds),"mean")

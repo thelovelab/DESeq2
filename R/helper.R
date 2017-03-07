@@ -139,7 +139,8 @@ unmix <- function(x, pure, alpha, shift, loss=1) {
 
   mix <- do.call(rbind, res)
   mix <- mix / rowSums(mix)
-
+  colnames(mix) <- colnames(pure)
+  
   return(mix)
   
 }
