@@ -21,7 +21,7 @@ of all samples.
 used even when all genes contain a sample with a zero (a problem for the
 default method, as the geometric mean becomes zero, and the ratio undefined).
 The "poscounts" estimator deals with a gene with some zeros, by calculating a
-modified geometric mean by taking the 1/n-th root of the product of the non-zero counts.
+modified geometric mean by taking the n-th root of the product of the non-zero counts.
 This evolved out of use cases with Paul McMurdie's phyloseq package for metagenomic samples.
 The "iterate" estimator iterates between estimating the dispersion with a design of ~1, and
 finding a size factor vector by numerically optimizing the likelihood

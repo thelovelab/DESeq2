@@ -115,24 +115,24 @@ unmix <- function(x, pure, alpha, shift, loss=1) {
   
   if (missing(shift)) {
     stopifnot(alpha > 0)
-    # variance stabilizing transformation for fixed dispersion alpha
+    # variance stabilizing transformation for NB w/ fixed dispersion alpha
     vst <- function(q, alpha) ( 2 * asinh(sqrt(alpha * q)) - log(alpha) - log(4) ) / log(2)
-    dist <- function(p, i, vst, alpha, loss) {
+    distVST <- function(p, i, vst, alpha, loss) {
       sum(abs(vst(x[,i], alpha) - vst(pure %*% p, alpha))^loss)
     }
     res <- lapply(seq_len(ncol(x)), function(i) {
-      optim(par=rep(1, ncol(pure)), fn=dist, gr=NULL, i, vst, alpha, loss,
+      optim(par=rep(1, ncol(pure)), fn=distVST, gr=NULL, i, vst, alpha, loss,
             method="L-BFGS-B", lower=0, upper=100)$par
     })
   } else {
     stopifnot(shift > 0)
     # VST of shifted log
-    vst <- function(q, shift) log(q + shift)
-    dist <- function(p, i, vst, shift, loss) {
-      sum(abs(vst(x[,i], shift) - vst(pure %*% p, shift))^loss)
+    vstSL <- function(q, shift) log(q + shift)
+    distSL <- function(p, i, vst, shift, loss) {
+      sum(abs(vstSL(x[,i], shift) - vstSL(pure %*% p, shift))^loss)
     }
     res <- lapply(seq_len(ncol(x)), function(i) {
-      optim(par=rep(1, ncol(pure)), fn=dist, gr=NULL, i, vst, shift, loss,
+      optim(par=rep(1, ncol(pure)), fn=distSL, gr=NULL, i, vstSL, shift, loss,
             method="L-BFGS-B", lower=0, upper=100)$par
     })
   }
