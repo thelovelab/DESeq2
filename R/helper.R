@@ -97,7 +97,7 @@ lfcShrink <- function(dds, coef, contrast, res, type="normal") {
 #' @param loss either 1 (for L1) or 2 (for squared) loss function.
 #' Default is 1.
 #'
-#' @return mixture components for each sample (rows), which add to 1.
+#' @return mixture components for each sample (rows), which sum to 1.
 #'
 #' @export
 unmix <- function(x, pure, alpha, shift, loss=1) {

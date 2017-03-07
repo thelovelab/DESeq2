@@ -24,7 +24,7 @@ of log shifted TPMs. Can be assessed with \code{vsn::meanSdPlot}.}
 Default is 1.}
 }
 \value{
-mixture components for each sample (rows), which add to 1.
+mixture components for each sample (rows), which sum to 1.
 }
 \description{
 Unmixes samples in \code{x} according to \code{pure} components,
