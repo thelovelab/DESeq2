@@ -215,11 +215,15 @@ Here, we demonstrate how to import transcript abundances
 and construct of a gene-level *DESeqDataSet* object
 from *Salmon* `quant.sf` files, which are
 stored in the [tximportData](http://bioconductor.org/packages/tximportData) package.
+You do not need the `tximportData` package for your analysis, it is
+only used here for demonstration.
+
 Note that, instead of locating `dir` using *system.file*,
 a user would typically just provide a path, e.g. `/path/to/quant/files`.
 For a typical use, the `condition` information should already be
 present as a column of the sample table `samples`, while here we
 construct artificial condition labels for demonstration.
+
 
 ```{r txiSetup}
 library("tximport")
