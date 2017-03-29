@@ -1,15 +1,24 @@
-plotDispEsts.DESeqDataSet <- function( object, ymin,
+plotDispEsts.DESeqDataSet <- function( object, ymin, CV=FALSE,
   genecol = "black", fitcol = "red", finalcol = "dodgerblue",
   legend=TRUE, xlab, ylab, log = "xy", cex = 0.45, ... )
 {
   if (missing(xlab)) xlab <- "mean of normalized counts"
-  if (missing(ylab)) ylab <- "dispersion"
+  if (missing(ylab)) {
+    if (CV) {
+      ylab <- "coefficient of variation"
+    } else {
+      ylab <- "dispersion"
+    }
+  }
   
   px = mcols(object)$baseMean
   sel = (px>0)
   px = px[sel]
 
-  py = mcols(object)$dispGeneEst[sel]
+  # transformation of dispersion into CV or not
+  f <- if (CV) sqrt else I
+  
+  py = f(mcols(object)$dispGeneEst[sel])
   if(missing(ymin))
       ymin = 10^floor(log10(min(py[py>0], na.rm=TRUE))-0.1)
 
@@ -21,12 +30,12 @@ plotDispEsts.DESeqDataSet <- function( object, ymin,
   cexOutlier <- ifelse(mcols(object)$dispOutlier[sel],2*cex,cex)
   lwdOutlier <- ifelse(mcols(object)$dispOutlier[sel],2,1)
   if (!is.null(dispersions(object))) {
-    points(px, dispersions(object)[sel], col=finalcol, cex=cexOutlier,
+    points(px, f(dispersions(object)[sel]), col=finalcol, cex=cexOutlier,
            pch=pchOutlier, lwd=lwdOutlier)
   }
 
   if (!is.null(mcols(object)$dispFit)) {
-    points(px, mcols(object)$dispFit[sel], col=fitcol, cex=cex, pch=16)
+    points(px, f(mcols(object)$dispFit[sel]), col=fitcol, cex=cex, pch=16)
   }
   
   if (legend) {
@@ -48,6 +57,11 @@ plotDispEsts.DESeqDataSet <- function( object, ymin,
 #' @param object a DESeqDataSet, with dispersions estimated
 #' @param ymin the lower bound for points on the plot, points beyond this
 #'    are drawn as triangles at ymin
+#' @param CV logical, whether to plot the asymptotic or biological
+#' coefficient of variation (the square root of dispersion) on the y-axis.
+#' As the mean grows to infinity, the square root of dispersion gives
+#' the coefficient of variation for the counts. Default is \code{FALSE},
+#' plotting dispersion.
 #' @param genecol the color for gene-wise dispersion estimates
 #' @param fitcol the color of the fitted estimates
 #' @param finalcol the color of the final estimates used for testing

@@ -6,6 +6,7 @@ test_that("plots work", {
   dds <- DESeq(dds)
   res <- results(dds)
   plotDispEsts(dds)
+  plotDispEsts(dds, CV=TRUE)
   plotMA(dds)
   plotMA(dds, ylim=c(-1,1))
   plotCounts(dds, 1)
