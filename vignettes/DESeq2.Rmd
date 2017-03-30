@@ -511,11 +511,16 @@ by this function are described [below](#theory), in the manual page for
 
 Results tables are generated using the function *results*, which
 extracts a results table with log2 fold changes, *p* values and adjusted
-*p* values. With no arguments to *results*, the results will be for
-the last variable in the design formula, and if this is a factor, 
-the comparison will be the last level of this variable over the first level. 
-Details about the comparison are printed to the console. 
-The text, `condition treated vs untreated`, tells you that the
+*p* values. With no additional arguments to *results*, the log2 fold change and
+Wald test *p* value will be for the last variable in the design
+formula, and if this is a factor,
+the comparison will be the last level of this variable over the first
+level. However, the order of the variables of the design do not matter
+so long as the user specifies the comparison using the `name` or
+`contrast` arguments of *results* (described later and in `?results`).
+
+Details about the comparison are printed to the console, above the
+results table. The text, `condition treated vs untreated`, tells you that the
 estimates are of the logarithmic fold change log2(treated/untreated).
 
 ```{r deseq}
@@ -770,11 +775,16 @@ resSig <- subset(resOrdered, padj < 0.1)
 resSig
 ``` 
 
-## Multi-factor designs 
+## Multi-factor designs
 
 Experiments with more than one factor influencing the counts can be
 analyzed using design formula that include the additional variables.
-By adding these to the design, one can control for additional variation
+In fact, DESeq2 can analyze any possible experimental design that can
+be expressed with fixed effects terms (multiple factors, designs with
+interactions, designs with continuous variables, splines, and so on
+are all possible).
+
+By adding variables to the design, one can control for additional variation
 in the counts. For example, if the condition samples are balanced
 across experimental batches, by including the `batch` factor to the
 design, one can increase the sensitivity for finding differences due
