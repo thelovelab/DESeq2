@@ -1,3 +1,19 @@
+CHANGES IN VERSION 1.16.0
+-------------------------
+
+    o DESeq() and nbinomWaldTest() the default setting
+      will be betaPrior=FALSE, and the recommended pipeline
+      will be to use lfcShrink() for producing shrunken LFC.
+    o Added a new function unmix(), for unmixing samples
+      according to linear combination of pure components,
+      e.g. "tissue deconvolution".
+    o Added a new size factor estimator, "poscounts",
+      which evolved out of use cases in Paul McMurdie's
+      phyloseq package.
+    o Ability to specify observation-specific weights,
+      using assays(dds)[["weights"]]. These weights are
+      picked up by dispersion and NB GLM fitting functions.
+
 CHANGES IN VERSION 1.15.40
 --------------------------
 
