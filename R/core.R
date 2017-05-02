@@ -537,6 +537,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' default is NULL, in which case a lienar model is used if the
 #' number of groups defined by the model matrix is equal to the number
 #' of columns of the model matrix
+#' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
 #' 
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
@@ -568,7 +569,8 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        dispTol=1e-6, maxit=100, quiet=FALSE,
-                                       modelMatrix=NULL, niter=1, linearMu=NULL) {
+                                       modelMatrix=NULL, niter=1, linearMu=NULL,
+                                       minmu=0.5) {
   if (!is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst")
@@ -646,10 +648,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   fitidx <- rep(TRUE,nrow(objectNZ))
   mu <- matrix(0, nrow=nrow(objectNZ), ncol=ncol(objectNZ))
   dispIter <- numeric(nrow(objectNZ))
-  # bound the estimated count
+  # bound the estimated count by 'minmu'
   # this helps make the fitting more robust,
   # because 1/mu occurs in the weights for the NB GLM
-  minmu <- 0.5
   for (iter in seq_len(niter)) {
     if (!linearMu) {
       fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],

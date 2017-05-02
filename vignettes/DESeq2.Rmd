@@ -183,7 +183,7 @@ package. This workflow allows users to import transcript abundance estimates
 from a variety of external software, including the following methods:
 
 * [Salmon](http://combine-lab.github.io/salmon/)
-  [@Patro2016Salmon]
+  [@Patro2107Salmon]
 * [Sailfish](http://www.cs.cmu.edu/~ckingsf/software/sailfish/)
   [@Patro2014Sailfish]
 * [kallisto](https://pachterlab.github.io/kallisto/about.html)
@@ -608,7 +608,7 @@ sum(res05$padj < 0.05, na.rm=TRUE)
 
 A generalization of the idea of *p* value filtering is to *weight* hypotheses
 to optimize power. A Bioconductor package, [IHW](http://bioconductor.org/packages/IHW), is available
-that implements the method of *Independent Hypothesis Weighting* [@Ignatiadis2015].
+that implements the method of *Independent Hypothesis Weighting* [@Ignatiadis2016].
 Here we show the use of *IHW* for *p* value adjustment of DESeq2 results.
 For more details, please see the vignette of the [IHW](http://bioconductor.org/packages/IHW) package.
 Note that the *IHW* result object is stored in the metadata.

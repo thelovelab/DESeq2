@@ -12,7 +12,7 @@
 \usage{
 estimateDispersionsGeneEst(object, minDisp = 1e-08, kappa_0 = 1,
   dispTol = 1e-06, maxit = 100, quiet = FALSE, modelMatrix = NULL,
-  niter = 1, linearMu = NULL)
+  niter = 1, linearMu = NULL, minmu = 0.5)
 
 estimateDispersionsFit(object, fitType = c("parametric", "local", "mean"),
   minDisp = 1e-08, quiet = FALSE)
@@ -50,6 +50,8 @@ estimation of dispersion}
 default is NULL, in which case a lienar model is used if the
 number of groups defined by the model matrix is equal to the number
 of columns of the model matrix}
+
+\item{minmu}{lower bound on the estimated count for fitting gene-wise dispersion}
 
 \item{fitType}{either "parametric", "local", or "mean"
 for the type of fitting of dispersions to the mean intensity.
