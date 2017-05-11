@@ -1262,13 +1262,6 @@ can be found by typing `?results`. In particular, we show how to
 test for differences in the condition effect across genotype, and we
 show how to obtain the condition effect for non-reference genotypes.
 
-Note that for DESeq2 versions higher than 1.10, the *DESeq* function
-will turn off log fold change shrinkage (setting `betaPrior=FALSE`),
-for designs which contain an interaction term. Turning off the log
-fold change shrinkage allows the software to use standard model
-matrices (as would be produced by *model.matrix*), where the
-interaction coefficients are easier to interpret.
-
 ## Time-series experiments
 
 There are a number of ways to analyze time-series experiments,
