@@ -30,7 +30,11 @@ If \code{res} is missing, just the shrunken LFC vector.
 \description{
 This function adds shrunken log2 fold changes (LFC) to a
 results table which was run without LFC moderation.
-Note: this function is still being prototyped.
+}
+\details{
+At the moment, shrinkage cannot be applied to coefficients
+in a model with interaction terms, but this will hopefully
+be added as a feature in the devel cycle of version 1.17.
 }
 \examples{
 
