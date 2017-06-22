@@ -197,7 +197,7 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
   
   # add the intgroup factors together to create a new grouping factor
   group <- if (length(intgroup) > 1) {
-    factor(apply( intgroup.df, 1, paste, collapse=" : "))
+    factor(apply( intgroup.df, 1, paste, collapse=":"))
   } else {
     colData(object)[[intgroup]]
   }
@@ -313,12 +313,12 @@ plotCounts <- function(dds, gene, intgroup="condition",
   } else if (length(intgroup) == 2) {
     lvls <- as.vector(t(outer(levels(colData(dds)[[intgroup[1]]]),
                               levels(colData(dds)[[intgroup[2]]]),
-                              function(x,y) paste(x,y,sep=" : "))))
+                              function(x,y) paste(x,y,sep=":"))))
     droplevels(factor(apply( as.data.frame(colData(dds)[, intgroup, drop=FALSE]),
-                            1, paste, collapse=" : "), levels=lvls))
+                            1, paste, collapse=":"), levels=lvls))
   } else {
     factor(apply( as.data.frame(colData(dds)[, intgroup, drop=FALSE]),
-                 1, paste, collapse=" : "))
+                 1, paste, collapse=":"))
   }
   data <- data.frame(count=cnts + pc, group=as.integer(group))
   logxy <- if (transform) "y" else "" 
