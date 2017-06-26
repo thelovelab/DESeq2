@@ -567,10 +567,10 @@ library("BiocParallel")
 register(MulticoreParam(4))
 ```
 
-We can order our results table by the smallest adjusted *p* value:
+We can order our results table by the smallest *p* value:
 
 ```{r resOrder}
-resOrdered <- res[order(res$padj),]
+resOrdered <- res[order(res$pvalue),]
 ```
 
 We can summarize some basic tallies using the
