@@ -1242,7 +1242,11 @@ nbinomWaldTest <- function(object,
   # if useT is set to TRUE, use a t-distribution
   if (useT) {
     dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" )
-    stopifnot(length(df)==1)
+    stopifnot(length(df)==1 | length(df)==nrow(object))
+    if (length(df) == nrow(object)) {
+      df <- df[!mcols(object)$allZero]
+      stopifnot(length(df)==nrow(WaldStatistic))
+    }
     WaldPvalue <- 2*pt(abs(WaldStatistic),df=df,lower.tail=FALSE)
   } else {
     WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)

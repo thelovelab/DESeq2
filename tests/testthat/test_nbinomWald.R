@@ -16,6 +16,16 @@ test_that("nbinomWald throws various errors and works with edge cases",{
   dds <- nbinomWaldTest(dds, modelMatrixType="standard")
   covarianceMatrix(dds, 1)
 
+  # changing 'df'
+  dds <- makeExampleDESeqDataSet(n=100, m=4)
+  counts(dds)[1:4,] <- rep(0L, 16)
+  dds <- estimateSizeFactors(dds)
+  dds <- estimateDispersions(dds)
+  dds <- nbinomWaldTest(dds)
+  round(head(results(dds)$pvalue,8),3)
+  dds <- nbinomWaldTest(dds, useT=TRUE, df=rep(1,100))
+  round(head(results(dds)$pvalue,8),3)
+  
   # try nbinom after no fitted dispersions
   dds <- makeExampleDESeqDataSet(n=100, m=4)
   dds <- estimateSizeFactors(dds)
