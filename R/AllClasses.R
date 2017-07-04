@@ -356,7 +356,11 @@ DESeqDataSetFromTximport <- function(txi, colData, design, ...)
 
 #' @rdname DESeqResults
 #' @export
-setClass("DESeqResults", contains="DataFrame")
+setClass("DESeqResults",
+         contains="DataFrame",
+         representation = representation( 
+           priorInfo = "list")
+         )
 
 #' DESeqResults object and constructor
 #'
@@ -368,14 +372,15 @@ setClass("DESeqResults", contains="DataFrame")
 #'
 #' @param DataFrame a DataFrame of results, standard column names are:
 #' baseMean, log2FoldChange, lfcSE, stat, pvalue, padj.
+#' @param priorInfo a list giving information on the log fold change prior
 #'
 #' @return a DESeqResults object
 #' @docType class
 #' @aliases DESeqResults-class
 #' @rdname DESeqResults
 #' @export
-DESeqResults <- function(DataFrame) {
-  new("DESeqResults", DataFrame)
+DESeqResults <- function(DataFrame, priorInfo=list()) {
+  new("DESeqResults", DataFrame, priorInfo=priorInfo)
 }
 
 #' @rdname DESeqTransform

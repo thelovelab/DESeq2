@@ -7,11 +7,13 @@
 \alias{DESeqResults-class}
 \title{DESeqResults object and constructor}
 \usage{
-DESeqResults(DataFrame)
+DESeqResults(DataFrame, priorInfo = list())
 }
 \arguments{
 \item{DataFrame}{a DataFrame of results, standard column names are:
 baseMean, log2FoldChange, lfcSE, stat, pvalue, padj.}
+
+\item{priorInfo}{a list giving information on the log fold change prior}
 }
 \value{
 a DESeqResults object

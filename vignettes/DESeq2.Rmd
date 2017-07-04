@@ -1615,6 +1615,15 @@ The beta prior variance $\sigma_r^2$ is stored as an attribute of the
 attr(dds, "betaPriorVar")
 ``` 
 
+General information about the prior used for log fold change shrinkage
+is also stored in a slot of the *DESeqResults* object. This would
+also contain information about what other packages were used
+for log2 fold change shrinkage.
+
+```{r priorInfo}
+priorInfo(resLFC)
+```
+
 The dispersion prior variance $\sigma_d^2$ is stored as an
 attribute of the dispersion function:
 

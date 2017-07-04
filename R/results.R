@@ -490,8 +490,18 @@ of length 3 to 'contrast' instead of using 'name'")
     res$pvalue[nowZero] <- 1
   }
 
+  # add prior information
+  deseq2.version <- packageVersion("DESeq2")
+  if (!attr(object,"betaPrior")) {
+    priorInfo <- list(type="none", package="DESeq2", version=deseq2.version)
+  } else {
+    betaPriorVar <- attr(object, "betaPriorVar")
+    priorInfo <- list(type="normal", package="DESeq2", version=deseq2.version,
+                      betaPriorVar=betaPriorVar)
+  }
+  
   # make results object
-  deseqRes <- DESeqResults(res)
+  deseqRes <- DESeqResults(res, priorInfo=priorInfo)
   
   # p-value adjustment
   if (missing(filterFun)) {

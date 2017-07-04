@@ -689,8 +689,6 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
   # Temporary hack for backward compatibility with "old" DESeqDataSet
   # objects. Remove once all serialized DESeqDataSet objects around have
   # been updated.
-  if (!.hasSlot(object, "rowRanges"))
-    object <- updateObject(object)
   cat(mcols(object)$description[ colnames(object) == "log2FoldChange"],"\n")
   cat(mcols(object)$description[ colnames(object) == "pvalue"],"\n")
   show(DataFrame(object))
@@ -808,3 +806,29 @@ summary.DESeqResults <- function(object, alpha, ...) {
   if (ihw) cat("[2] see metadata(res)$ihwResult on hypothesis weighting\n")
   cat("\n")
 }
+
+#' Accessors for the 'priorInfo' slot of a DESeqResults object.
+#' 
+#' The priorInfo slot contains details about the prior on log fold changes
+#' 
+#' @docType methods
+#' @name priorInfo
+#' @rdname priorInfo
+#' @aliases priorInfo priorInfo,DESeqResults-method priorInfo<-,DESeqResults,list-method
+#' 
+#' @param object a \code{DESeqResults} object
+#' @param value a \code{list}
+#' @param ... additional arguments
+#'
+#' @export
+setMethod("priorInfo", signature(object="DESeqResults"),
+          function(object) object@priorInfo)
+
+#' @name priorInfo
+#' @rdname priorInfo
+#' @exportMethod "priorInfo<-"
+setReplaceMethod("priorInfo", signature(object="DESeqResults", value="list"),
+                 function(object, value) {
+                   object@priorInfo <- value
+                   object
+                 })

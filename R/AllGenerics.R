@@ -21,3 +21,11 @@ setGeneric("normalizationFactors", function(object,...) standardGeneric("normali
 #' @rdname normalizationFactors
 #' @export
 setGeneric("normalizationFactors<-", function(object,...,value) standardGeneric("normalizationFactors<-"))
+
+#' @rdname priorInfo
+#' @export
+setGeneric("priorInfo", function(object,...) standardGeneric("priorInfo"))
+
+#' @rdname priorInfo
+#' @export
+setGeneric("priorInfo<-", function(object,...,value) standardGeneric("priorInfo<-"))

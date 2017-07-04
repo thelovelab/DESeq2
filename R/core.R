@@ -9,7 +9,8 @@
 # AllGenerics .... the generics defined in DESeq2
 # results ........ results() function and helpers
 # plots .......... all plotting functions
-# helper ......... lfcShrink, collapseReplicates, fpkm, fpm, DESeqParallel
+# lfcShrink ...... log2 fold change shrinkage
+# helper ......... unmix, collapseReplicates, fpkm, fpm, DESeqParallel
 # expanded ....... helpers for dealing with expanded model matrices
 # wrappers ....... the R wrappers for the C++ functions (mine)
 # RcppExports .... the R wrappers for the C++ functions (auto)
