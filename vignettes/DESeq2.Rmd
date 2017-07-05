@@ -1010,10 +1010,9 @@ differences due to the experimental conditions.
 # this gives log2(n + 1)
 ntd <- normTransform(dds)
 library("vsn")
-notAllZero <- (rowSums(counts(dds))>0)
-meanSdPlot(assay(ntd)[notAllZero,])
-meanSdPlot(assay(rld[notAllZero,]))
-meanSdPlot(assay(vsd[notAllZero,]))
+meanSdPlot(assay(ntd))
+meanSdPlot(assay(rld))
+meanSdPlot(assay(vsd))
 ```
 
 ## Data quality assessment by sample clustering and visualization
