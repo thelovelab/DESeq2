@@ -1,6 +1,7 @@
 context("construction_errors")
 test_that("proper errors thrown in object construction", {
   coldata <- DataFrame(x=factor(c("A","A","B","B")),
+                       xx=factor(c("A","A","B","B ")),
                        name=letters[1:4],
                        ident=factor(rep("A",4)),
                        num=1:4,
@@ -22,6 +23,7 @@ test_that("proper errors thrown in object construction", {
   expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ missinglevels))
   expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ notref))
   expect_error(DESeqDataSetFromMatrix(counts, coldata, ~ident + x), "design contains")
+  expect_error(DESeqDataSetFromMatrix(counts, coldata, ~xx), "characters other than")
 
   # same colnames but in different order:
   expect_error(DESeqDataSetFromMatrix(matrix(1:16, ncol=4, dimnames=list(1:4, 4:1)), coldata, ~ x))

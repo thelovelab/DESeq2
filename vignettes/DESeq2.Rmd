@@ -808,11 +808,21 @@ the analysis using a multi-factor design.
 ddsMF <- dds
 ```
 
+We change the levels of `type` so it only contains letters (numbers, underscore and
+period are also allowed in design factor levels). Careful when
+changing level names to use the same order as the current levels.
+
+```{r fixLevels}
+levels(ddsMF$type)
+levels(ddsMF$type) <- c("paired","single")
+```
+
 We can account for the different types of sequencing, and get a clearer picture
 of the differences attributable to the treatment.  As `condition` is the
 variable of interest, we put it at the end of the formula. Thus the *results*
 function will by default pull the `condition` results unless 
 `contrast` or `name` arguments are specified. 
+
 Then we can re-run *DESeq*:
 
 ```{r replaceDesign}
@@ -837,7 +847,7 @@ described in the help page for *results* and [below](#contrasts)
 
 ```{r multiTypeResults}
 resMFType <- results(ddsMF,
-                     contrast=c("type", "single-read", "paired-end"))
+                     contrast=c("type", "single", "paired"))
 head(resMFType)
 ```
 
@@ -2409,7 +2419,8 @@ Bjorn Gruning,
 Ryan McMinds,
 Paul Gordon,
 Leonardo Collado Torres,
-Enrico Ferrero.
+Enrico Ferrero,
+Peter Langfelder.
 
 # Session info
 

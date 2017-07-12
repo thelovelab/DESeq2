@@ -24,18 +24,25 @@ setValidity( "DESeqDataSet", function( object ) {
   }
   designVarsClass <- sapply(designVars, function(v) class(colData(object)[[v]]))
   if (any(designVarsClass == "character")) {
-    return("
-
-variables in design formula are character vectors.
+    return("variables in design formula are character vectors.
   convert these columns of colData(object) to factors before including in the design formula")
   }
   designFactors <- designVars[designVarsClass == "factor"]
-  if (any(sapply(designFactors,function(v) any(duplicated(make.names(levels(colData(object)[[v]]))))))) {
-    return("
-
-factors in the design formula have non-unique level names after make.names() is applied.
-make.names() is used during the analysis to turn factor levels into safe column names.
-please only use letters and numbers for levels of factors in the design")
+  # levels would duplicate after make.names()
+  if (any(sapply(designFactors,function(v) {
+    factor.lvls <- levels(colData(object)[[v]])
+    factor.nms <- make.names(factor.lvls)
+    any(duplicated(factor.nms))
+  }))) {
+    return("levels of factors in the design have non-unique level names after make.names() is applied.
+  best to only uobject letters and numbers for levels of factors in the design")
+  }
+  # levels contain characters other than letters, numbers, and underscore
+  if (any(sapply(designFactors,function(v) {
+    factor.lvls <- levels(colData(object)[[v]])
+    any(!grepl("^[A-Za-z0-9_.]+$",factor.lvls))
+  }))) {
+    return("levels of factors in the design contain characters other than letters, numbers, '_' and '.'")
   }
   # else...
   TRUE
@@ -207,7 +214,6 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     stop("design contains one or more variables with all samples having the same value,
   remove these variables from the design")
   }
-
   
   modelMatrix <- stats::model.matrix.default(design, data=as.data.frame(colData(se)))
   if (!ignoreRank) {
