@@ -572,7 +572,9 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
     if (!is.null(modelMatrix)) stop("same number of samples and coefficients to fit with supplied model matrix")
     warning("same number of samples and coefficients to fit,
   estimating dispersion by treating samples as replicates.
-  read the ?DESeq section on 'Experiments without replicates'")
+  please read the ?DESeq section on 'Experiments without replicates'.
+  in summary: this analysis only potentially useful for data exploration,
+  accurate differential expression analysis requires replication")
   }
   noReps
 }
