@@ -1989,7 +1989,7 @@ version *DESeq*, are as follows:
 * For the calculation of the beta prior variance, instead of
   matching the empirical quantile to the quantile of a Normal
   distribution, DESeq2 now uses the weighted quantile function
-  of the \CRANpkg{Hmisc} package. The weighting is described in the
+  of the Hmisc package. The weighting is described in the
   manual page for *nbinomWaldTest*.  The weights are the
   inverse of the expected variance of log counts (as used in the
   diagonals of the matrix $W$ in the GLM). The effect of the change
