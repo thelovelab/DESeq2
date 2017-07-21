@@ -70,14 +70,16 @@ you have a count matrix called `cts` and a table of sample
 information called `coldata`.  The `design` indicates how to model the
 samples, here, that we want to measure the effect of the condition,
 controlling for batch differences. The two factor variables `batch`
-and `condition` should be columns of `coldata`.
+and `condition` should  be columns of `coldata`.
 
 ```{r quickStart, eval=FALSE}
 dds <- DESeqDataSetFromMatrix(countData = cts,
                               colData = coldata,
                               design= ~ batch + condition)
 dds <- DESeq(dds)
-res <- results(dds, contrast=c("condition","treated","control"))
+rnms <- resultsNames(dds)
+res <- results(dds, contrast=c("condition","treat","ctrl"))
+res <- lfcShrink(dds, coef=length(rnms), res=res)
 ```
 
 The following starting functions will be explained below:
