@@ -322,7 +322,7 @@ an error). We additionally need to chop off the `"fb"` of the
 row names of `coldata`, so the naming is consistent.
 
 ```{r reorderPasila}
-rownames(coldata) <- sub("fb","",rownames(coldata))
+rownames(coldata) <- sub("fb", "", rownames(coldata))
 all(rownames(coldata) %in% colnames(cts))
 cts <- cts[, rownames(coldata)]
 all(rownames(coldata) == colnames(cts))
@@ -463,13 +463,13 @@ set the factors levels. Setting the factor levels can be done in two
 ways, either using factor:
 
 ```{r factorlvl}
-dds$condition <- factor(dds$condition, levels=c("untreated","treated"))
+dds$condition <- factor(dds$condition, levels = c("untreated","treated"))
 ``` 
 
 ...or using *relevel*, just specifying the reference level:
 
 ```{r relevel}
-dds$condition <- relevel(dds$condition, ref="untreated")
+dds$condition <- relevel(dds$condition, ref = "untreated")
 ``` 
 
 If you need to subset the columns of a *DESeqDataSet*,
@@ -811,12 +811,13 @@ ddsMF <- dds
 ```
 
 We change the levels of `type` so it only contains letters (numbers, underscore and
-period are also allowed in design factor levels). Careful when
+period are also allowed in design factor levels). Be careful when
 changing level names to use the same order as the current levels.
 
 ```{r fixLevels}
 levels(ddsMF$type)
-levels(ddsMF$type) <- c("paired","single")
+levels(ddsMF$type) <- sub("-.*", "", levels(ddsMF$type))
+levels(ddsMF$type)
 ```
 
 We can account for the different types of sequencing, and get a clearer picture
