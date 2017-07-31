@@ -42,7 +42,11 @@ setValidity( "DESeqDataSet", function( object ) {
     factor.lvls <- levels(colData(object)[[v]])
     any(!grepl("^[A-Za-z0-9_.]+$",factor.lvls))
   }))) {
-    return("levels of factors in the design contain characters other than letters, numbers, '_' and '.'")
+    # just a warning for now
+    message("  Note: levels of factors in the design contain characters other than
+  letters, numbers, '_' and '.'. It is recommended (but not required) to use
+  only letters, numbers, and delimiters '_' or '.', as these are safe characters
+  for column names in R. [This is a message, not an warning or error]")
   }
   # else...
   TRUE
