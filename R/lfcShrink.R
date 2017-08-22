@@ -42,6 +42,12 @@ lfcShrink <- function(dds, coef, contrast, res, type="normal") {
   # match the shrinkage type
   type <- match.arg(type, choices=c("normal"))
 
+  if (type == "normal") {
+    termsOrder <- attr(terms.formula(design(dds)),"order")
+    interactionPresent <- any(termsOrder > 1)
+    if (interactionPresent) stop("LFC shrinkage type='normal' not implemented for designs with interactions")
+  }
+  
   # fit MLE coefficients... TODO skip this step
   dds <- estimateMLEForBetaPriorVar(dds)
 
