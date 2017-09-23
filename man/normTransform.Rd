@@ -15,7 +15,7 @@ normTransform(object, f = log2, pc = 1)
 }
 \description{
 A simple function for creating a \code{\link{DESeqTransform}}
-object after applying: f(count + pc).
+object after applying: \code{f(count(dds,normalized=TRUE) + pc)}.
 }
 \seealso{
 \code{\link{varianceStabilizingTransformation}}, \code{\link{rlog}}

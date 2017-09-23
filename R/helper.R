@@ -336,7 +336,7 @@ normalizeGeneLength <- function(...) {
 #' Normalized counts transformation
 #'
 #' A simple function for creating a \code{\link{DESeqTransform}}
-#' object after applying: f(count + pc).
+#' object after applying: \code{f(count(dds,normalized=TRUE) + pc)}.
 #' 
 #' @param object a DESeqDataSet object
 #' @param f a function to apply to normalized counts
