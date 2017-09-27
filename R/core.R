@@ -59,11 +59,11 @@
 #'
 #' DESeq2 reference:
 #' 
-#' Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 2014, 15:550. \url{http://dx.doi.org/10.1186/s13059-014-0550-8}
+#' Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{http://dx.doi.org/10.1186/s13059-014-0550-8}
 #'
 #' DESeq reference:
 #' 
-#' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 2010, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+#' Simon Anders, Wolfgang Huber (2010) Differential expression analysis for sequence count data. Genome Biology, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #'
 #' @author Michael Love, Wolfgang Huber, Simon Anders
 #' 
@@ -206,7 +206,8 @@ NULL
 #' 
 #' @references
 #'
-#' Michael I Love, Wolfgang Huber, Simon Anders: Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 2014, 15:550. \url{http://dx.doi.org/10.1186/s13059-014-0550-8}
+#' Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
+#' 
 #' @import BiocGenerics BiocParallel S4Vectors IRanges GenomicRanges SummarizedExperiment Biobase Rcpp methods
 #'
 #' @importFrom locfit locfit

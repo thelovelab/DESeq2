@@ -1,88 +1,201 @@
 #' Shrink log2 fold changes
 #'
-#' This function adds shrunken log2 fold changes (LFC) to a
-#' results table which was run without LFC moderation.
+#' This function adds shrunken log2 fold changes (LFC) and SE to a
+#' results table from \code{DESeq} run without LFC shrinkage.
+#' Three methods are available via \code{type}.
 #'
-#' At the moment, shrinkage cannot be applied to coefficients
-#' in a model with interaction terms, but this will hopefully
-#' be added as a feature in the devel cycle of version 1.17.
+#' As of DESeq2 version 1.18, \code{type="apeglm"} and \code{type="ashr"}
+#' are new features, and still under development.
+#' Specifying \code{type="apeglm"} passes along DESeq2 MLE log2
+#' fold changes and standard errors to the \code{apeglm} function
+#' in the apeglm package, and re-estimates posterior LFCs for
+#' the coefficient specified by \code{coef}.
+#' Specifying \code{type="ashr"} passes along DESeq2 MLE log2
+#' fold changes and standard errors to the \code{ash} function
+#' in the ashr package, 
+#' with arguments \code{mixcompdist="normal"} and \code{method="shrink"}
+#' (\code{coef} and \code{contrast} ignored).
+#' For all shrinkage methods, details on the prior is included in
+#' \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
+#' The integration of shrinkage methods from
+#' external packages will likely evolve over time. In particular,
+#' we will likely provide arguments to specify whether to exchange p-values and
+#' adjusted p-values from DESeq2 with bounds on false sign rate from ashr and apeglm
+#' (see Stephens (2017)). In addition, we will likely incorporate an
+#' \code{lfcThreshold} argument which can be passed to apeglm
+#' to specify regions of the posterior at an arbitrary threshold.
+#'
+#' For \code{type="normal"}, shrinkage cannot be applied to coefficients
+#' in a model with interaction terms.
 #' 
 #' @param dds a DESeqDataSet object, which has been run through
 #' \code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}
 #' @param coef the number of the coefficient (LFC) to shrink,
-#' consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}.
-#' only \code{coef} or \code{contrast} can be specified, not both
+#' consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
+#' only \code{coef} or \code{contrast} can be specified, not both.
+#' \code{type="apeglm"} requires use of \code{coef}.
+#' \code{type="ashr"} requires neither \code{coef} nor \code{contrast}
+#' (will be ignored).
 #' @param contrast see argument description in \code{\link{results}}.
-#' only \code{coef} or \code{contrast} can be specified, not both
-#' @param res a DESeqResults object (can be missing)
-#' @param type at this time, ignored argument, because only one
-#' shrinkage estimator, but more to come!
+#' only \code{coef} or \code{contrast} can be specified, not both.
+#' \code{contrast} only for use with \code{type="normal"}
+#' @param res a DESeqResults object, which is required for \code{type="apeglm"}
+#' and \code{type="ashr"}. This should be an object produced by the
+#' default pipeline indicated in the example code below:
+#' \code{DESeq} followed by \code{results} for the same coefficient as \code{coef}
+#' @param type \code{"normal"} is the the original DESeq2 shrinkage estimator;
+#' \code{"apeglm"} is a t prior shrinkage estimator from the 'apeglm' package;
+#' \code{"ashr"} provides the empirical Bayes shrinkage estimator from the 'ashr' package 
+#' - see the Stephens (2017) reference below for citation
 #'
-#' @return if \code{res} is not missing, a DESeqResults object with
-#' the \code{log2FoldChange} column replaced with a shrunken LFC.
-#' If \code{res} is missing, just the shrunken LFC vector.
+#' @references
+#'
+#' \code{type="normal"}:
+#'
+#' Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
+#' 
+#' \code{type="ashr"}:
+#'
+#' Stephens, M. (2017) False discovery rates: a new deal. Biostatistics, 18:2. \url{https://doi.org/10.1093/biostatistics/kxw041}
+#' 
+#' @return a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}
+#' columns replaced with shrunken LFC and SE.
+#' \code{priorInfo(res)} contains information about the shrinkage procedure,
+#' relevant to the various methods specified by \code{type}.
+#' If \code{res} is missing (only possible with \code{type="normal"},
+#' just the shrunken LFC vector is returned.
 #'
 #' @export
 #' 
 #' @examples
 #'
+#'  set.seed(1)
 #'  dds <- makeExampleDESeqDataSet(betaSD=1)
-#'  dds <- DESeq(dds, betaPrior=FALSE)
+#'  dds <- dds[rowSums(counts(dds)) > 0,]
+#'  dds <- DESeq(dds)
 #'  res <- results(dds)
 #'  res.shr <- lfcShrink(dds=dds, coef=2, res=res)
 #'  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"), res=res)
+#'
+#'  library(apeglm)
+#'  res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
+#'
+#'  library(ashr)
+#'  res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 #' 
-lfcShrink <- function(dds, coef, contrast, res, type="normal") {
-  if (is.null(dispersions(dds))) {
-    stop("lfcShrink requires dispersion estimates, first call estimateDispersions()")
-  }
-
+lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")) {  
   # TODO: lfcThreshold
-  
-  # match the shrinkage type
-  type <- match.arg(type, choices=c("normal"))
+  # TODO: add checks that betaPrior=FALSE was used
+  type <- match.arg(type, choices=c("normal","apeglm","ashr"))
+  if (type %in% c("apeglm","ashr")) {
+    if (missing(res)) {
+      stop("type='apeglm' and 'ashr' require specifying a results table 'res'")
+    }
+  }
+  if (type %in% c("normal","apeglm")) {
+    if (is.null(dispersions(dds))) {
+      stop("type='normal' and 'apeglm' require dispersion estimates, first call estimateDispersions()")
+    }
+  }
 
   if (type == "normal") {
+
     termsOrder <- attr(terms.formula(design(dds)),"order")
     interactionPresent <- any(termsOrder > 1)
-    if (interactionPresent) stop("LFC shrinkage type='normal' not implemented for designs with interactions")
-  }
-  
-  # fit MLE coefficients... TODO skip this step
-  dds <- estimateMLEForBetaPriorVar(dds)
+    if (interactionPresent) {
+      stop("LFC shrinkage type='normal' not implemented for designs with interactions")
+    }
+    stopifnot(missing(coef) | missing(contrast))
+    # fit MLE coefficients... TODO skip this step
+    dds <- estimateMLEForBetaPriorVar(dds)
+    if (missing(contrast)) {
+      modelMatrixType <- "standard"
+    } else {
+      modelMatrixType <- "expanded"
+    }
+    attr(dds,"modelMatrixType") <- modelMatrixType
+    betaPriorVar <- estimateBetaPriorVar(dds)
+    dds.shr <- nbinomWaldTest(dds,
+                              betaPrior=TRUE,
+                              betaPriorVar=betaPriorVar,
+                              modelMatrixType=modelMatrixType,
+                              quiet=TRUE)
+    if (missing(contrast)) {
+      rn <- resultsNames(dds.shr)
+      res.shr <- results(dds.shr, name=rn[coef])
+    } else {
+      res.shr <- results(dds.shr, contrast=contrast)
+    }
+    # if a DESeqResults object was provided
+    if (!missing(res)) {
+      res$log2FoldChange <- res.shr$log2FoldChange
+      res$lfcSE <- res.shr$lfcSE
+      mcols(res)$description[2:3] <- mcols(res.shr)$description[2:3]
+      deseq2.version <- packageVersion("DESeq2")
+      priorInfo(res) <- list(type="normal", package="DESeq2", version=deseq2.version,
+                             betaPriorVar=betaPriorVar)
+      return(res)
+    } else {
+      return(res.shr$log2FoldChange)
+    }
+  } else if (type == "apeglm") {
 
-  stopifnot(missing(coef) | missing(contrast))
-  if (missing(contrast)) {
-    modelMatrixType <- "standard"
-  } else {
-    modelMatrixType <- "expanded"
-  }
-  attr(dds,"modelMatrixType") <- modelMatrixType
-  betaPriorVar <- estimateBetaPriorVar(dds)
+    if (!requireNamespace("apeglm", quietly=TRUE)) {
+      stop("type='apeglm' requires installing the Bioconductor package 'apeglm'")
+    }
+    message("using 'apeglm' for LFC shrinkage")
+    if (!missing(contrast)) {
+      stop("type='apeglm' shrinkage only for use with 'coef'")
+    }
+    stopifnot(!missing(coef))
+    m <- nrow(dds)
+    n <- ncol(dds)
+    Y <- counts(dds)
+    # TODO take care of genes with all 0's by propagating NA's
+    stopifnot(all(rowSums(counts(dds)) > 0))
+    design <- model.matrix(design(dds), data=colData(dds))
+    disps <- dispersions(dds)
+    if (is.null(normalizationFactors(dds))) {
+      offset <- matrix(log(sizeFactors(dds)),
+                       nrow=m, ncol=n, byrow=TRUE)
+    } else {
+      offset <- log(normalizationFactors(dds))
+    }
+    mle <- log(2) * cbind(res$log2FoldChange, res$lfcSE)
+    fit <- apeglm::apeglm(Y=Y, x=design, log.lik=apeglm::logLikNB, param=disps, coef=coef,
+                  mle=mle, offset=offset)
+    res$log2FoldChange <- log2(exp(1)) * fit$map[,coef]
+    res$lfcSE <- log2(exp(1)) * fit$se[,coef]
+    mcols(res)$description[2] <- sub("MLE","MAP",mcols(res)$description[2])
+    res <- res[,c(1:3,5:6)]
+    apeglm.version <- packageVersion("apeglm")
+    priorInfo(res) <- list(type="apeglm", package="apeglm", version=apeglm.version,
+                           prior.control=fit$prior.control)
+    return(res)    
+  } else if (type == "ashr") {
 
-  dds.shr <- nbinomWaldTest(dds,
-                            betaPrior=TRUE,
-                            betaPriorVar=betaPriorVar,
-                            modelMatrixType=modelMatrixType,
-                            quiet=TRUE)
+    if (!requireNamespace("ashr", quietly=TRUE)) {
+      stop("type='ashr' requires installing the CRAN package 'ashr'")
+    }
+    message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
 
-  if (missing(contrast)) {
-    rn <- resultsNames(dds.shr)
-    res.shr <- results(dds.shr, name=rn[coef])
-  } else {
-    res.shr <- results(dds.shr, contrast=contrast)
-  }
-
-  # if a DESeqResults object was provided
-  if (!missing(res)) {
-    res$log2FoldChange <- res.shr$log2FoldChange
-    res$lfcSE <- res.shr$lfcSE
-    mcols(res)$description[2:3] <- mcols(res.shr)$description[2:3]
-    deseq2.version <- packageVersion("DESeq2")
-    priorInfo(res) <- list(type="normal", package="DESeq2", version=deseq2.version,
-                           betaPriorVar=betaPriorVar)
+    Stephens, M. (2017) False discovery rates: a new deal. Biostatistics, 18:2.
+    https://doi.org/10.1093/biostatistics/kxw041
+")
+    if (!missing(coef) | !missing(coef)) {
+      message("type='ashr' uses only the log2FoldChange and lfcSE columns of 'res',
+   and ignores 'coef' and 'contrast'")
+    }
+    betahat <- res$log2FoldChange
+    sebetahat <- res$lfcSE
+    fit <- ashr::ash(betahat, sebetahat, mixcompdist="normal", method="shrink")
+    res$log2FoldChange <- fit$result$PosteriorMean
+    res$lfcSE <- fit$result$PosteriorSD
+    mcols(res)$description[2] <- sub("MLE","PostMean",mcols(res)$description[2])
+    res <- res[,c(1:3,5:6)]
+    ashr.version <- packageVersion("ashr")
+    priorInfo(res) <- list(type="ashr", package="ashr", version=ashr.version,
+                           fitted_g=fit$fitted_g)
     return(res)
-  } else {
-    return(res.shr$log2FoldChange)
   }
 }

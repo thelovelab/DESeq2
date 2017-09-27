@@ -2397,7 +2397,9 @@ feedback of many individuals, including but not limited to:
 
 The Bionconductor Core Team,
 Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein,
-Nikolaos Ignatiadis,
+Nikolaos Ignatiadis (IHW),
+Anqi Zhu (apeglm),
+Joseph Ibrahim (apeglm),
 Vince Carey,
 Owen Solberg,
 Ruping Sun,

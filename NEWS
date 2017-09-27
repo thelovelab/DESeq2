@@ -1,3 +1,21 @@
+CHANGES IN VERSION 1.18.0
+-------------------------
+
+    o lfcShrink() offers alternative estimators type="apeglm"
+      and type="ashr", making use of shrinkage estimators
+      in the 'apeglm' and 'ashr' packages, respectively.
+      See ?lfcShrink for more details and appropriate
+      references. The integration of these alternative
+      shrinkage estimators is still in development.
+      Additionally, the DESeqResults object gains priorInfo(res),
+      which passes along details of the fitted prior on LFC.
+
+    o Factor levels using characters other than letters,
+      numbers, '_' and '.' will print a message (not a warning
+      or error) that it is recommended to restrict to these
+      "safe characters". This follows a suggestion from the
+      Bioconductor support site to avoid user errors.
+
 CHANGES IN VERSION 1.16.0
 -------------------------
 

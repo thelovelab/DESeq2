@@ -4,44 +4,94 @@
 \alias{lfcShrink}
 \title{Shrink log2 fold changes}
 \usage{
-lfcShrink(dds, coef, contrast, res, type = "normal")
+lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"))
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, which has been run through
 \code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}}
 
 \item{coef}{the number of the coefficient (LFC) to shrink,
-consult \code{resultsNames(dds)} after running \code{DESeq(dds, betaPrior=FALSE)}.
-only \code{coef} or \code{contrast} can be specified, not both}
+consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
+only \code{coef} or \code{contrast} can be specified, not both.
+\code{type="apeglm"} requires use of \code{coef}.
+\code{type="ashr"} requires neither \code{coef} nor \code{contrast}
+(will be ignored).}
 
 \item{contrast}{see argument description in \code{\link{results}}.
-only \code{coef} or \code{contrast} can be specified, not both}
+only \code{coef} or \code{contrast} can be specified, not both.
+\code{contrast} only for use with \code{type="normal"}}
 
-\item{res}{a DESeqResults object (can be missing)}
+\item{res}{a DESeqResults object, which is required for \code{type="apeglm"}
+and \code{type="ashr"}. This should be an object produced by the
+default pipeline indicated in the example code below:
+\code{DESeq} followed by \code{results} for the same coefficient as \code{coef}}
 
-\item{type}{at this time, ignored argument, because only one
-shrinkage estimator, but more to come!}
+\item{type}{\code{"normal"} is the the original DESeq2 shrinkage estimator;
+\code{"apeglm"} is a t prior shrinkage estimator from the 'apeglm' package;
+\code{"ashr"} provides the empirical Bayes shrinkage estimator from the 'ashr' package 
+- see the Stephens (2017) reference below for citation}
 }
 \value{
-if \code{res} is not missing, a DESeqResults object with
-the \code{log2FoldChange} column replaced with a shrunken LFC.
-If \code{res} is missing, just the shrunken LFC vector.
+a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}
+columns replaced with shrunken LFC and SE.
+\code{priorInfo(res)} contains information about the shrinkage procedure,
+relevant to the various methods specified by \code{type}.
+If \code{res} is missing (only possible with \code{type="normal"},
+just the shrunken LFC vector is returned.
 }
 \description{
-This function adds shrunken log2 fold changes (LFC) to a
-results table which was run without LFC moderation.
+This function adds shrunken log2 fold changes (LFC) and SE to a
+results table from \code{DESeq} run without LFC shrinkage.
+Three methods are available via \code{type}.
 }
 \details{
-At the moment, shrinkage cannot be applied to coefficients
-in a model with interaction terms, but this will hopefully
-be added as a feature in the devel cycle of version 1.17.
+As of DESeq2 version 1.18, \code{type="apeglm"} and \code{type="ashr"}
+are new features, and still under development.
+Specifying \code{type="apeglm"} passes along DESeq2 MLE log2
+fold changes and standard errors to the \code{apeglm} function
+in the apeglm package, and re-estimates posterior LFCs for
+the coefficient specified by \code{coef}.
+Specifying \code{type="ashr"} passes along DESeq2 MLE log2
+fold changes and standard errors to the \code{ash} function
+in the ashr package, 
+with arguments \code{mixcompdist="normal"} and \code{method="shrink"}
+(\code{coef} and \code{contrast} ignored).
+For all shrinkage methods, details on the prior is included in
+\code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
+The integration of shrinkage methods from
+external packages will likely evolve over time. In particular,
+we will likely provide arguments to specify whether to exchange p-values and
+adjusted p-values from DESeq2 with bounds on false sign rate from ashr and apeglm
+(see Stephens (2017)). In addition, we will likely incorporate an
+\code{lfcThreshold} argument which can be passed to apeglm
+to specify regions of the posterior at an arbitrary threshold.
+
+For \code{type="normal"}, shrinkage cannot be applied to coefficients
+in a model with interaction terms.
 }
 \examples{
 
+ set.seed(1)
  dds <- makeExampleDESeqDataSet(betaSD=1)
- dds <- DESeq(dds, betaPrior=FALSE)
+ dds <- dds[rowSums(counts(dds)) > 0,]
+ dds <- DESeq(dds)
  res <- results(dds)
  res.shr <- lfcShrink(dds=dds, coef=2, res=res)
  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"), res=res)
 
+ library(apeglm)
+ res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
+
+ library(ashr)
+ res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
+
+}
+\references{
+\code{type="normal"}:
+
+Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
+
+\code{type="ashr"}:
+
+Stephens, M. (2017) False discovery rates: a new deal. Biostatistics, 18:2. \url{https://doi.org/10.1093/biostatistics/kxw041}
 }
