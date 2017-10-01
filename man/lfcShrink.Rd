@@ -40,9 +40,9 @@ If \code{res} is missing (only possible with \code{type="normal"},
 just the shrunken LFC vector is returned.
 }
 \description{
-This function adds shrunken log2 fold changes (LFC) and SE to a
+Adds shrunken log2 fold changes (LFC) and SE to a
 results table from \code{DESeq} run without LFC shrinkage.
-Three methods are available via \code{type}.
+Three shrinkage esimators for LFC are available via \code{type}.
 }
 \details{
 As of DESeq2 version 1.18, \code{type="apeglm"} and \code{type="ashr"}

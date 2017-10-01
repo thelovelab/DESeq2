@@ -1,8 +1,8 @@
 #' Shrink log2 fold changes
 #'
-#' This function adds shrunken log2 fold changes (LFC) and SE to a
+#' Adds shrunken log2 fold changes (LFC) and SE to a
 #' results table from \code{DESeq} run without LFC shrinkage.
-#' Three methods are available via \code{type}.
+#' Three shrinkage esimators for LFC are available via \code{type}.
 #'
 #' As of DESeq2 version 1.18, \code{type="apeglm"} and \code{type="ashr"}
 #' are new features, and still under development.
@@ -84,8 +84,14 @@
 #'  res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 #' 
 lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")) {  
-  # TODO: lfcThreshold
-  # TODO: add checks that betaPrior=FALSE was used
+  # TODO: lfcThreshold for types: normal and apeglm
+  # TODO: add check that betaPrior=FALSE was used
+  # TODO: require results coming in, simplify output for type: normal
+  #       and so skip MLE estimation
+  # TODO: add logic for apeglm, to use model matrix if it was provided to 'full'
+  # TODO: coef can be character as well
+  # TODO: check that coef is the same as used to make results
+  # TODO: option to add FSR, s-values, posterior areas for ashr and apeglm
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))
   if (type %in% c("apeglm","ashr")) {
     if (missing(res)) {
@@ -106,7 +112,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
       stop("LFC shrinkage type='normal' not implemented for designs with interactions")
     }
     stopifnot(missing(coef) | missing(contrast))
-    # fit MLE coefficients... TODO skip this step
+    # TODO skip re-fitting MLE coefficients
     dds <- estimateMLEForBetaPriorVar(dds)
     if (missing(contrast)) {
       modelMatrixType <- "standard"
