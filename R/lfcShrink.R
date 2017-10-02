@@ -21,7 +21,7 @@
 #' external packages will likely evolve over time. In particular,
 #' we will likely provide arguments to specify whether to exchange p-values and
 #' adjusted p-values from DESeq2 with bounds on false sign rate from ashr and apeglm
-#' (see Stephens (2017)). In addition, we will likely incorporate an
+#' (see Stephens (2016)). In addition, we will likely incorporate an
 #' \code{lfcThreshold} argument which can be passed to apeglm
 #' to specify regions of the posterior at an arbitrary threshold.
 #'
@@ -46,7 +46,7 @@
 #' @param type \code{"normal"} is the the original DESeq2 shrinkage estimator;
 #' \code{"apeglm"} is a t prior shrinkage estimator from the 'apeglm' package;
 #' \code{"ashr"} provides the empirical Bayes shrinkage estimator from the 'ashr' package 
-#' - see the Stephens (2017) reference below for citation
+#' - see the Stephens (2016) reference below for citation
 #'
 #' @references
 #'
@@ -56,7 +56,7 @@
 #' 
 #' \code{type="ashr"}:
 #'
-#' Stephens, M. (2017) False discovery rates: a new deal. Biostatistics, 18:2. \url{https://doi.org/10.1093/biostatistics/kxw041}
+#' Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2. \url{https://doi.org/10.1093/biostatistics/kxw041}
 #' 
 #' @return a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}
 #' columns replaced with shrunken LFC and SE.
@@ -185,7 +185,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     }
     message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
 
-    Stephens, M. (2017) False discovery rates: a new deal. Biostatistics, 18:2.
+    Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
     https://doi.org/10.1093/biostatistics/kxw041
 ")
     if (!missing(coef) | !missing(coef)) {
