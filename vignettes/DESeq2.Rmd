@@ -34,10 +34,6 @@ vignette: >
   %\VignetteEncoding[utf8]{inputenc}
 ---
 
-
-<!-- This is the source document -->
-
-
 ```{r setup, echo=FALSE, results="hide"}
 knitr::opts_chunk$set(tidy=FALSE, cache=TRUE,
                       dev="png",
@@ -48,9 +44,9 @@ knitr::opts_chunk$set(tidy=FALSE, cache=TRUE,
 
 **If you use DESeq2 in published research, please cite:**
 
-> Love, M.I., Huber, W., Anders, S.,
-> Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2, 
-> *Genome Biology* 2014, **15**:550.
+> Love, M.I., Huber, W., Anders, S. (2014)
+> Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.
+> *Genome Biology*, **15**:550.
 > [10.1186/s13059-014-0550-8](http://dx.doi.org/10.1186/s13059-014-0550-8)
 
 Other Bioconductor packages with similar aims are
@@ -77,9 +73,10 @@ dds <- DESeqDataSetFromMatrix(countData = cts,
                               colData = coldata,
                               design= ~ batch + condition)
 dds <- DESeq(dds)
-rnms <- resultsNames(dds)
 res <- results(dds, contrast=c("condition","treat","ctrl"))
-res <- lfcShrink(dds, coef=length(rnms), res=res)
+# shrunken estimates of log fold change
+resultsNames(dds)
+res <- lfcShrink(dds, coef=2)
 ```
 
 The following starting functions will be explained below:
@@ -185,7 +182,7 @@ package. This workflow allows users to import transcript abundance estimates
 from a variety of external software, including the following methods:
 
 * [Salmon](http://combine-lab.github.io/salmon/)
-  [@Patro2107Salmon]
+  [@Patro2017Salmon]
 * [Sailfish](http://www.cs.cmu.edu/~ckingsf/software/sailfish/)
   [@Patro2014Sailfish]
 * [kallisto](https://pachterlab.github.io/kallisto/about.html)
@@ -550,7 +547,7 @@ fold changes.
 
 ```{r lfcShrink}
 resultsNames(dds)
-resLFC <- lfcShrink(dds, coef=2, res=res)
+resLFC <- lfcShrink(dds, coef=2)
 resLFC
 ```
 
@@ -648,7 +645,7 @@ either up or down.
 plotMA(res, ylim=c(-2,2))
 ```
 
-It is also useful to visualize the MA-plot for the shrunken log2 fold
+It is more useful visualize the MA-plot for the shrunken log2 fold
 changes, which remove the noise associated with log2 fold changes from
 low count genes without requiring arbitrary filtering thresholds.
 
@@ -665,6 +662,50 @@ the gene identifiers by saving the resulting indices:
 idx <- identify(res$baseMean, res$log2FoldChange)
 rownames(res)[idx]
 ``` 
+
+### Alternative shrinkage estimators
+
+The moderated log fold changes proposed by @Love2014 use a normal
+prior distribution, centered on zero and with a scale that is fit to
+the data. The shrunken log fold changes are useful for ranking and
+visualization, without the need for arbitrary filters on low count
+genes. The normal prior can sometimes produce too strong of
+shrinkage for certain datasets. In DESeq2 version 1.18, we include two
+additional adaptive shrinkage estimators, available via the `type`
+argument of `lfcShrink`.  For now, these new estimators only replace
+the log2 fold change and standard error columns in the results table,
+however, in the next release of DESeq2, we plan to pass along
+additional inference quantities such as false sign rates. The options
+for `type` are:
+
+* `normal` is the the original DESeq2 shrinkage estimator, an adaptive
+  normal prior
+* `apeglm` is the adaptive t prior shrinkage estimator from the 
+  [apeglm](http://bioconductor.org/packages/apeglm) package
+* `ashr` is the adaptive shrinkage estimator from the
+  [ashr](https://github.com/stephens999/ashr) package [@Stephens2016].
+  Here DESeq2 uses the ashr option to fit a mixture of normal distributions to
+  form the prior, with `method="shrinkage"`
+
+**Note:** if the shrunken estimates from `type="ashr"` are used in published
+research, please cite:
+
+> Stephens, M. (2016) 
+> False discovery rates: a new deal. *Biostatistics*, **18**:2.
+> [10.1093/biostatistics/kxw041](https://doi.org/10.1093/biostatistics/kxw041)
+
+```{r warning=FALSE}
+resApe <- lfcShrink(dds, coef=2, type="apeglm")
+resAsh <- lfcShrink(dds, coef=2, type="ashr")
+```
+
+```{r fig.width=8, fig.height=3}
+par(mfrow=c(1,3), mar=c(4,4,2,1))
+xlim <- c(1,1e5); ylim <- c(-3,3)
+plotMA(resLFC, xlim=xlim, ylim=ylim, main="normal")
+plotMA(resApe, xlim=xlim, ylim=ylim, main="apeglm")
+plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
+```
 
 ### Plot counts 
 
@@ -1079,7 +1120,7 @@ function based on the sample distances, or else the heatmap
 function would calculate a clustering based on the distances between
 the rows/columns of the distance matrix.
 
-```{r figHeatmapSamples}
+```{r figHeatmapSamples, fig.height=4, fig.width=6}
 library("RColorBrewer")
 sampleDistMatrix <- as.matrix(sampleDists)
 rownames(sampleDistMatrix) <- paste(rld$condition, rld$type, sep="-")
@@ -1211,7 +1252,7 @@ Here, the y-axis represents log2(n+1), and each
 group has 20 samples (black dots). A red line connects the mean of the
 groups within each genotype. 
 
-```{r interFig, echo=FALSE, results="hide"}
+```{r interFig, echo=FALSE, results="hide", fig.height=3}
 npg <- 20
 mu <- 2^c(8,10,9,11,10,12)
 cond <- rep(rep(c("A","B"),each=npg),3)
@@ -1243,7 +1284,7 @@ obtained by adding the main condition effect and the interaction
 term for that genotype.  Such a plot can be made using the
 *plotCounts* function as shown above.
 
-```{r interFig2, echo=FALSE, results="hide"}
+```{r interFig2, echo=FALSE, results="hide", fig.height=3}
 mu[4] <- 2^12
 mu[6] <- 2^8
 counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)

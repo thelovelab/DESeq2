@@ -201,7 +201,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
       stop("type='ashr' requires installing the CRAN package 'ashr'")
     }
     message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
+    Stephens, M. (2016) 
     https://doi.org/10.1093/biostatistics/kxw041")
     betahat <- res$log2FoldChange
     sebetahat <- res$lfcSE
