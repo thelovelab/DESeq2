@@ -10,9 +10,9 @@ lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"))
 \item{dds}{a DESeqDataSet object, which has been run through
 \code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}}
 
-\item{coef}{the number of the coefficient (LFC) to shrink,
+\item{coef}{the name or number of the coefficient (LFC) to shrink,
 consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
-only \code{coef} or \code{contrast} can be specified, not both.
+note: only \code{coef} or \code{contrast} can be specified, not both.
 \code{type="apeglm"} requires use of \code{coef}.
 \code{type="ashr"} requires neither \code{coef} nor \code{contrast}
 (will be ignored).}
@@ -21,10 +21,9 @@ only \code{coef} or \code{contrast} can be specified, not both.
 only \code{coef} or \code{contrast} can be specified, not both.
 \code{contrast} only for use with \code{type="normal"}}
 
-\item{res}{a DESeqResults object, which is required for \code{type="apeglm"}
-and \code{type="ashr"}. This should be an object produced by the
-default pipeline indicated in the example code below:
-\code{DESeq} followed by \code{results} for the same coefficient as \code{coef}}
+\item{res}{a DESeqResults object. Results table produced by the
+default pipeline, i.e. \code{DESeq} followed by \code{results}.
+If not provided, it will be generated internally using \code{coef} or \code{contrast}}
 
 \item{type}{\code{"normal"} is the the original DESeq2 shrinkage estimator;
 \code{"apeglm"} is a t prior shrinkage estimator from the 'apeglm' package;
@@ -36,8 +35,6 @@ a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}
 columns replaced with shrunken LFC and SE.
 \code{priorInfo(res)} contains information about the shrinkage procedure,
 relevant to the various methods specified by \code{type}.
-If \code{res} is missing (only possible with \code{type="normal"},
-just the shrunken LFC vector is returned.
 }
 \description{
 Adds shrunken log2 fold changes (LFC) and SE to a

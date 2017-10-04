@@ -4,7 +4,6 @@ test_that("LFC shrinkage works", {
   dds <- estimateSizeFactors(dds)
   expect_error(lfcShrink(dds, 2, 1))
   dds <- estimateDispersions(dds)
-  lfc <- lfcShrink(dds=dds, coef=2)
   dds <- DESeq(dds)
   res <- results(dds)
   res.shr <- lfcShrink(dds=dds, coef=2, res=res)
@@ -17,10 +16,13 @@ test_that("LFC shrinkage works", {
   # testing out various methods for LFC shrinkage
   set.seed(1)
   dds <- makeExampleDESeqDataSet(betaSD=1,n=1000,m=10)
+  # remove this line (here and examples) once new apeglm propogates
   dds <- dds[rowSums(counts(dds)) > 0,]
   dds <- DESeq(dds)
   res <- results(dds, name="condition_B_vs_A")
+  res.n <- lfcShrink(dds=dds, coef="condition_B_vs_A", res=res, type="normal")
   res.n <- lfcShrink(dds=dds, coef=2, res=res, type="normal")
+  res.n <- lfcShrink(dds=dds, coef=2, type="normal")
   res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
   res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 
@@ -32,5 +34,14 @@ test_that("LFC shrinkage works", {
   plot(mcols(dds)$trueBeta, res.n$log2FoldChange); abline(0,1,col="red")
   plot(mcols(dds)$trueBeta, res.ape$log2FoldChange); abline(0,1,col="red")
   plot(mcols(dds)$trueBeta, res.ash$log2FoldChange); abline(0,1,col="red")
+
+  resInt <- results(dds, name="Intercept")
+  expect_error(lfcShrink(dds=dds, coef=2, res=resInt, type="apeglm"))
+
+  # test supplied model.matrix
+  full <- model.matrix(~condition, colData(dds))
+  dds <- DESeq(dds, full=full)
+  res <- results(dds)
+  res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
   
 })  

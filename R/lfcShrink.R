@@ -30,19 +30,18 @@
 #' 
 #' @param dds a DESeqDataSet object, which has been run through
 #' \code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}
-#' @param coef the number of the coefficient (LFC) to shrink,
+#' @param coef the name or number of the coefficient (LFC) to shrink,
 #' consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
-#' only \code{coef} or \code{contrast} can be specified, not both.
+#' note: only \code{coef} or \code{contrast} can be specified, not both.
 #' \code{type="apeglm"} requires use of \code{coef}.
 #' \code{type="ashr"} requires neither \code{coef} nor \code{contrast}
 #' (will be ignored).
 #' @param contrast see argument description in \code{\link{results}}.
 #' only \code{coef} or \code{contrast} can be specified, not both.
 #' \code{contrast} only for use with \code{type="normal"}
-#' @param res a DESeqResults object, which is required for \code{type="apeglm"}
-#' and \code{type="ashr"}. This should be an object produced by the
-#' default pipeline indicated in the example code below:
-#' \code{DESeq} followed by \code{results} for the same coefficient as \code{coef}
+#' @param res a DESeqResults object. Results table produced by the
+#' default pipeline, i.e. \code{DESeq} followed by \code{results}.
+#' If not provided, it will be generated internally using \code{coef} or \code{contrast}
 #' @param type \code{"normal"} is the the original DESeq2 shrinkage estimator;
 #' \code{"apeglm"} is a t prior shrinkage estimator from the 'apeglm' package;
 #' \code{"ashr"} provides the empirical Bayes shrinkage estimator from the 'ashr' package 
@@ -62,8 +61,6 @@
 #' columns replaced with shrunken LFC and SE.
 #' \code{priorInfo(res)} contains information about the shrinkage procedure,
 #' relevant to the various methods specified by \code{type}.
-#' If \code{res} is missing (only possible with \code{type="normal"},
-#' just the shrunken LFC vector is returned.
 #'
 #' @export
 #' 
@@ -84,18 +81,32 @@
 #'  res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 #' 
 lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")) {  
+
   # TODO: lfcThreshold for types: normal and apeglm
-  # TODO: add check that betaPrior=FALSE was used
-  # TODO: require results coming in, simplify output for type: normal
-  #       and so skip MLE estimation
-  # TODO: add logic for apeglm, to use model matrix if it was provided to 'full'
-  # TODO: coef can be character as well
-  # TODO: check that coef is the same as used to make results
   # TODO: option to add FSR, s-values, posterior areas for ashr and apeglm
+  
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))
-  if (type %in% c("apeglm","ashr")) {
-    if (missing(res)) {
-      stop("type='apeglm' and 'ashr' require specifying a results table 'res'")
+  if (attr(dds,"betaPrior")) {
+    stop("lfcShrink should be used downstream of DESeq() with betaPrior=FALSE (the default)")
+  }
+  if (!missing(coef)) {
+    if (is.numeric(coef)) {
+      stopifnot(coef <= length(resultsNames(dds)))
+      coefAlpha <- resultsNames(dds)[coef]
+      coefNum <- coef
+    } else if (is.character(coef)) {
+      stopifnot(coef %in% resultsNames(dds))
+      coefNum <- which(resultsNames(dds) == coef)
+      coefAlpha <- coef
+    }
+  }
+  if (missing(res)) {
+    if (!missing(coef)) {
+      res <- results(dds, name=coefAlpha)
+    } else if (!missing(contrast)) {
+      res <- results(dds, contrast=contrast)
+    } else {
+      stop("one of coef or contrast required is 'res' is missing")
     }
   }
   if (type %in% c("normal","apeglm")) {
@@ -103,7 +114,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
       stop("type='normal' and 'apeglm' require dispersion estimates, first call estimateDispersions()")
     }
   }
-
+  
   if (type == "normal") {
 
     termsOrder <- attr(terms.formula(design(dds)),"order")
@@ -127,8 +138,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
                               modelMatrixType=modelMatrixType,
                               quiet=TRUE)
     if (missing(contrast)) {
-      rn <- resultsNames(dds.shr)
-      res.shr <- results(dds.shr, name=rn[coef])
+      res.shr <- results(dds.shr, name=coefAlpha)
     } else {
       res.shr <- results(dds.shr, contrast=contrast)
     }
@@ -154,12 +164,19 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
       stop("type='apeglm' shrinkage only for use with 'coef'")
     }
     stopifnot(!missing(coef))
+    incomingCoef <- gsub(" ","_",sub("log2 fold change \\(MLE\\): ","",mcols(res)[2,2]))
+    if (coefAlpha != incomingCoef) stop("'coef' should specify same coefficient as in results 'res'")
+    
     m <- nrow(dds)
     n <- ncol(dds)
     Y <- counts(dds)
-    # TODO take care of genes with all 0's by propagating NA's
-    stopifnot(all(rowSums(counts(dds)) > 0))
-    design <- model.matrix(design(dds), data=colData(dds))
+    mmt <- attr(dds, "modelMatrixType")
+    if (mmt == "user-supplied") {
+      message("using supplied model matrix")
+      design <- attr(dds, "modelMatrix")
+    } else {
+      design <- model.matrix(design(dds), data=colData(dds))
+    }
     disps <- dispersions(dds)
     if (is.null(normalizationFactors(dds))) {
       offset <- matrix(log(sizeFactors(dds)),
@@ -168,10 +185,10 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
       offset <- log(normalizationFactors(dds))
     }
     mle <- log(2) * cbind(res$log2FoldChange, res$lfcSE)
-    fit <- apeglm::apeglm(Y=Y, x=design, log.lik=apeglm::logLikNB, param=disps, coef=coef,
+    fit <- apeglm::apeglm(Y=Y, x=design, log.lik=apeglm::logLikNB, param=disps, coef=coefNum,
                   mle=mle, offset=offset)
-    res$log2FoldChange <- log2(exp(1)) * fit$map[,coef]
-    res$lfcSE <- log2(exp(1)) * fit$se[,coef]
+    res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
+    res$lfcSE <- log2(exp(1)) * fit$se[,coefNum]
     mcols(res)$description[2] <- sub("MLE","MAP",mcols(res)$description[2])
     res <- res[,c(1:3,5:6)]
     apeglm.version <- packageVersion("apeglm")
@@ -184,14 +201,8 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
       stop("type='ashr' requires installing the CRAN package 'ashr'")
     }
     message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
-
     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    https://doi.org/10.1093/biostatistics/kxw041
-")
-    if (!missing(coef) | !missing(coef)) {
-      message("type='ashr' uses only the log2FoldChange and lfcSE columns of 'res',
-   and ignores 'coef' and 'contrast'")
-    }
+    https://doi.org/10.1093/biostatistics/kxw041")
     betahat <- res$log2FoldChange
     sebetahat <- res$lfcSE
     fit <- ashr::ash(betahat, sebetahat, mixcompdist="normal", method="shrink")
