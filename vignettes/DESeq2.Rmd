@@ -1675,8 +1675,8 @@ for log2 fold change shrinkage.
 
 ```{r priorInfo}
 priorInfo(resLFC)
-str(priorInfo(resApe))
-str(priorInfo(resAsh))
+priorInfo(resApe)
+priorInfo(resAsh)
 ```
 
 The dispersion prior variance $\sigma_d^2$ is stored as an
