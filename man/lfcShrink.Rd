@@ -4,7 +4,8 @@
 \alias{lfcShrink}
 \title{Shrink log2 fold changes}
 \usage{
-lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"))
+lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
+  svalue = FALSE, returnList = FALSE)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, which has been run through
@@ -30,6 +31,14 @@ If not provided, it will be generated internally using \code{coef} or \code{cont
 \code{"ashr"} is the adaptive shrinkage estimator from the 'ashr' package,
 using a fitted mixture of normals prior
 - see the Stephens (2016) reference below for citation}
+
+\item{svalue}{logical, should p-values and adjusted p-values be replaced
+with s-values when using \code{type="apeglm"} or \code{type="ashr"}.
+See Stephens (2016) reference on s-values.}
+
+\item{returnList}{logical, should \code{lfcShrink} return a list, where
+the first element is the results table, and the second element is the
+output of \code{apeglm} or \code{ashr}}
 }
 \value{
 a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}
@@ -58,10 +67,7 @@ See vignette for a comparison of shrinkage estimators on an example dataset.
 For all shrinkage methods, details on the prior is included in
 \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
 The integration of shrinkage methods from
-external packages will likely evolve over time. In particular,
-we will likely provide arguments to specify whether to exchange p-values and
-adjusted p-values from DESeq2 with bounds on false sign rate from ashr and apeglm
-(see Stephens (2016)). In addition, we will likely incorporate an
+external packages will likely evolve over time. We will likely incorporate an
 \code{lfcThreshold} argument which can be passed to apeglm
 to specify regions of the posterior at an arbitrary threshold.
 
@@ -75,11 +81,12 @@ in a model with interaction terms.
  dds <- dds[rowSums(counts(dds)) > 0,]
  dds <- DESeq(dds)
  res <- results(dds)
- res.shr <- lfcShrink(dds=dds, coef=2, res=res)
- res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"), res=res)
+
+ res.shr <- lfcShrink(dds=dds, coef=2)
+ res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"))
 
  library(apeglm)
- res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
+ res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
 
  library(ashr)
  res.ash <- lfcShrink(dds=dds, res=res, type="ashr")

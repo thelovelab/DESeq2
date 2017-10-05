@@ -682,11 +682,7 @@ visualization, without the need for arbitrary filters on low count
 genes. The normal prior can sometimes produce too strong of
 shrinkage for certain datasets. In DESeq2 version 1.18, we include two
 additional adaptive shrinkage estimators, available via the `type`
-argument of `lfcShrink`.  For now, these new estimators only replace
-the log2 fold change and standard error columns in the results table,
-however, in the next release of DESeq2, we plan to pass along
-additional inference quantities such as false sign rates. The options
-for `type` are:
+argument of `lfcShrink`. The options for `type` are:
 
 * `normal` is the the original DESeq2 shrinkage estimator, an adaptive
   normal prior

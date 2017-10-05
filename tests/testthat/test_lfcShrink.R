@@ -23,7 +23,7 @@ test_that("LFC shrinkage works", {
   res.n <- lfcShrink(dds=dds, coef="condition_B_vs_A", res=res, type="normal")
   res.n <- lfcShrink(dds=dds, coef=2, res=res, type="normal")
   res.n <- lfcShrink(dds=dds, coef=2, type="normal")
-  res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
+  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
   res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 
   str(priorInfo(res.n))
@@ -34,7 +34,22 @@ test_that("LFC shrinkage works", {
   plot(mcols(dds)$trueBeta, res.n$log2FoldChange); abline(0,1,col="red")
   plot(mcols(dds)$trueBeta, res.ape$log2FoldChange); abline(0,1,col="red")
   plot(mcols(dds)$trueBeta, res.ash$log2FoldChange); abline(0,1,col="red")
+  
+  # s-value returned
+  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", svalue=TRUE)
+  expect_true("svalue" %in% names(res.ape))
+  res.ash <- lfcShrink(dds=dds, res=res, type="ashr", svalue=TRUE)
+  expect_true("svalue" %in% names(res.ash))
 
+  # TODO add tests of new plotMA() with svalue
+  
+  # list returned
+  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", returnList=TRUE)
+  names(res.ape)
+  res.ash <- lfcShrink(dds=dds, res=res, type="ashr", returnList=TRUE)
+  names(res.ash)
+
+  # test wrong coef specified
   resInt <- results(dds, name="Intercept")
   expect_error(lfcShrink(dds=dds, coef=2, res=resInt, type="apeglm"))
 

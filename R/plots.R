@@ -97,24 +97,27 @@ plotMA.DESeqResults <- function(object, alpha, main="", xlab="mean of normalized
       metadata(object)$alpha
     }
   }
+
+  # TODO: MA plot should use s-value if present in 'object'
+  
   df <- if (MLE) {
-    # test if MLE is there
-    if (is.null(object$lfcMLE)) {
-      stop("lfcMLE column is not present: you should first run results() with addMLE=TRUE")
-    }
-    data.frame(mean = object$baseMean,
-               lfc = object$lfcMLE,
-               isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
+          # test if MLE is there
+          if (is.null(object$lfcMLE)) {
+            stop("lfcMLE column is not present: you should first run results() with addMLE=TRUE")
+          }
+          data.frame(mean = object$baseMean,
+                     lfc = object$lfcMLE,
+                     isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
+        } else {
+          data.frame(mean = object$baseMean,
+                     lfc = object$log2FoldChange,
+                     isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
+        }
+  if (missing(ylim)) {
+    plotMA(df, main=main, xlab=xlab, ...)
   } else {
-    data.frame(mean = object$baseMean,
-               lfc = object$log2FoldChange,
-               isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
-  }
-    if (missing(ylim)) {
-      plotMA(df, main=main, xlab=xlab, ...)
-    } else {
-       plotMA(df, main=main, xlab=xlab, ylim=ylim, ...)
-    }  
+    plotMA(df, main=main, xlab=xlab, ylim=ylim, ...)
+  }  
 }
 
 #' MA-plot from base means and log fold changes

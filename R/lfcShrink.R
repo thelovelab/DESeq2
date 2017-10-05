@@ -19,10 +19,7 @@
 #' For all shrinkage methods, details on the prior is included in
 #' \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
 #' The integration of shrinkage methods from
-#' external packages will likely evolve over time. In particular,
-#' we will likely provide arguments to specify whether to exchange p-values and
-#' adjusted p-values from DESeq2 with bounds on false sign rate from ashr and apeglm
-#' (see Stephens (2016)). In addition, we will likely incorporate an
+#' external packages will likely evolve over time. We will likely incorporate an
 #' \code{lfcThreshold} argument which can be passed to apeglm
 #' to specify regions of the posterior at an arbitrary threshold.
 #'
@@ -48,6 +45,12 @@
 #' \code{"ashr"} is the adaptive shrinkage estimator from the 'ashr' package,
 #' using a fitted mixture of normals prior
 #' - see the Stephens (2016) reference below for citation
+#' @param svalue logical, should p-values and adjusted p-values be replaced
+#' with s-values when using \code{type="apeglm"} or \code{type="ashr"}.
+#' See Stephens (2016) reference on s-values.
+#' @param returnList logical, should \code{lfcShrink} return a list, where
+#' the first element is the results table, and the second element is the
+#' output of \code{apeglm} or \code{ashr}
 #'
 #' @references
 #'
@@ -73,19 +76,20 @@
 #'  dds <- dds[rowSums(counts(dds)) > 0,]
 #'  dds <- DESeq(dds)
 #'  res <- results(dds)
-#'  res.shr <- lfcShrink(dds=dds, coef=2, res=res)
-#'  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"), res=res)
+#' 
+#'  res.shr <- lfcShrink(dds=dds, coef=2)
+#'  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"))
 #'
 #'  library(apeglm)
-#'  res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
+#'  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
 #'
 #'  library(ashr)
 #'  res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 #' 
-lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")) {  
+lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr"),
+                      svalue=FALSE, returnList=FALSE) {  
 
   # TODO: lfcThreshold for types: normal and apeglm
-  # TODO: option to add FSR, s-values, posterior areas for ashr and apeglm
   
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))
   if (attr(dds,"betaPrior")) {
@@ -198,13 +202,25 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
     res$lfcSE <- log2(exp(1)) * fit$se[,coefNum]
     mcols(res)$description[2] <- sub("MLE","MAP",mcols(res)$description[2])
-    res <- res[,c(1:3,5:6)]
+    if (svalue) {
+      coefAlphaSpaces <- gsub("_"," ",coefAlpha)
+      res <- res[,1:3]
+      res$svalue <- fit$svalue
+      mcols(res)[4,] <- DataFrame(type="results",
+                                  description=paste("s-value:",coefAlphaSpaces))
+    } else{
+      res <- res[,c(1:3,5:6)]
+    }
     priorInfo(res) <- list(type="apeglm",
                            package="apeglm",
                            version=packageVersion("apeglm"),
                            prior.control=fit$prior.control)
-    return(res)
-    
+    if (returnList) {
+      return(list(res=res, fit=fit))
+    } else{
+      return(res)
+    }
+
   } else if (type == "ashr") {
 
     ##########
@@ -223,12 +239,24 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     res$log2FoldChange <- fit$result$PosteriorMean
     res$lfcSE <- fit$result$PosteriorSD
     mcols(res)$description[2] <- sub("MLE","PostMean",mcols(res)$description[2])
-    res <- res[,c(1:3,5:6)]
+    if (svalue) {
+      coefAlphaSpaces <- sub(".*p-value: ","",mcols(res)$description[5])
+      res <- res[,1:3]
+      res$svalue <- fit$result$svalue
+      mcols(res)[4,] <- DataFrame(type="results",
+                                  description=paste("s-value:",coefAlphaSpaces))
+    } else {
+      res <- res[,c(1:3,5:6)]
+    }
     priorInfo(res) <- list(type="ashr",
                            package="ashr",
                            version=packageVersion("ashr"),
                            fitted_g=fit$fitted_g)
-    return(res)
-    
+    if (returnList) {
+      return(list(res=res, fit=fit))
+    } else{
+      return(res)
+    }
+
   }
 }
