@@ -605,12 +605,22 @@ sum(res05$padj < 0.05, na.rm=TRUE)
 
 <a name="IHW"/>
 
-A generalization of the idea of *p* value filtering is to *weight* hypotheses
-to optimize power. A Bioconductor package, [IHW](http://bioconductor.org/packages/IHW), is available
-that implements the method of *Independent Hypothesis Weighting* [@Ignatiadis2016].
-Here we show the use of *IHW* for *p* value adjustment of DESeq2 results.
-For more details, please see the vignette of the [IHW](http://bioconductor.org/packages/IHW) package.
-Note that the *IHW* result object is stored in the metadata.
+A generalization of the idea of *p* value filtering is to *weight*
+hypotheses to optimize power. A Bioconductor
+package, [IHW](http://bioconductor.org/packages/IHW), is available
+that implements the method of *Independent Hypothesis Weighting*
+[@Ignatiadis2016].  Here we show the use of *IHW* for *p* value
+adjustment of DESeq2 results.  For more details, please see the
+vignette of the [IHW](http://bioconductor.org/packages/IHW)
+package. The *IHW* result object is stored in the metadata.
+
+**Note:** If the results of independent hypothesis weighting are used
+in published research, please cite:
+
+> Ignatiadis, N., Klaus, B., Zaugg, J.B., Huber, W. (2016)
+> Data-driven hypothesis weighting increases detection power in genome-scale multiple testing.
+> *Nature Methods*, **13**:7.
+> [10.1038/nmeth.3885](http://dx.doi.org/10.1038/nmeth.3885)
 
 ```{r IHW}
 library("IHW")
@@ -687,7 +697,7 @@ for `type` are:
   Here DESeq2 uses the ashr option to fit a mixture of normal distributions to
   form the prior, with `method="shrinkage"`
 
-**Note:** if the shrunken estimates from `type="ashr"` are used in published
+**Note:** if the shrinkage estimator `type="ashr"` is used in published
 research, please cite:
 
 > Stephens, M. (2016) 

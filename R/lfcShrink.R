@@ -15,6 +15,7 @@
 #' in the ashr package, 
 #' with arguments \code{mixcompdist="normal"} and \code{method="shrink"}
 #' (\code{coef} and \code{contrast} ignored).
+#' See vignette for a comparison of shrinkage estimators on an example dataset.
 #' For all shrinkage methods, details on the prior is included in
 #' \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
 #' The integration of shrinkage methods from
@@ -42,9 +43,10 @@
 #' @param res a DESeqResults object. Results table produced by the
 #' default pipeline, i.e. \code{DESeq} followed by \code{results}.
 #' If not provided, it will be generated internally using \code{coef} or \code{contrast}
-#' @param type \code{"normal"} is the the original DESeq2 shrinkage estimator;
-#' \code{"apeglm"} is a t prior shrinkage estimator from the 'apeglm' package;
-#' \code{"ashr"} provides the empirical Bayes shrinkage estimator from the 'ashr' package 
+#' @param type \code{"normal"} is the original DESeq2 shrinkage estimator;
+#' \code{"apeglm"} is the adaptive t prior shrinkage estimator from the 'apeglm' package;
+#' \code{"ashr"} is the adaptive shrinkage estimator from the 'ashr' package,
+#' using a fitted mixture of normals prior
 #' - see the Stephens (2016) reference below for citation
 #'
 #' @references
@@ -106,7 +108,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     } else if (!missing(contrast)) {
       res <- results(dds, contrast=contrast)
     } else {
-      stop("one of coef or contrast required is 'res' is missing")
+      stop("one of coef or contrast required if 'res' is missing")
     }
   }
   if (type %in% c("normal","apeglm")) {
@@ -117,6 +119,10 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
   
   if (type == "normal") {
 
+    ############
+    ## normal ##
+    ############
+    
     termsOrder <- attr(terms.formula(design(dds)),"order")
     interactionPresent <- any(termsOrder > 1)
     if (interactionPresent) {
@@ -142,20 +148,22 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     } else {
       res.shr <- results(dds.shr, contrast=contrast)
     }
-    # if a DESeqResults object was provided
-    if (!missing(res)) {
-      res$log2FoldChange <- res.shr$log2FoldChange
-      res$lfcSE <- res.shr$lfcSE
-      mcols(res)$description[2:3] <- mcols(res.shr)$description[2:3]
-      deseq2.version <- packageVersion("DESeq2")
-      priorInfo(res) <- list(type="normal", package="DESeq2", version=deseq2.version,
-                             betaPriorVar=betaPriorVar)
-      return(res)
-    } else {
-      return(res.shr$log2FoldChange)
-    }
+    res$log2FoldChange <- res.shr$log2FoldChange
+    res$lfcSE <- res.shr$lfcSE
+    mcols(res)$description[2:3] <- mcols(res.shr)$description[2:3]
+    deseq2.version <- packageVersion("DESeq2")
+    priorInfo(res) <- list(type="normal",
+                           package="DESeq2",
+                           version=deseq2.version,
+                           betaPriorVar=betaPriorVar)
+    return(res)
+    
   } else if (type == "apeglm") {
 
+    ############
+    ## apeglm ##
+    ############
+    
     if (!requireNamespace("apeglm", quietly=TRUE)) {
       stop("type='apeglm' requires installing the Bioconductor package 'apeglm'")
     }
@@ -165,13 +173,11 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     }
     stopifnot(!missing(coef))
     incomingCoef <- gsub(" ","_",sub("log2 fold change \\(MLE\\): ","",mcols(res)[2,2]))
-    if (coefAlpha != incomingCoef) stop("'coef' should specify same coefficient as in results 'res'")
-    
-    m <- nrow(dds)
-    n <- ncol(dds)
+    if (coefAlpha != incomingCoef) {
+      stop("'coef' should specify same coefficient as in results 'res'")
+    }
     Y <- counts(dds)
-    mmt <- attr(dds, "modelMatrixType")
-    if (mmt == "user-supplied") {
+    if (attr(dds, "modelMatrixType") == "user-supplied") {
       message("using supplied model matrix")
       design <- attr(dds, "modelMatrix")
     } else {
@@ -180,23 +186,31 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     disps <- dispersions(dds)
     if (is.null(normalizationFactors(dds))) {
       offset <- matrix(log(sizeFactors(dds)),
-                       nrow=m, ncol=n, byrow=TRUE)
+                       nrow=nrow(dds), ncol=ncol(dds), byrow=TRUE)
     } else {
       offset <- log(normalizationFactors(dds))
     }
     mle <- log(2) * cbind(res$log2FoldChange, res$lfcSE)
-    fit <- apeglm::apeglm(Y=Y, x=design, log.lik=apeglm::logLikNB, param=disps, coef=coefNum,
-                  mle=mle, offset=offset)
+    fit <- apeglm::apeglm(Y=Y, x=design,
+                          log.lik=apeglm::logLikNB,
+                          param=disps, coef=coefNum,
+                          mle=mle, offset=offset)
     res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
     res$lfcSE <- log2(exp(1)) * fit$se[,coefNum]
     mcols(res)$description[2] <- sub("MLE","MAP",mcols(res)$description[2])
     res <- res[,c(1:3,5:6)]
-    apeglm.version <- packageVersion("apeglm")
-    priorInfo(res) <- list(type="apeglm", package="apeglm", version=apeglm.version,
+    priorInfo(res) <- list(type="apeglm",
+                           package="apeglm",
+                           version=packageVersion("apeglm"),
                            prior.control=fit$prior.control)
-    return(res)    
+    return(res)
+    
   } else if (type == "ashr") {
 
+    ##########
+    ## ashr ##
+    ##########
+    
     if (!requireNamespace("ashr", quietly=TRUE)) {
       stop("type='ashr' requires installing the CRAN package 'ashr'")
     }
@@ -210,9 +224,11 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     res$lfcSE <- fit$result$PosteriorSD
     mcols(res)$description[2] <- sub("MLE","PostMean",mcols(res)$description[2])
     res <- res[,c(1:3,5:6)]
-    ashr.version <- packageVersion("ashr")
-    priorInfo(res) <- list(type="ashr", package="ashr", version=ashr.version,
+    priorInfo(res) <- list(type="ashr",
+                           package="ashr",
+                           version=packageVersion("ashr"),
                            fitted_g=fit$fitted_g)
     return(res)
+    
   }
 }

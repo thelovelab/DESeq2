@@ -25,9 +25,10 @@ only \code{coef} or \code{contrast} can be specified, not both.
 default pipeline, i.e. \code{DESeq} followed by \code{results}.
 If not provided, it will be generated internally using \code{coef} or \code{contrast}}
 
-\item{type}{\code{"normal"} is the the original DESeq2 shrinkage estimator;
-\code{"apeglm"} is a t prior shrinkage estimator from the 'apeglm' package;
-\code{"ashr"} provides the empirical Bayes shrinkage estimator from the 'ashr' package 
+\item{type}{\code{"normal"} is the original DESeq2 shrinkage estimator;
+\code{"apeglm"} is the adaptive t prior shrinkage estimator from the 'apeglm' package;
+\code{"ashr"} is the adaptive shrinkage estimator from the 'ashr' package,
+using a fitted mixture of normals prior
 - see the Stephens (2016) reference below for citation}
 }
 \value{
@@ -53,6 +54,7 @@ fold changes and standard errors to the \code{ash} function
 in the ashr package, 
 with arguments \code{mixcompdist="normal"} and \code{method="shrink"}
 (\code{coef} and \code{contrast} ignored).
+See vignette for a comparison of shrinkage estimators on an example dataset.
 For all shrinkage methods, details on the prior is included in
 \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
 The integration of shrinkage methods from
