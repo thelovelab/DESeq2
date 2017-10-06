@@ -210,6 +210,15 @@ Note that the tximport-to-DESeq2 approach uses *estimated* gene
 counts from the transcript abundance quantifiers, but not *normalized*
 counts.
 
+A tutorial on how to use the *Salmon* software for quantifying
+transcript abundance can be
+found [here](https://combine-lab.github.io/salmon/getting_started/).
+We recommend using the `--gcBias` 
+[flag](http://salmon.readthedocs.io/en/latest/salmon.html#gcbias)
+which estimates a correction factor for systematic biases
+commonly present in RNA-seq data [@Love2016Modeling; @Patro2017Salmon], 
+unless you are certain that your data do not contain such bias.
+
 Here, we demonstrate how to import transcript abundances
 and construct of a gene-level *DESeqDataSet* object
 from *Salmon* `quant.sf` files, which are
@@ -222,7 +231,6 @@ a user would typically just provide a path, e.g. `/path/to/quant/files`.
 For a typical use, the `condition` information should already be
 present as a column of the sample table `samples`, while here we
 construct artificial condition labels for demonstration.
-
 
 ```{r txiSetup}
 library("tximport")
@@ -682,7 +690,9 @@ visualization, without the need for arbitrary filters on low count
 genes. The normal prior can sometimes produce too strong of
 shrinkage for certain datasets. In DESeq2 version 1.18, we include two
 additional adaptive shrinkage estimators, available via the `type`
-argument of `lfcShrink`. The options for `type` are:
+argument of `lfcShrink`. For more details, see `?lfcShrink`
+
+The options for `type` are:
 
 * `normal` is the the original DESeq2 shrinkage estimator, an adaptive
   normal prior
@@ -702,7 +712,7 @@ research, please cite:
 
 ```{r warning=FALSE}
 resApe <- lfcShrink(dds, coef=2, type="apeglm")
-resAsh <- lfcShrink(dds, coef=2, type="ashr")
+resAsh <- lfcShrink(dds, res=res, type="ashr")
 ```
 
 ```{r fig.width=8, fig.height=3}
@@ -712,6 +722,17 @@ plotMA(resLFC, xlim=xlim, ylim=ylim, main="normal")
 plotMA(resApe, xlim=xlim, ylim=ylim, main="apeglm")
 plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
 ```
+
+If there is unwanted variation present in the data (e.g. batch
+effects) it is always recommend to correct for this, which can be
+accommodated in DESeq2 by including in the design any known batch
+variables or by using functions/packages such as 
+`svaseq` in [sva](http://bioconductor.org/packages/sva) [@Leek2014] or 
+the `RUV` functions in [RUVSeq](http://bioconductor.org/packages/RUVSeq) [@Risso2014]
+to estimate variables that capture the unwanted variation.
+In addition, the ashr developers have a 
+[specific method](https://github.com/dcgerard/vicar) 
+for accounting for unwanted variation in combination with ashr [@Gerard2017].
 
 ### Plot counts 
 
