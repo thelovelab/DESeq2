@@ -712,7 +712,7 @@ research, please cite:
 
 ```{r warning=FALSE}
 resApe <- lfcShrink(dds, coef=2, type="apeglm")
-resAsh <- lfcShrink(dds, res=res, type="ashr")
+resAsh <- lfcShrink(dds, coef=2, type="ashr")
 ```
 
 ```{r fig.width=8, fig.height=3}

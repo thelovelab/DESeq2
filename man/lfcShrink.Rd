@@ -14,13 +14,10 @@ lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
 \item{coef}{the name or number of the coefficient (LFC) to shrink,
 consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
 note: only \code{coef} or \code{contrast} can be specified, not both.
-\code{type="apeglm"} requires use of \code{coef}.
-\code{type="ashr"} requires neither \code{coef} nor \code{contrast}
-(will be ignored).}
+\code{type="apeglm"} requires use of \code{coef}.}
 
 \item{contrast}{see argument description in \code{\link{results}}.
-only \code{coef} or \code{contrast} can be specified, not both.
-\code{contrast} only for use with \code{type="normal"}}
+only \code{coef} or \code{contrast} can be specified, not both.}
 
 \item{res}{a DESeqResults object. Results table produced by the
 default pipeline, i.e. \code{DESeq} followed by \code{results}.
@@ -89,7 +86,7 @@ in a model with interaction terms.
  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
 
  library(ashr)
- res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
+ res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
 
 }
 \references{

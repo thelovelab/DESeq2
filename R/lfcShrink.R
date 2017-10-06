@@ -32,11 +32,8 @@
 #' consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
 #' note: only \code{coef} or \code{contrast} can be specified, not both.
 #' \code{type="apeglm"} requires use of \code{coef}.
-#' \code{type="ashr"} requires neither \code{coef} nor \code{contrast}
-#' (will be ignored).
 #' @param contrast see argument description in \code{\link{results}}.
 #' only \code{coef} or \code{contrast} can be specified, not both.
-#' \code{contrast} only for use with \code{type="normal"}
 #' @param res a DESeqResults object. Results table produced by the
 #' default pipeline, i.e. \code{DESeq} followed by \code{results}.
 #' If not provided, it will be generated internally using \code{coef} or \code{contrast}
@@ -84,7 +81,7 @@
 #'  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
 #'
 #'  library(ashr)
-#'  res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
+#'  res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
 #' 
 lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr"),
                       svalue=FALSE, returnList=FALSE) {  
