@@ -205,7 +205,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     if (svalue) {
       coefAlphaSpaces <- gsub("_"," ",coefAlpha)
       res <- res[,1:3]
-      res$svalue <- fit$svalue
+      res$svalue <- as.numeric(fit$svalue)
       mcols(res)[4,] <- DataFrame(type="results",
                                   description=paste("s-value:",coefAlphaSpaces))
     } else{
