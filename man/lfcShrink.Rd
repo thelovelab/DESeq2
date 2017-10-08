@@ -74,18 +74,14 @@ in a model with interaction terms.
 \examples{
 
  set.seed(1)
- dds <- makeExampleDESeqDataSet(betaSD=1)
+ dds <- makeExampleDESeqDataSet(n=500,betaSD=1)
  dds <- dds[rowSums(counts(dds)) > 0,]
  dds <- DESeq(dds)
  res <- results(dds)
 
  res.shr <- lfcShrink(dds=dds, coef=2)
  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"))
-
- library(apeglm)
  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
-
- library(ashr)
  res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
 
 }

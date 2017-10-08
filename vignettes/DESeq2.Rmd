@@ -1287,7 +1287,7 @@ geno <- rep(c("I","II","III"),each=2*npg)
 table(cond, geno)
 counts <- rnbinom(6*npg, mu=rep(mu,each=npg), size=1/.01)
 d <- data.frame(log2c=log2(counts+1), cond, geno)
-library(ggplot2)
+library("ggplot2")
 plotit <- function(d, title) {
   ggplot(d, aes(x=cond, y=log2c, group=geno)) + 
     geom_jitter(size=1.5, position = position_jitter(width=.15)) +
