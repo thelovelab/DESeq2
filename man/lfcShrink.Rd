@@ -5,7 +5,8 @@
 \title{Shrink log2 fold changes}
 \usage{
 lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
-  svalue = FALSE, returnList = FALSE)
+  svalue = FALSE, returnList = FALSE, parallel = FALSE,
+  BPPARAM = bpparam())
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}
@@ -35,6 +36,12 @@ See Stephens (2016) reference on s-values.}
 \item{returnList}{logical, should \code{lfcShrink} return a list, where
 the first element is the results table, and the second element is the
 output of \code{apeglm} or \code{ashr}}
+
+\item{parallel}{if FALSE, no parallelization. if TRUE, parallel
+execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
+parallelization only used with \code{type="normal"} or \code{type="apeglm"}}
+
+\item{BPPARAM}{see same argument of \code{\link{DESeq}}}
 }
 \value{
 a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}

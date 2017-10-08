@@ -64,4 +64,16 @@ test_that("parallel execution works as expected", {
   
   dds <- makeExampleDESeqDataSet(n=100,m=8)
   dds <- DESeq(dds, parallel=TRUE, test="LRT", reduced=~1)
+
+  # lfcShrink parallel test
+  dds <- makeExampleDESeqDataSet(n=100)
+  dds <- DESeq(dds)
+  res <- results(dds)
+  res <- lfcShrink(dds, coef=2)
+  res2 <- lfcShrink(dds, coef=2, parallel=TRUE)
+  expect_equal(res$log2FoldChange, res2$log2FoldChange)
+  res <- lfcShrink(dds, coef=2, type="apeglm")
+  res2 <- lfcShrink(dds, coef=2, type="apeglm", parallel=TRUE)
+  expect_equal(res$log2FoldChange, res2$log2FoldChange)
+  
 })

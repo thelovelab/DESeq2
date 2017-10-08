@@ -47,6 +47,10 @@
 #' @param returnList logical, should \code{lfcShrink} return a list, where
 #' the first element is the results table, and the second element is the
 #' output of \code{apeglm} or \code{ashr}
+#' @param parallel if FALSE, no parallelization. if TRUE, parallel
+#' execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
+#' parallelization only used with \code{type="normal"} or \code{type="apeglm"}
+#' @param BPPARAM see same argument of \code{\link{DESeq}}
 #'
 #' @references
 #'
@@ -78,11 +82,12 @@
 #'  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
 #'  res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
 #' 
-lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr"),
-                      svalue=FALSE, returnList=FALSE) {  
+lfcShrink <- function(dds, coef, contrast, res,
+                      type=c("normal","apeglm","ashr"),
+                      svalue=FALSE, returnList=FALSE,
+                      parallel=FALSE, BPPARAM=bpparam()) {  
 
   # TODO: lfcThreshold for types: normal and apeglm
-  # TODO: parallel for normal and apeglm
   
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))
   if (attr(dds,"betaPrior")) {
@@ -112,6 +117,10 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     if (is.null(dispersions(dds))) {
       stop("type='normal' and 'apeglm' require dispersion estimates, first call estimateDispersions()")
     }
+    if (parallel) {
+      nworkers <- BPPARAM$workers
+      parallelIdx <- factor(sort(rep(seq_len(nworkers),length=nrow(dds))))
+    }
   }
   
   if (type == "normal") {
@@ -140,15 +149,27 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     attr(dds,"modelMatrixType") <- modelMatrixType
     betaPriorVar <- estimateBetaPriorVar(dds)
     stopifnot(length(betaPriorVar) > 0)
-    dds.shr <- nbinomWaldTest(dds,
-                              betaPrior=TRUE,
-                              betaPriorVar=betaPriorVar,
-                              modelMatrixType=modelMatrixType,
-                              quiet=TRUE)
+    # parallel fork
+    if (!parallel) {
+      dds.shr <- nbinomWaldTest(dds,
+                                betaPrior=TRUE,
+                                betaPriorVar=betaPriorVar,
+                                modelMatrixType=modelMatrixType,
+                                quiet=TRUE)
+    } else {
+      dds.shr <- do.call(rbind, bplapply(levels(parallelIdx), function(l) {
+        nbinomWaldTest(dds[parallelIdx == l,,drop=FALSE],
+                       betaPrior=TRUE,
+                       betaPriorVar=betaPriorVar,
+                       modelMatrixType=modelMatrixType,
+                       quiet=TRUE)
+      }, BPPARAM=BPPARAM))
+    }
     if (missing(contrast)) {
+      # parallel not necessary here
       res.shr <- results(dds.shr, name=coefAlpha)
     } else {
-      res.shr <- results(dds.shr, contrast=contrast)
+      res.shr <- results(dds.shr, contrast=contrast, parallel=parallel, BPPARAM=BPPARAM)
     }
     res$log2FoldChange <- res.shr$log2FoldChange
     res$lfcSE <- res.shr$lfcSE
@@ -192,11 +213,40 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     } else {
       offset <- log(normalizationFactors(dds))
     }
+    if ("weights" %in% assayNames(dds)) {
+      weights <- assays(dds)[["weights"]]
+    } else {
+      weights <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
+    }
     mle <- log(2) * cbind(res$log2FoldChange, res$lfcSE)
-    fit <- apeglm::apeglm(Y=Y, x=design,
-                          log.lik=apeglm::logLikNB,
-                          param=disps, coef=coefNum,
-                          mle=mle, offset=offset)
+    if (!parallel) {
+      fit <- apeglm::apeglm(Y=Y,
+                            x=design,
+                            log.lik=apeglm::logLikNB,
+                            param=disps,
+                            coef=coefNum,
+                            mle=mle,
+                            weights=weights,
+                            offset=offset)                            
+    } else {
+      fitList <- bplapply(levels(parallelIdx), function(l) {
+        idx <- parallelIdx == l
+        apeglm::apeglm(Y=Y[idx,,drop=FALSE],
+                       x=design,
+                       log.lik=apeglm::logLikNB,
+                       param=disps[idx],
+                       coef=coefNum,
+                       mle=mle,
+                       weights=weights[idx,,drop=FALSE],
+                       offset=offset[idx,,drop=FALSE])               
+      })
+      fit <- list()
+      for (param in c("map","se","fsr","svalue","interval","diag")) {
+        fit[[param]] <- do.call(rbind, lapply(fitList, `[[`, param))
+      }
+      fit$prior.control <- fitList[[1]]$prior.control
+    }
+    stopifnot(nrow(fit$map) == nrow(dds))
     res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
     res$lfcSE <- log2(exp(1)) * fit$se[,coefNum]
     mcols(res)$description[2] <- sub("MLE","MAP",mcols(res)$description[2])
