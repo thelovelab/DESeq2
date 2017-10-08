@@ -8,8 +8,7 @@ lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
   svalue = FALSE, returnList = FALSE)
 }
 \arguments{
-\item{dds}{a DESeqDataSet object, which has been run through
-\code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}}
+\item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}
 
 \item{coef}{the name or number of the coefficient (LFC) to shrink,
 consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
