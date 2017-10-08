@@ -72,8 +72,10 @@ test_that("parallel execution works as expected", {
   res <- lfcShrink(dds, coef=2)
   res2 <- lfcShrink(dds, coef=2, parallel=TRUE)
   expect_equal(res$log2FoldChange, res2$log2FoldChange)
-  res <- lfcShrink(dds, coef=2, type="apeglm")
-  res2 <- lfcShrink(dds, coef=2, type="apeglm", parallel=TRUE)
+  res <- lfcShrink(dds, coef=2, type="apeglm", svalue=TRUE)
+  res2 <- lfcShrink(dds, coef=2, type="apeglm", parallel=TRUE, svalue=TRUE)
   expect_equal(res$log2FoldChange, res2$log2FoldChange)
+  # this should be checked with number of workers > 1
+  expect_equal(res$svalue, res2$svalue)
   
 })

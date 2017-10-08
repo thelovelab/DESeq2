@@ -245,6 +245,7 @@ lfcShrink <- function(dds, coef, contrast, res,
         fit[[param]] <- do.call(rbind, lapply(fitList, `[[`, param))
       }
       fit$prior.control <- fitList[[1]]$prior.control
+      fit$svalue <- apeglm::svalue(fit$fsr[,1])
     }
     stopifnot(nrow(fit$map) == nrow(dds))
     res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
