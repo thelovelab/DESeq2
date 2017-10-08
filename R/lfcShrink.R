@@ -26,8 +26,7 @@
 #' For \code{type="normal"}, shrinkage cannot be applied to coefficients
 #' in a model with interaction terms.
 #' 
-#' @param dds a DESeqDataSet object, which has been run through
-#' \code{\link{DESeq}}, or at the least, \code{\link{estimateDispersions}}
+#' @param dds a DESeqDataSet object, after running \code{\link{DESeq}}
 #' @param coef the name or number of the coefficient (LFC) to shrink,
 #' consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
 #' note: only \code{coef} or \code{contrast} can be specified, not both.
@@ -87,6 +86,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
                       svalue=FALSE, returnList=FALSE) {  
 
   # TODO: lfcThreshold for types: normal and apeglm
+  # TODO: parallel for normal and apeglm
   
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))
   if (attr(dds,"betaPrior")) {
@@ -130,8 +130,12 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
       stop("LFC shrinkage type='normal' not implemented for designs with interactions")
     }
     stopifnot(missing(coef) | missing(contrast))
-    # TODO skip re-fitting MLE coefficients
-    dds <- estimateMLEForBetaPriorVar(dds)
+    # find and rename the MLE columns for estimateBetaPriorVar
+    betaCols <- grep("log2 fold change \\(MLE\\)", mcols(mcols(dds))$description)
+    stopifnot(length(betaCols) > 0)
+    if (!any(grepl("MLE_",names(mcols(dds))[betaCols]))) {
+      names(mcols(dds))[betaCols] <- paste0("MLE_", names(mcols(dds))[betaCols])
+    }
     if (missing(contrast)) {
       modelMatrixType <- "standard"
     } else {
@@ -139,6 +143,7 @@ lfcShrink <- function(dds, coef, contrast, res, type=c("normal","apeglm","ashr")
     }
     attr(dds,"modelMatrixType") <- modelMatrixType
     betaPriorVar <- estimateBetaPriorVar(dds)
+    stopifnot(length(betaPriorVar) > 0)
     dds.shr <- nbinomWaldTest(dds,
                               betaPrior=TRUE,
                               betaPriorVar=betaPriorVar,
