@@ -16,20 +16,26 @@ test_that("LFC shrinkage works", {
   # testing out various methods for LFC shrinkage
   set.seed(1)
   dds <- makeExampleDESeqDataSet(betaSD=1,n=1000,m=10)
-  # remove this line (here and examples) once new apeglm propogates
-  dds <- dds[rowSums(counts(dds)) > 0,]
   dds <- DESeq(dds)
   res <- results(dds, name="condition_B_vs_A")
+
+  # dds and res must match
+  expect_error(lfcShrink(dds=dds, coef=2, res=res[1:500,], type="normal"), "rownames")
+  expect_error(lfcShrink(dds=dds, coef=2, res=res[1:500,], type="apeglm"), "rownames")  
+
+  # try out various types and ways of specifying coefs
   res.n <- lfcShrink(dds=dds, coef="condition_B_vs_A", res=res, type="normal")
   res.n <- lfcShrink(dds=dds, coef=2, res=res, type="normal")
   res.n <- lfcShrink(dds=dds, coef=2, type="normal")
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
   res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 
+  # prior info
   str(priorInfo(res.n))
   str(priorInfo(res.ape))
   str(priorInfo(res.ash))
 
+  # plot against true
   par(mfrow=c(1,3))
   plot(mcols(dds)$trueBeta, res.n$log2FoldChange); abline(0,1,col="red")
   plot(mcols(dds)$trueBeta, res.ape$log2FoldChange); abline(0,1,col="red")

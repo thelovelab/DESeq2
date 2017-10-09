@@ -73,7 +73,6 @@
 #'
 #'  set.seed(1)
 #'  dds <- makeExampleDESeqDataSet(n=500,betaSD=1)
-#'  dds <- dds[rowSums(counts(dds)) > 0,]
 #'  dds <- DESeq(dds)
 #'  res <- results(dds)
 #' 
@@ -117,6 +116,7 @@ lfcShrink <- function(dds, coef, contrast, res,
     if (is.null(dispersions(dds))) {
       stop("type='normal' and 'apeglm' require dispersion estimates, first call estimateDispersions()")
     }
+    stopifnot(all(rownames(dds) == rownames(res)))
     if (parallel) {
       nworkers <- BPPARAM$workers
       parallelIdx <- factor(sort(rep(seq_len(nworkers),length=nrow(dds))))

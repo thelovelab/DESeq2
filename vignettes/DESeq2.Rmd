@@ -559,15 +559,19 @@ resLFC <- lfcShrink(dds, coef=2)
 resLFC
 ```
 
-The above steps should take less than 30 seconds for most analyses. For
-experiments with many samples (e.g. 100 samples), one can take
-advantage of parallelized computation.  Both of the above functions
-have an argument `parallel` which if set to `TRUE` can
-be used to distribute computation across cores specified by the
-*register* function of [BiocParallel](http://bioconductor.org/packages/BiocParallel). For example,
-the following chunk (not evaluated here), would register 4 cores, and
-then the two functions above, with `parallel=TRUE`, would
-split computation over these cores. 
+<a name="parallel"/>
+
+The above steps should take less than 30 seconds for most
+analyses. For experiments with many samples (e.g. 100 samples), one
+can take advantage of parallelized computation. Parallelizing `DESeq`,
+`results`, and `lfcShrink` can be easily accomplished by loading the
+BiocParallel package, and then setting the following arguments:
+`parallel=TRUE` and `BPPARAM=MulticoreParam(4)`, for example,
+splitting the job over 4 cores. Note that `results` for coefficients
+or contrasts listed in `resultsNames(dds)` is fast and will not need
+parallelization. As an alternative to `BPPARAM`, one can `register`
+cores at the beginning of an analysis, and then just specify
+`parallel=TRUE` to the functions when called.
 
 ```{r parallel, eval=FALSE}
 library("BiocParallel")
@@ -723,7 +727,23 @@ plotMA(resApe, xlim=xlim, ylim=ylim, main="apeglm")
 plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
 ```
 
-If there is unwanted variation present in the data (e.g. batch
+**Note:** due to the nature of the statistical model and optimization
+approach, `apeglm` is usually a factor of ~5 slower than `normal`. For
+example, with 10,000 genes and 10 samples, `normal` may take ~3
+seconds, while `apeglm` takes ~15 seconds (on a laptop).  However,
+`apeglm` can be more than an order of magnitude slower when there are
+many coefficients, e.g. 10 or more coefficients in
+`resultsNames(dds)`. The method `ashr` is fairly fast and does not
+depend on the number of coefficients, as it uses only the estimated
+MLE coefficients and their standard errors. A solution for speeding up
+`normal` and `apeglm` is to use multiple cores. This can be easily
+accomplished by loading the BiocParallel package, and then setting the
+following arguments of `lfcShrink`: `parallel=TRUE` and
+`BPPARAM=MulticoreParam(4)`, for example, splitting the job over 4
+cores. This approach can also be used with `DESeq` and `results`, as
+mentioned [above](#parallel).
+
+**Note:** If there is unwanted variation present in the data (e.g. batch
 effects) it is always recommend to correct for this, which can be
 accommodated in DESeq2 by including in the design any known batch
 variables or by using functions/packages such as 

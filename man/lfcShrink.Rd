@@ -81,7 +81,6 @@ in a model with interaction terms.
 
  set.seed(1)
  dds <- makeExampleDESeqDataSet(n=500,betaSD=1)
- dds <- dds[rowSums(counts(dds)) > 0,]
  dds <- DESeq(dds)
  res <- results(dds)
 
