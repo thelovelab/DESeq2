@@ -248,6 +248,10 @@ lfcShrink <- function(dds, coef, contrast, res,
       fit$svalue <- apeglm::svalue(fit$fsr[,1])
     }
     stopifnot(nrow(fit$map) == nrow(dds))
+    conv <- fit$diag[,"conv"]
+    if (!all(conv[!is.na(conv)] == 0)) {
+      message("Some rows did not converge in finding the MAP")
+    }
     res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
     res$lfcSE <- log2(exp(1)) * fit$se[,coefNum]
     mcols(res)$description[2] <- sub("MLE","MAP",mcols(res)$description[2])

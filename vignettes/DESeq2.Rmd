@@ -334,7 +334,8 @@ all(rownames(coldata) == colnames(cts))
 ```
 
 If you have used the *featureCounts* function [@Liao2013feature] in the 
-[Rsubread](http://bioconductor.org/packages/Rsubread) package, the matrix of read counts can be directly 
+[Rsubread](http://bioconductor.org/packages/Rsubread) package, 
+the matrix of read counts can be directly 
 provided from the `"counts"` element in the list output.
 The count matrix and column data can typically be read into R 
 from flat files using base R functions such as *read.csv*
@@ -453,7 +454,7 @@ normalized counts within the *results* function.
 
 ```{r prefilter}
 dds <- dds[ rowSums(counts(dds)) > 1, ]
-``` 
+```
 
 ### Note on factor levels 
 
