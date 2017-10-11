@@ -1617,45 +1617,22 @@ specified by the `name` argument, and $x$ is the `lfcThreshold`.
 * `greater` - $\beta > x$
 * `less` - $\beta < -x$
 
-The test `altHypothesis="lessAbs"` requires that the user have
-run *DESeq* with the argument `betaPrior=FALSE`.  To
-understand the reason for this requirement, consider that during
-hypothesis testing, the null hypothesis is favored unless the data
-provide strong evidence to reject the null.  For this test, including
-a zero-centered prior on log fold change would favor the alternative
-hypothesis, shrinking log fold changes toward zero.  Removing the
-prior on log fold changes for tests of small log fold change allows
-for detection of only those genes where the data alone provides
-evidence against the null.
-
 The four possible values of `altHypothesis` are demonstrated
 in the following code and visually by MA-plots in the following figures.
-First we run *DESeq* and specify `betaPrior=FALSE` in order 
-to demonstrate `altHypothesis="lessAbs"`.
-
-```{r ddsNoPrior}
-ddsNoPrior <- DESeq(dds, betaPrior=FALSE)
-```
-
-In order to produce results tables for the following tests, the same arguments
-(except `ylim`) would be provided to the *results* function. 
 
 ```{r lfcThresh}
 par(mfrow=c(2,2),mar=c(2,2,1,1))
-yl <- c(-2.5,2.5)
+ylim <- c(-2.5,2.5)
 resGA <- results(dds, lfcThreshold=.5, altHypothesis="greaterAbs")
-resLA <- results(ddsNoPrior, lfcThreshold=.5, altHypothesis="lessAbs")
+resLA <- results(dds, lfcThreshold=.5, altHypothesis="lessAbs")
 resG <- results(dds, lfcThreshold=.5, altHypothesis="greater")
 resL <- results(dds, lfcThreshold=.5, altHypothesis="less")
-plotMA(resGA, ylim=yl)
-abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
-plotMA(resLA, ylim=yl)
-abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
-plotMA(resG, ylim=yl)
-abline(h=.5,col="dodgerblue",lwd=2)
-plotMA(resL, ylim=yl)
-abline(h=-.5,col="dodgerblue",lwd=2)
-``` 
+drawLines <- function() abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+plotMA(resGA, ylim=ylim); drawLines()
+plotMA(resLA, ylim=ylim); drawLines()
+plotMA(resG, ylim=ylim); drawLines()
+plotMA(resL, ylim=ylim); drawLines()
+```
 
 <a name="access"/>
 
