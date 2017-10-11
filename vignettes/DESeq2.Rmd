@@ -2060,7 +2060,12 @@ version *DESeq*, are as follows:
 
 ## Methods changes since the 2014 DESeq2 paper
 
-* In version 1.16 (Novermber 2016), the log2 fold change 
+* In version 1.18 (November 2018), we add two 
+  [alternative shrinkage estimators](#alternative-shrinkage-estimators),
+  which can be used via `lfcShrink`: an estimator using a t prior from
+  the apeglm packages, and an estimator with a fitted mixture of
+  normals prior from the ashr package.
+* In version 1.16 (November 2016), the log2 fold change 
   shrinkage is no longer default for the *DESeq* and *nbinomWaldTest*
   functions, by setting the defaults of these to `betaPrior=FALSE`,
   and by introducing a separate function *lfcShrink*, which performs
@@ -2070,7 +2075,7 @@ version *DESeq*, are as follows:
   as an inference engine by a wider community, and certain sequencing
   datasets show better performance with the testing separated from the
   use of the LFC prior. Also, the separation of LFC shrinkage to a separate
-  function *lfcShrink* allows for easier methods development of
+  function `lfcShrink` allows for easier methods development of
   alternative effect size estimators.
 * A small change to the independent filtering routine: instead
   of taking the quantile of the filter (the mean of normalized counts) which
