@@ -42,7 +42,7 @@ knitr::opts_chunk$set(tidy=FALSE, cache=TRUE,
 
 # Standard workflow
 
-**If you use DESeq2 in published research, please cite:**
+**Note:** if you use DESeq2 in published research, please cite:
 
 > Love, M.I., Huber, W., Anders, S. (2014)
 > Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.
@@ -2435,7 +2435,7 @@ See the help page for *results* for more details.
 See the manual page for *DESeq*, which links to the 
 subfunctions which are called in order, where complete details are
 listed. Also you can read the three steps listed in the 
-[the DESeq2 model](#theory) in this document.
+[DESeq2 model](#theory) in this document.
 
 
 ## Is there an official Galaxy tool for DESeq2?
