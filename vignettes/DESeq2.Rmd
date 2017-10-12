@@ -310,25 +310,32 @@ coldata <- read.csv(pasAnno, row.names=1)
 coldata <- coldata[,c("condition","type")]
 ```
 
-We examine the count matrix and column data to see if they are consisent:
+We examine the count matrix and column data to see if they are
+consistent in terms of sample order.
 
 ```{r showPasilla}
-head(cts)
-head(coldata)
+head(cts,2)
+coldata
 ```
 
 Note that these are not in the same order with respect to samples! 
 
-It is critical that the columns of the count matrix and the rows of
-the column data (information about samples) are in the same order.
-We should re-arrange one or the other so that they are consistent in
-terms of sample order (if we do not, later functions would produce
-an error). We additionally need to chop off the `"fb"` of the 
-row names of `coldata`, so the naming is consistent.
+It is absolutely critical that the columns of the count matrix and the
+rows of the column data (information about samples) are in the same
+order.  DESeq2 will not make guesses as to which column of the count
+matrix belongs to which row of the column data, these must be provided
+to DESeq2 already in consistent order.
+
+As they are not in the correct order as given, we need to re-arrange
+one or the other so that they are consistent in terms of sample order
+(if we do not, later functions would produce an error). We
+additionally need to chop off the `"fb"` of the row names of
+`coldata`, so the naming is consistent.
 
 ```{r reorderPasila}
 rownames(coldata) <- sub("fb", "", rownames(coldata))
 all(rownames(coldata) %in% colnames(cts))
+all(rownames(coldata) == colnames(cts))
 cts <- cts[, rownames(coldata)]
 all(rownames(coldata) == colnames(cts))
 ```
