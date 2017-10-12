@@ -42,15 +42,16 @@
 #' using a fitted mixture of normals prior
 #' - see the Stephens (2016) reference below for citation
 #' @param svalue logical, should p-values and adjusted p-values be replaced
-#' with s-values when using \code{type="apeglm"} or \code{type="ashr"}.
+#' with s-values when using \code{apeglm} or \code{ashr}.
 #' See Stephens (2016) reference on s-values.
 #' @param returnList logical, should \code{lfcShrink} return a list, where
 #' the first element is the results table, and the second element is the
 #' output of \code{apeglm} or \code{ashr}
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
 #' execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
-#' parallelization only used with \code{type="normal"} or \code{type="apeglm"}
+#' parallelization only used with \code{normal} or \code{apeglm}
 #' @param BPPARAM see same argument of \code{\link{DESeq}}
+#' @param ... arguments passed to \code{apeglm} and \code{ashr}
 #'
 #' @references
 #'
@@ -84,7 +85,8 @@
 lfcShrink <- function(dds, coef, contrast, res,
                       type=c("normal","apeglm","ashr"),
                       svalue=FALSE, returnList=FALSE,
-                      parallel=FALSE, BPPARAM=bpparam()) {  
+                      parallel=FALSE, BPPARAM=bpparam(),
+                      ...) {  
 
   # TODO: lfcThreshold for types: normal and apeglm
   
@@ -227,7 +229,7 @@ lfcShrink <- function(dds, coef, contrast, res,
                             coef=coefNum,
                             mle=mle,
                             weights=weights,
-                            offset=offset)                            
+                            offset=offset, ...)                 
     } else {
       fitList <- bplapply(levels(parallelIdx), function(l) {
         idx <- parallelIdx == l
@@ -238,7 +240,7 @@ lfcShrink <- function(dds, coef, contrast, res,
                        coef=coefNum,
                        mle=mle,
                        weights=weights[idx,,drop=FALSE],
-                       offset=offset[idx,,drop=FALSE])               
+                       offset=offset[idx,,drop=FALSE], ...)
       })
       fit <- list()
       for (param in c("map","se","fsr","svalue","interval","diag")) {
@@ -288,7 +290,8 @@ lfcShrink <- function(dds, coef, contrast, res,
     https://doi.org/10.1093/biostatistics/kxw041")
     betahat <- res$log2FoldChange
     sebetahat <- res$lfcSE
-    fit <- ashr::ash(betahat, sebetahat, mixcompdist="normal", method="shrink")
+    fit <- ashr::ash(betahat, sebetahat,
+                     mixcompdist="normal", method="shrink", ...)
     res$log2FoldChange <- fit$result$PosteriorMean
     res$lfcSE <- fit$result$PosteriorSD
     mcols(res)$description[2] <- sub("MLE","PostMean",mcols(res)$description[2])

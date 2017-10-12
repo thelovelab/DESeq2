@@ -6,7 +6,7 @@
 \usage{
 lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
   svalue = FALSE, returnList = FALSE, parallel = FALSE,
-  BPPARAM = bpparam())
+  BPPARAM = bpparam(), ...)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}
@@ -30,7 +30,7 @@ using a fitted mixture of normals prior
 - see the Stephens (2016) reference below for citation}
 
 \item{svalue}{logical, should p-values and adjusted p-values be replaced
-with s-values when using \code{type="apeglm"} or \code{type="ashr"}.
+with s-values when using \code{apeglm} or \code{ashr}.
 See Stephens (2016) reference on s-values.}
 
 \item{returnList}{logical, should \code{lfcShrink} return a list, where
@@ -39,9 +39,11 @@ output of \code{apeglm} or \code{ashr}}
 
 \item{parallel}{if FALSE, no parallelization. if TRUE, parallel
 execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
-parallelization only used with \code{type="normal"} or \code{type="apeglm"}}
+parallelization only used with \code{normal} or \code{apeglm}}
 
 \item{BPPARAM}{see same argument of \code{\link{DESeq}}}
+
+\item{...}{arguments passed to \code{apeglm} and \code{ashr}}
 }
 \value{
 a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}

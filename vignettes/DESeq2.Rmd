@@ -74,7 +74,6 @@ dds <- DESeqDataSetFromMatrix(countData = cts,
                               design= ~ batch + condition)
 dds <- DESeq(dds)
 res <- results(dds, contrast=c("condition","treat","ctrl"))
-# shrunken estimates of log fold change
 resultsNames(dds)
 res <- lfcShrink(dds, coef=2)
 ```
@@ -448,19 +447,19 @@ ddsSE
 
 ### Pre-filtering
 
-While it is not necessary to pre-filter low count genes before running the DESeq2
-functions, there are two reasons which make pre-filtering useful:
-by removing rows in which there are no reads or nearly no reads,
-we reduce the memory size of the `dds` data object and 
-we increase the speed of the transformation
-and testing functions within DESeq2. Here we perform a minimal
-pre-filtering to remove rows that have only 0 or 1 read. Note that more strict
-filtering to increase power is *automatically* 
-applied via [independent filtering](#indfilt) on the mean of
-normalized counts within the *results* function. 
+While it is not necessary to pre-filter low count genes before running
+the DESeq2 functions, there are two reasons which make pre-filtering
+useful: by removing rows in which there are very few reads, we reduce
+the memory size of the `dds` data object, and we increase the speed of
+the transformation and testing functions within DESeq2. Here we
+perform a minimal pre-filtering to keep only rows that have at least
+10 reads total. Note that more strict filtering to increase power is
+*automatically* applied via [independent filtering](#indfilt) on the
+mean of normalized counts within the *results* function.
 
 ```{r prefilter}
-dds <- dds[ rowSums(counts(dds)) > 1, ]
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
 ```
 
 ### Note on factor levels 
@@ -979,18 +978,19 @@ where *n* represents the count values and $n_0$ is a positive constant.
 
 In this section, we discuss two alternative
 approaches that offer more theoretical justification and a rational way
-of choosing the parameter equivalent to $n_0$ above.
-The *regularized logarithm* or *rlog* incorporates a prior on
-the sample differences [@Love2014], 
-and the other uses the concept of variance stabilizing
-transformations (VST) [@Tibshirani1988; @sagmb2003; @Anders:2010:GB].
+of choosing parameters equivalent to $n_0$ above.
+One makes use of the concept of variance stabilizing
+transformations (VST) [@Tibshirani1988; @sagmb2003; @Anders:2010:GB],
+and the other is the *regularized logarithm* or *rlog*, which
+incorporates a prior on the sample differences [@Love2014].
 Both transformations produce transformed data on the log2 scale
-which has been normalized with respect to library size.
+which has been normalized with respect to library size or other
+normalization factors.
 
-The point of these two transformations, the *rlog* and the VST,
+The point of these two transformations, the VST and the *rlog*,
 is to remove the dependence of the variance on the mean,
 particularly the high variance of the logarithm of count data when the
-mean is low. Both *rlog* and VST use the experiment-wide trend
+mean is low. Both VST and *rlog* use the experiment-wide trend
 of variance over mean, in order to transform the data to remove the
 experiment-wide trend. Note that we do not require or
 desire that all the genes have *exactly* the same variance after
@@ -1006,12 +1006,12 @@ the *rlog* function might take too long, and so the *vst* function
 will be a faster choice. 
 The rlog and VST have similar properties, but the rlog requires
 fitting a shrinkage term for each sample and each gene which takes
-time.  See the DESeq2 paper for more discussion on the differences
+time. See the DESeq2 paper for more discussion on the differences
 [@Love2014].
 
 ### Blind dispersion estimation
 
-The two functions, *rlog* and *vst* have an argument
+The two functions, *vst* and *rlog* have an argument
 `blind`, for whether the transformation should be blind to the
 sample information specified by the design formula. When
 `blind` equals `TRUE` (the default), the functions
@@ -1044,21 +1044,28 @@ experimental group in applying the transformation.
 These transformation functions return an object of class *DESeqTransform*
 which is a subclass of *RangedSummarizedExperiment*. 
 For ~20 samples, running on a newly created `DESeqDataSet`,
-*rlog* may take 30 seconds, 
-*varianceStabilizingTransformation* may take 5 seconds, and
-*vst* less than 1 second (by subsetting to 1000 genes for
-calculating the global dispersion trend).
-However, the running times are shorter and more similar with `blind=FALSE` and
+*rlog* may take 30 seconds, while *vst* takes less than 1 second.
+The running times are shorter when using `blind=FALSE` and
 if the function *DESeq* has already been run, because then
 it is not necessary to re-estimate the dispersion values.
 The *assay* function is used to extract the matrix of normalized values.
 
 ```{r rlogAndVST}
+vsd <- vst(dds, blind=FALSE)
 rld <- rlog(dds, blind=FALSE)
-vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
-vsd.fast <- vst(dds, blind=FALSE)
-head(assay(rld), 3)
+head(assay(vsd), 3)
 ```
+
+### Variance stabilizing transformation
+
+Above, we used a parametric fit for the dispersion. In this case, the
+closed-form expression for the variance stabilizing transformation is
+used by the *vst* function. If a local fit is used (option
+`fitType="locfit"` to *estimateDispersions*) a numerical integration
+is used instead. The transformed data should be approximated variance
+stabilized and also includes correction for size factors or
+normalization factors. The transformed data is on the log2 scale for
+large counts.
 
 ### Regularized log transformation
 
@@ -1088,16 +1095,6 @@ in sequencing depth. Without priors, this design matrix would lead to
 a non-unique solution, however the addition of a prior on
 non-intercept betas allows for a unique solution to be found. 
 
-### Variance stabilizing transformation
-
-Above, we used a parametric fit for the dispersion. In this case, the
-closed-form expression for the variance stabilizing transformation is
-used by *varianceStabilizingTransformation*, which is
-derived in the file `vst.pdf`, that is distributed in the
-package alongside this vignette. If a local fit is used (option
-`fitType="locfit"` to *estimateDispersions*) a numerical integration
-is used instead. 
-
 ### Effects of transformations on the variance
 
 The figure below plots the standard deviation of the transformed data,
@@ -1120,8 +1117,8 @@ differences due to the experimental conditions.
 ntd <- normTransform(dds)
 library("vsn")
 meanSdPlot(assay(ntd))
-meanSdPlot(assay(rld))
 meanSdPlot(assay(vsd))
+meanSdPlot(assay(rld))
 ```
 
 ## Data quality assessment by sample clustering and visualization
@@ -1151,34 +1148,33 @@ select <- order(rowMeans(counts(dds,normalized=TRUE)),
 df <- as.data.frame(colData(dds)[,c("condition","type")])
 pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
-pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
 pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
+pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 ```
 
 ### Heatmap of the sample-to-sample distances
 
-Another use of the transformed data is sample clustering. Here, we apply the
-*dist* function to the transpose of the transformed count matrix to get
-sample-to-sample distances. We could alternatively use the variance stabilized
-transformation here.
+Another use of the transformed data is sample clustering. Here, we
+apply the *dist* function to the transpose of the transformed count
+matrix to get sample-to-sample distances.
 
 ```{r sampleClust}
-sampleDists <- dist(t(assay(rld)))
+sampleDists <- dist(t(assay(vsd)))
 ```
 
-A heatmap of this distance matrix gives us an overview over similarities
-and dissimilarities between samples.
-We have to provide a hierarchical clustering `hc` to the heatmap
-function based on the sample distances, or else the heatmap
-function would calculate a clustering based on the distances between
-the rows/columns of the distance matrix.
+A heatmap of this distance matrix gives us an overview over
+similarities and dissimilarities between samples.  We have to provide
+a hierarchical clustering `hc` to the heatmap function based on the
+sample distances, or else the heatmap function would calculate a
+clustering based on the distances between the rows/columns of the
+distance matrix.
 
 ```{r figHeatmapSamples, fig.height=4, fig.width=6}
 library("RColorBrewer")
 sampleDistMatrix <- as.matrix(sampleDists)
-rownames(sampleDistMatrix) <- paste(rld$condition, rld$type, sep="-")
+rownames(sampleDistMatrix) <- paste(vsd$condition, vsd$type, sep="-")
 colnames(sampleDistMatrix) <- NULL
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 pheatmap(sampleDistMatrix,
@@ -1195,14 +1191,14 @@ components. This type of plot is useful for visualizing the overall
 effect of experimental covariates and batch effects.
 
 ```{r figPCA}
-plotPCA(rld, intgroup=c("condition", "type"))
+plotPCA(vsd, intgroup=c("condition", "type"))
 ```
 
 It is also possible to customize the PCA plot using the
 *ggplot* function.
 
 ```{r figPCA2}
-pcaData <- plotPCA(rld, intgroup=c("condition", "type"), returnData=TRUE)
+pcaData <- plotPCA(vsd, intgroup=c("condition", "type"), returnData=TRUE)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 ggplot(pcaData, aes(PC1, PC2, color=condition, shape=type)) +
   geom_point(size=3) +
@@ -2328,8 +2324,8 @@ dds2 <- makeExampleDESeqDataSet(n=1000,m=12,
 dds2 <- dds2[,7:12]
 dds2$condition <- rep("C",6)
 mcols(dds2) <- NULL
-dds <- cbind(dds1, dds2)
-rld <- rlog(dds, blind=FALSE, fitType="mean")
+dds12 <- cbind(dds1, dds2)
+rld <- rlog(dds12, blind=FALSE, fitType="mean")
 plotPCA(rld)
 ``` 
 
