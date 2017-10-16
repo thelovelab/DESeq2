@@ -634,6 +634,8 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # (we need this already to decide about linear mu fitting)
   wlist <- getAndCheckWeights(object, modelMatrix)
   weights <- wlist$weights
+  # don't let weights go below 1e-6
+  weights <- pmax(weights, 1e-6)
   useWeights <- wlist$useWeights
   
   # use a linear model to estimate the expected counts
