@@ -201,6 +201,8 @@ NULL
 #' to \code{\link{bplapply}} when \code{parallel=TRUE}.
 #' If not specified, the parameters last registered with
 #' \code{\link{register}} will be used.
+#' @param bpx the number of dataset chunks to create for BiocParallel
+#' will be \code{bpx} times the number of workers
 #' 
 #' @author Michael Love
 #' 
@@ -249,7 +251,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
                   full=design(object), reduced, quiet=FALSE,
                   minReplicatesForReplace=7, modelMatrixType,
-                  parallel=FALSE, BPPARAM=bpparam()) {
+                  parallel=FALSE, BPPARAM=bpparam(), bpx=1) {
   # check arguments
   stopifnot(is(object, "DESeqDataSet"))
   test <- match.arg(test, choices=c("Wald","LRT"))
@@ -345,11 +347,13 @@ DESeq <- function(object, test=c("Wald","LRT"),
       object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
     }
   } else if (parallel) {
+    if (!missing(modelMatrixType)) {
+      if (betaPrior) stopifnot(modelMatrixType=="expanded")
+    }
     object <- DESeqParallel(object, test=test, fitType=fitType,
                             betaPrior=betaPrior, full=full, reduced=reduced,
                             quiet=quiet, modelMatrix=modelMatrix,
-                            modelMatrixType=modelMatrixType,
-                            BPPARAM=BPPARAM)
+                            BPPARAM=BPPARAM, bpx=bpx)
   }
 
   # if there are sufficient replicates, then pass through to refitting function

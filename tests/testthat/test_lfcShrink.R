@@ -31,9 +31,9 @@ test_that("LFC shrinkage works", {
   res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 
   # prior info
-  str(priorInfo(res.n))
-  str(priorInfo(res.ape))
-  str(priorInfo(res.ash))
+  ## str(priorInfo(res.n))
+  ## str(priorInfo(res.ape))
+  ## str(priorInfo(res.ash))
 
   # plot against true
   par(mfrow=c(1,3))

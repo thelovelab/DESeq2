@@ -7,7 +7,7 @@
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
   minReplicatesForReplace = 7, modelMatrixType, parallel = FALSE,
-  BPPARAM = bpparam())
+  BPPARAM = bpparam(), bpx = 1)
 }
 \arguments{
 \item{object}{a DESeqDataSet object, see the constructor functions
@@ -70,6 +70,9 @@ will copy these files while running on worker nodes.}
 to \code{\link{bplapply}} when \code{parallel=TRUE}.
 If not specified, the parameters last registered with
 \code{\link{register}} will be used.}
+
+\item{bpx}{the number of dataset chunks to create for BiocParallel
+will be \code{bpx} times the number of workers}
 }
 \value{
 a \code{\link{DESeqDataSet}} object with results stored as

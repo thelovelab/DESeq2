@@ -157,7 +157,8 @@
 #' \code{alpha} (the target FDR),
 #' \code{pAdjustMethod}. This function should return a DESeqResults object
 #' with a \code{padj} column.
-#' @param format character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
+#' @param format character, either \code{"DataFrame"},
+#' \code{"GRanges"}, or \code{"GRangesList"},
 #' whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 #' or if the results DataFrame should be attached as metadata columns to
 #' the \code{GRanges} or \code{GRangesList} \code{rowRanges} of the \code{DESeqDataSet}.
@@ -181,7 +182,8 @@
 #' to \code{\link{bplapply}} when \code{parallel=TRUE}.
 #' If not specified, the parameters last registered with
 #' \code{\link{register}} will be used.
-#' @param ... optional arguments passed to \code{filterFun}
+#' @param bpx the number of dataset chunks to create for BiocParallel
+#' will be \code{bpx} times the number of workers
 #' 
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
 #' a simple subclass of DataFrame. This object contains the results columns:
@@ -295,8 +297,8 @@ results <- function(object, contrast, name,
                     test, 
                     addMLE=FALSE,
                     tidy=FALSE,
-                    parallel=FALSE, BPPARAM=bpparam(),
-                    ...) {
+                    parallel=FALSE, BPPARAM=bpparam(), bpx=1) {
+  
   # match args
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
   altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
@@ -388,12 +390,13 @@ of length 3 to 'contrast' instead of using 'name'")
     # need to go back to C++ code in order to build the beta covariance matrix
     # then this is multiplied by the numeric contrast to get the Wald statistic.
     # with 100s of samples, this can get slow, so offer parallelization
-    res <- if (!parallel) {
-      cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues, test=test)
+    if (!parallel) {
+      res <- cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues, test=test)
     } else if (parallel) {
+      # parallel execution
       nworkers <- BPPARAM$workers
-      idx <- factor(sort(rep(seq_len(nworkers),length=nrow(object))))
-      do.call(rbind, bplapply(levels(idx), function(l) {
+      idx <- factor(sort(rep(seq_len(bpx*nworkers),length=nrow(object))))
+      res <- do.call(rbind, bplapply(levels(idx), function(l) {
         cleanContrast(object[idx == l,,drop=FALSE], contrast,
                       expanded=isExpanded, listValues=listValues, test=test)
       }, BPPARAM=BPPARAM))
@@ -843,7 +846,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
     
   }
 
-  # if the result table not already built in the above code...
+  # if the result table not already built in the above code
   if (!resReady) {
     
     # here, a numeric / list / character contrast which will be converted

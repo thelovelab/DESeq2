@@ -51,6 +51,8 @@
 #' execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
 #' parallelization only used with \code{normal} or \code{apeglm}
 #' @param BPPARAM see same argument of \code{\link{DESeq}}
+#' @param bpx the number of dataset chunks to create for BiocParallel
+#' will be \code{bpx} times the number of workers
 #' @param ... arguments passed to \code{apeglm} and \code{ashr}
 #'
 #' @references
@@ -85,7 +87,7 @@
 lfcShrink <- function(dds, coef, contrast, res,
                       type=c("normal","apeglm","ashr"),
                       svalue=FALSE, returnList=FALSE,
-                      parallel=FALSE, BPPARAM=bpparam(),
+                      parallel=FALSE, BPPARAM=bpparam(), bpx=1,
                       ...) {  
 
   # TODO: lfcThreshold for types: normal and apeglm
@@ -121,7 +123,7 @@ lfcShrink <- function(dds, coef, contrast, res,
     stopifnot(all(rownames(dds) == rownames(res)))
     if (parallel) {
       nworkers <- BPPARAM$workers
-      parallelIdx <- factor(sort(rep(seq_len(nworkers),length=nrow(dds))))
+      parallelIdx <- factor(sort(rep(seq_len(bpx*nworkers),length=nrow(dds))))
     }
   }
   

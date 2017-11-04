@@ -13,7 +13,7 @@ results(object, contrast, name, lfcThreshold = 0,
   listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
   alpha = 0.1, filter, theta, pAdjustMethod = "BH", filterFun,
   format = c("DataFrame", "GRanges", "GRangesList"), test, addMLE = FALSE,
-  tidy = FALSE, parallel = FALSE, BPPARAM = bpparam(), ...)
+  tidy = FALSE, parallel = FALSE, BPPARAM = bpparam(), bpx = 1)
 
 resultsNames(object)
 
@@ -110,7 +110,8 @@ and p-value adjustment, with arguments \code{res} (a DESeqResults object),
 \code{pAdjustMethod}. This function should return a DESeqResults object
 with a \code{padj} column.}
 
-\item{format}{character, either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"},
+\item{format}{character, either \code{"DataFrame"},
+\code{"GRanges"}, or \code{"GRangesList"},
 whether the results should be printed as a \code{\link{DESeqResults}} DataFrame,
 or if the results DataFrame should be attached as metadata columns to
 the \code{GRanges} or \code{GRangesList} \code{rowRanges} of the \code{DESeqDataSet}.
@@ -140,7 +141,8 @@ to \code{\link{bplapply}} when \code{parallel=TRUE}.
 If not specified, the parameters last registered with
 \code{\link{register}} will be used.}
 
-\item{...}{optional arguments passed to \code{filterFun}}
+\item{bpx}{the number of dataset chunks to create for BiocParallel
+will be \code{bpx} times the number of workers}
 }
 \value{
 For \code{results}: a \code{\link{DESeqResults}} object, which is
