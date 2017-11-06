@@ -604,7 +604,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   use an alternate design formula")
     }
   } else {
-    message("using supplied model matrix")
+    if (!quiet) message("using supplied model matrix")
   }
   
   object <- getBaseMeansAndVariances(object)
@@ -811,7 +811,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   if (is.null(modelMatrix)) {
     modelMatrix <- getModelMatrix(object)
   } else {
-    message("using supplied model matrix")
+    if (!quiet) message("using supplied model matrix")
   }
   
   # fill in the calculated dispersion prior variance
@@ -1175,8 +1175,8 @@ nbinomWaldTest <- function(object,
       betaPrior <- FALSE
     } else {
       if (betaPrior) stop("the model matrix can only be user-supplied if betaPrior=FALSE")
-    } 
-    message("using supplied model matrix")
+    }
+    if (!quiet) message("using supplied model matrix")
     modelAsFormula <- FALSE
     attr(object, "modelMatrixType") <- "user-supplied"
     renameCols <- FALSE
@@ -1545,7 +1545,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
                             data=as.data.frame(colData(object)))
     df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
   } else {
-    message("using supplied model matrix")
+    if (!quiet) message("using supplied model matrix")
     df <- ncol(full) - ncol(reduced)
   }
   

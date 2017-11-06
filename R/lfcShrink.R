@@ -205,7 +205,6 @@ lfcShrink <- function(dds, coef, contrast, res,
     }
     Y <- counts(dds)
     if (attr(dds, "modelMatrixType") == "user-supplied") {
-      message("using supplied model matrix")
       design <- attr(dds, "modelMatrix")
     } else {
       design <- model.matrix(design(dds), data=colData(dds))
