@@ -98,7 +98,7 @@ setMethod("design", signature(object="DESeqDataSet"), design.DESeqDataSet)
 #' @name design
 #' @rdname design
 #' @exportMethod "design<-"
-setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"),
+setReplaceMethod("design", signature(object="DESeqDataSet", value="ANY"),
                  function( object, value ) {
                    # Temporary hack for backward compatibility with "old"
                    # DESeqDataSet objects. Remove once all serialized

@@ -1,7 +1,7 @@
 context("design matrix")
 test_that("design can be a matrix", {
 
-  m <- matrix(rpois(1000,100),ncol=12)
+  m <- matrix(rpois(12*100,100),ncol=12)
   coldata <- data.frame(condition=factor(rep(1:2,each=6)),
                         batch=factor(rep(c(1,2,1,2),each=3)))
   dm <- model.matrix(~condition, coldata)
@@ -11,5 +11,8 @@ test_that("design can be a matrix", {
   resultsNames(dds)
   dds <- DESeq(dds, full=dm2, fitType="mean")
   resultsNames(dds)
+
+  # test replace with matrix
+  design(dds) <- dm
   
 })
