@@ -33,7 +33,7 @@ test_that("outlier filtering and replacement works as expected", {
   beta0 <- seq(from=1,to=16,length=100)
   idx <- rep(rep(c(TRUE,FALSE),c(1,9)),10)
   set.seed(1)
-  par(mfrow=c(2,3))
+  #par(mfrow=c(2,3))
   for (disp0 in c(.01,.1)) {
     for (m in c(10,20,80)) {
       dds <- makeExampleDESeqDataSet(n=100, m=m, interceptMean=beta0, interceptSD=0,
@@ -49,9 +49,9 @@ test_that("outlier filtering and replacement works as expected", {
       expect_true(all(nonoutlierCooks))
       col <- rep("black", 100)
       col[idx] <- "blue"
-      plot(2^beta0, mcols(dds)$maxCooks, col=col, log="xy",
-           main=paste(m,"-",disp0), xlab="mean", ylab="cooks")
-      abline(h=qf(.99,2,m-2))
+      #plot(2^beta0, mcols(dds)$maxCooks, col=col, log="xy",
+      #     main=paste(m,"-",disp0), xlab="mean", ylab="cooks")
+      #abline(h=qf(.99,2,m-2))
     }
   }
 

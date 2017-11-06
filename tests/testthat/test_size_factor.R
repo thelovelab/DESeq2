@@ -31,7 +31,7 @@ test_that("size factor works", {
   # positive counts method
   dds <- estimateSizeFactors(dds, type="poscounts")
   sf <- sizeFactors(dds)
-  plot(true.sf, sf);abline(0,1)
+  #plot(true.sf, sf);abline(0,1)
   coefs <- coef(lm(sf ~ true.sf))
   expect_true(abs(coefs[1]) < .1)
   expect_true(abs(coefs[2] - 1) < .1)
@@ -39,7 +39,7 @@ test_that("size factor works", {
   # iterate method
   dds <- estimateSizeFactors(dds, type="iterate")
   sf <- sizeFactors(dds)
-  plot(true.sf, sf);abline(0,1)
+  #plot(true.sf, sf);abline(0,1)
   coefs <- coef(lm(sf ~ true.sf))
   expect_true(abs(coefs[1]) < .1)
   expect_true(abs(coefs[2] - 1) < .1)

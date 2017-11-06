@@ -8,11 +8,11 @@ test_that("the use of linear model for fitting mu works as expected", {
   dds2 <- estimateDispersionsGeneEst(dds, linearMu=TRUE)
   mu1 <- assays(dds1)[["mu"]]
   mu2 <- assays(dds2)[["mu"]]
-  par(mfrow=c(2,2),mar=c(3,3,1,1))
-  for (i in 1:4) {
-    plot(mu1[,i], mu2[,i], xlab="", ylab="", log="xy")
-    abline(0,1)
-  }
+  #par(mfrow=c(2,2),mar=c(3,3,1,1))
+  #for (i in 1:4) {
+    #plot(mu1[,i], mu2[,i], xlab="", ylab="", log="xy")
+    #abline(0,1)
+  #}
   cors <- diag(cor(mu1, mu2, use="complete"))
   expect_true(all(cors > 1 - 1e-6))
   #

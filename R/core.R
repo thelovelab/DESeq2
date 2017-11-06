@@ -259,8 +259,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
   stopifnot(is.logical(quiet))
   stopifnot(is.numeric(minReplicatesForReplace))
   stopifnot(is.logical(parallel))
-  modelAsFormula <- !is.matrix(full)
-  
+  modelAsFormula <- !is.matrix(full) & is(design(object), "formula")
+
   if (missing(betaPrior)) {
     betaPrior <- FALSE
   } else {

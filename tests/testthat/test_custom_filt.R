@@ -24,5 +24,5 @@ test_that("custom filters can be provided to results()", {
   }
 
   resCustom <- results(dds, filterFun=customFilt)
-  plot(res$padj, resCustom$padj);abline(0,1)
+  #plot(res$padj, resCustom$padj);abline(0,1)
 })

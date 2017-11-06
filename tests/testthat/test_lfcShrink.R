@@ -7,11 +7,11 @@ test_that("LFC shrinkage works", {
   dds <- DESeq(dds)
   res <- results(dds)
   res.shr <- lfcShrink(dds=dds, coef=2, res=res)
-  plotMA(res.shr)
+  #plotMA(res.shr)
   res.shr <- lfcShrink(dds=dds,
                        contrast=c("condition","B","A"),
                        res=res)
-  plotMA(res.shr)
+  #plotMA(res.shr)
 
   # testing out various methods for LFC shrinkage
   set.seed(1)
@@ -36,10 +36,10 @@ test_that("LFC shrinkage works", {
   ## str(priorInfo(res.ash))
 
   # plot against true
-  par(mfrow=c(1,3))
-  plot(mcols(dds)$trueBeta, res.n$log2FoldChange); abline(0,1,col="red")
-  plot(mcols(dds)$trueBeta, res.ape$log2FoldChange); abline(0,1,col="red")
-  plot(mcols(dds)$trueBeta, res.ash$log2FoldChange); abline(0,1,col="red")
+  ## par(mfrow=c(1,3))
+  ## plot(mcols(dds)$trueBeta, res.n$log2FoldChange); abline(0,1,col="red")
+  ## plot(mcols(dds)$trueBeta, res.ape$log2FoldChange); abline(0,1,col="red")
+  ## plot(mcols(dds)$trueBeta, res.ash$log2FoldChange); abline(0,1,col="red")
   
   # s-value returned
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", svalue=TRUE)
