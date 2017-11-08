@@ -5,6 +5,7 @@
 \alias{design}
 \alias{design,DESeqDataSet-method}
 \alias{design<-,DESeqDataSet,formula-method}
+\alias{design<-,DESeqDataSet,matrix-method}
 \alias{design}
 \alias{design}
 \title{Accessors for the 'design' slot of a DESeqDataSet object.}

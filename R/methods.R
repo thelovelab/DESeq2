@@ -83,10 +83,11 @@ design.DESeqDataSet <- function(object) object@design
 #' @docType methods
 #' @name design
 #' @rdname design
-#' @aliases design design,DESeqDataSet-method design<-,DESeqDataSet,formula-method
+#' @aliases design design,DESeqDataSet-method design<-,DESeqDataSet,formula-method design<-,DESeqDataSet,matrix-method
 #' @param object a \code{DESeqDataSet} object
 #' @param value a \code{formula} used for estimating dispersion
 #' and fitting Negative Binomial GLMs
+#'
 #' @examples
 #'
 #' dds <- makeExampleDESeqDataSet(m=4)

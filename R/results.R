@@ -353,7 +353,7 @@ of length 3 to 'contrast' instead of using 'name'")
       stop("only list- and numeric-type contrasts are supported for user-supplied model matrices")
     }
   }
-  
+
   hasIntercept <- attr(terms(design(object)),"intercept") == 1
   isExpanded <- attr(object, "modelMatrixType") == "expanded"
   termsOrder <- attr(terms.formula(design(object)),"order")

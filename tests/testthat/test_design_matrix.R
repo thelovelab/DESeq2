@@ -12,6 +12,9 @@ test_that("design can be a matrix", {
   dds <- DESeq(dds, full=dm2, fitType="mean")
   resultsNames(dds)
 
+  # TODO: fix this
+  #results(dds)
+
   # test replace with matrix
   design(dds) <- dm
   
