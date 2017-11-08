@@ -6,7 +6,7 @@
 \usage{
 nbinomWaldTest(object, betaPrior = FALSE, betaPriorVar, modelMatrix = NULL,
   modelMatrixType, betaTol = 1e-08, maxit = 100, useOptim = TRUE,
-  quiet = FALSE, useT = FALSE, df, useQR = TRUE)
+  quiet = FALSE, useT = FALSE, df, useQR = TRUE, minmu = 0.5)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -48,6 +48,8 @@ If FALSE, a standard normal null distribution is used.}
 
 \item{useQR}{whether to use the QR decomposition on the design
 matrix X while fitting the GLM}
+
+\item{minmu}{lower bound on the estimated count while fitting the GLM}
 }
 \value{
 a DESeqDataSet with results columns accessible

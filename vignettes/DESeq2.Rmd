@@ -2494,7 +2494,10 @@ Ryan McMinds,
 Paul Gordon,
 Leonardo Collado Torres,
 Enrico Ferrero,
-Peter Langfelder.
+Peter Langfelder,
+Rob Patro,
+Charlotte Soneson,
+Koen Van den Berge.
 
 # Session info
 

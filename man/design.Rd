@@ -6,11 +6,14 @@
 \alias{design,DESeqDataSet-method}
 \alias{design<-,DESeqDataSet,formula-method}
 \alias{design}
+\alias{design}
 \title{Accessors for the 'design' slot of a DESeqDataSet object.}
 \usage{
 \S4method{design}{DESeqDataSet}(object)
 
 \S4method{design}{DESeqDataSet,formula}(object) <- value
+
+\S4method{design}{DESeqDataSet,matrix}(object) <- value
 }
 \arguments{
 \item{object}{a \code{DESeqDataSet} object}

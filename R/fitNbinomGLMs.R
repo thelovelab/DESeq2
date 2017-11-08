@@ -28,7 +28,7 @@
 # errors on the log2 scale
 fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lambda,
                           renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=TRUE,
-                          useQR=TRUE, forceOptim=FALSE, warnNonposVar=TRUE) {
+                          useQR=TRUE, forceOptim=FALSE, warnNonposVar=TRUE, minmu=0.5) {
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
@@ -152,7 +152,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
                             weightsSEXP = weights,
                             useWeightsSEXP = useWeights,
                             tolSEXP = betaTol, maxitSEXP = maxit,
-                            useQRSEXP=useQR)
+                            useQRSEXP=useQR, minmuSEXP=minmu)
 
   # Note on deviance: the 'deviance' calculated in fitBeta() (C++)
   # is not returned in mcols(object)$deviance. instead, we calculate
@@ -201,7 +201,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
                                    weights,useWeights,
                                    betaMatrix,betaSE,betaConv,
                                    beta_mat,
-                                   mu,logLike)
+                                   mu,logLike,minmu=minmu)
     betaMatrix <- resOptim$betaMatrix
     betaSE <- resOptim$betaSE
     betaConv <- resOptim$betaConv
@@ -222,7 +222,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
 # 1 - without the beta prior, in order to calculate the
 #     beta prior variance and hat matrix
 # 2 - again but with the prior in order to get beta matrix and standard errors
-fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorVar) {
+fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorVar, minmu=0.5) {
   
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   modelMatrixType <- attr(object, "modelMatrixType")
@@ -234,7 +234,8 @@ fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorV
     fit <- fitNbinomGLMs(objectNZ,
                          betaTol=betaTol, maxit=maxit,
                          useOptim=useOptim, useQR=useQR,
-                         renameCols = (modelMatrixType == "standard"))
+                         renameCols = (modelMatrixType == "standard"),
+                         minmu=minmu)
     modelMatrix <- fit$modelMatrix
     modelMatrixNames <- colnames(modelMatrix)
     H <- fit$hat_diagonal
@@ -288,14 +289,16 @@ fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorV
   if (modelMatrixType == "standard") {
     fit <- fitNbinomGLMs(objectNZ, lambda=lambda,
                          betaTol=betaTol, maxit=maxit,
-                         useOptim=useOptim, useQR=useQR)
+                         useOptim=useOptim, useQR=useQR,
+                         minmu=minmu)
     modelMatrix <- fit$modelMatrix
   } else {
     modelMatrix <- makeExpandedModelMatrix(objectNZ)
     fit <- fitNbinomGLMs(objectNZ, lambda=lambda,
                          betaTol=betaTol, maxit=maxit,
                          useOptim=useOptim, useQR=useQR,
-                         modelMatrix=modelMatrix, renameCols=FALSE)
+                         modelMatrix=modelMatrix, renameCols=FALSE,
+                         minmu=minmu)
   }
 
   res <- list(fit=fit, H=H, betaPriorVar=betaPriorVar, mu=mu,
@@ -310,7 +313,7 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
                                weights,useWeights,
                                betaMatrix,betaSE,betaConv,
                                beta_mat,
-                               mu,logLike) {
+                               mu,logLike,minmu=0.5) {
   x <- modelMatrix
   lambdaNatLogScale <- lambda / log(2)^2
   large <- 30
@@ -351,7 +354,6 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     mu_row <- as.numeric(nf * 2^(x %*% o$par))
     # store the new mu vector
     mu[row,] <- mu_row
-    minmu <- 0.5
     mu_row[mu_row < minmu] <- minmu
     w <- if (useWeights) {
            diag((mu_row^-1 + alpha)^-1)

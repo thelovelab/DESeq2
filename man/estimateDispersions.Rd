@@ -7,7 +7,8 @@
 \title{Estimate the dispersions for a DESeqDataSet}
 \usage{
 \S4method{estimateDispersions}{DESeqDataSet}(object, fitType = c("parametric",
-  "local", "mean"), maxit = 100, quiet = FALSE, modelMatrix = NULL)
+  "local", "mean"), maxit = 100, quiet = FALSE, modelMatrix = NULL,
+  minmu = 0.5)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -33,6 +34,8 @@ for the type of fitting of dispersions to the mean intensity.
 
 \item{modelMatrix}{an optional matrix which will be used for fitting the expected counts.
 by default, the model matrix is constructed from \code{design(object)}}
+
+\item{minmu}{lower bound on the estimated count for fitting gene-wise dispersion}
 }
 \value{
 The DESeqDataSet passed as parameters, with the dispersion information

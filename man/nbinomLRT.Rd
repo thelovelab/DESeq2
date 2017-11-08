@@ -5,7 +5,8 @@
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
 nbinomLRT(object, full = design(object), reduced, betaTol = 1e-08,
-  maxit = 100, useOptim = TRUE, quiet = FALSE, useQR = TRUE)
+  maxit = 100, useOptim = TRUE, quiet = FALSE, useQR = TRUE,
+  minmu = 0.5)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -30,6 +31,8 @@ converge within maxit}
 
 \item{useQR}{whether to use the QR decomposition on the design
 matrix X while fitting the GLM}
+
+\item{minmu}{lower bound on the estimated count while fitting the GLM}
 }
 \value{
 a DESeqDataSet with new results columns accessible

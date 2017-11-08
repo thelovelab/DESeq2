@@ -90,7 +90,7 @@ fitDispGridWrapper <- function(y, x, mu, logAlphaPriorMean, logAlphaPriorSigmaSq
 # Note: at this level the betas are on the natural log scale
 fitBetaWrapper <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
                             beta_matSEXP, lambdaSEXP, weightsSEXP, useWeightsSEXP,
-                            tolSEXP, maxitSEXP, useQRSEXP) {
+                            tolSEXP, maxitSEXP, useQRSEXP, minmuSEXP) {
   if ( missing(contrastSEXP) ) {
     # contrast is not required, just give 1,0,0,...
     contrastSEXP <- c(1,rep(0,ncol(xSEXP)-1))
@@ -104,5 +104,5 @@ fitBetaWrapper <- function (ySEXP, xSEXP, nfSEXP, alpha_hatSEXP, contrastSEXP,
   fitBeta(ySEXP=ySEXP, xSEXP=xSEXP, nfSEXP=nfSEXP, alpha_hatSEXP=alpha_hatSEXP,
           contrastSEXP=contrastSEXP, beta_matSEXP=beta_matSEXP,
           lambdaSEXP=lambdaSEXP, weightsSEXP=weightsSEXP, useWeightsSEXP=useWeightsSEXP,
-          tolSEXP=tolSEXP, maxitSEXP=maxitSEXP, useQRSEXP=useQRSEXP)
+          tolSEXP=tolSEXP, maxitSEXP=maxitSEXP, useQRSEXP=useQRSEXP, minmuSEXP=minmuSEXP)
 }

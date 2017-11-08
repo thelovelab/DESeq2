@@ -13,7 +13,8 @@ results(object, contrast, name, lfcThreshold = 0,
   listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
   alpha = 0.1, filter, theta, pAdjustMethod = "BH", filterFun,
   format = c("DataFrame", "GRanges", "GRangesList"), test, addMLE = FALSE,
-  tidy = FALSE, parallel = FALSE, BPPARAM = bpparam(), bpx = 1)
+  tidy = FALSE, parallel = FALSE, BPPARAM = bpparam(), bpx = 1,
+  minmu = 0.5)
 
 resultsNames(object)
 
@@ -143,6 +144,8 @@ If not specified, the parameters last registered with
 
 \item{bpx}{the number of dataset chunks to create for BiocParallel
 will be \code{bpx} times the number of workers}
+
+\item{minmu}{lower bound on the estimated count (used when calculating contrasts)}
 }
 \value{
 For \code{results}: a \code{\link{DESeqResults}} object, which is

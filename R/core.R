@@ -1098,6 +1098,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' @param df the degrees of freedom for the t-distribution
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
+#' @param minmu lower bound on the estimated count while fitting the GLM
 #'
 #' @return a DESeqDataSet with results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -1118,7 +1119,7 @@ nbinomWaldTest <- function(object,
                            betaPrior=FALSE, betaPriorVar,
                            modelMatrix=NULL, modelMatrixType,
                            betaTol=1e-8, maxit=100, useOptim=TRUE, quiet=FALSE,
-                           useT=FALSE, df, useQR=TRUE) {
+                           useT=FALSE, df, useQR=TRUE, minmu=0.5) {
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
@@ -1188,7 +1189,8 @@ nbinomWaldTest <- function(object,
     fit <- fitNbinomGLMs(objectNZ,
                          betaTol=betaTol, maxit=maxit,
                          useOptim=useOptim, useQR=useQR,
-                         renameCols=renameCols, modelMatrix=modelMatrix)
+                         renameCols=renameCols, modelMatrix=modelMatrix,
+                         minmu=minmu)
     H <- fit$hat_diagonals
     mu <- fit$mu
     modelMatrix <- fit$modelMatrix
@@ -1199,7 +1201,8 @@ nbinomWaldTest <- function(object,
     priorFitList <- fitGLMsWithPrior(object=object,
                                      betaTol=betaTol, maxit=maxit,
                                      useOptim=useOptim, useQR=useQR,
-                                     betaPriorVar=betaPriorVar)
+                                     betaPriorVar=betaPriorVar,
+                                     minmu=minmu)
     fit <- priorFitList$fit
     H <- priorFitList$H
     mu <- priorFitList$mu
@@ -1499,7 +1502,8 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @param quiet whether to print messages at each step
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
-#'
+#' @param minmu lower bound on the estimated count while fitting the GLM
+#' 
 #' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
 #' reported on a log2 scale.
@@ -1517,7 +1521,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
                       betaTol=1e-8, maxit=100, useOptim=TRUE, quiet=FALSE,
-                      useQR=TRUE) {
+                      useQR=TRUE, minmu=0.5) {
 
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
@@ -1581,24 +1585,24 @@ nbinomLRT <- function(object, full=design(object), reduced,
                                renameCols=renameCols,
                                betaTol=betaTol, maxit=maxit,
                                useOptim=useOptim, useQR=useQR,
-                               warnNonposVar=FALSE)
+                               warnNonposVar=FALSE, minmu=minmu)
     modelMatrix <- fullModel$modelMatrix
     reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced,
                                   betaTol=betaTol, maxit=maxit,
                                   useOptim=useOptim, useQR=useQR,
-                                  warnNonposVar=FALSE)
+                                  warnNonposVar=FALSE, minmu=minmu)
   } else {
     fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
                                renameCols=FALSE,
                                betaTol=betaTol, maxit=maxit,
                                useOptim=useOptim, useQR=useQR,
-                               warnNonposVar=FALSE)
+                               warnNonposVar=FALSE, minmu=minmu)
     modelMatrix <- full
     reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
                                   renameCols=FALSE,
                                   betaTol=betaTol, maxit=maxit,
                                   useOptim=useOptim, useQR=useQR,
-                                  warnNonposVar=FALSE)
+                                  warnNonposVar=FALSE, minmu=minmu)
   }
   betaPriorVar <- rep(1e6, ncol(modelMatrix))
   

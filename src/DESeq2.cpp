@@ -2,14 +2,14 @@
  * DESeq2 C++ functions
  * 
  * Author: Michael I. Love
- * Last modified: February 22, 2017
+ * Last modified: November 8, 2017
  * License: LGPL (>= 3)
  *
  * Note: The canonical, up-to-date DESeq2.cpp lives in 
  * the DESeq2 library, the development branch of which 
  * can be viewed here: 
  *
- * https://github.com/Bioconductor-mirror/DESeq2/blob/master/src/DESeq2.cpp
+ * https://github.com/mikelove/DESeq2/blob/master/src/DESeq2.cpp
  */
 
 // include RcppArmadillo and Rcpp
@@ -242,7 +242,7 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
 // note: the betas are on the natural log scale
 //
 // [[Rcpp::export]]
-Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP) {
+Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP, SEXP minmuSEXP) {
   arma::mat y = Rcpp::as<arma::mat>(ySEXP);
   arma::mat nf = Rcpp::as<arma::mat>(nfSEXP);
   arma::mat x = Rcpp::as<arma::mat>(xSEXP);
@@ -272,11 +272,11 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
   // deviance, convergence and tolerance
   double dev, dev_old, conv_test;
   double tol = Rcpp::as<double>(tolSEXP);
+  // bound the estimated count, as weights include 1/mu
+  double minmu = Rcpp::as<double>(minmuSEXP);
   double large = 30.0;
   Rcpp::NumericVector iter(y_n);
   Rcpp::NumericVector deviance(y_n);
-  // bound the estimated count, as weights include 1/mu
-  double minmu = 0.5;
   for (int i = 0; i < y_n; i++) {
     Rcpp::checkUserInterrupt();
     nfrow = nf.row(i).t();

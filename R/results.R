@@ -184,6 +184,7 @@
 #' \code{\link{register}} will be used.
 #' @param bpx the number of dataset chunks to create for BiocParallel
 #' will be \code{bpx} times the number of workers
+#' @param minmu lower bound on the estimated count (used when calculating contrasts)
 #' 
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
 #' a simple subclass of DataFrame. This object contains the results columns:
@@ -297,7 +298,8 @@ results <- function(object, contrast, name,
                     test, 
                     addMLE=FALSE,
                     tidy=FALSE,
-                    parallel=FALSE, BPPARAM=bpparam(), bpx=1) {
+                    parallel=FALSE, BPPARAM=bpparam(), bpx=1,
+                    minmu=0.5) {
   
   # match args
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
@@ -391,14 +393,16 @@ of length 3 to 'contrast' instead of using 'name'")
     # then this is multiplied by the numeric contrast to get the Wald statistic.
     # with 100s of samples, this can get slow, so offer parallelization
     if (!parallel) {
-      res <- cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues, test=test)
+      res <- cleanContrast(object, contrast, expanded=isExpanded, listValues=listValues,
+                           test=test, minmu=minmu)
     } else if (parallel) {
       # parallel execution
       nworkers <- BPPARAM$workers
       idx <- factor(sort(rep(seq_len(bpx*nworkers),length=nrow(object))))
       res <- do.call(rbind, bplapply(levels(idx), function(l) {
         cleanContrast(object[idx == l,,drop=FALSE], contrast,
-                      expanded=isExpanded, listValues=listValues, test=test)
+                      expanded=isExpanded, listValues=listValues,
+                      test=test, minmu=minmu)
       }, BPPARAM=BPPARAM))
     }
 
@@ -653,7 +657,7 @@ pvalueAdjustment <- function(res, independentFiltering, filter,
 # c' beta / sqrt( c' sigma c)
 # where beta is the coefficient vector
 # and sigma is the covariance matrix for beta
-getContrast <- function(object, contrast, useT=FALSE, df) {
+getContrast <- function(object, contrast, useT=FALSE, df, minmu) {
   if (missing(contrast)) {
     stop("must provide a contrast")
   }
@@ -699,7 +703,8 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
                      weightsSEXP = weights,
                      useWeightsSEXP = useWeights,
                      tolSEXP = 1e-8, maxitSEXP = 0,
-                     useQRSEXP=FALSE) # QR not relevant, fitting loop isn't entered
+                     useQRSEXP=FALSE, # QR not relevant, fitting loop isn't entered
+                     minmuSEXP=minmu)
   # convert back to log2 scale
   contrastEstimate <- log2(exp(1)) * betaRes$contrast_num
   contrastSE <- log2(exp(1)) * betaRes$contrast_denom
@@ -723,7 +728,7 @@ getContrast <- function(object, contrast, useT=FALSE, df) {
 # this function takes a desired contrast as specified by results(),
 # performs checks, and then either returns the already existing contrast
 # or generates the contrast by calling getContrast() using a numeric vector
-cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
+cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test, minmu) {
   # get the names of columns in the beta matrix
   resNames <- resultsNames(object)
   # if possible, return pre-computed columns, which are
@@ -888,7 +893,7 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test) {
     }
 
     # now get the contrast
-    contrastResults <- getContrast(object, contrast, useT=FALSE, df)
+    contrastResults <- getContrast(object, contrast, useT=FALSE, df, minmu)
     lfcType <- if (attr(object,"betaPrior")) "MAP" else "MLE"
     contrastDescriptions <- paste(c(paste0("log2 fold change (",lfcType,"):"),
                                     "standard error:",

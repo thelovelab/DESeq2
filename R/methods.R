@@ -95,20 +95,26 @@ design.DESeqDataSet <- function(object) object@design
 #' @export
 setMethod("design", signature(object="DESeqDataSet"), design.DESeqDataSet)
 
+design.replace <- function( object, value ) {
+  # Temporary hack for backward compatibility with "old"
+  # DESeqDataSet objects. Remove once all serialized
+  # DESeqDataSet objects around have been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
+  object@design <- value
+  validObject(object)
+  object
+}
+
 #' @name design
 #' @rdname design
 #' @exportMethod "design<-"
-setReplaceMethod("design", signature(object="DESeqDataSet", value="ANY"),
-                 function( object, value ) {
-                   # Temporary hack for backward compatibility with "old"
-                   # DESeqDataSet objects. Remove once all serialized
-                   # DESeqDataSet objects around have been updated.
-                   if (!.hasSlot(object, "rowRanges"))
-                       object <- updateObject(object)
-                   object@design <- value
-                   validObject(object)
-                   object
-                 })
+setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"), design.replace)
+
+#' @name design
+#' @rdname design
+#' @exportMethod "design<-"
+setReplaceMethod("design", signature(object="DESeqDataSet", value="matrix"), design.replace)
 
 dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 
@@ -507,7 +513,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
           estimateSizeFactors.DESeqDataSet)
 
 estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
-                                             maxit=100, quiet=FALSE, modelMatrix=NULL) {
+                                             maxit=100, quiet=FALSE, modelMatrix=NULL, minmu=0.5) {
   # Temporary hack for backward compatibility with "old" DESeqDataSet
   # objects. Remove once all serialized DESeqDataSet objects around have
   # been updated.
@@ -544,7 +550,8 @@ this column could have come in during colData import and should be removed.")
   }
   
   if (!quiet) message("gene-wise dispersion estimates")
-  object <- estimateDispersionsGeneEst(object, maxit=maxit, quiet=quiet, modelMatrix=modelMatrix)
+  object <- estimateDispersionsGeneEst(object, maxit=maxit, quiet=quiet,
+                                       modelMatrix=modelMatrix, minmu=minmu)
   if (!quiet) message("mean-dispersion relationship")
   object <- estimateDispersionsFit(object, fitType=fitType, quiet=quiet)
   if (!quiet) message("final dispersion estimates")
@@ -648,6 +655,7 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #' @param quiet whether to print messages at each step
 #' @param modelMatrix an optional matrix which will be used for fitting the expected counts.
 #' by default, the model matrix is constructed from \code{design(object)}
+#' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
 #'
 #' @return The DESeqDataSet passed as parameters, with the dispersion information
 #' filled in as metadata columns, accessible via \code{mcols}, or the final dispersions
