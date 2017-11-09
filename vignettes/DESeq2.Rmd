@@ -2042,7 +2042,7 @@ version *DESeq*, are as follows:
 
 ## Methods changes since the 2014 DESeq2 paper
 
-* In version 1.18 (November 2018), we add two 
+* In version 1.18 (November 2017), we add two 
   [alternative shrinkage estimators](#alternative-shrinkage-estimators),
   which can be used via `lfcShrink`: an estimator using a t prior from
   the apeglm packages, and an estimator with a fitted mixture of
