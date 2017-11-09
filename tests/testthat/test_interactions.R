@@ -5,6 +5,7 @@ test_that("interactions throw error", {
   design(dds) <- ~ condition + group + condition:group
   dds <- DESeq(dds)
   expect_equal(resultsNames(dds)[4], "conditionB.groupY")
+
   # interactions error
   expect_error(DESeq(dds, betaPrior=TRUE), "designs with interactions")
 

@@ -64,5 +64,7 @@ test_that("LFC shrinkage works", {
   dds <- DESeq(dds, full=full)
   res <- results(dds)
   res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
+
+  # TODO test shrinking 'full'=matrix with type="normal"
   
 })  

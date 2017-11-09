@@ -23,8 +23,8 @@
 #' \code{lfcThreshold} argument which can be passed to apeglm
 #' to specify regions of the posterior at an arbitrary threshold.
 #'
-#' For \code{type="normal"}, shrinkage cannot be applied to coefficients
-#' in a model with interaction terms.
+#' For \code{type="normal"}, shrinkage using \code{contrast} cannot be applied
+#' to coefficients in a model with interaction terms.
 #' 
 #' @param dds a DESeqDataSet object, after running \code{\link{DESeq}}
 #' @param coef the name or number of the coefficient (LFC) to shrink,
@@ -132,12 +132,22 @@ lfcShrink <- function(dds, coef, contrast, res,
     ############
     ## normal ##
     ############
-    
-    termsOrder <- attr(terms.formula(design(dds)),"order")
-    interactionPresent <- any(termsOrder > 1)
-    if (interactionPresent) {
-      stop("LFC shrinkage type='normal' not implemented for designs with interactions")
+
+    if (is(design(dds), "formula")) {
+      termsOrder <- attr(terms.formula(design(dds)),"order")
+      interactionPresent <- any(termsOrder > 1)
+      if (interactionPresent) {
+        stop("LFC shrinkage type='normal' not implemented for designs with interactions")
+      }
+      modelMatrix <- NULL
+    } else if (is(design(dds), "matrix")) {
+      # TODO should another test be here, e.g. when 'full' was a matrix?
+      if (!missing(contrast)) {
+        stop("user-supplied design matrix supports shrinkage only with 'coef'")
+      }
+      modelMatrix <- design(dds)
     }
+    
     stopifnot(missing(coef) | missing(contrast))
     # find and rename the MLE columns for estimateBetaPriorVar
     betaCols <- grep("log2 fold change \\(MLE\\)", mcols(mcols(dds))$description)
@@ -158,6 +168,7 @@ lfcShrink <- function(dds, coef, contrast, res,
       dds.shr <- nbinomWaldTest(dds,
                                 betaPrior=TRUE,
                                 betaPriorVar=betaPriorVar,
+                                modelMatrix=modelMatrix,
                                 modelMatrixType=modelMatrixType,
                                 quiet=TRUE)
     } else {
@@ -165,6 +176,7 @@ lfcShrink <- function(dds, coef, contrast, res,
         nbinomWaldTest(dds[parallelIdx == l,,drop=FALSE],
                        betaPrior=TRUE,
                        betaPriorVar=betaPriorVar,
+                       modelMatrix=modelMatrix,
                        modelMatrixType=modelMatrixType,
                        quiet=TRUE)
       }, BPPARAM=BPPARAM))

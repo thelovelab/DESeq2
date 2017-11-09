@@ -354,20 +354,22 @@ of length 3 to 'contrast' instead of using 'name'")
     }
   }
 
-  hasIntercept <- attr(terms(design(object)),"intercept") == 1
-  isExpanded <- attr(object, "modelMatrixType") == "expanded"
-  termsOrder <- attr(terms.formula(design(object)),"order")
-
-  # if neither 'contrast' nor 'name' were specified, create the default result table:
-  # the last level / first level for the last variable in design.
-  # (unless there are interactions, in which case the lastCoefName is pulled below)
-  if ((test == "Wald") & (isExpanded | !hasIntercept) & missing(contrast) & missing(name) & all(termsOrder < 2)) {
-    designVars <- all.vars(design(object))
-    lastVarName <- designVars[length(designVars)]
-    lastVar <- colData(object)[[lastVarName]]
-    if (is.factor(lastVar)) {
-      nlvls <- nlevels(lastVar)
-      contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
+  if (is(design(object), "formula")) {
+    hasIntercept <- attr(terms(design(object)),"intercept") == 1
+    isExpanded <- attr(object, "modelMatrixType") == "expanded"
+    termsOrder <- attr(terms.formula(design(object)),"order")
+    # if no intercept was used or an expanded model matrix was used, 
+    # and neither 'contrast' nor 'name' were specified,
+    # and no interactions...
+    # then we create the result table: last / first level for last variable
+    if ((test == "Wald") & (isExpanded | !hasIntercept) & missing(contrast) & missing(name) & all(termsOrder < 2)) {
+      designVars <- all.vars(design(object))
+      lastVarName <- designVars[length(designVars)]
+      lastVar <- colData(object)[[lastVarName]]
+      if (is.factor(lastVar)) {
+        nlvls <- nlevels(lastVar)
+        contrast <- c(lastVarName, levels(lastVar)[nlvls], levels(lastVar)[1])
+      }
     }
   }
   

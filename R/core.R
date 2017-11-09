@@ -1370,7 +1370,11 @@ estimateBetaPriorVar <- function(object,
   colnames(betaMatrix) <- colnamesBM
   
   # this is the model matrix from an MLE run
-  modelMatrix <- getModelMatrix(object)
+  if (is(design(object),"formula")) {
+    modelMatrix <- getModelMatrix(object)
+  } else if (is(design(object),"matrix")) {
+    modelMatrix <- design(object)
+  }
 
   modelMatrixType <- attr(object, "modelMatrixType")
   
