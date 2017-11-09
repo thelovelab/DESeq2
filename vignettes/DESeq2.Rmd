@@ -2495,6 +2495,7 @@ Paul Gordon,
 Leonardo Collado Torres,
 Enrico Ferrero,
 Peter Langfelder,
+Gavin Kelly,
 Rob Patro,
 Charlotte Soneson,
 Koen Van den Berge.
