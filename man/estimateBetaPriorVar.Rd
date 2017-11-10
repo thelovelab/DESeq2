@@ -7,7 +7,7 @@
 \title{Steps for estimating the beta prior variance}
 \usage{
 estimateBetaPriorVar(object, betaPriorMethod = c("weighted", "quantile"),
-  upperQuantile = 0.05)
+  upperQuantile = 0.05, modelMatrix = NULL)
 
 estimateMLEForBetaPriorVar(object, maxit = 100, useOptim = TRUE,
   useQR = TRUE, modelMatrixType = NULL)
@@ -22,6 +22,9 @@ either "quanitle" or "weighted":
 
 \item{upperQuantile}{the upper quantile to be used for the
 "quantile" or "weighted" method of beta prior variance estimation}
+
+\item{modelMatrix}{an optional matrix, typically this is set to NULL
+and created within the function}
 
 \item{maxit}{as defined in \code{link{nbinomWaldTest}}}
 

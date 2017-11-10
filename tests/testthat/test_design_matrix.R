@@ -11,16 +11,18 @@ test_that("design can be a matrix", {
   resultsNames(dds)
   
   # specifying 'full' overrides...
-  dds <- DESeq(dds, full=dm2, fitType="mean")
-  resultsNames(dds)
+  dds2 <- DESeq(dds, full=dm2, fitType="mean")
+  resultsNames(dds2)
 
+  dds <- DESeqDataSetFromMatrix(m, coldata, dm2)
+  dds <- DESeq(dds, fitType="mean")
+  
   res <- results(dds)
   res <- results(dds, contrast=list("condition2","batch2"))
   res <- results(dds, contrast=c(0,-1,1))
   expect_error(res <- results(dds, contrast=c("condition","2","1")), "only list- and numeric-type")
 
-  # TODO make this work with type="normal"
-  #res <- lfcShrink(dds, coef="condition2", type="normal")
+  res <- lfcShrink(dds, coef="condition2", type="normal")
   res <- lfcShrink(dds, coef="condition2", type="apeglm")
   res <- lfcShrink(dds, coef="condition2", type="ashr")
   

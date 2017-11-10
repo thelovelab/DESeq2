@@ -222,13 +222,18 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
 # 1 - without the beta prior, in order to calculate the
 #     beta prior variance and hat matrix
 # 2 - again but with the prior in order to get beta matrix and standard errors
-fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorVar, minmu=0.5) {
+fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorVar, modelMatrix=NULL, minmu=0.5) {
   
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   modelMatrixType <- attr(object, "modelMatrixType")
 
   if (missing(betaPriorVar) | !(all(c("mu","H") %in% assayNames(objectNZ)))) {
-    # first, fit the negative binomial GLM without a prior,
+
+    # stop unless modelMatrix was NOT supplied, the code below all works
+    # by building model matrices using the formula, doesn't work with incoming model matrices
+    stopifnot(is.null(modelMatrix))
+    
+    # fit the negative binomial GLM without a prior,
     # used to construct the prior variances
     # and for the hat matrix diagonals for calculating Cook's distance
     fit <- fitNbinomGLMs(objectNZ,
@@ -259,14 +264,16 @@ fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorV
   } else {
     # we can skip the first MLE fit because the
     # beta prior variance and hat matrix diagonals were provided
-    modelMatrix <- getModelMatrix(object)
+    if (is.null(modelMatrix)) {
+      modelMatrix <- getModelMatrix(object)
+    }
     H <- assays(objectNZ)[["H"]]
     mu <- assays(objectNZ)[["mu"]]
     mleBetaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_",names(mcols(objectNZ))),drop=FALSE])
   }
      
   if (missing(betaPriorVar)) {
-    betaPriorVar <- estimateBetaPriorVar(objectNZ)
+    betaPriorVar <- estimateBetaPriorVar(objectNZ, modelMatrix=modelMatrix)
   } else {
     # else we are provided the prior variance:
     # check if the lambda is the correct length
@@ -292,8 +299,14 @@ fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorV
                          useOptim=useOptim, useQR=useQR,
                          minmu=minmu)
     modelMatrix <- fit$modelMatrix
-  } else {
+  } else if (modelMatrixType == "expanded") {
     modelMatrix <- makeExpandedModelMatrix(objectNZ)
+    fit <- fitNbinomGLMs(objectNZ, lambda=lambda,
+                         betaTol=betaTol, maxit=maxit,
+                         useOptim=useOptim, useQR=useQR,
+                         modelMatrix=modelMatrix, renameCols=FALSE,
+                         minmu=minmu)
+  } else if (modelMatrixType == "user-supplied") {
     fit <- fitNbinomGLMs(objectNZ, lambda=lambda,
                          betaTol=betaTol, maxit=maxit,
                          useOptim=useOptim, useQR=useQR,

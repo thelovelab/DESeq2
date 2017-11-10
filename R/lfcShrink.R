@@ -23,8 +23,9 @@
 #' \code{lfcThreshold} argument which can be passed to apeglm
 #' to specify regions of the posterior at an arbitrary threshold.
 #'
-#' For \code{type="normal"}, shrinkage using \code{contrast} cannot be applied
-#' to coefficients in a model with interaction terms.
+#' For \code{type="normal"}, and design as a formula, shrinkage cannot be applied
+#' to coefficients in a model with interaction terms. For \code{type="normal"}
+#' and user-supplied model matrices, shrinkage is only supported via \code{coef}.
 #' 
 #' @param dds a DESeqDataSet object, after running \code{\link{DESeq}}
 #' @param coef the name or number of the coefficient (LFC) to shrink,
@@ -137,14 +138,24 @@ lfcShrink <- function(dds, coef, contrast, res,
     ############
 
     if (is(design(dds), "formula")) {
-      termsOrder <- attr(terms.formula(design(dds)),"order")
-      interactionPresent <- any(termsOrder > 1)
-      if (interactionPresent) {
-        stop("LFC shrinkage type='normal' not implemented for designs with interactions")
+      if (attr(dds, "modelMatrixType") == "user-supplied") {
+        # if 'full' was used, the model matrix should be stored here
+        # TODO... better one day to harmonize these two locations:
+        # 1) provided by 'full' and stashed in attr(dds, "modelMatrix")
+        # 2) design(dds)
+        if (!missing(contrast)) {
+          stop("user-supplied design matrix supports shrinkage only with 'coef'")
+        }
+        modelMatrix <- attr(dds, "modelMatrix")
+      } else {
+        termsOrder <- attr(terms.formula(design(dds)),"order")
+        interactionPresent <- any(termsOrder > 1)
+        if (interactionPresent) {
+          stop("LFC shrinkage type='normal' not implemented for designs with interactions")
+        }
+        modelMatrix <- NULL
       }
-      modelMatrix <- NULL
     } else if (is(design(dds), "matrix")) {
-      # TODO should another test be here, e.g. when 'full' was a matrix?
       if (!missing(contrast)) {
         stop("user-supplied design matrix supports shrinkage only with 'coef'")
       }
@@ -164,7 +175,7 @@ lfcShrink <- function(dds, coef, contrast, res,
       modelMatrixType <- "expanded"
     }
     attr(dds,"modelMatrixType") <- modelMatrixType
-    betaPriorVar <- estimateBetaPriorVar(dds)
+    betaPriorVar <- estimateBetaPriorVar(dds, modelMatrix=modelMatrix)
     stopifnot(length(betaPriorVar) > 0)
     # parallel fork
     if (!parallel) {

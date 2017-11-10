@@ -20,7 +20,7 @@ betaPriorVar gives the variance of the prior on the sample betas
 on the log2 scale. if missing (default) this is estimated from the data}
 
 \item{modelMatrix}{an optional matrix, typically this is set to NULL
-and created within the function. only can be supplied if betaPrior=FALSE}
+and created within the function}
 
 \item{modelMatrixType}{either "standard" or "expanded", which describe
 how the model matrix, X of the formula in \code{\link{DESeq}}, is

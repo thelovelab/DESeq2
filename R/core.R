@@ -597,14 +597,14 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
   if (is.null(modelMatrix)) {
     modelMatrix <- getModelMatrix(object) 
-    checkFullRank(modelMatrix)
-    if (nrow(modelMatrix) == ncol(modelMatrix)) {
-      stop("the number of samples and the number of model coefficients are equal,
+  } else {
+    if (!quiet) message("using supplied model matrix")    
+  }
+  checkFullRank(modelMatrix)
+  if (nrow(modelMatrix) == ncol(modelMatrix)) {
+    stop("the number of samples and the number of model coefficients are equal,
   i.e., there are no replicates to estimate the dispersion.
   use an alternate design formula")
-    }
-  } else {
-    if (!quiet) message("using supplied model matrix")
   }
   
   object <- getBaseMeansAndVariances(object)
@@ -1078,7 +1078,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' betaPriorVar gives the variance of the prior on the sample betas
 #' on the log2 scale. if missing (default) this is estimated from the data
 #' @param modelMatrix an optional matrix, typically this is set to NULL
-#' and created within the function. only can be supplied if betaPrior=FALSE
+#' and created within the function
 #' @param modelMatrixType either "standard" or "expanded", which describe
 #' how the model matrix, X of the formula in \code{\link{DESeq}}, is
 #' formed. "standard" is as created by \code{model.matrix} using the
@@ -1171,11 +1171,12 @@ nbinomWaldTest <- function(object,
     hasIntercept <- attr(terms(design(object)),"intercept") == 1
     renameCols <- hasIntercept
   } else {
-    # model matrix was provided...
+    # modelMatrix is not NULL, user-supplied
     if (missing(betaPrior)) {
       betaPrior <- FALSE
-    } else {
-      if (betaPrior) stop("the model matrix can only be user-supplied if betaPrior=FALSE")
+    }
+    if (betaPrior) {
+      if (missing(betaPriorVar)) stop("user-supplied model matrix with betaPrior=TRUE requires supplying betaPriorVar")
     }
     if (!quiet) message("using supplied model matrix")
     modelAsFormula <- FALSE
@@ -1189,7 +1190,8 @@ nbinomWaldTest <- function(object,
     fit <- fitNbinomGLMs(objectNZ,
                          betaTol=betaTol, maxit=maxit,
                          useOptim=useOptim, useQR=useQR,
-                         renameCols=renameCols, modelMatrix=modelMatrix,
+                         renameCols=renameCols,
+                         modelMatrix=modelMatrix,
                          minmu=minmu)
     H <- fit$hat_diagonals
     mu <- fit$mu
@@ -1202,6 +1204,7 @@ nbinomWaldTest <- function(object,
                                      betaTol=betaTol, maxit=maxit,
                                      useOptim=useOptim, useQR=useQR,
                                      betaPriorVar=betaPriorVar,
+                                     modelMatrix=modelMatrix,
                                      minmu=minmu)
     fit <- priorFitList$fit
     H <- priorFitList$H
@@ -1215,11 +1218,14 @@ nbinomWaldTest <- function(object,
     mcols(object) <- mcols(object)[,grep("MLE_",names(mcols(object)),invert=TRUE)]
   }
 
-  # store mu in case the user did not call estimateDispersionsGeneEst
+  # store 'mu' and 'H', the hat matrix diagonals
   dimnames(mu) <- NULL
   assays(objectNZ)[["mu"]] <- mu
   assays(object)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
-
+  dimnames(H) <- NULL
+  assays(objectNZ)[["H"]] <- H
+  assays(object)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
+  
   # store the prior variance directly as an attribute
   # of the DESeqDataSet object, so it can be pulled later by
   # the results function (necessary for setting max Cook's distance)
@@ -1329,7 +1335,6 @@ nbinomWaldTest <- function(object,
 #' @param maxit as defined in \code{link{nbinomWaldTest}}
 #' @param useOptim as defined in \code{link{nbinomWaldTest}}
 #' @param useQR as defined in \code{link{nbinomWaldTest}}
-#'
 #' @param modelMatrixType an optional override for the type which is set internally
 #' 
 #' @param betaPriorMethod the method for calculating the beta prior variance,
@@ -1338,7 +1343,8 @@ nbinomWaldTest <- function(object,
 #' "weighted" matches a normal distribution using the upper quantile, but weighting by the variance of the MLE betas.
 #' @param upperQuantile the upper quantile to be used for the
 #' "quantile" or "weighted" method of beta prior variance estimation
-#'
+#' @param modelMatrix an optional matrix, typically this is set to NULL
+#' and created within the function
 #' 
 #' @return for \code{estimateMLEForBetaPriorVar}, a DESeqDataSet, with the
 #' necessary information stored in order to calculate the prior variance.
@@ -1350,7 +1356,8 @@ nbinomWaldTest <- function(object,
 #' @export
 estimateBetaPriorVar <- function(object, 
                                  betaPriorMethod=c("weighted","quantile"),
-                                 upperQuantile=0.05) {
+                                 upperQuantile=0.05,
+                                 modelMatrix=NULL) {
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
   betaMatrix <- as.matrix(mcols(objectNZ)[,grep("MLE_", names(mcols(object))),drop=FALSE])
@@ -1370,12 +1377,9 @@ estimateBetaPriorVar <- function(object,
   colnames(betaMatrix) <- colnamesBM
   
   # this is the model matrix from an MLE run
-  if (is(design(object),"formula")) {
+  if (is.null(modelMatrix)) {
     modelMatrix <- getModelMatrix(object)
-  } else if (is(design(object),"matrix")) {
-    modelMatrix <- design(object)
   }
-
   modelMatrixType <- attr(object, "modelMatrixType")
   
   betaPriorMethod <- match.arg(betaPriorMethod, choices=c("weighted","quantile"))
@@ -1421,6 +1425,12 @@ estimateBetaPriorVar <- function(object,
   # intercept set to wide prior
   if ("Intercept" %in% names(betaPriorVar)) {
     betaPriorVar[which(names(betaPriorVar) == "Intercept")] <- 1e6
+  }
+
+  # do the same for incoming model matrices
+  # where intercept may be named "(Intercept)" via model.matrix
+  if ("(Intercept)" %in% names(betaPriorVar)) {
+    betaPriorVar[which(names(betaPriorVar) == "(Intercept)")] <- 1e6
   }
   
   if (modelMatrixType == "expanded") {
@@ -2350,7 +2360,11 @@ and then provide your custom matrix to 'full' argument of DESeq.
 }
 
 getModelMatrix <- function(object) {
-  stats::model.matrix.default(design(object), data=as.data.frame(colData(object)))
+  if (is(design(object), "matrix")) {
+    design(object)
+  } else if (is(design(object), "formula")) {
+    stats::model.matrix.default(design(object), data=as.data.frame(colData(object)))
+  }
 }
 
 getAndCheckWeights <- function(object, modelMatrix) {

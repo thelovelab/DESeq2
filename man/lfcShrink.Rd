@@ -82,8 +82,9 @@ external packages will likely evolve over time. We will likely incorporate an
 \code{lfcThreshold} argument which can be passed to apeglm
 to specify regions of the posterior at an arbitrary threshold.
 
-For \code{type="normal"}, shrinkage using \code{contrast} cannot be applied
-to coefficients in a model with interaction terms.
+For \code{type="normal"}, and design as a formula, shrinkage cannot be applied
+to coefficients in a model with interaction terms. For \code{type="normal"}
+and user-supplied model matrices, shrinkage is only supported via \code{coef}.
 }
 \examples{
 
