@@ -274,7 +274,7 @@ lfcShrink <- function(dds, coef, contrast, res,
                        offset=offset[idx,,drop=FALSE], ...)
       })
       fit <- list()
-      for (param in c("map","se","fsr","svalue","interval","diag")) {
+      for (param in c("map","sd","fsr","svalue","interval","diag")) {
         fit[[param]] <- do.call(rbind, lapply(fitList, `[[`, param))
       }
       fit$prior.control <- fitList[[1]]$prior.control
@@ -286,7 +286,7 @@ lfcShrink <- function(dds, coef, contrast, res,
       message("Some rows did not converge in finding the MAP")
     }
     res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
-    res$lfcSE <- log2(exp(1)) * fit$se[,coefNum]
+    res$lfcSE <- log2(exp(1)) * fit$sd[,coefNum]
     mcols(res)$description[2] <- sub("MLE","MAP",mcols(res)$description[2])
     if (svalue) {
       coefAlphaSpaces <- gsub("_"," ",coefAlpha)
