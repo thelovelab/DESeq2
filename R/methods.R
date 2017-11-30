@@ -152,56 +152,62 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 setMethod("dispersionFunction", signature(object="DESeqDataSet"),
           dispersionFunction.DESeqDataSet)
 
+dispFun.replace <- function(object, value, estimateVar=TRUE) {
+  # Temporary hack for backward compatibility with "old"
+  # DESeqDataSet objects. Remove once all serialized
+  # DESeqDataSet objects around have been updated.
+  if (!.hasSlot(object, "rowRanges"))
+    object <- updateObject(object)
+
+  # the following will add 'dispFit' to mcols(object)
+
+  # first, check to see that we have 'baseMean' and 'allZero' columns
+  if (is.null(mcols(object)$baseMean) | is.null(mcols(object)$allZero)) {
+    object <- getBaseMeansAndVariances(object)
+  }
+  # warning about existing 'dispFit' data will be removed
+  if (!is.null(mcols(object)$dispFit)) {
+    message("found already estimated fitted dispersions, removing these")
+    mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit",drop=FALSE]
+  }
+  # now call the dispersionFunction on 'baseMean' to make 'dispFit'
+  nonzeroIdx <- !mcols(object)$allZero
+  dispFit <- value(mcols(object)$baseMean[nonzeroIdx])
+  # if the function returns a single value, build the full vector
+  if (length(dispFit) == 1) {
+    dispFit <- rep(dispFit, sum(nonzeroIdx))
+  }
+  dispDataFrame <- buildDataFrameWithNARows(list(dispFit=dispFit),
+                                            mcols(object)$allZero)
+  mcols(dispDataFrame) <- DataFrame(type="intermediate",
+                                    description="fitted values of dispersion")
+  mcols(object) <- cbind(mcols(object), dispDataFrame)
+
+  # estimate variance of log dispersion around the fit
+  if (estimateVar) {    
+    # need to estimate variance of log dispersion residuals
+    minDisp <- 1e-8
+    dispGeneEst <- mcols(object)$dispGeneEst[nonzeroIdx]
+    aboveMinDisp <- dispGeneEst >= minDisp*100
+    if (sum(aboveMinDisp,na.rm=TRUE) > 0) {
+      dispResiduals <- log(dispGeneEst) - log(dispFit)
+      varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
+      attr( value, "varLogDispEsts" ) <- varLogDispEsts
+    } else {
+      message("variance of dispersion residuals not estimated (necessary only for differential expression calling)")
+    }
+  }
+
+  # store the dispersion function
+  object@dispersionFunction <- value   
+  validObject(object)
+  object
+}
+
 #' @name dispersionFunction
 #' @rdname dispersionFunction
 #' @exportMethod "dispersionFunction<-"
-setReplaceMethod("dispersionFunction",
-                 signature(object="DESeqDataSet", value="function"),
-                 function(object, value, estimateVar=TRUE) {
-                   # Temporary hack for backward compatibility with "old"
-                   # DESeqDataSet objects. Remove once all serialized
-                   # DESeqDataSet objects around have been updated.
-                   if (!.hasSlot(object, "rowRanges"))
-                     object <- updateObject(object)
-                   if (estimateVar) {
-                     if (is.null(mcols(object)$baseMean) | is.null(mcols(object)$allZero)) {
-                       object <- getBaseMeansAndVariances(object)
-                     }
-
-                     if (!is.null(mcols(object)$dispFit)) {
-                       message("found already estimated fitted dispersions, removing these")
-                       mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit",drop=FALSE]
-                     }
-                     
-                     nonzeroIdx <- !mcols(object)$allZero
-                     dispFit <- value(mcols(object)$baseMean[nonzeroIdx])
-                     # if the function returns a single value, build the full vector
-                     if (length(dispFit) == 1) {
-                       dispFit <- rep(dispFit, sum(nonzeroIdx))
-                     }
-                     dispDataFrame <- buildDataFrameWithNARows(list(dispFit=dispFit),
-                                                               mcols(object)$allZero)
-                     mcols(dispDataFrame) <- DataFrame(type="intermediate",
-                                                       description="fitted values of dispersion")
-                     mcols(object) <- cbind(mcols(object), dispDataFrame)
-                     
-                     # need to estimate variance of log dispersion residuals
-                     minDisp <- 1e-8
-                     dispGeneEst <- mcols(object)$dispGeneEst[nonzeroIdx]
-                     aboveMinDisp <- dispGeneEst >= minDisp*100
-                     if (sum(aboveMinDisp,na.rm=TRUE) > 0) {
-                       dispResiduals <- log(dispGeneEst) - log(dispFit)
-                       varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
-                       attr( value, "varLogDispEsts" ) <- varLogDispEsts
-                     } else {
-                       message("variance of dispersion residuals not estimated (necessary only for differential expression calling)")
-                     }
-                   }
-                   
-                   object@dispersionFunction <- value   
-                   validObject(object)
-                   object
-                 })
+setReplaceMethod("dispersionFunction", signature(object="DESeqDataSet", value="function"), dispFun.replace)
 
 dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
 
