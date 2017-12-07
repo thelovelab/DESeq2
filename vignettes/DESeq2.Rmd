@@ -1261,10 +1261,10 @@ test, for example, if the log2 fold change attributable to a given
 condition is *different* based on another factor, for example if the
 condition effect differs across genotype.
 
+**Initial note:** 
 Many users begin to add interaction terms to the design formula, when
 in fact a much simpler approach would give all the results tables that
-are desired. We will explain this approach first, because it is much
-simpler to perform.
+are desired. We will explain this approach first, because it is much simpler to perform.
 If the comparisons of interest are, for example, the effect
 of a condition for different sets of samples, a simpler approach than
 adding interaction terms explicitly to the design formula is to
@@ -1290,7 +1290,8 @@ resultsNames(dds)
 results(dds, contrast=c("group", "IB", "IA"))
 ```
 
-The following two plots diagram hypothetical genotype-specific
+**Adding interactions to the design:** 
+The following two plots diagram genotype-specific
 condition effects, which could be modeled with interaction terms by
 using a design of `~genotype + condition + genotype:condition`.
 
