@@ -26,4 +26,17 @@ test_that("rlog works", {
   plotPCA(nt)
 
   rld <- rlog(counts(dds))
+
+  dds <- makeExampleDESeqDataSet(n=10, m=30)
+  dds <- estimateSizeFactors(dds)
+  dds <- estimateDispersions(dds)
+  # 10k genes, 30 samples => 50 s, 50 samples => 170 s
+  expect_message(rld <- rlog(dds, blind=FALSE), "few minutes")
+
+  dds <- makeExampleDESeqDataSet(n=10, m=50)
+  dds <- estimateSizeFactors(dds)
+  dds <- estimateDispersions(dds)
+  # 10k genes, 30 samples => 50 s, 50 samples => 170 s
+  expect_message(rld <- rlog(dds, blind=FALSE), "long time")
+  
 })

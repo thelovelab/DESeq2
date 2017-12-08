@@ -19,7 +19,11 @@
 #' incorporates knowledge of the variance-mean dependence. The rlog transformation
 #' and VST are offered as separate functionality which can be used for visualization,
 #' clustering or other machine learning tasks. See the transformation section of the
-#' vignette for more details.
+#' vignette for more details, including a statement on timing. If \code{rlog}
+#' is run on data with number of samples in [30-49] it will print a message
+#' that it may take a few minutes, if the number of samples is 50 or larger, it
+#' will print a message that it may take a "long time", and in both cases, it
+#' will mention that the \code{\link{vst}} is a much faster transformation.
 #'
 #' The transformation does not require that one has already estimated size factors
 #' and dispersions.
@@ -114,11 +118,18 @@
 #' intercept <- mcols(rld)$rlogIntercept
 #' rldNew <- rlog(ddsNew, blind=FALSE,
 #'                intercept=intercept,
-#'                betaPriorVar=betaPriorVar)
-#'                            
+#'                betaPriorVar=betaPriorVar)              
 #' 
 #' @export
 rlog <- function(object, blind=TRUE, intercept, betaPriorVar, fitType="parametric") {
+  n <- ncol(object)
+  if (n >= 30 & n < 50) {
+    message("rlog() may take a few minutes with 30 or more samples,
+vst() is a much faster transformation")
+  } else if (n >= 50) {
+    message("rlog() may take a long time with 50 or more samples,
+vst() is a much faster transformation")
+  }
   if (is.null(colnames(object))) {
     colnames(object) <- seq_len(ncol(object))
   }

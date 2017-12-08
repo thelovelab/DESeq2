@@ -247,9 +247,9 @@ Next we specify the path to the files using the appropriate columns of
 this dataset.
 
 ```{r txiFiles}
-files <- file.path(dir,"salmon", samples$run, "quant.sf")
+files <- file.path(dir,"salmon", samples$run, "quant.sf.gz")
 names(files) <- samples$run
-tx2gene <- read.csv(file.path(dir, "tx2gene.csv"))
+tx2gene <- read_csv(file.path(dir, "tx2gene.gencode.v27.csv"))
 ```
 
 We import the necessary quantification data for DESeq2 using the

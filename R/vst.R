@@ -164,10 +164,10 @@ getVarianceStabilizedData <- function(object) {
   ncounts <- counts(object, normalized=TRUE)
   if( attr( dispersionFunction(object), "fitType" ) == "parametric" ) {
     coefs <- attr( dispersionFunction(object), "coefficients" )
-    vst <- function( q ) {
+    vst.fn <- function( q ) {
       log( (1 + coefs["extraPois"] + 2 * coefs["asymptDisp"] * q + 2 * sqrt( coefs["asymptDisp"] * q * ( 1 + coefs["extraPois"] + coefs["asymptDisp"] * q ) ) ) / ( 4 * coefs["asymptDisp"] ) ) / log(2)
     }
-    return(vst(ncounts))
+    return(vst.fn(ncounts))
   } else if ( attr( dispersionFunction(object), "fitType" ) == "local" ) {
     # non-parametric fit -> numerical integration
     if (is.null(sizeFactors(object))) {
@@ -199,8 +199,8 @@ getVarianceStabilizedData <- function(object) {
     alpha <- attr( dispersionFunction(object), "mean" )
     # the following stablizes NB counts with fixed dispersion alpha
     # and converges to log2(q) as q => infinity
-    vst <- function(q) ( 2 * asinh(sqrt(alpha * q)) - log(alpha) - log(4) ) / log(2)
-    return(vst(ncounts))
+    vst.fn <- function(q) ( 2 * asinh(sqrt(alpha * q)) - log(alpha) - log(4) ) / log(2)
+    return(vst.fn(ncounts))
   } else {
     stop( "fitType is not parametric, local or mean" )
   }
