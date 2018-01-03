@@ -94,6 +94,9 @@ lfcShrink <- function(dds, coef, contrast, res,
                       parallel=FALSE, BPPARAM=bpparam(), bpx=1,
                       ...) {  
 
+  stopifnot(is(dds, "DESeqDataSet"))
+  if (!missing(res)) stopifnot(is(res, "DESeqResults"))
+  
   # TODO: lfcThreshold for types: normal and apeglm
   
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))

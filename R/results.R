@@ -300,6 +300,8 @@ results <- function(object, contrast, name,
                     tidy=FALSE,
                     parallel=FALSE, BPPARAM=bpparam(), bpx=1,
                     minmu=0.5) {
+
+  stopifnot(is(object, "DESeqDataSet"))
   
   # match args
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
