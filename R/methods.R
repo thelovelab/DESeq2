@@ -167,7 +167,6 @@ dispFun.replace <- function(object, value, estimateVar=TRUE) {
   }
   # warning about existing 'dispFit' data will be removed
   if (!is.null(mcols(object)$dispFit)) {
-    message("found already estimated fitted dispersions, removing these")
     mcols(object) <- mcols(object)[,!names(mcols(object)) == "dispFit",drop=FALSE]
   }
   # now call the dispersionFunction on 'baseMean' to make 'dispFit'
