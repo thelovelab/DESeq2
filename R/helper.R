@@ -346,6 +346,9 @@ normalizeGeneLength <- function(...) {
 #' 
 #' @export
 normTransform <- function(object, f=log2, pc=1) {
+  if (is.null(colnames(object))) {
+    colnames(object) <- seq_len(ncol(object))
+  }
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
