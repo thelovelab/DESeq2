@@ -752,22 +752,6 @@ plotMA(resApe, xlim=xlim, ylim=ylim, main="apeglm")
 plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
 ```
 
-**Note:** due to the nature of the statistical model and optimization
-approach, `apeglm` is usually a factor of ~5 slower than `normal`. For
-example, with 10,000 genes and 10 samples, `normal` may take ~3
-seconds, while `apeglm` takes ~15 seconds (on a laptop).  However,
-`apeglm` can be more than an order of magnitude slower when there are
-many coefficients, e.g. 10 or more coefficients in
-`resultsNames(dds)`. The method `ashr` is fairly fast and does not
-depend on the number of coefficients, as it uses only the estimated
-MLE coefficients and their standard errors. A solution for speeding up
-`normal` and `apeglm` is to use multiple cores. This can be easily
-accomplished by loading the BiocParallel package, and then setting the
-following arguments of `lfcShrink`: `parallel=TRUE` and
-`BPPARAM=MulticoreParam(4)`, for example, splitting the job over 4
-cores. This approach can also be used with `DESeq` and `results`, as
-mentioned [above](#parallel).
-
 **Note:** If there is unwanted variation present in the data (e.g. batch
 effects) it is always recommend to correct for this, which can be
 accommodated in DESeq2 by including in the design any known batch

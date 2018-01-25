@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.19.17
+--------------------------
+
+    o Switching to a ~5x faster apeglm implementation for
+      use in the lfcShrink() function.
+
 CHANGES IN VERSION 1.18.0
 -------------------------
 

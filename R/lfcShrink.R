@@ -50,6 +50,8 @@
 #' output of \code{apeglm} or \code{ashr}
 #' @param apeAdapt logical, should \code{apeglm} use the MLE estimates of
 #' LFC to adapt the prior, or use default or specified \code{prior.control}
+#' @param apeMethod what \code{method} to run \code{apeglm}, which can
+#' differ in terms of speed
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
 #' execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
 #' parallelization only used with \code{normal} or \code{apeglm}
@@ -90,7 +92,7 @@
 lfcShrink <- function(dds, coef, contrast, res,
                       type=c("normal","apeglm","ashr"),
                       svalue=FALSE, returnList=FALSE,
-                      apeAdapt=TRUE,
+                      apeAdapt=TRUE, apeMethod="nbinomR",
                       parallel=FALSE, BPPARAM=bpparam(), bpx=1,
                       ...) {  
 
@@ -255,26 +257,33 @@ lfcShrink <- function(dds, coef, contrast, res,
     } else {
       mle <- NULL
     }
+    if (apeMethod == "general") {
+      log.lik <- apeglm::logLikNB
+    } else {
+      log.lik <- NULL
+    }
     if (!parallel) {
       fit <- apeglm::apeglm(Y=Y,
                             x=design,
-                            log.lik=apeglm::logLikNB,
+                            log.lik=log.lik,
                             param=disps,
                             coef=coefNum,
                             mle=mle,
                             weights=weights,
-                            offset=offset, ...)                 
+                            offset=offset,
+                            method=apeMethod, ...)
     } else {
       fitList <- bplapply(levels(parallelIdx), function(l) {
         idx <- parallelIdx == l
         apeglm::apeglm(Y=Y[idx,,drop=FALSE],
                        x=design,
-                       log.lik=apeglm::logLikNB,
+                       log.lik=log.lik,
                        param=disps[idx],
                        coef=coefNum,
                        mle=mle,
                        weights=weights[idx,,drop=FALSE],
-                       offset=offset[idx,,drop=FALSE], ...)
+                       offset=offset[idx,,drop=FALSE],
+                       method=apeMethod, ...)
       })
       fit <- list()
       for (param in c("map","sd","fsr","svalue","interval","diag")) {

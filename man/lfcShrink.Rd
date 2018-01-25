@@ -5,8 +5,9 @@
 \title{Shrink log2 fold changes}
 \usage{
 lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
-  svalue = FALSE, returnList = FALSE, apeAdapt = TRUE, parallel = FALSE,
-  BPPARAM = bpparam(), bpx = 1, ...)
+  svalue = FALSE, returnList = FALSE, apeAdapt = TRUE,
+  apeMethod = "nbinomR", parallel = FALSE, BPPARAM = bpparam(), bpx = 1,
+  ...)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}
@@ -39,6 +40,9 @@ output of \code{apeglm} or \code{ashr}}
 
 \item{apeAdapt}{logical, should \code{apeglm} use the MLE estimates of
 LFC to adapt the prior, or use default or specified \code{prior.control}}
+
+\item{apeMethod}{what \code{method} to run \code{apeglm}, which can
+differ in terms of speed}
 
 \item{parallel}{if FALSE, no parallelization. if TRUE, parallel
 execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
