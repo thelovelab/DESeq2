@@ -724,15 +724,15 @@ argument of `lfcShrink`. For more details, see `?lfcShrink`
 The options for `type` are:
 
 * `normal` is the the original DESeq2 shrinkage estimator, an adaptive
-  normal prior
+  normal prior.
 * `apeglm` is the adaptive t prior shrinkage estimator from the 
-  [apeglm](http://bioconductor.org/packages/apeglm) package
+  [apeglm](http://bioconductor.org/packages/apeglm) package.
 * `ashr` is the adaptive shrinkage estimator from the
   [ashr](https://github.com/stephens999/ashr) package [@Stephens2016].
   Here DESeq2 uses the ashr option to fit a mixture of normal distributions to
-  form the prior, with `method="shrinkage"`
+  form the prior, with `method="shrinkage"`.
 
-**Note:** if the shrinkage estimator `type="ashr"` is used in published
+**Note:** if the shrinkage estimator `ashr` is used in published
 research, please cite:
 
 > Stephens, M. (2016) 
@@ -751,6 +751,14 @@ plotMA(resLFC, xlim=xlim, ylim=ylim, main="normal")
 plotMA(resApe, xlim=xlim, ylim=ylim, main="apeglm")
 plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
 ```
+
+**Note:** We have sped up the `apeglm` method so it takes roughly
+about the same amount of time as `normal`, e.g. 2-3 seconds for the
+`pasilla` dataset of ~10,000 genes and 7 samples. 
+If very fast shrinkage estimation of LFC is needed,
+*but the posterior standard deviation is not needed*, 
+setting `apeMethod="nbinomC"` will produce a ~10x speedup, 
+but the `lfcSE` column will be returned with `NA`.
 
 **Note:** If there is unwanted variation present in the data (e.g. batch
 effects) it is always recommend to correct for this, which can be
