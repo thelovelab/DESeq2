@@ -6,8 +6,8 @@
 \usage{
 lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
   svalue = FALSE, returnList = FALSE, apeAdapt = TRUE,
-  apeMethod = "nbinomR", parallel = FALSE, BPPARAM = bpparam(), bpx = 1,
-  ...)
+  apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(),
+  bpx = 1, ...)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}
