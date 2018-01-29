@@ -33,6 +33,10 @@ vignette: >
   %\VignetteEncoding[utf8]{inputenc}
 ---
 
+<!-- R function to get missing Suggests: 
+  https://gist.github.com/mikelove/87c7e222870e2b41e3986d2065018992 
+-->
+
 ```{r setup, echo=FALSE, results="hide"}
 knitr::opts_chunk$set(tidy=FALSE, cache=TRUE,
                       dev="png",

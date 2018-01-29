@@ -92,7 +92,7 @@
 lfcShrink <- function(dds, coef, contrast, res,
                       type=c("normal","apeglm","ashr"),
                       svalue=FALSE, returnList=FALSE,
-                      apeAdapt=TRUE, apeMethod="nbinomR",
+                      apeAdapt=TRUE, apeMethod="nbinomCR",
                       parallel=FALSE, BPPARAM=bpparam(), bpx=1,
                       ...) {  
 
