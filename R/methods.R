@@ -582,12 +582,21 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
     nrow(modelMatrix) == ncol(modelMatrix)
   }
   if (noReps) {
-    if (!is.null(modelMatrix)) stop("same number of samples and coefficients to fit with supplied model matrix")
-    warning("same number of samples and coefficients to fit,
-  estimating dispersion by treating samples as replicates.
-  please read the ?DESeq section on 'Experiments without replicates'.
-  in summary: this analysis only potentially useful for data exploration,
-  accurate differential expression analysis requires replication")
+    if (!is.null(modelMatrix)) stop("Supplied model matrix has the same number of samples and coefficients")
+    
+    warning("
+
+  Deprectation note: Analysis of designs without replicates will be removed
+  in the Oct 2018 release: DESeq2 v1.22.0, after which DESeq2 will give an error.
+")
+    
+    warning("
+
+  The design matrix has the same number of samples and coefficients to fit,
+  estimating dispersion by treating samples as replicates. This analysis
+  is not useful for accurate differential expression analysis, and arguably
+  not for data exploration either, as large differences appear as high dispersion.
+")
   }
   noReps
 }
@@ -628,10 +637,9 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #' \code{estimateDispersions} checks for the case of an analysis
 #' with as many samples as the number of coefficients to fit,
 #' and will temporarily substitute a design formula \code{~ 1} for the
-#' purposes of dispersion estimation.  This treats the samples as 
-#' replicates for the purpose of dispersion estimation. As mentioned in the DESeq paper:
-#' "While one may not want to draw strong conclusions from such an analysis,
-#' it may still be useful for exploration and hypothesis generation."
+#' purposes of dispersion estimation. Note that analysis of designs without
+#' replicates will be removed in the Oct 2018 release: DESeq2 v1.22.0,
+#' after which DESeq2 will give an error.
 #'
 #' The lower-level functions called by \code{estimateDispersions} are:
 #' \code{\link{estimateDispersionsGeneEst}},

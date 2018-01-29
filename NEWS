@@ -1,8 +1,12 @@
-CHANGES IN VERSION 1.19.17
+CHANGES IN VERSION 1.19.20
 --------------------------
 
-    o Switching to a ~5x faster apeglm implementation for
+    o Switching to a ~10x faster apeglm implementation for
       use in the lfcShrink() function.
+    o Beginning the deprecation of exploratory analysis of
+      designs without replicates. Analysis of designs without
+      replicates will be removed in the Oct 2018 release:
+      DESeq2 v1.22.0, after which DESeq2 will give an error.
 
 CHANGES IN VERSION 1.18.0
 -------------------------
@@ -15,7 +19,6 @@ CHANGES IN VERSION 1.18.0
       shrinkage estimators is still in development.
       Additionally, the DESeqResults object gains priorInfo(res),
       which passes along details of the fitted prior on LFC.
-
     o Factor levels using characters other than letters,
       numbers, '_' and '.' will print a message (not a warning
       or error) that it is recommended to restrict to these
