@@ -739,7 +739,15 @@ research, please cite:
 > False discovery rates: a new deal. *Biostatistics*, **18**:2.
 > [10.1093/biostatistics/kxw041](https://doi.org/10.1093/biostatistics/kxw041)
 
+In the LFC shrinkage code above, we specified
+`coef="condition_treated_vs_untreated"`. We can also just specify the
+coefficient by the order that it appears in `resultsNames(dds)`, in
+this case `coef=2`. For more details explaining how the shrinkage
+estimators differ, and what kinds of designs, contrasts and output is
+provided by each, see the [extended section on shrinkage estimators](#moreshrink).
+
 ```{r warning=FALSE}
+resultsNames(dds)
 resApe <- lfcShrink(dds, coef=2, type="apeglm")
 resAsh <- lfcShrink(dds, coef=2, type="ashr")
 ```
@@ -753,12 +761,13 @@ plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
 ```
 
 **Note:** We have sped up the `apeglm` method so it takes roughly
-about the same amount of time as `normal`, e.g. 2-3 seconds for the
-`pasilla` dataset of ~10,000 genes and 7 samples. 
-If very fast shrinkage estimation of LFC is needed,
+about the same amount of time as `normal`, e.g. ~5 seconds for the
+`pasilla` dataset of ~10,000 genes and 7 samples.
+If fast shrinkage estimation of LFC is needed,
 *but the posterior standard deviation is not needed*, 
-setting `apeMethod="nbinomC"` will produce a ~10x speedup, 
-but the `lfcSE` column will be returned with `NA`.
+setting `apeMethod="nbinomC"` will produce a ~10x speedup,
+but the `lfcSE` column will be returned with `NA`. 
+A variant of this fast method, `apeMethod="nbinomC*"` includes random starts.
 
 **Note:** If there is unwanted variation present in the data (e.g. batch
 effects) it is always recommend to correct for this, which can be
@@ -1259,6 +1268,32 @@ of contrasts for various designs can be found in the examples section
 of the help page for the *results* function. The
 mathematical formula that is used to generate the contrasts can be
 found [below](#theory).
+
+<a name="moreshrink"/>
+
+## Extended section on shrinkage estimators
+
+Here we extend the [discussion of shrinkage estimators](#shrinkage).
+Summary table of differences between methods available in `lfcShrink`
+via the `type` argument (and for further technical reference on use of
+arguments please see `?lfcShrink`):
+
+| method:  | `normal` (1)  | `apeglm` | `ashr` (2) |
+|---|:-:|:-:|:-:|
+| Good for ranking by LFC | ✓ | ✓ | ✓ |
+| Shrinkage adapts to scale of observed LFCs | ✓ | ✓ | ✓ |
+| Shrinks one coefficient at a time |  | ✓ | ✓ |
+| Preserves "very large" LFC (doesn't overly shrink) |  | ✓ | ✓ |
+| Explicitly designed to compute *s-values* [@Stephens2016] |  | ✓ | ✓ |
+| Allows use of `coef` | ✓ | ✓ | ✓ |
+| Allows use of `contrast` | ✓ |  | ✓ |
+| Allows use of `lfcThreshold` (TODO) | ✓ | ✓ |  |
+| Can be used on designs with interaction terms |  | ✓ | ✓ |
+
+References:
+
+1. [@Love2014]
+2. [@Stephens2016]
 
 <a name="interactions"/>
 

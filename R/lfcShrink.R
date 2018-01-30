@@ -6,15 +6,14 @@
 #'
 #' As of DESeq2 version 1.18, \code{type="apeglm"} and \code{type="ashr"}
 #' are new features, and still under development.
-#' Specifying \code{type="apeglm"} passes along DESeq2 MLE log2
+#' Specifying \code{apeglm} passes along DESeq2 MLE log2
 #' fold changes and standard errors to the \code{apeglm} function
 #' in the apeglm package, and re-estimates posterior LFCs for
 #' the coefficient specified by \code{coef}.
-#' Specifying \code{type="ashr"} passes along DESeq2 MLE log2
+#' Specifying \code{ashr} passes along DESeq2 MLE log2
 #' fold changes and standard errors to the \code{ash} function
 #' in the ashr package, 
-#' with arguments \code{mixcompdist="normal"} and \code{method="shrink"}
-#' (\code{coef} and \code{contrast} ignored).
+#' with arguments \code{mixcompdist="normal"} and \code{method="shrink"}.
 #' See vignette for a comparison of shrinkage estimators on an example dataset.
 #' For all shrinkage methods, details on the prior is included in
 #' \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
@@ -23,20 +22,21 @@
 #' \code{lfcThreshold} argument which can be passed to apeglm
 #' to specify regions of the posterior at an arbitrary threshold.
 #'
-#' For \code{type="normal"}, and design as a formula, shrinkage cannot be applied
-#' to coefficients in a model with interaction terms. For \code{type="normal"}
+#' For \code{normal}, and design as a formula, shrinkage cannot be applied
+#' to coefficients in a model with interaction terms. For \code{normal}
 #' and user-supplied model matrices, shrinkage is only supported via \code{coef}.
 #' 
 #' @param dds a DESeqDataSet object, after running \code{\link{DESeq}}
 #' @param coef the name or number of the coefficient (LFC) to shrink,
 #' consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
 #' note: only \code{coef} or \code{contrast} can be specified, not both.
-#' \code{type="apeglm"} requires use of \code{coef}.
+#' \code{apeglm} requires use of \code{coef}.
 #' @param contrast see argument description in \code{\link{results}}.
 #' only \code{coef} or \code{contrast} can be specified, not both.
 #' @param res a DESeqResults object. Results table produced by the
 #' default pipeline, i.e. \code{DESeq} followed by \code{results}.
-#' If not provided, it will be generated internally using \code{coef} or \code{contrast}
+#' If not provided, it will be generated internally using \code{coef} or \code{contrast}.
+#' For \code{ashr}, if \code{res} is provided, then \code{coef} and \code{contrast} are ignored.
 #' @param type \code{"normal"} is the original DESeq2 shrinkage estimator;
 #' \code{"apeglm"} is the adaptive t prior shrinkage estimator from the 'apeglm' package;
 #' \code{"ashr"} is the adaptive shrinkage estimator from the 'ashr' package,
@@ -79,15 +79,19 @@
 #' 
 #' @examples
 #'
-#'  set.seed(1)
-#'  dds <- makeExampleDESeqDataSet(n=500,betaSD=1)
-#'  dds <- DESeq(dds)
-#'  res <- results(dds)
+#' set.seed(1)
+#' dds <- makeExampleDESeqDataSet(n=500,betaSD=1)
+#' dds <- DESeq(dds)
+#' res <- results(dds)
+#'
+#' # these are the coefficients from the model
+#' # we can specify them using 'coef' by name or number below
+#' resultsNames(dds)
 #' 
-#'  res.shr <- lfcShrink(dds=dds, coef=2)
-#'  res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"))
-#'  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
-#'  res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
+#' res.shr <- lfcShrink(dds=dds, coef=2)
+#' res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"))
+#' res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
+#' res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
 #' 
 lfcShrink <- function(dds, coef, contrast, res,
                       type=c("normal","apeglm","ashr"),
@@ -306,7 +310,7 @@ lfcShrink <- function(dds, coef, contrast, res,
       res$svalue <- as.numeric(fit$svalue)
       mcols(res)[4,] <- DataFrame(type="results",
                                   description=paste("s-value:",coefAlphaSpaces))
-    } else{
+    } else {
       res <- res[,c(1:3,5:6)]
     }
     priorInfo(res) <- list(type="apeglm",
@@ -315,7 +319,7 @@ lfcShrink <- function(dds, coef, contrast, res,
                            prior.control=fit$prior.control)
     if (returnList) {
       return(list(res=res, fit=fit))
-    } else{
+    } else {
       return(res)
     }
 
