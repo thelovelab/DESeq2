@@ -30,7 +30,8 @@ bibliography: library.bib
 vignette: >
   %\VignetteIndexEntry{Analyzing RNA-seq data with DESeq2}
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding[utf8]{inputenc}
+  %\VignetteEncoding{UTF-8}
+  %\usepackage[utf8]{inputenc}
 ---
 
 ```{r setup, echo=FALSE, results="hide"}
