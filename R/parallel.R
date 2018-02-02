@@ -20,7 +20,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
   if (!quiet) message(paste("gene-wise dispersion estimates:",nworkers,"workers"))
 
   object <- do.call(rbind, bplapply(levels(idx), function(l) {
-    estimateDispersionsGeneEst(object[idx ==l,], quiet=TRUE, modelMatrix=modelMatrix, minmu=minmu)
+    estimateDispersionsGeneEst(object[idx == l,], quiet=TRUE, modelMatrix=modelMatrix, minmu=minmu)
   }, BPPARAM=BPPARAM))
 
   # the dispersion fit and dispersion prior are estimated over all rows
