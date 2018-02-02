@@ -58,7 +58,8 @@ see the Description of \code{\link{nbinomWaldTest}}.
 betaPrior must be set to TRUE in order for expanded model matrices
 to be fit.}
 
-\item{minmu}{lower bound on the estimated count for fitting gene-wise dispersion}
+\item{minmu}{lower bound on the estimated count for fitting gene-wise dispersion
+and for use with \code{nbinomWaldTest} and \code{nbinomLRT}}
 
 \item{parallel}{if FALSE, no parallelization. if TRUE, parallel
 execution using \code{BiocParallel}, see next argument \code{BPPARAM}.

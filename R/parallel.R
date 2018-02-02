@@ -45,7 +45,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
       nbinomWaldTest(object[idx == l,],
                      betaPrior=TRUE,
                      betaPriorVar=betaPriorVar,
-                     quiet=TRUE)
+                     quiet=TRUE, minmu=minmu)
     }, BPPARAM=BPPARAM))
   } else {
     # or, if no beta prior to fit,
@@ -56,13 +56,13 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
         objectSub <- estimateDispersionsMAP(object[idx == l,],
                                             dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
         nbinomWaldTest(objectSub, betaPrior=FALSE,
-                       quiet=TRUE, modelMatrix=modelMatrix)
+                       quiet=TRUE, modelMatrix=modelMatrix, minmu=minmu)
       }, BPPARAM=BPPARAM))
     } else if (test == "LRT") {
       object <- do.call(rbind, bplapply(levels(idx), function(l) {
         objectSub <- estimateDispersionsMAP(object[idx == l,],
                                             dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
-        nbinomLRT(objectSub, full=full, reduced=reduced, quiet=TRUE)
+        nbinomLRT(objectSub, full=full, reduced=reduced, quiet=TRUE, minmu=minmu)
       }, BPPARAM=BPPARAM))
     } 
   }

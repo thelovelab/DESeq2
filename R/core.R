@@ -186,6 +186,7 @@ NULL
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
 #' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
+#' and for use with \code{nbinomWaldTest} and \code{nbinomLRT}
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
 #' execution using \code{BiocParallel}, see next argument \code{BPPARAM}.
 #' A note on running in parallel using \code{BiocParallel}: it may be
@@ -336,9 +337,12 @@ DESeq <- function(object, test=c("Wald","LRT"),
     if (test == "Wald") {
       object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
                                modelMatrix=modelMatrix,
-                               modelMatrixType=modelMatrixType)
+                               modelMatrixType=modelMatrixType,
+                               minmu=minmu)
     } else if (test == "LRT") {
-      object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
+      object <- nbinomLRT(object, full=full,
+                          reduced=reduced, quiet=quiet,
+                          minmu=minmu)
     }
   } else if (parallel) {
     if (!missing(modelMatrixType)) {
