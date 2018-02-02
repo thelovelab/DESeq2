@@ -133,7 +133,7 @@ lfcShrink <- function(dds, coef, contrast, res,
     stopifnot(all(rownames(dds) == rownames(res)))
     if (parallel) {
       nworkers <- BPPARAM$workers
-      parallelIdx <- factor(sort(rep(seq_len(nworkers),length=nrow(dds))))
+      parallelIdx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(dds))))
     }
   }
   

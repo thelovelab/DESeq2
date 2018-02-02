@@ -7,7 +7,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
                           quiet, modelMatrix, minmu, BPPARAM) {
 
   nworkers <- BPPARAM$workers
-  idx <- factor(sort(rep(seq_len(nworkers),length=nrow(object))))
+  idx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(object))))
 
   # cleaning up code: no longer supporting no replicate designs and parallel=TRUE
   noReps <- checkForExperimentalReplicates(object, modelMatrix)
