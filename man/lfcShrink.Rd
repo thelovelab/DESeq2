@@ -6,8 +6,7 @@
 \usage{
 lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
   svalue = FALSE, returnList = FALSE, apeAdapt = TRUE,
-  apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(),
-  bpx = 1, ...)
+  apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(), ...)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}
@@ -50,9 +49,6 @@ execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
 parallelization only used with \code{normal} or \code{apeglm}}
 
 \item{BPPARAM}{see same argument of \code{\link{DESeq}}}
-
-\item{bpx}{the number of dataset chunks to create for BiocParallel
-will be \code{bpx} times the number of workers}
 
 \item{...}{arguments passed to \code{apeglm} and \code{ashr}}
 }

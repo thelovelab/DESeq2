@@ -1,4 +1,4 @@
-CHANGES IN VERSION 1.19.20
+CHANGES IN VERSION 1.20.0
 --------------------------
 
     o Switching to a ~10x faster apeglm implementation for
@@ -7,6 +7,9 @@ CHANGES IN VERSION 1.19.20
       designs without replicates. Analysis of designs without
       replicates will be removed in the Oct 2018 release:
       DESeq2 v1.22.0, after which DESeq2 will give an error.
+    o Elevate 'minmu' to DESeq() and estimateDispersions()
+      as this proves useful to change for single cell
+      applications and other designs with many zeros.
 
 CHANGES IN VERSION 1.18.0
 -------------------------
