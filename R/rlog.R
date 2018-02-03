@@ -102,24 +102,8 @@
 #' dds <- makeExampleDESeqDataSet(m=6,betaSD=1)
 #' rld <- rlog(dds)
 #' dists <- dist(t(assay(rld)))
-#' plot(hclust(dists))
+#' # plot(hclust(dists))
 #'
-#' # run the rlog transformation on one dataset
-#' design(dds) <- ~ 1
-#' dds <- estimateSizeFactors(dds)
-#' dds <- estimateDispersions(dds)
-#' rld <- rlog(dds, blind=FALSE)
-#'
-#' # apply the parameters to a new sample
-#' 
-#' ddsNew <- makeExampleDESeqDataSet(m=1)
-#' mcols(ddsNew)$dispFit <- mcols(dds)$dispFit
-#' betaPriorVar <- attr(rld,"betaPriorVar")
-#' intercept <- mcols(rld)$rlogIntercept
-#' rldNew <- rlog(ddsNew, blind=FALSE,
-#'                intercept=intercept,
-#'                betaPriorVar=betaPriorVar)              
-#' 
 #' @export
 rlog <- function(object, blind=TRUE, intercept, betaPriorVar, fitType="parametric") {
   n <- ncol(object)

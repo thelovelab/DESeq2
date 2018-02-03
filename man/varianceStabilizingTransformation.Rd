@@ -114,18 +114,7 @@ from the package \pkg{vsn} can be used to see whether this is a problem.
 dds <- makeExampleDESeqDataSet(m=6)
 vsd <- varianceStabilizingTransformation(dds)
 dists <- dist(t(assay(vsd)))
-plot(hclust(dists))
-
-# learn the dispersion function of a dataset
-design(dds) <- ~ 1
-dds <- estimateSizeFactors(dds)
-dds <- estimateDispersions(dds)
-
-# use the previous dispersion function for a new sample
-ddsNew <- makeExampleDESeqDataSet(m=1)
-ddsNew <- estimateSizeFactors(ddsNew)
-dispersionFunction(ddsNew) <- dispersionFunction(dds)
-vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
+# plot(hclust(dists))
 
 }
 \references{
