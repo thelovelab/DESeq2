@@ -6,8 +6,8 @@
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
   "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
-  minReplicatesForReplace = 7, modelMatrixType, parallel = FALSE,
-  BPPARAM = bpparam(), bpx = 1)
+  minReplicatesForReplace = 7, modelMatrixType, minmu = 0.5,
+  parallel = FALSE, BPPARAM = bpparam())
 }
 \arguments{
 \item{object}{a DESeqDataSet object, see the constructor functions
@@ -58,6 +58,9 @@ see the Description of \code{\link{nbinomWaldTest}}.
 betaPrior must be set to TRUE in order for expanded model matrices
 to be fit.}
 
+\item{minmu}{lower bound on the estimated count for fitting gene-wise dispersion
+and for use with \code{nbinomWaldTest} and \code{nbinomLRT}}
+
 \item{parallel}{if FALSE, no parallelization. if TRUE, parallel
 execution using \code{BiocParallel}, see next argument \code{BPPARAM}.
 A note on running in parallel using \code{BiocParallel}: it may be
@@ -70,9 +73,6 @@ will copy these files while running on worker nodes.}
 to \code{\link{bplapply}} when \code{parallel=TRUE}.
 If not specified, the parameters last registered with
 \code{\link{register}} will be used.}
-
-\item{bpx}{the number of dataset chunks to create for BiocParallel
-will be \code{bpx} times the number of workers}
 }
 \value{
 a \code{\link{DESeqDataSet}} object with results stored as

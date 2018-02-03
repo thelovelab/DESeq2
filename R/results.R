@@ -182,8 +182,6 @@
 #' to \code{\link{bplapply}} when \code{parallel=TRUE}.
 #' If not specified, the parameters last registered with
 #' \code{\link{register}} will be used.
-#' @param bpx the number of dataset chunks to create for BiocParallel
-#' will be \code{bpx} times the number of workers
 #' @param minmu lower bound on the estimated count (used when calculating contrasts)
 #' 
 #' @return For \code{results}: a \code{\link{DESeqResults}} object, which is
@@ -298,7 +296,7 @@ results <- function(object, contrast, name,
                     test, 
                     addMLE=FALSE,
                     tidy=FALSE,
-                    parallel=FALSE, BPPARAM=bpparam(), bpx=1,
+                    parallel=FALSE, BPPARAM=bpparam(), 
                     minmu=0.5) {
 
   stopifnot(is(object, "DESeqDataSet"))
@@ -402,7 +400,7 @@ of length 3 to 'contrast' instead of using 'name'")
     } else if (parallel) {
       # parallel execution
       nworkers <- BPPARAM$workers
-      idx <- factor(sort(rep(seq_len(bpx*nworkers),length=nrow(object))))
+      idx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(object))))
       res <- do.call(rbind, bplapply(levels(idx), function(l) {
         cleanContrast(object[idx == l,,drop=FALSE], contrast,
                       expanded=isExpanded, listValues=listValues,

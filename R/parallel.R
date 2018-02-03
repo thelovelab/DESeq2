@@ -4,10 +4,10 @@
 # as the count matrix and GRanges from the original object are unchanged
 
 DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
-                          quiet, modelMatrix, BPPARAM, bpx) {
+                          quiet, modelMatrix, minmu, BPPARAM) {
 
   nworkers <- BPPARAM$workers
-  idx <- factor(sort(rep(seq_len(bpx*nworkers),length=nrow(object))))
+  idx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(object))))
 
   # cleaning up code: no longer supporting no replicate designs and parallel=TRUE
   noReps <- checkForExperimentalReplicates(object, modelMatrix)
@@ -20,7 +20,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
   if (!quiet) message(paste("gene-wise dispersion estimates:",nworkers,"workers"))
 
   object <- do.call(rbind, bplapply(levels(idx), function(l) {
-    estimateDispersionsGeneEst(object[idx ==l,], quiet=TRUE, modelMatrix=modelMatrix)
+    estimateDispersionsGeneEst(object[idx == l,], quiet=TRUE, modelMatrix=modelMatrix, minmu=minmu)
   }, BPPARAM=BPPARAM))
 
   # the dispersion fit and dispersion prior are estimated over all rows
@@ -45,7 +45,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
       nbinomWaldTest(object[idx == l,],
                      betaPrior=TRUE,
                      betaPriorVar=betaPriorVar,
-                     quiet=TRUE)
+                     quiet=TRUE, minmu=minmu)
     }, BPPARAM=BPPARAM))
   } else {
     # or, if no beta prior to fit,
@@ -56,13 +56,13 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
         objectSub <- estimateDispersionsMAP(object[idx == l,],
                                             dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
         nbinomWaldTest(objectSub, betaPrior=FALSE,
-                       quiet=TRUE, modelMatrix=modelMatrix)
+                       quiet=TRUE, modelMatrix=modelMatrix, minmu=minmu)
       }, BPPARAM=BPPARAM))
     } else if (test == "LRT") {
       object <- do.call(rbind, bplapply(levels(idx), function(l) {
         objectSub <- estimateDispersionsMAP(object[idx == l,],
                                             dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
-        nbinomLRT(objectSub, full=full, reduced=reduced, quiet=TRUE)
+        nbinomLRT(objectSub, full=full, reduced=reduced, quiet=TRUE, minmu=minmu)
       }, BPPARAM=BPPARAM))
     } 
   }

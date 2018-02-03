@@ -185,6 +185,8 @@ NULL
 #' see the Description of \code{\link{nbinomWaldTest}}.
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
+#' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
+#' and for use with \code{nbinomWaldTest} and \code{nbinomLRT}
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
 #' execution using \code{BiocParallel}, see next argument \code{BPPARAM}.
 #' A note on running in parallel using \code{BiocParallel}: it may be
@@ -196,8 +198,6 @@ NULL
 #' to \code{\link{bplapply}} when \code{parallel=TRUE}.
 #' If not specified, the parameters last registered with
 #' \code{\link{register}} will be used.
-#' @param bpx the number of dataset chunks to create for BiocParallel
-#' will be \code{bpx} times the number of workers
 #' 
 #' @author Michael Love
 #' 
@@ -245,8 +245,8 @@ NULL
 DESeq <- function(object, test=c("Wald","LRT"),
                   fitType=c("parametric","local","mean"), betaPrior,
                   full=design(object), reduced, quiet=FALSE,
-                  minReplicatesForReplace=7, modelMatrixType,
-                  parallel=FALSE, BPPARAM=bpparam(), bpx=1) {
+                  minReplicatesForReplace=7, modelMatrixType, minmu=0.5,
+                  parallel=FALSE, BPPARAM=bpparam()) {
   # check arguments
   stopifnot(is(object, "DESeqDataSet"))
   test <- match.arg(test, choices=c("Wald","LRT"))
@@ -332,14 +332,17 @@ DESeq <- function(object, test=c("Wald","LRT"),
   
   if (!parallel) {
     if (!quiet) message("estimating dispersions")
-    object <- estimateDispersions(object, fitType=fitType, quiet=quiet, modelMatrix=modelMatrix)
+    object <- estimateDispersions(object, fitType=fitType, quiet=quiet, modelMatrix=modelMatrix, minmu=minmu)
     if (!quiet) message("fitting model and testing")
     if (test == "Wald") {
       object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
                                modelMatrix=modelMatrix,
-                               modelMatrixType=modelMatrixType)
+                               modelMatrixType=modelMatrixType,
+                               minmu=minmu)
     } else if (test == "LRT") {
-      object <- nbinomLRT(object, full=full, reduced=reduced, quiet=quiet)
+      object <- nbinomLRT(object, full=full,
+                          reduced=reduced, quiet=quiet,
+                          minmu=minmu)
     }
   } else if (parallel) {
     if (!missing(modelMatrixType)) {
@@ -347,8 +350,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
     }
     object <- DESeqParallel(object, test=test, fitType=fitType,
                             betaPrior=betaPrior, full=full, reduced=reduced,
-                            quiet=quiet, modelMatrix=modelMatrix,
-                            BPPARAM=BPPARAM, bpx=bpx)
+                            quiet=quiet, modelMatrix=modelMatrix, minmu=minmu,
+                            BPPARAM=BPPARAM)
   }
 
   # if there are sufficient replicates, then pass through to refitting function

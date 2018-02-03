@@ -109,19 +109,8 @@
 #' dds <- makeExampleDESeqDataSet(m=6)
 #' vsd <- varianceStabilizingTransformation(dds)
 #' dists <- dist(t(assay(vsd)))
-#' plot(hclust(dists))
+#' # plot(hclust(dists))
 #'
-#' # learn the dispersion function of a dataset
-#' design(dds) <- ~ 1
-#' dds <- estimateSizeFactors(dds)
-#' dds <- estimateDispersions(dds)
-#'
-#' # use the previous dispersion function for a new sample
-#' ddsNew <- makeExampleDESeqDataSet(m=1)
-#' ddsNew <- estimateSizeFactors(ddsNew)
-#' dispersionFunction(ddsNew) <- dispersionFunction(dds)
-#' vsdNew <- varianceStabilizingTransformation(ddsNew, blind=FALSE)
-#' 
 #' @export
 varianceStabilizingTransformation <- function (object, blind=TRUE, fitType="parametric") {
   if (is.null(colnames(object))) {
@@ -232,7 +221,7 @@ getVarianceStabilizedData <- function(object) {
 #'
 #' @examples
 #'
-#' dds <- makeExampleDESeqDataSet(n=20000, m=20)
+#' dds <- makeExampleDESeqDataSet(n=2000, m=20)
 #' vsd <- vst(dds)
 #'
 #' @export

@@ -36,7 +36,7 @@ or by avoiding subsetting and using \code{\link{varianceStabilizingTransformatio
 }
 \examples{
 
-dds <- makeExampleDESeqDataSet(n=20000, m=20)
+dds <- makeExampleDESeqDataSet(n=2000, m=20)
 vsd <- vst(dds)
 
 }
