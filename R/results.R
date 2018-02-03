@@ -534,12 +534,12 @@ of length 3 to 'contrast' instead of using 'name'")
   if (format == "DataFrame") {
     return(deseqRes)
   } else if (format == "GRangesList") {
-    if (class(rowRanges(object)) == "GRanges") warning("rowRanges is GRanges")
+    if (is(rowRanges(object), "GRanges")) warning("rowRanges is GRanges")
     out <- rowRanges(object)
     mcols(out) <- deseqRes
     return(out)
   } else if (format == "GRanges") {
-    if (class(rowRanges(object)) == "GRangesList") {
+    if (is(rowRanges(object), "GRangesList")) {
       message("rowRanges is GRangesList, performing unlist(range(x)) on the rowRanges")
       out <- unlist(range(rowRanges(object)))
       mcols(out) <- deseqRes
