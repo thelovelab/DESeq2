@@ -228,9 +228,9 @@ fpkm <- function(object, robust=TRUE) {
     }
   }
   if (is.null(mcols(object)$basepairs)) {
-    if (class(rowRanges(object)) == "GRangesList") {
+    if (is(rowRanges(object), "GRangesList")) {
       ubp <- DataFrame(basepairs = sum(width(reduce(rowRanges(object)))))
-    } else if (class(rowRanges(object)) == "GRanges") {
+    } else if (is(rowRanges(object) == "GRanges")) {
       ubp <- DataFrame(basepairs = width(rowRanges(object)))
     }
     if (all(ubp$basepairs == 0)) {
