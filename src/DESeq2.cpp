@@ -154,7 +154,7 @@ Rcpp::List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, 
   bool useWeights = Rcpp::as<bool>(useWeightsSEXP);
 
   for (int i = 0; i < y_n; i++) {
-    Rcpp::checkUserInterrupt();
+    if (i % 256 == 0) Rcpp::checkUserInterrupt();
     Rcpp::NumericMatrix::Row yrow = y(i,_);
     Rcpp::NumericMatrix::Row mu_hat_row = mu_hat(i,_);
     // maximize the log likelihood over the variable a, the log of alpha, the dispersion parameter.
@@ -278,7 +278,7 @@ Rcpp::List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP
   Rcpp::NumericVector iter(y_n);
   Rcpp::NumericVector deviance(y_n);
   for (int i = 0; i < y_n; i++) {
-    Rcpp::checkUserInterrupt();
+    if (i % 256 == 0) Rcpp::checkUserInterrupt();
     nfrow = nf.row(i).t();
     yrow = y.row(i).t();
     beta_hat = beta_mat.row(i).t();
