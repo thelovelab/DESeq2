@@ -42,9 +42,19 @@ converge within maxit}
 
 \item{useT}{whether to use a t-distribution as a null distribution,
 for significance testing of the Wald statistics.
-If FALSE, a standard normal null distribution is used.}
+If FALSE, a standard normal null distribution is used.
+See next argument \code{df} for information about which t is used.
+If \code{useT=TRUE} then further calls to \code{\link{results}}
+will make use of \code{mcols(object)$tDegreesFreedom} that is stored
+by \code{nbinomWaldTest}.}
 
-\item{df}{the degrees of freedom for the t-distribution}
+\item{df}{the degrees of freedom for the t-distribution.
+This can be of length 1 or the number of rows of \code{object}.
+If this is not specified, the degrees of freedom will be set
+by the number of samples minus the number of columns of the design
+matrix used for dispersion estimation. If \code{"weights"} are included in
+the \code{assays(object)}, then the sum of the weights is used in lieu
+of the number of samples.}
 
 \item{useQR}{whether to use the QR decomposition on the design
 matrix X while fitting the GLM}

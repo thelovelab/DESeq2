@@ -2384,21 +2384,11 @@ as principal components analysis rather than performing statistical
 testing of all pairs of many groups of samples. Statistical testing is
 one of many ways of describing differences between samples.
 
-Regarding multiple test correction, if a user is planning to
-contrast all pairs of many levels, and then selectively reporting the
-results of only a *subset* of those pairs, one needs to perform multiple testing
-across *contrasts* as well as genes to control for this additional
-form of multiple testing. This can be done by using the `p.adjust`
-function across a long vector of *p* values from all pairs of
-contasts, then re-assigning these adjusted *p* values to the
-appropriate results table.
-
 As a speed concern with fitting very large models, 
 note that each additional level of a factor in the
 design formula adds another parameter to the GLM which is fit by
 DESeq2. Users might consider first removing genes with very few
-reads, e.g. genes with row sum of 1, as this will speed up the
-fitting procedure.
+reads, as this will speed up the fitting procedure.
 
 ## Can I use DESeq2 to analyze a dataset without replicates?
 

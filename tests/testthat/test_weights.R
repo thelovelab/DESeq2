@@ -4,7 +4,7 @@ test_that("weights work", {
   dds <- makeExampleDESeqDataSet(n=10)
   dds <- DESeq(dds, quiet=TRUE)
   dds2 <- dds
-  w <- matrix(1, nrow=nrow(dds), ncol=12)
+  w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1,1] <- 0
   assays(dds2)[["weights"]] <- w
   dds2 <- nbinomWaldTest(dds2)
@@ -37,7 +37,7 @@ test_that("weights work", {
 
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=10)
-  w <- matrix(1, nrow=nrow(dds), ncol=12)
+  w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1,1] <- 0
   assays(dds)[["weights"]] <- w
   dds <- DESeq(dds, betaPrior=TRUE, quiet=TRUE)
@@ -57,10 +57,10 @@ test_that("weights work", {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=10)
   counts(dds)[1,1] <- 100L
-  sizeFactors(dds) <- rep(1,12)
+  sizeFactors(dds) <- rep(1,ncol(dds))
   dds <- estimateDispersions(dds)
   dds2 <- dds
-  w <- matrix(1, nrow=nrow(dds), ncol=12)
+  w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1,1] <- 0
   assays(dds2)[["weights"]] <- w
   dds2 <- estimateDispersions(dds2)
@@ -75,17 +75,17 @@ test_that("weights work", {
   ## set.seed(1)
   ## dds <- makeExampleDESeqDataSet(n=10, dispMeanRel=function(x) 0.01)
   ## counts(dds)[1,1] <- 100L
-  ## sizeFactors(dds) <- rep(1,12)
+  ## sizeFactors(dds) <- rep(1,ncol(dds))
   ## dds <- DESeq(dds, quiet=TRUE, fitType="mean")
   ## dds2 <- dds
-  ## w <- matrix(1, nrow=nrow(dds), ncol=12)
-  ## lfc <- sapply(1:11, function(i) {
+  ## w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
+  ## lfc <- sapply(seq_len(ncol(dds)-1), function(i) {
   ##   w[1,1] <- (i-1)/10
   ##   assays(dds2)[["weights"]] <- w
   ##   dds2 <- DESeq(dds2, quiet=TRUE, fitType="mean")
   ##   results(dds2)$log2FoldChange[1]
   ## })
-  ## plot((1:11-1)/10, lfc, type="b")
+  ## plot((seq_len(ncol(dds)-1) - 1)/10, lfc, type="b")
   ## abline(h=results(dds)$log2FoldChange[1])
   
 })

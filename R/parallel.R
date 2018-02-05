@@ -4,7 +4,7 @@
 # as the count matrix and GRanges from the original object are unchanged
 
 DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
-                          quiet, modelMatrix, minmu, BPPARAM) {
+                          quiet, modelMatrix, useT, minmu, BPPARAM) {
 
   nworkers <- BPPARAM$workers
   idx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(object))))
@@ -45,7 +45,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
       nbinomWaldTest(object[idx == l,],
                      betaPrior=TRUE,
                      betaPriorVar=betaPriorVar,
-                     quiet=TRUE, minmu=minmu)
+                     quiet=TRUE, useT=useT, minmu=minmu)
     }, BPPARAM=BPPARAM))
   } else {
     # or, if no beta prior to fit,
@@ -56,7 +56,8 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
         objectSub <- estimateDispersionsMAP(object[idx == l,],
                                             dispPriorVar=dispPriorVar, quiet=TRUE, modelMatrix=modelMatrix)
         nbinomWaldTest(objectSub, betaPrior=FALSE,
-                       quiet=TRUE, modelMatrix=modelMatrix, minmu=minmu)
+                       quiet=TRUE, modelMatrix=modelMatrix,
+                       useT=useT, minmu=minmu)
       }, BPPARAM=BPPARAM))
     } else if (test == "LRT") {
       object <- do.call(rbind, bplapply(levels(idx), function(l) {

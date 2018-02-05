@@ -33,3 +33,46 @@ test_that("nbinomWald throws various errors and works with edge cases",{
   dispersions(dds) <- mcols(dds)$dispGeneEst
   dds <- nbinomWaldTest(dds)
 })
+
+test_that("useT uses proper degrees of freedom", {
+
+  set.seed(1)
+  dds <- makeExampleDESeqDataSet(n=200, m=15)
+  counts(dds)[101:105,] <- 0L
+  dds$condition <- factor(rep(c("A","B","C"),each=5))
+  dds <- DESeq(dds, useT=TRUE)
+  dds <- removeResults(dds)
+  w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
+  w[1:100,1] <- 0
+  w[1,c(1:4,6:9,11:14)] <- 0
+  assays(dds)[["weights"]] <- w
+  dds <- DESeq(dds, useT=TRUE)
+  res <- results(dds)
+  expect_true(is.na(res$pvalue[1]))
+  expect_true(mcols(dds)$tDegreesFreedom[2] == 15-1-3)
+  expect_true(res$pvalue[2] == 2*pt(abs(res$stat[2]), df=15-1-3, lower.tail=FALSE))
+
+  # also lfcThreshold
+  res <- results(dds, lfcThreshold=1, altHypothesis="greaterAbs")
+  idx <- which(res$log2FoldChange > 1 & !is.na(res$pvalue))[1]
+  expect_true(res$pvalue[idx] == 2 * pt(res$stat[idx], df=15-1-3, lower.tail=FALSE))
+  #
+  res <- results(dds, lfcThreshold=1, altHypothesis="greater")
+  idx <- which(res$log2FoldChange > 1 & !is.na(res$pvalue))[1]
+  expect_true(res$pvalue[idx] == pt(res$stat[idx], df=15-1-3, lower.tail=FALSE))
+  #
+  res <- results(dds, lfcThreshold=1, altHypothesis="less")
+  idx <- which(res$log2FoldChange < -1 & !is.na(res$pvalue))[1]
+  expect_true(res$pvalue[idx] == pt(-1 * res$stat[idx], df=15-1-3, lower.tail=FALSE))
+  #
+  res <- results(dds, lfcThreshold=1, altHypothesis="lessAbs")
+  idx <- which(abs(res$log2FoldChange) < 1 & !is.na(res$pvalue))[1]
+  expect_true(res$pvalue[idx] == pt(res$stat[idx], df=15-1-3, lower.tail=FALSE))    
+  
+  # also novel contrasts
+  res <- results(dds, contrast=c("condition","C","B"))
+  expect_true(is.na(res$pvalue[1]))
+  expect_true(mcols(dds)$tDegreesFreedom[2] == 15-1-3)
+  expect_true(res$pvalue[2] == 2*pt(abs(res$stat[2]), df=15-1-3, lower.tail=FALSE))
+  
+})

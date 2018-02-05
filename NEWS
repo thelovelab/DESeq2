@@ -9,6 +9,9 @@ CHANGES IN VERSION 1.20.0
       DESeq2 v1.22.0, after which DESeq2 will give an error.
     o Elevate 'minmu' to DESeq() as this proves useful for
       single cell applications and certain zero-inflated data.
+    o Elevate 'useT' to DESeq(), which will use (n - p) for the
+      degrees of freedom of the t distribution, and if weights
+      are provided, it will use the sum of weights as 'n'.
 
 CHANGES IN VERSION 1.18.0
 -------------------------

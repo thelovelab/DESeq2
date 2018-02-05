@@ -27,7 +27,9 @@ Default is 1.}
 if pbapply is installed.}
 }
 \value{
-mixture components for each sample (rows), which sum to 1.
+a matrix, the mixture components for each sample in \code{x} (rows).
+The "pure" samples make up the columns, and so each row sums to 1.
+If colnames existed on the input matrices they will be propagated to the output matrix.
 }
 \description{
 Unmixes samples in \code{x} according to \code{pure} components,
@@ -40,4 +42,31 @@ and can be used, for example, to identify contributions from
 various tissues.
 Note: if the \code{pbapply} package is installed a progress bar
 will be displayed while mixing components are fit.
+}
+\examples{
+
+# some artificial data
+cts <- matrix(c(80,50,1,100,
+                1,1,60,100,
+                0,50,60,100), ncol=4, byrow=TRUE)
+# make a DESeqDataSet
+dds <- DESeqDataSetFromMatrix(cts,
+  data.frame(row.names=seq_len(ncol(cts))), ~1)
+colnames(dds) <- paste0("sample",1:4)
+
+# note! here you would instead use
+# estimateSizeFactors() to do actual normalization
+sizeFactors(dds) <- rep(1, ncol(dds))
+
+norm.cts <- counts(dds, normalized=TRUE)
+
+# 'pure' should also have normalized counts...
+pure <- matrix(c(10,0,0,
+                 0,0,10,
+                 0,10,0), ncol=3, byrow=TRUE)
+colnames(pure) <- letters[1:3]
+
+# for real data, you need to find alpha after fitting estimateDispersions()
+mix <- unmix(norm.cts, pure, alpha=0.01)
+
 }

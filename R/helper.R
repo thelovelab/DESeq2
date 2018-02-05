@@ -25,8 +25,36 @@
 #' @param quiet suppress progress bar. default is FALSE, show progress bar
 #' if pbapply is installed.
 #'
-#' @return mixture components for each sample (rows), which sum to 1.
+#' @return a matrix, the mixture components for each sample in \code{x} (rows).
+#' The "pure" samples make up the columns, and so each row sums to 1.
+#' If colnames existed on the input matrices they will be propagated to the output matrix.
 #'
+#' @examples
+#'
+#' # some artificial data
+#' cts <- matrix(c(80,50,1,100,
+#'                 1,1,60,100,
+#'                 0,50,60,100), ncol=4, byrow=TRUE)
+#' # make a DESeqDataSet
+#' dds <- DESeqDataSetFromMatrix(cts,
+#'   data.frame(row.names=seq_len(ncol(cts))), ~1)
+#' colnames(dds) <- paste0("sample",1:4)
+#'
+#' # note! here you would instead use
+#' # estimateSizeFactors() to do actual normalization
+#' sizeFactors(dds) <- rep(1, ncol(dds))
+#'
+#' norm.cts <- counts(dds, normalized=TRUE)
+#'
+#' # 'pure' should also have normalized counts...
+#' pure <- matrix(c(10,0,0,
+#'                  0,0,10,
+#'                  0,10,0), ncol=3, byrow=TRUE)
+#' colnames(pure) <- letters[1:3]
+#' 
+#' # for real data, you need to find alpha after fitting estimateDispersions()
+#' mix <- unmix(norm.cts, pure, alpha=0.01)
+#' 
 #' @export
 unmix <- function(x, pure, alpha, shift, loss=1, quiet=FALSE) {
 
@@ -68,6 +96,7 @@ unmix <- function(x, pure, alpha, shift, loss=1, quiet=FALSE) {
   mix <- do.call(rbind, res)
   mix <- mix / rowSums(mix)
   colnames(mix) <- colnames(pure)
+  rownames(mix) <- colnames(x)
   
   return(mix)
   

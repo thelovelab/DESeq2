@@ -157,6 +157,9 @@ NULL
 #' @param fitType either "parametric", "local", or "mean"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
+#' @param sfType either "ratio", "poscounts", or "iterate"
+#' for teh type of size factor estimation. See
+#' \code{\link{estimateSizeFactors}} for description. 
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients 
 #' See \code{\link{nbinomWaldTest}} for description of the calculation
@@ -185,6 +188,8 @@ NULL
 #' see the Description of \code{\link{nbinomWaldTest}}.
 #' betaPrior must be set to TRUE in order for expanded model matrices
 #' to be fit.
+#' @param useT logical, passed to \code{\link{nbinomWaldTest}}, default is FALSE,
+#' where Wald statistics are assumed to follow a standard Normal
 #' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
 #' and for use with \code{nbinomWaldTest} and \code{nbinomLRT}
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
@@ -243,14 +248,19 @@ NULL
 #'
 #' @export
 DESeq <- function(object, test=c("Wald","LRT"),
-                  fitType=c("parametric","local","mean"), betaPrior,
+                  fitType=c("parametric","local","mean"),
+                  sfType=c("ratio","poscounts","iterate"),
+                  betaPrior,
                   full=design(object), reduced, quiet=FALSE,
-                  minReplicatesForReplace=7, modelMatrixType, minmu=0.5,
+                  minReplicatesForReplace=7, modelMatrixType,
+                  useT=FALSE, minmu=0.5,
                   parallel=FALSE, BPPARAM=bpparam()) {
   # check arguments
   stopifnot(is(object, "DESeqDataSet"))
   test <- match.arg(test, choices=c("Wald","LRT"))
   fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
+  sfType <- match.arg(sfType, choices=c("ratio","poscounts","iterate"))
+  # more check arguments
   stopifnot(is.logical(quiet))
   stopifnot(is.numeric(minReplicatesForReplace))
   stopifnot(is.logical(parallel))
@@ -327,7 +337,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
     }
   } else {
     if (!quiet) message("estimating size factors")
-    object <- estimateSizeFactors(object)
+    object <- estimateSizeFactors(object, type=sfType)
   }
   
   if (!parallel) {
@@ -338,6 +348,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
       object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
                                modelMatrix=modelMatrix,
                                modelMatrixType=modelMatrixType,
+                               useT=useT,
                                minmu=minmu)
     } else if (test == "LRT") {
       object <- nbinomLRT(object, full=full,
@@ -350,7 +361,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
     }
     object <- DESeqParallel(object, test=test, fitType=fitType,
                             betaPrior=betaPrior, full=full, reduced=reduced,
-                            quiet=quiet, modelMatrix=modelMatrix, minmu=minmu,
+                            quiet=quiet, modelMatrix=modelMatrix,
+                            useT=useT, minmu=minmu,
                             BPPARAM=BPPARAM)
   }
 
@@ -1093,7 +1105,17 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
 #' @param useT whether to use a t-distribution as a null distribution,
 #' for significance testing of the Wald statistics.
 #' If FALSE, a standard normal null distribution is used.
-#' @param df the degrees of freedom for the t-distribution
+#' See next argument \code{df} for information about which t is used.
+#' If \code{useT=TRUE} then further calls to \code{\link{results}}
+#' will make use of \code{mcols(object)$tDegreesFreedom} that is stored
+#' by \code{nbinomWaldTest}.
+#' @param df the degrees of freedom for the t-distribution.
+#' This can be of length 1 or the number of rows of \code{object}.
+#' If this is not specified, the degrees of freedom will be set
+#' by the number of samples minus the number of columns of the design
+#' matrix used for dispersion estimation. If \code{"weights"} are included in
+#' the \code{assays(object)}, then the sum of the weights is used in lieu
+#' of the number of samples.
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
 #' @param minmu lower bound on the estimated count while fitting the GLM
@@ -1255,17 +1277,39 @@ nbinomWaldTest <- function(object,
   colnames(betaSE) <- paste0("SE_",modelMatrixNames)
   WaldStatistic <- betaMatrix/betaSE
   colnames(WaldStatistic) <- paste0("WaldStatistic_",modelMatrixNames)
+
+  #################################
+  ## t distribution for p-values ##
+  #################################
   
-  # if useT is set to TRUE, use a t-distribution
   if (useT) {
-    dispPriorVar <- attr( dispersionFunction(object), "dispPriorVar" )
-    stopifnot(length(df)==1 | length(df)==nrow(object))
-    if (length(df) == nrow(object)) {
-      df <- df[!mcols(object)$allZero]
-      stopifnot(length(df)==nrow(WaldStatistic))
+    # if the `df` was provided to nbinomWaldTest...
+    if (!missing(df)) {
+      stopifnot(length(df) == 1 | length(df) == nrow(object))
+      if (length(df) == 1) {
+        df <- rep(df, nrow(objectNZ))
+      } else {
+        # the `WaldStatistic` vector is along nonzero rows of `object`
+        df <- df[!mcols(object)$allZero]
+      }
+    } else {
+      # df was missing, so compute it from the number of samples (w.r.t. weights)
+      # and the number of coefficients
+      if ("weights" %in% assayNames(object)) {
+        # this checks that weights are OK and normalizes to have rowMax == 1
+        wlist <- getAndCheckWeights(objectNZ, dispModelMatrix)
+        num.samps <- rowSums(wlist$weights)
+      } else {
+        num.samps <- rep(ncol(object), nrow(objectNZ))
+      }
+      df <- num.samps - ncol(dispModelMatrix)
     }
+    df <- ifelse(df > 0, df, NA)
+    stopifnot(length(df) == nrow(WaldStatistic))
+    # use a t distribution to calculate the p-value
     WaldPvalue <- 2*pt(abs(WaldStatistic),df=df,lower.tail=FALSE)
   } else {
+    # the default DESeq2 p-value: use the standard Normal
     WaldPvalue <- 2*pnorm(abs(WaldStatistic),lower.tail=FALSE)
   }
   colnames(WaldPvalue) <- paste0("WaldPvalue_",modelMatrixNames)
@@ -1281,6 +1325,9 @@ nbinomWaldTest <- function(object,
   } else {
     NULL
   }
+
+  # if useT need to add the t degrees of freedom to the end of resultsList
+  tDFList <- if (useT) list(tDegreesFreedom=df) else NULL
   
   resultsList <- c(matrixToList(betaMatrix),
                    matrixToList(betaSE),
@@ -1290,7 +1337,8 @@ nbinomWaldTest <- function(object,
                    list(betaConv = betaConv,
                         betaIter = fit$betaIter,
                         deviance = -2 * fit$logLike,
-                        maxCooks = maxCooks))
+                        maxCooks = maxCooks),
+                   tDFList)
   
   WaldResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
   
@@ -1307,12 +1355,16 @@ nbinomWaldTest <- function(object,
   statInfo <- paste("Wald statistic:",modelMatrixNamesSpaces)
   pvalInfo <- paste("Wald test p-value:",modelMatrixNamesSpaces)
 
-  mcols(WaldResults) <- DataFrame(type = rep("results",ncol(WaldResults)),
+  tDFDescription <- if (useT) "t degrees of freedom for Wald test" else NULL  
+  mcolsWaldResults <- DataFrame(type = rep("results",ncol(WaldResults)),
                                   description = c(coefInfo, seInfo, mleInfo, statInfo, pvalInfo,
                                     "convergence of betas",
                                     "iterations for betas",
                                     "deviance for the fitted model",
-                                    "maximum Cook's distance for row"))
+                                    "maximum Cook's distance for row",
+                                    tDFDescription))
+  
+  mcols(WaldResults) <- mcolsWaldResults
  
   mcols(object) <- cbind(mcols(object),WaldResults)
   return(object)

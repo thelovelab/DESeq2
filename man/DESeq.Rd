@@ -5,8 +5,9 @@
 \title{Differential expression analysis based on the Negative Binomial (a.k.a. Gamma-Poisson) distribution}
 \usage{
 DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
-  "mean"), betaPrior, full = design(object), reduced, quiet = FALSE,
-  minReplicatesForReplace = 7, modelMatrixType, minmu = 0.5,
+  "mean"), sfType = c("ratio", "poscounts", "iterate"), betaPrior,
+  full = design(object), reduced, quiet = FALSE,
+  minReplicatesForReplace = 7, modelMatrixType, useT = FALSE, minmu = 0.5,
   parallel = FALSE, BPPARAM = bpparam())
 }
 \arguments{
@@ -23,6 +24,10 @@ full and reduced model formula (defined by \code{\link{nbinomLRT}})}
 \item{fitType}{either "parametric", "local", or "mean"
 for the type of fitting of dispersions to the mean intensity.
 See \code{\link{estimateDispersions}} for description.}
+
+\item{sfType}{either "ratio", "poscounts", or "iterate"
+for teh type of size factor estimation. See
+\code{\link{estimateSizeFactors}} for description.}
 
 \item{betaPrior}{whether or not to put a zero-mean normal prior on
 the non-intercept coefficients 
@@ -57,6 +62,9 @@ level of factors in addition to an intercept. for more information
 see the Description of \code{\link{nbinomWaldTest}}.
 betaPrior must be set to TRUE in order for expanded model matrices
 to be fit.}
+
+\item{useT}{logical, passed to \code{\link{nbinomWaldTest}}, default is FALSE,
+where Wald statistics are assumed to follow a standard Normal}
 
 \item{minmu}{lower bound on the estimated count for fitting gene-wise dispersion
 and for use with \code{nbinomWaldTest} and \code{nbinomLRT}}
