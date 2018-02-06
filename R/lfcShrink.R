@@ -116,6 +116,7 @@ lfcShrink <- function(dds, coef, contrast, res,
   if (attr(dds,"betaPrior")) {
     stop("lfcShrink() should be used downstream of DESeq() with betaPrior=FALSE (the default)")
   }
+  stopifnot(length(lfcThreshold) == 1 && lfcThreshold >= 0)
   if (!missing(coef)) {
     if (is.numeric(coef)) {
       stopifnot(coef <= length(resultsNames(dds)))
@@ -363,6 +364,7 @@ lfcShrink <- function(dds, coef, contrast, res,
     message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
     https://doi.org/10.1093/biostatistics/kxw041")
+    if (lfcThreshold > 0) message("lfcThreshold is not used by type='ashr'")
     betahat <- res$log2FoldChange
     sebetahat <- res$lfcSE
     fit <- ashr::ash(betahat, sebetahat,
