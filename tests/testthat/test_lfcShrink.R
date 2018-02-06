@@ -1,21 +1,10 @@
 context("lfcShrink")
 test_that("LFC shrinkage works", {
-  dds <- makeExampleDESeqDataSet(betaSD=1)
-  dds <- estimateSizeFactors(dds)
-  expect_error(lfcShrink(dds, 2, 1))
-  dds <- estimateDispersions(dds)
-  dds <- DESeq(dds)
-  res <- results(dds)
-  res.shr <- lfcShrink(dds=dds, coef=2, res=res)
-  #plotMA(res.shr)
-  res.shr <- lfcShrink(dds=dds,
-                       contrast=c("condition","B","A"),
-                       res=res)
-  #plotMA(res.shr)
-
+  
   # testing out various methods for LFC shrinkage
   set.seed(1)
-  dds <- makeExampleDESeqDataSet(betaSD=1,n=1000,m=10)
+  dds <- makeExampleDESeqDataSet(betaSD=1,n=1000,m=20)
+  expect_error(lfcShrink(dds, coef=2), "first run")
   dds <- DESeq(dds)
   res <- results(dds, name="condition_B_vs_A")
 
@@ -29,7 +18,7 @@ test_that("LFC shrinkage works", {
   res.n <- lfcShrink(dds=dds, coef=2, type="normal")
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
   res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
-
+  
   # prior info
   ## str(priorInfo(res.n))
   ## str(priorInfo(res.ape))
@@ -40,6 +29,15 @@ test_that("LFC shrinkage works", {
   ## plot(mcols(dds)$trueBeta, res.n$log2FoldChange); abline(0,1,col="red")
   ## plot(mcols(dds)$trueBeta, res.ape$log2FoldChange); abline(0,1,col="red")
   ## plot(mcols(dds)$trueBeta, res.ash$log2FoldChange); abline(0,1,col="red")
+
+  # LFC threshold for "normal" and "apeglm"
+  res0 <- results(dds, name="condition_B_vs_A", lfcThreshold=1)
+  res.n <- lfcShrink(dds=dds, coef=2, type="normal", lfcThreshold=1)
+  res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", lfcThreshold=1)
+  
+  #plotMA(res0, ylim=c(-4,4), cex=1); abline(h=c(-1,1),col="dodgerblue")
+  #plotMA(res.n, ylim=c(-4,4), cex=1); abline(h=c(-1,1),col="dodgerblue")
+  #plotMA(res.ape, ylim=c(-4,4), cex=1); abline(h=c(-1,1),col="dodgerblue")
   
   # s-value returned
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", svalue=TRUE)
@@ -47,7 +45,9 @@ test_that("LFC shrinkage works", {
   res.ash <- lfcShrink(dds=dds, res=res, type="ashr", svalue=TRUE)
   expect_true("svalue" %in% names(res.ash))
 
-  # TODO add tests of new plotMA() with svalue
+  # plotMA works with s-values
+  plotMA(res.ape, cex=1)
+  plotMA(res.ash, cex=1)
   
   # list returned
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", returnList=TRUE)

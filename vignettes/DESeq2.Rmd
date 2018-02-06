@@ -475,7 +475,7 @@ order of the levels. There are two solutions: you can either
 explicitly tell *results* which comparison to make using the
 `contrast` argument (this will be shown later), or you can explicitly
 set the factors levels. You should only change the factor levels
-of variables in the design **before** running the DESeq2 analysis, not
+of variables in the design before running the DESeq2 analysis, not
 during or afterward. Setting the factor levels can be done in two
 ways, either using factor: 
 
@@ -570,8 +570,8 @@ In previous versions of DESeq2, the *DESeq* function by default
 would produce moderated, or shrunken, log2 fold changes through the
 use of the `betaPrior` argument. In version 1.16 and higher, we have
 split the moderation of log2 fold changes into a separate function,
-*lfcShrink*, for reasons described in the [changes section](#changes)
-below. 
+*lfcShrink*. Shrinkage estimation is discussed more in a 
+[later section](#altshrink).
 
 Here we provide the `dds` object and the name or number of the
 coefficient we want to moderate (where the number refers to the order
@@ -590,7 +590,8 @@ resLFC
 ### Using parallelization
 
 The above steps should take less than 30 seconds for most
-analyses. For experiments with many samples (e.g. 100 samples), one
+analyses. For experiments with complex designs and many samples
+(e.g. dozens of coefficients, ~100s of samples), one
 can take advantage of parallelized computation. Parallelizing `DESeq`,
 `results`, and `lfcShrink` can be easily accomplished by loading the
 BiocParallel package, and then setting the following arguments:
@@ -605,6 +606,8 @@ cores at the beginning of an analysis, and then just specify
 library("BiocParallel")
 register(MulticoreParam(4))
 ```
+
+### p-values and adjusted p-values
 
 We can order our results table by the smallest *p* value:
 
@@ -709,7 +712,7 @@ idx <- identify(res$baseMean, res$log2FoldChange)
 rownames(res)[idx]
 ``` 
 
-<a name="shrinkage"/>
+<a name="altshrink"/>
 
 ### Alternative shrinkage estimators
 
@@ -725,12 +728,12 @@ argument of `lfcShrink`. For more details, see `?lfcShrink`
 The options for `type` are:
 
 * `normal` is the the original DESeq2 shrinkage estimator, an adaptive
-  normal prior.
+  Normal distribution as prior.
 * `apeglm` is the adaptive t prior shrinkage estimator from the 
   [apeglm](http://bioconductor.org/packages/apeglm) package.
 * `ashr` is the adaptive shrinkage estimator from the
   [ashr](https://github.com/stephens999/ashr) package [@Stephens2016].
-  Here DESeq2 uses the ashr option to fit a mixture of normal distributions to
+  Here DESeq2 uses the ashr option to fit a mixture of Normal distributions to
   form the prior, with `method="shrinkage"`.
 
 **Note:** if the shrinkage estimator `ashr` is used in published
@@ -749,6 +752,7 @@ provided by each, see the [extended section on shrinkage estimators](#moreshrink
 
 ```{r warning=FALSE}
 resultsNames(dds)
+# because we are interested in treated vs untreated, we set 'coef=2'
 resApe <- lfcShrink(dds, coef=2, type="apeglm")
 resAsh <- lfcShrink(dds, coef=2, type="ashr")
 ```
@@ -956,7 +960,15 @@ head(resMF)
 ```
 
 It is also possible to retrieve the log2 fold changes, *p* values and adjusted
-*p* values of the `type` variable. The `contrast` argument of 
+*p* values of variables other than the last one in the design. 
+While in this case, `type` is not biologically interesting as it
+indicates differences across sequencing protocol, for other
+hypothetical designs, such as  `~genotype + condition +
+genotype:condition`, 
+we may actually be interested in the difference in baseline expression
+across genotype, which is not the last variable in the design.
+
+In any case, the `contrast` argument of 
 the function *results* takes a character vector of length three:
 the name of the variable, the name of the factor level for the numerator
 of the log2 ratio, and the name of the factor level for the denominator.
@@ -1260,41 +1272,12 @@ Log2 fold changes can also be added and subtracted by providing a
 `list` to the `contrast` argument which has two elements:
 the names of the log2 fold changes to add, and the names of the log2
 fold changes to subtract. The names used in the list should come from
-`resultsNames(dds)`.
-
-Alternatively, a numeric vector of the
+`resultsNames(dds)`. Alternatively, a numeric vector of the
 length of `resultsNames(dds)` can be provided, for manually
 specifying the linear combination of terms.  Demonstrations of the use
 of contrasts for various designs can be found in the examples section
-of the help page for the *results* function. The
-mathematical formula that is used to generate the contrasts can be
-found [below](#theory).
-
-<a name="moreshrink"/>
-
-## Extended section on shrinkage estimators
-
-Here we extend the [discussion of shrinkage estimators](#shrinkage).
-Summary table of differences between methods available in `lfcShrink`
-via the `type` argument (and for further technical reference on use of
-arguments please see `?lfcShrink`):
-
-| method:  | `normal` (1)  | `apeglm` | `ashr` (2) |
-|---|:-:|:-:|:-:|
-| Good for ranking by LFC | ✓ | ✓ | ✓ |
-| Shrinkage adapts to scale of observed LFCs | ✓ | ✓ | ✓ |
-| Shrinks one coefficient at a time |  | ✓ | ✓ |
-| Preserves "very large" LFC (doesn't overly shrink) |  | ✓ | ✓ |
-| Explicitly designed to compute *s-values* [@Stephens2016] |  | ✓ | ✓ |
-| Allows use of `coef` | ✓ | ✓ | ✓ |
-| Allows use of `contrast` | ✓ |  | ✓ |
-| Allows use of `lfcThreshold` (TODO) | ✓ | ✓ |  |
-| Can be used on designs with interaction terms |  | ✓ | ✓ |
-
-References:
-
-1. [@Love2014]
-2. [@Stephens2016]
+of the help page `?results`. The mathematical formula that is used to
+generate the contrasts can be found [below](#theory).
 
 <a name="interactions"/>
 
@@ -1472,6 +1455,150 @@ dds <- DESeq(dds, test="LRT", reduced=~batch)
 res <- results(dds)
 ``` 
 
+<a name="moreshrink"/>
+
+## Extended section on shrinkage estimators
+
+Here we extend the [discussion of shrinkage estimators](#shrinkage).
+Below is a summary table of differences between methods available in `lfcShrink`
+via the `type` argument (and for further technical reference on use of
+arguments please see `?lfcShrink`):
+
+| method:  | `normal`^1^  | `apeglm` | `ashr`^2^ |
+|---|:-:|:-:|:-:|
+| Good for ranking by LFC | ✓ | ✓ | ✓ |
+| Shrinkage adapts to scale of observed LFCs | ✓ | ✓ | ✓ |
+| Preserves "very large" LFC (doesn't over-shrink) |  | ✓ | ✓ |
+| Explicitly designed to compute *s-values* [@Stephens2016] |  | ✓ | ✓ |
+| Allows use of `coef` | ✓ | ✓ | ✓ |
+| Allows use of `lfcThreshold` | ✓ | ✓ |  |
+| Allows use of `contrast` | ✓ |  | ✓ |
+| Can be used on designs with interaction terms |  | ✓ | ✓ |
+
+**References:** 1. @Love2014; 2. @Stephens2016
+
+Beginning with the first two rows, all shrinkage methods provided by
+DESeq2 are good for ranking genes by "effect size", that is the log2
+fold change (LFC) across groups, or associated with an interaction term. It
+is useful to contrast ranking by effect size with ranking by a
+p-value or adjusted p-value associated with a null hypothesis: while
+increasing the number of samples will tend to decrease the associated
+p-value for a gene that is differentially expressed, the estimated
+effect size or LFC becomes more precise. Also, a gene can have a small
+p-value although the change in expression is not great, as long as the
+standard error associated with the estimated LFC is small.
+
+The next two rows point out that `apeglm` and `ashr` shrinkage methods
+help to preserve what we've called "very large" LFC, and can be used
+to compute *s-values*. These properties are related. As noted in the
+[previous section](#altshrink), the original DESeq2 shrinkage
+estimator used a Normal distribution, with a scale that adapts to the
+spread of the observed LFCs. Because the tails of the Normal
+distribution become thin relatively quickly, it was important when we
+designed the method that the prior scaling is sensitive to the very
+largest observed LFCs. As you can read in the DESeq2 paper, under the
+section, "*Empirical prior estimate*", we used the top 5% of the LFCs by
+absolute value to set the scale of the Normal prior (we later added
+weighting the quantile by precision). `ashr`, published
+in 2016, and `apeglm` use wide-tailed priors to avoid shrinking large
+LFCs. While a typical RNA-seq experiment may have many LFCs between -1
+and 1, we might consider a LFC of >4 to be very large, as they
+represent 16-fold increases or decreases in expression. `ashr` and
+`apeglm` can adapt to the scale of the entirety of LFCs, while not
+over-shrinking the few largest LFCs. The potential for over-shrinking
+LFC is also why DESeq2's shrinkage estimator is not recommended for
+designs with interaction terms.
+
+What are *s-values*? This quantity proposed by @Stephens2016 gives the 
+estimated rate of *false sign* among the set of genes with s-value
+less than or equal than a given gene's s-value, and @Stephens2016
+points out they are analogous to the *q*-value of @Storey2003. The
+s-value has a desirable property relative to the adjusted
+p-value or *q*-value, in that it does not require supposing there to
+be a set of null genes with LFC = 0 (the most commonly used null
+hypothesis). Therefore, it can be benchmarked
+by comparing estimated LFC and s-value to the "true LFC" in a setting
+where this can be reasonably defined. For these estimated
+probabilities to be accurate, the scale of the prior needs to match
+the scale of the distribution of effect sizes, and so the original
+DESeq2 shrinkage method is not really compatible with computing s-values.
+
+The last four rows explain differences in whether coefficients or
+contrasts can have shrinkage applied by the various methods. All three
+methods can use `coef` with either the name or numeric index from
+`resultsNames(dds)` to specify which coefficient to shrink. `normal`
+and `apeglm` also allow for a positive `lfcThreshold` to be specified,
+in which case, they will return p-values and adjusted p-values or
+s-values for the LFC being greater in absolute value than the
+threshold (see [this section](#thresh) for `normal`). For `apeglm`,
+setting a threshold means that the s-values will represent aggregate
+probabilities of FSOS events, "false sign or small", where the LFC is
+either the wrong sign or less than the threshold distance
+from 0. Finally, `normal` and `ashr` can be used with arbitrary specified
+`contrast` because `normal` shrinks multiple coefficients
+simultaneously (`apeglm` does not), and because `ashr` does not
+estimate a vector of coefficients but models estimated coefficients
+and their standard errors from upstream methods (here, DESeq2's MLE).
+
+```{r apeThresh}
+resApeT <- lfcShrink(dds, coef=2, type="apeglm", lfcThreshold=1)
+plotMA(resApeT, ylim=c(-3,3), cex=.8)
+abline(h=c(-1,1), col="dodgerblue", lwd=2)
+```
+
+Although `apeglm` cannot be used with `contrast`, we note that many
+designs can be easily rearranged such that what was a contrast becomes
+its own coefficient. In this case, the dispersion does not have to be
+estimated again, as the designs are equivalent, up to the meaning of
+the coefficients. Instead, one need only run `nbinomWaldTest` to
+re-estimate MLE coefficients -- these are necessary for `apeglm` --
+and then run `lfcShrink` specifying the coefficient of interest in
+`resultsNames(dds)`.
+
+We give some examples below of producing equivalent designs for use
+with `coef`. We show how the coefficients change with `model.matrix`,
+but the user would, for example, either change the levels of
+`dds$condition` or replace the design using `design(dds)<-`, then run
+`nbinomWaldTest` followed by `lfcShrink`.
+
+Three groups:
+
+```{r}
+condition <- factor(rep(c("A","B","C"),each=2))
+model.matrix(~ condition)
+# to compare C vs B, make B the reference level,
+# and select the last coefficient
+condition <- relevel(condition, "B")
+model.matrix(~ condition)
+```
+
+Three groups, compare condition effects:
+
+```{r}
+grp <- factor(rep(1:3,each=4))
+cnd <- factor(rep(rep(c("A","B"),each=2),3))
+model.matrix(~ grp + cnd + grp:cnd)
+# to compare condition effect in group 3 vs 2,
+# make group 2 the reference level,
+# and select the last coefficient
+grp <- relevel(grp, "2")
+model.matrix(~ grp + cnd + grp:cnd)
+```
+
+Two groups, two individuals per group, compare within-individual
+condition effects:
+
+```{r}
+grp <- factor(rep(1:2,each=4))
+ind <- factor(rep(rep(1:2,each=2),2))
+cnd <- factor(rep(c("A","B"),4))
+model.matrix(~grp + grp:ind + grp:cnd)
+# to compare condition effect across group,
+# add a main effect for 'cnd',
+# and select the last coefficient
+model.matrix(~grp + cnd + grp:ind + grp:cnd)
+```
+
 <a name="outlier"/>
 
 ## Approach to count outliers 
@@ -1647,6 +1774,8 @@ resNoFilt <- results(dds, independentFiltering=FALSE)
 addmargins(table(filtering=(res$padj < .1),
                  noFiltering=(resNoFilt$padj < .1)))
 ``` 
+
+<a name="thresh"/>
 
 ## Tests of log2 fold change above or below a threshold
 
@@ -2163,7 +2292,7 @@ to form the numerator of the test statistic. The denominator is formed by multip
 the covariance matrix $\Sigma$ for the coefficients on either side by the 
 contrast vector $c$. The square root of this product is an estimate
 of the standard error for the contrast. The contrast statistic is then compared
-to a normal distribution as are the Wald statistics for the DESeq2
+to a Normal distribution as are the Wald statistics for the DESeq2
 package.
 
 $$ W = \frac{c^t \beta}{\sqrt{c^t \Sigma c}} $$
@@ -2178,11 +2307,8 @@ standard model matrices, as produced by `model.matrix`.  The expanded
 model matrices differ from the standard model matrices, in that they
 have an indicator column (and therefore a coefficient) for each level
 of factors in the design formula in addition to an intercept. This is
-described in the DESeq2 paper, but the DESeq2 software package has
-moved away from this approach, with more support for shrinkage of
-individual coefficients (although the expanded model matrix approach
-is still supported using the above combination of functions and
-arguments).
+described in the DESeq2 paper. Using type `normal` with `coef` uses
+standard model matrices, as does the `apeglm` shrinkage estimator.
 
 <a name="indfilttheory"/>
 

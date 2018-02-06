@@ -52,6 +52,8 @@ The code of this function can be seen with:
 If users wish to modify the graphical parameters of the plot,
 it is recommended to build the data.frame in the
 same manner and call \code{plotMA}.
+If the \code{object} contains a column \code{svalue} then these
+will be used for coloring the points (with a default \code{alpha=0.005}).
 }
 \examples{
 

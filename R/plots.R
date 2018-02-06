@@ -90,34 +90,48 @@ plotMA.DESeqDataSet <- function(object, alpha=.1, main="", xlab="mean of normali
 }
 
 plotMA.DESeqResults <- function(object, alpha, main="", xlab="mean of normalized counts", ylim, MLE=FALSE, ...) {
+
+  sval <- "svalue" %in% names(object)
+
+  if (sval) {
+    test.col <- "svalue"
+  } else {
+    test.col <- "padj"
+  }
+
+  if (MLE) {
+    if (is.null(object$lfcMLE)) {
+      stop("lfcMLE column is not present: you should first run results() with addMLE=TRUE")
+    }
+    lfc.col <- "lfcMLE"
+  } else {
+    lfc.col <- "log2FoldChange"
+  }
+  
   if (missing(alpha)) {
-    alpha <- if (is.null(metadata(object)$alpha)) {
-      0.1
+    if (sval) {
+      alpha <- 0.005
+      message("thresholding s-values on alpha=0.005 to color points")
     } else {
-      metadata(object)$alpha
+      if (is.null(metadata(object)$alpha)) {
+        alpha <- 0.1
+      } else {
+        alpha <- metadata(object)$alpha
+      }
     }
   }
 
-  # TODO: MA plot should use s-value if present in 'object'
+  isDE <- ifelse(is.na(object[[test.col]]), FALSE, object[[test.col]] < alpha)
+  df <- data.frame(mean = object[["baseMean"]],
+                   lfc = object[[lfc.col]],
+                   isDE = isDE)
   
-  df <- if (MLE) {
-          # test if MLE is there
-          if (is.null(object$lfcMLE)) {
-            stop("lfcMLE column is not present: you should first run results() with addMLE=TRUE")
-          }
-          data.frame(mean = object$baseMean,
-                     lfc = object$lfcMLE,
-                     isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
-        } else {
-          data.frame(mean = object$baseMean,
-                     lfc = object$log2FoldChange,
-                     isDE = ifelse(is.na(object$padj), FALSE, object$padj < alpha))
-        }
   if (missing(ylim)) {
     plotMA(df, main=main, xlab=xlab, ...)
   } else {
     plotMA(df, main=main, xlab=xlab, ylim=ylim, ...)
-  }  
+  }
+
 }
 
 #' MA-plot from base means and log fold changes
@@ -134,6 +148,8 @@ plotMA.DESeqResults <- function(object, alpha, main="", xlab="mean of normalized
 #' If users wish to modify the graphical parameters of the plot,
 #' it is recommended to build the data.frame in the
 #' same manner and call \code{plotMA}.
+#' If the \code{object} contains a column \code{svalue} then these
+#' will be used for coloring the points (with a default \code{alpha=0.005}).
 #'
 #' @docType methods
 #' @name plotMA

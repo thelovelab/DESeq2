@@ -42,8 +42,16 @@
 #' \code{"ashr"} is the adaptive shrinkage estimator from the 'ashr' package,
 #' using a fitted mixture of normals prior
 #' - see the Stephens (2016) reference below for citation
+#' @param lfcThreshold a non-negative value which specifies a log2 fold change
+#' threshold (as in \code{\link{results}}). This can be used in conjunction with
+#' \code{normal} and \code{apeglm}, where it will produce new p-values or
+#' s-values testing whether the LFC is greater in absolute value than the threshold.
+#' The s-values returned in combination with \code{apeglm} provide the probability
+#' of FSOS events, "false sign or small", among the tests with equal or smaller s-value
+#' than a given gene's s-value, where "small" is specified by \code{lfcThreshold}.
 #' @param svalue logical, should p-values and adjusted p-values be replaced
-#' with s-values when using \code{apeglm} or \code{ashr}.
+#' with s-values when using \code{apeglm} or \code{ashr}. s-values provide the probability
+#' of false signs among the tests with equal or smaller s-value than a given given's s-value.
 #' See Stephens (2016) reference on s-values.
 #' @param returnList logical, should \code{lfcShrink} return a list, where
 #' the first element is the results table, and the second element is the
@@ -93,18 +101,20 @@
 #' 
 lfcShrink <- function(dds, coef, contrast, res,
                       type=c("normal","apeglm","ashr"),
-                      svalue=FALSE, returnList=FALSE,
+                      lfcThreshold=0,
+                      svalue=FALSE,
+                      returnList=FALSE,
                       apeAdapt=TRUE, apeMethod="nbinomCR",
                       parallel=FALSE, BPPARAM=bpparam(), ...) {  
 
   stopifnot(is(dds, "DESeqDataSet"))
   if (!missing(res)) stopifnot(is(res, "DESeqResults"))
-  
-  # TODO: lfcThreshold for types: normal and apeglm
-  
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))
+  if (length(resultsNames(dds)) == 0) {
+    stop("first run DESeq() before running lfcShrink()")
+  }
   if (attr(dds,"betaPrior")) {
-    stop("lfcShrink should be used downstream of DESeq() with betaPrior=FALSE (the default)")
+    stop("lfcShrink() should be used downstream of DESeq() with betaPrior=FALSE (the default)")
   }
   if (!missing(coef)) {
     if (is.numeric(coef)) {
@@ -203,13 +213,23 @@ lfcShrink <- function(dds, coef, contrast, res,
     }
     if (missing(contrast)) {
       # parallel not necessary here
-      res.shr <- results(dds.shr, name=coefAlpha)
+      res.shr <- results(dds.shr, name=coefAlpha, lfcThreshold=lfcThreshold)
     } else {
-      res.shr <- results(dds.shr, contrast=contrast, parallel=parallel, BPPARAM=BPPARAM)
+      # parallel may be useful here as novel contrasts can take a while with big designs
+      res.shr <- results(dds.shr, contrast=contrast, lfcThreshold=lfcThreshold,
+                         parallel=parallel, BPPARAM=BPPARAM)
     }
-    res$log2FoldChange <- res.shr$log2FoldChange
-    res$lfcSE <- res.shr$lfcSE
-    mcols(res)$description[2:3] <- mcols(res.shr)$description[2:3]
+
+    if (lfcThreshold > 0) {
+      change.cols <- c("log2FoldChange","lfcSE","stat","pvalue","padj")
+    } else {
+      change.cols <- c("log2FoldChange","lfcSE")
+    }
+    for (column in change.cols) {
+      res[[column]] <- res.shr[[column]]
+    }
+    mcols(res,use.names=TRUE)[change.cols,"description"] <- mcols(res.shr,use.names=TRUE)[change.cols,"description"]
+    
     deseq2.version <- packageVersion("DESeq2")
     priorInfo(res) <- list(type="normal",
                            package="DESeq2",
@@ -263,36 +283,41 @@ lfcShrink <- function(dds, coef, contrast, res,
     } else {
       log.lik <- NULL
     }
+    if (lfcThreshold > 0) {
+      message(paste0("computing FSOS 'false sign or small' s-values (T=",round(lfcThreshold,3),")"))
+      svalue <- TRUE
+      apeT <- log(2) * lfcThreshold
+    } else {
+      apeT <- NULL
+    }
+
+    # parallel fork
     if (!parallel) {
-      fit <- apeglm::apeglm(Y=Y,
-                            x=design,
-                            log.lik=log.lik,
-                            param=disps,
-                            coef=coefNum,
-                            mle=mle,
-                            weights=weights,
-                            offset=offset,
+      fit <- apeglm::apeglm(Y=Y, x=design, log.lik=log.lik, param=disps,
+                            coef=coefNum, mle=mle, threshold=apeT,
+                            weights=weights, offset=offset,
                             method=apeMethod, ...)
     } else {
       fitList <- bplapply(levels(parallelIdx), function(l) {
         idx <- parallelIdx == l
-        apeglm::apeglm(Y=Y[idx,,drop=FALSE],
-                       x=design,
-                       log.lik=log.lik,
-                       param=disps[idx],
-                       coef=coefNum,
-                       mle=mle,
-                       weights=weights[idx,,drop=FALSE],
-                       offset=offset[idx,,drop=FALSE],
+        apeglm::apeglm(Y=Y[idx,,drop=FALSE], x=design, log.lik=log.lik, param=disps[idx],
+                       coef=coefNum, mle=mle, threshold=apeT,
+                       weights=weights[idx,,drop=FALSE], offset=offset[idx,,drop=FALSE],
                        method=apeMethod, ...)
       })
+      # collate the objects from the split
       fit <- list()
-      for (param in c("map","sd","fsr","svalue","interval","diag")) {
+      ape.cols <- c("map","sd","fsr","svalue","interval","diag")
+      if (lfcThreshold > 0) {
+        ape.cols <- c(ape.cols, "thresh")
+      }
+      for (param in ape.cols) {
         fit[[param]] <- do.call(rbind, lapply(fitList, `[[`, param))
       }
       fit$prior.control <- fitList[[1]]$prior.control
       fit$svalue <- apeglm::svalue(fit$fsr[,1])
     }
+    
     stopifnot(nrow(fit$map) == nrow(dds))
     conv <- fit$diag[,"conv"]
     if (!all(conv[!is.na(conv)] == 0)) {
@@ -301,12 +326,18 @@ lfcShrink <- function(dds, coef, contrast, res,
     res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
     res$lfcSE <- log2(exp(1)) * fit$sd[,coefNum]
     mcols(res)$description[2] <- sub("MLE","MAP",mcols(res)$description[2])
+    mcols(res)$description[3] <- sub("standard error","posterior SD",mcols(res)$description[3])
     if (svalue) {
       coefAlphaSpaces <- gsub("_"," ",coefAlpha)
       res <- res[,1:3]
-      res$svalue <- as.numeric(fit$svalue)
-      mcols(res)[4,] <- DataFrame(type="results",
-                                  description=paste("s-value:",coefAlphaSpaces))
+      if (lfcThreshold > 0) {
+        res$svalue <- as.numeric(apeglm::svalue(fit$thresh))
+        description <- paste0("FSOS s-value (T=",round(lfcThreshold,3),"): ",coefAlphaSpaces)
+      } else {
+        res$svalue <- as.numeric(fit$svalue)
+        description <- paste0("s-value: ",coefAlphaSpaces)
+      }
+      mcols(res)[4,] <- DataFrame(type="results", description=description)
     } else {
       res <- res[,c(1:3,5:6)]
     }
@@ -338,7 +369,8 @@ lfcShrink <- function(dds, coef, contrast, res,
                      mixcompdist="normal", method="shrink", ...)
     res$log2FoldChange <- fit$result$PosteriorMean
     res$lfcSE <- fit$result$PosteriorSD
-    mcols(res)$description[2] <- sub("MLE","PostMean",mcols(res)$description[2])
+    mcols(res)$description[2] <- sub("MLE","MMSE",mcols(res)$description[2])
+    mcols(res)$description[3] <- sub("standard error","posterior SD",mcols(res)$description[3])
     if (svalue) {
       coefAlphaSpaces <- sub(".*p-value: ","",mcols(res)$description[5])
       res <- res[,1:3]

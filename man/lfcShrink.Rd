@@ -5,7 +5,7 @@
 \title{Shrink log2 fold changes}
 \usage{
 lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
-  svalue = FALSE, returnList = FALSE, apeAdapt = TRUE,
+  lfcThreshold = 0, svalue = FALSE, returnList = FALSE, apeAdapt = TRUE,
   apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(), ...)
 }
 \arguments{
@@ -30,8 +30,17 @@ For \code{ashr}, if \code{res} is provided, then \code{coef} and \code{contrast}
 using a fitted mixture of normals prior
 - see the Stephens (2016) reference below for citation}
 
+\item{lfcThreshold}{a non-negative value which specifies a log2 fold change
+threshold (as in \code{\link{results}}). This can be used in conjunction with
+\code{normal} and \code{apeglm}, where it will produce new p-values or
+s-values testing whether the LFC is greater in absolute value than the threshold.
+The s-values returned in combination with \code{apeglm} provide the probability
+of FSOS events, "false sign or small", among the tests with equal or smaller s-value
+than a given gene's s-value, where "small" is specified by \code{lfcThreshold}.}
+
 \item{svalue}{logical, should p-values and adjusted p-values be replaced
-with s-values when using \code{apeglm} or \code{ashr}.
+with s-values when using \code{apeglm} or \code{ashr}. s-values provide the probability
+of false signs among the tests with equal or smaller s-value than a given given's s-value.
 See Stephens (2016) reference on s-values.}
 
 \item{returnList}{logical, should \code{lfcShrink} return a list, where

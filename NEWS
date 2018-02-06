@@ -1,8 +1,13 @@
 CHANGES IN VERSION 1.20.0
 --------------------------
 
+    o Added 'lfcThreshold' argument to lfcShrink() for use
+      with type="normal" and type="apeglm". For the latter,
+      lfcShrink() will compute FSOS s-values, for bounding
+      when the LFC will be "false sign or small", where
+      small is defined by lfcThreshold.
     o Switching to a ~10x faster apeglm implementation for
-      use in the lfcShrink() function.
+      use in the lfcShrink() function.    
     o Beginning the deprecation of exploratory analysis of
       designs without replicates. Analysis of designs without
       replicates will be removed in the Oct 2018 release:
