@@ -222,7 +222,7 @@ NULL
 #' 
 #' @useDynLib DESeq2
 #'
-#' @seealso \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
+#' @seealso \code{link{results}}, \code{\link{lfcShrink}}, \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
 #'
 #' @examples
 #'

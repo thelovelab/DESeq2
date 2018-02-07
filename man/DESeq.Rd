@@ -183,7 +183,7 @@ resLRT <- results(ddsLRT)
 Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
 }
 \seealso{
-\code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
+\code{link{results}}, \code{\link{lfcShrink}}, \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}
 }
 \author{
 Michael Love

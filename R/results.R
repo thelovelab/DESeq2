@@ -48,7 +48,7 @@
 #' See the reference in this man page for details on independent filtering.
 #' The filter used for maximizing the number of rejections is the mean
 #' of normalized counts for all samples in the dataset.
-#' Several arguments from the \code{\link[genefilter]{filtered_p}} function of
+#' Several arguments from the \code{filtered_p} function of
 #' the genefilter package (used within the \code{results} function)
 #' are provided here to control the independent filtering behavior.
 #' In DESeq2 version >= 1.10, the threshold that is chosen is
@@ -205,7 +205,7 @@
 #'
 #' For \code{removeResults}: the original \code{DESeqDataSet} with results metadata columns removed
 #'
-#' @seealso \code{\link{DESeq}}, \code{\link[genefilter]{filtered_R}}
+#' @seealso \code{\link{DESeq}}, \code{\link{lfcShrink}}
 #'
 #' @examples
 #'
