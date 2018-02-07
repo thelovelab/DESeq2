@@ -1599,6 +1599,31 @@ model.matrix(~grp + grp:ind + grp:cnd)
 model.matrix(~grp + cnd + grp:ind + grp:cnd)
 ```
 
+<a name="singlecell"/>
+
+## Recommendations for single-cell analysis
+
+We have a few recommendations for best use of DESeq2 for single-cell
+datasets, which mostly come from a recent manuscript [@Berge2018].
+
+* One can use
+  the
+  [zinbwave](https://bioconductor.org/packages/release/bioc/html/zinbwave.html) and
+  [zingeR](https://github.com/statOmics/zingeR) packages to directly
+  model the zero inflation of the counts. These packages have been
+  developed lately to work in conjunction with DESeq2 and
+  edgeR. The most up-to-date example code for running DESeq2 alongside
+  `zinbwave` and `zingeR` can be found
+  [here](https://github.com/statOmics/zinbwaveZinger/blob/master/zinbwaveSimulations/trapnell_sims_fc2/trapnell_sims_fc2.Rmd).
+* In general, it is best to use `test="LRT"` when working with single
+  cell data, over the Wald test. This has been observed across
+  multiple benchmarks. The LRT performs better with the abundance of
+  zeros -- data on the boundary of the parameter space.
+* With single cell data, it is recommended to set the
+  parameter `minmu=1e-6`, which can be specified when running
+  `DESeq`. This again deals with potentially an abundance of zeros,
+  and helps to recover power when the small counts may be meaningful.
+
 <a name="outlier"/>
 
 ## Approach to count outliers 

@@ -797,38 +797,52 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
 #'
 #' @export
 summary.DESeqResults <- function(object, alpha, ...) {
+  sval <- "svalue" %in% names(object)
+  if (sval) {
+    test.col <- "svalue"
+    test.col.name <- "s-value"
+  } else {
+    test.col <- "padj"
+    test.col.name <- "adjusted p-value"
+  }
   if (missing(alpha)) {
-    alpha <- if (is.null(metadata(object)$alpha)) {
-      0.1
+    if (sval) {
+      alpha <- 0.005
     } else {
-      metadata(object)$alpha
+      if (is.null(metadata(object)$alpha)) {
+        alpha <- 0.1
+      } else {
+        alpha <- metadata(object)$alpha
+      }
     }
   }  
-  cat("\n")
+  message("\n")
   notallzero <- sum(object$baseMean > 0)
-  up <- sum(object$padj < alpha & object$log2FoldChange > 0, na.rm=TRUE)
-  down <- sum(object$padj < alpha & object$log2FoldChange < 0, na.rm=TRUE)
-  filt <- sum(!is.na(object$pvalue) & is.na(object$padj))
-  outlier <- sum(object$baseMean > 0 & is.na(object$pvalue))
-  ft <- if (is.null(metadata(object)$filterThreshold)) {
-    0
-  } else {
-    round(metadata(object)$filterThreshold)
+  up <- sum(object[[test.col]] < alpha & object$log2FoldChange > 0, na.rm=TRUE)
+  down <- sum(object[[test.col]] < alpha & object$log2FoldChange < 0, na.rm=TRUE)
+  if (!sval) {
+    filt <- sum(!is.na(object$pvalue) & is.na(object$padj))
+    outlier <- sum(object$baseMean > 0 & is.na(object$pvalue))
+    if (is.null(metadata(object)$filterThreshold)) {
+      ft <- 0
+    } else {
+      ft <- round(metadata(object)$filterThreshold)
+    }
   }
-  ihw <- "ihwResult" %in% names(metadata(object))
+  ihw <- !sval & "ihwResult" %in% names(metadata(object))
 
   printsig <- function(x) format(x, digits=2) 
-  cat("out of",notallzero,"with nonzero total read count\n")
-  cat(paste0("adjusted p-value < ",alpha,"\n"))
-  cat(paste0("LFC > 0 (up)     : ",up,", ",printsig(up/notallzero*100),"% \n"))
-  cat(paste0("LFC < 0 (down)   : ",down,", ",printsig(down/notallzero*100),"% \n"))
-  cat(paste0("outliers [1]     : ",outlier,", ",printsig(outlier/notallzero*100),"% \n"))
-  if (!ihw) cat(paste0("low counts [2]   : ",filt,", ",printsig(filt/notallzero*100),"% \n"))
-  if (!ihw) cat(paste0("(mean count < ",ft,")\n"))
-  cat("[1] see 'cooksCutoff' argument of ?results\n")
-  if (!ihw) cat("[2] see 'independentFiltering' argument of ?results\n")
-  if (ihw) cat("[2] see metadata(res)$ihwResult on hypothesis weighting\n")
-  cat("\n")
+  message("out of",notallzero,"with nonzero total read count\n")
+  message(paste0(test.col.name," < ",alpha,"\n"))
+  message(paste0("LFC > 0 (up)     : ",up,", ",printsig(up/notallzero*100),"% \n"))
+  message(paste0("LFC < 0 (down)   : ",down,", ",printsig(down/notallzero*100),"% \n"))
+  if (!sval) message(paste0("outliers [1]     : ",outlier,", ",printsig(outlier/notallzero*100),"% \n"))
+  if (!sval & !ihw) message(paste0("low counts [2]   : ",filt,", ",printsig(filt/notallzero*100),"% \n"))
+  if (!sval & !ihw) message(paste0("(mean count < ",ft,")\n"))
+  if (!sval) message("[1] see 'cooksCutoff' argument of ?results\n")
+  if (!sval & !ihw) message("[2] see 'independentFiltering' argument of ?results\n")
+  if (ihw) message("see metadata(res)$ihwResult on hypothesis weighting\n")
+  message("\n")
 }
 
 #' Accessors for the 'priorInfo' slot of a DESeqResults object.

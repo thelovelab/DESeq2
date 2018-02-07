@@ -48,6 +48,10 @@ test_that("LFC shrinkage works", {
   # plotMA works with s-values
   plotMA(res.ape, cex=1)
   plotMA(res.ash, cex=1)
+
+  # summary works with s-values
+  summary(res.ape)
+  summary(res.ash)
   
   # list returned
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", returnList=TRUE)
