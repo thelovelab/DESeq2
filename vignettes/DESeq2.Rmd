@@ -1467,17 +1467,16 @@ arguments please see `?lfcShrink`):
 | method:  | `normal`^1^  | `apeglm` | `ashr`^2^ |
 |---|:-:|:-:|:-:|
 | Good for ranking by LFC | ✓ | ✓ | ✓ |
-| Shrinkage adapts to scale of observed LFCs | ✓ | ✓ | ✓ |
-| Preserves "very large" LFC (doesn't over-shrink) |  | ✓ | ✓ |
-| Explicitly designed to compute *s-values* [@Stephens2016] |  | ✓ | ✓ |
+| Preserves size of large LFC |  | ✓ | ✓ |
+| Can compute *s-values* [@Stephens2016] |  | ✓ | ✓ |
 | Allows use of `coef` | ✓ | ✓ | ✓ |
 | Allows use of `lfcThreshold` | ✓ | ✓ |  |
 | Allows use of `contrast` | ✓ |  | ✓ |
-| Can be used on designs with interaction terms |  | ✓ | ✓ |
+| Can shrink interaction terms |  | ✓ | ✓ |
 
 **References:** 1. @Love2014; 2. @Stephens2016
 
-Beginning with the first two rows, all shrinkage methods provided by
+Beginning with the first row, all shrinkage methods provided by
 DESeq2 are good for ranking genes by "effect size", that is the log2
 fold change (LFC) across groups, or associated with an interaction term. It
 is useful to contrast ranking by effect size with ranking by a
@@ -1489,7 +1488,7 @@ p-value although the change in expression is not great, as long as the
 standard error associated with the estimated LFC is small.
 
 The next two rows point out that `apeglm` and `ashr` shrinkage methods
-help to preserve what we've called "very large" LFC, and can be used
+help to preserve the size of large LFC, and can be used
 to compute *s-values*. These properties are related. As noted in the
 [previous section](#altshrink), the original DESeq2 shrinkage
 estimator used a Normal distribution, with a scale that adapts to the
@@ -1510,10 +1509,10 @@ LFC is also why DESeq2's shrinkage estimator is not recommended for
 designs with interaction terms.
 
 What are *s-values*? This quantity proposed by @Stephens2016 gives the 
-estimated rate of *false sign* among the set of genes with s-value
-less than or equal than a given gene's s-value, and @Stephens2016
-points out they are analogous to the *q*-value of @Storey2003. The
-s-value has a desirable property relative to the adjusted
+estimated rate of *false sign* among genes with equal or smaller s-value.
+@Stephens2016 points out they are analogous to the *q*-value of
+@Storey2003. 
+The s-value has a desirable property relative to the adjusted
 p-value or *q*-value, in that it does not require supposing there to
 be a set of null genes with LFC = 0 (the most commonly used null
 hypothesis). Therefore, it can be benchmarked
@@ -1531,14 +1530,10 @@ and `apeglm` also allow for a positive `lfcThreshold` to be specified,
 in which case, they will return p-values and adjusted p-values or
 s-values for the LFC being greater in absolute value than the
 threshold (see [this section](#thresh) for `normal`). For `apeglm`,
-setting a threshold means that the s-values will represent aggregate
-probabilities of FSOS events, "false sign or small", where the LFC is
-either the wrong sign or less than the threshold distance
-from 0. Finally, `normal` and `ashr` can be used with arbitrary specified
-`contrast` because `normal` shrinks multiple coefficients
-simultaneously (`apeglm` does not), and because `ashr` does not
-estimate a vector of coefficients but models estimated coefficients
-and their standard errors from upstream methods (here, DESeq2's MLE).
+setting a threshold means that the s-values will give the "false sign
+or small" rate (FSOS) among genes with equal or small s-value.
+We found FSOS to be a useful description for when the LFC is either
+the wrong sign or less than the threshold distance from 0.
 
 ```{r apeThresh}
 resApeT <- lfcShrink(dds, coef=2, type="apeglm", lfcThreshold=1)
@@ -1546,6 +1541,11 @@ plotMA(resApeT, ylim=c(-3,3), cex=.8)
 abline(h=c(-1,1), col="dodgerblue", lwd=2)
 ```
 
+Finally, `normal` and `ashr` can be used with arbitrary specified
+`contrast` because `normal` shrinks multiple coefficients
+simultaneously (`apeglm` does not), and because `ashr` does not
+estimate a vector of coefficients but models estimated coefficients
+and their standard errors from upstream methods (here, DESeq2's MLE).
 Although `apeglm` cannot be used with `contrast`, we note that many
 designs can be easily rearranged such that what was a contrast becomes
 its own coefficient. In this case, the dispersion does not have to be
