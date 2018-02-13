@@ -290,7 +290,8 @@ setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
 #' 
 #' @param dds a \code{DESeqDataSet}
 #' @param gene a character, specifying the name of the gene to plot
-#' @param intgroup interesting groups: a character vector of names in \code{colData(x)} to use for grouping
+#' @param intgroup interesting groups: a character vector of names in \code{colData(x)} to use for grouping.
+#' Must be factor variables. If you want to plot counts over numeric, choose \code{returnData=TRUE}
 #' @param normalized whether the counts should be normalized by size factor
 #' (default is TRUE)
 #' @param transform whether to have log scale y-axis or not.
@@ -315,9 +316,15 @@ plotCounts <- function(dds, gene, intgroup="condition",
                        returnData=FALSE,
                        replaced=FALSE,
                        pc, ...) {
+
   stopifnot(length(gene) == 1 & (is.character(gene) | (is.numeric(gene) & (gene >= 1 & gene <= nrow(dds)))))
   if (!all(intgroup %in% names(colData(dds)))) stop("all variables in 'intgroup' must be columns of colData")
-  stopifnot(returnData | all(sapply(intgroup, function(v) is(colData(dds)[[v]], "factor"))))
+  if (!returnData) {
+    if (!all(sapply(intgroup, function(v) is(colData(dds)[[v]], "factor")))) {
+      stop("all variables in 'intgroup' should be factors, or choose returnData=TRUE and plot manually")
+    }
+  }
+      
 
   if (missing(pc)) {
     pc <- if (transform) 0.5 else 0

@@ -26,5 +26,14 @@ test_that("plots work", {
   expect_error(plotMA(res, MLE=TRUE))
   res <- results(dds, addMLE=TRUE)
   plotMA(res, MLE=TRUE)
+
+  # plotCounts with numeric variable in design gives error
+  dds <- removeResults(dds)
+  dds$x <- 1:8  
+  design(dds) <- ~x
+  dds <- DESeq(dds)
+  expect_error(plotCounts(dds, 1, "x"), "plot manually")
+  
   dev.off()
+  
 })

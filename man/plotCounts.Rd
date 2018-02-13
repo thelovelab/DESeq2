@@ -13,7 +13,8 @@ plotCounts(dds, gene, intgroup = "condition", normalized = TRUE,
 
 \item{gene}{a character, specifying the name of the gene to plot}
 
-\item{intgroup}{interesting groups: a character vector of names in \code{colData(x)} to use for grouping}
+\item{intgroup}{interesting groups: a character vector of names in \code{colData(x)} to use for grouping.
+Must be factor variables. If you want to plot counts over numeric, choose \code{returnData=TRUE}}
 
 \item{normalized}{whether the counts should be normalized by size factor
 (default is TRUE)}

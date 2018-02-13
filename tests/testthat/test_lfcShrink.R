@@ -48,6 +48,7 @@ test_that("LFC shrinkage works", {
   # plotMA works with s-values
   plotMA(res.ape, cex=1)
   plotMA(res.ash, cex=1)
+  dev.off()
 
   # summary works with s-values
   summary(res.ape)

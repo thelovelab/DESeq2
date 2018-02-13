@@ -23,7 +23,7 @@ test_that("rlog works", {
   # test normTranform
   dds <- makeExampleDESeqDataSet(n=50, m=10)
   nt <- normTransform(dds)
-  plotPCA(nt)
+  #plotPCA(nt)
 
   rld <- rlog(counts(dds))
 
