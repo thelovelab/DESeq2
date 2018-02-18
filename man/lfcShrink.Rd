@@ -94,6 +94,10 @@ to specify regions of the posterior at an arbitrary threshold.
 For \code{normal}, and design as a formula, shrinkage cannot be applied
 to coefficients in a model with interaction terms. For \code{normal}
 and user-supplied model matrices, shrinkage is only supported via \code{coef}.
+For \code{normal} with numeric- or list-style contrasts, it is possible to use \code{lfcShrink},
+but likely easier to use \code{DESeq} with \code{betaPrior=TRUE} followed by \code{results},
+because the numeric or list should reference the coefficients from the expanded model matrix.
+These coefficients will be printed to console if 'contrast' is used with \code{normal}.
 }
 \examples{
 

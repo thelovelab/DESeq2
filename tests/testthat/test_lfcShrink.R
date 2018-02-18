@@ -10,7 +10,11 @@ test_that("LFC shrinkage works", {
 
   # dds and res must match
   expect_error(lfcShrink(dds=dds, coef=2, res=res[1:500,], type="normal"), "rownames")
-  expect_error(lfcShrink(dds=dds, coef=2, res=res[1:500,], type="apeglm"), "rownames")  
+  expect_error(lfcShrink(dds=dds, coef=2, res=res[1:500,], type="apeglm"), "rownames")
+
+  # some quick contrast tests
+  expect_error(lfcShrink(dds=dds, contrast=c("treatment","B","A"), res=res, type="normal"))
+  expect_error(lfcShrink(dds=dds, contrast=c("condition","C","A"), res=res, type="normal"))
 
   # try out various types and ways of specifying coefs
   res.n <- lfcShrink(dds=dds, coef="condition_B_vs_A", res=res, type="normal")

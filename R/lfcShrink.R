@@ -25,6 +25,10 @@
 #' For \code{normal}, and design as a formula, shrinkage cannot be applied
 #' to coefficients in a model with interaction terms. For \code{normal}
 #' and user-supplied model matrices, shrinkage is only supported via \code{coef}.
+#' For \code{normal} with numeric- or list-style contrasts, it is possible to use \code{lfcShrink},
+#' but likely easier to use \code{DESeq} with \code{betaPrior=TRUE} followed by \code{results},
+#' because the numeric or list should reference the coefficients from the expanded model matrix.
+#' These coefficients will be printed to console if 'contrast' is used with \code{normal}.
 #' 
 #' @param dds a DESeqDataSet object, after running \code{\link{DESeq}}
 #' @param coef the name or number of the coefficient (LFC) to shrink,
@@ -189,7 +193,21 @@ lfcShrink <- function(dds, coef, contrast, res,
     if (missing(contrast)) {
       modelMatrixType <- "standard"
     } else {
+      # contrast, and so using expanded model matrix: run some checks
       modelMatrixType <- "expanded"
+      expMM <- makeExpandedModelMatrix(dds)
+      resNames <- colnames(expMM)
+      # quick and dirty checks so as to avoid running DESeq() before hitting error
+      if (is(contrast, "character")) {
+        stopifnot(length(contrast) == 3)
+        stopifnot(contrast[1] %in% names(colData(dds)))
+        stopifnot(is(colData(dds)[[contrast[1]]], "factor"))
+        stopifnot(all(contrast[2:3] %in% levels(colData(dds)[[contrast[1]]])))
+      } else {
+        message("resultsNames from the expanded model matrix to be referenced by 'contrast':")
+        message(paste0("'",paste(resNames, collapse="', '"),"'"))
+      }
+      contrast <- checkContrast(contrast, resNames)
     }
     attr(dds,"modelMatrixType") <- modelMatrixType
     betaPriorVar <- estimateBetaPriorVar(dds, modelMatrix=modelMatrix)
