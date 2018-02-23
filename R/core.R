@@ -47,9 +47,8 @@
 #' 
 #' The main functions for differential analysis are \code{\link{DESeq}} and
 #' \code{\link{results}}. See the examples at \code{\link{DESeq}} for basic analysis steps.
-#' Two transformations offered for count data are
-#' the "regularized logarithm", \code{\link{rlog}},
-#' and \code{\link{varianceStabilizingTransformation}}.
+#' Two transformations offered for count data are the variance stabilizing transformation,
+#' \code{\link{vst}}, and the "regularized logarithm", \code{\link{rlog}}.
 #' For more detailed information on usage, see the package vignette, by typing
 #' \code{vignette("DESeq2")}, or the workflow linked to on the first page
 #' of the vignette. All support questions should be posted to the Bioconductor
@@ -84,9 +83,10 @@ NULL
 #' For complete details on each step, see the manual pages of the respective
 #' functions. After the \code{DESeq} function returns a DESeqDataSet object,
 #' results tables (log2 fold changes and p-values) can be generated
-#' using the \code{\link{results}} function. See the manual page
-#' for \code{\link{results}} for information on independent filtering and
-#' p-value adjustment for multiple test correction.
+#' using the \code{\link{results}} function.
+#' Shrunken LFC can then be generated using the \code{\link{lfcShrink}} function. 
+#' All support questions should be posted to the Bioconductor
+#' support site: \url{http://support.bioconductor.org}.
 #'
 #' The differential expression analysis uses a generalized linear model of the form:
 #'

@@ -99,9 +99,10 @@ This function performs a default analysis through the steps:
 For complete details on each step, see the manual pages of the respective
 functions. After the \code{DESeq} function returns a DESeqDataSet object,
 results tables (log2 fold changes and p-values) can be generated
-using the \code{\link{results}} function. See the manual page
-for \code{\link{results}} for information on independent filtering and
-p-value adjustment for multiple test correction.
+using the \code{\link{results}} function.
+Shrunken LFC can then be generated using the \code{\link{lfcShrink}} function. 
+All support questions should be posted to the Bioconductor
+support site: \url{http://support.bioconductor.org}.
 }
 \details{
 The differential expression analysis uses a generalized linear model of the form:

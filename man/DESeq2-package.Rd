@@ -7,9 +7,8 @@
 \description{
 The main functions for differential analysis are \code{\link{DESeq}} and
 \code{\link{results}}. See the examples at \code{\link{DESeq}} for basic analysis steps.
-Two transformations offered for count data are
-the "regularized logarithm", \code{\link{rlog}},
-and \code{\link{varianceStabilizingTransformation}}.
+Two transformations offered for count data are the variance stabilizing transformation,
+\code{\link{vst}}, and the "regularized logarithm", \code{\link{rlog}}.
 For more detailed information on usage, see the package vignette, by typing
 \code{vignette("DESeq2")}, or the workflow linked to on the first page
 of the vignette. All support questions should be posted to the Bioconductor
