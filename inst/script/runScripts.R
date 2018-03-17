@@ -2,15 +2,15 @@ runDESeq2 <- function(e, retDDS=FALSE) {
   counts <- exprs(e)
   mode(counts) <- "integer"
   dds <- DESeqDataSetFromMatrix(counts, DataFrame(pData(e)), ~ condition)
-  dds <- DESeq(dds,quiet=TRUE)
+  dds <- DESeq(dds, quiet=TRUE)
   res <- results(dds)
-  beta <- res$log2FoldChange
-  pvals <- res$pvalue
+  logFC <- res$log2FoldChange
+  pval <- res$pvalue
   padj <- res$padj
-  pvals[is.na(pvals)] <- 1
-  pvals[rowSums(exprs(e)) == 0] <- NA
+  pval[is.na(pval)] <- 1
+  pval[rowSums(exprs(e)) == 0] <- NA
   padj[is.na(padj)] <- 1
-  return(list(pvals=pvals, padj=padj, beta=beta))
+  return(list(pval=pval, padj=padj, logFC=logFC))
 }
 
 runDESeq2LRT <- function(e, retDDS=FALSE) {
@@ -19,13 +19,13 @@ runDESeq2LRT <- function(e, retDDS=FALSE) {
   dds <- DESeqDataSetFromMatrix(counts, DataFrame(pData(e)), ~ condition)
   dds <- DESeq(dds,test="LRT",reduced=~1,quiet=TRUE)
   res <- results(dds)
-  beta <- res$log2FoldChange
-  pvals <- res$pvalue
+  logFC <- res$log2FoldChange
+  pval <- res$pvalue
   padj <- res$padj
-  pvals[is.na(pvals)] <- 1
-  pvals[rowSums(exprs(e)) == 0] <- NA
+  pval[is.na(pval)] <- 1
+  pval[rowSums(exprs(e)) == 0] <- NA
   padj[is.na(padj)] <- 1
-  return(list(pvals=pvals, padj=padj, beta=beta))
+  return(list(pval=pval, padj=padj, logFC=logFC))
 }
 
 runDESeq2NoIF <- function(e, retDDS=FALSE) {
@@ -34,13 +34,13 @@ runDESeq2NoIF <- function(e, retDDS=FALSE) {
   dds <- DESeqDataSetFromMatrix(counts, DataFrame(pData(e)), ~ condition)
   dds <- DESeq(dds,quiet=TRUE)
   res <- results(dds, independentFiltering=FALSE)
-  beta <- res$log2FoldChange
-  pvals <- res$pvalue
+  logFC <- res$log2FoldChange
+  pval <- res$pvalue
   padj <- res$padj
-  pvals[is.na(pvals)] <- 1
-  pvals[rowSums(exprs(e)) == 0] <- NA
+  pval[is.na(pval)] <- 1
+  pval[rowSums(exprs(e)) == 0] <- NA
   padj[is.na(padj)] <- 1
-  return(list(pvals=pvals, padj=padj, beta=beta))
+  return(list(pval=pval, padj=padj, logFC=logFC))
 }
 
 runDESeq2Outliers <- function(e, retDDS=FALSE) {
@@ -60,12 +60,12 @@ runDESeq2Outliers <- function(e, retDDS=FALSE) {
   resNoRepl <- results(ddsNoRepl)
   resList <- list("DESeq2"=resDefault, "DESeq2-noFilt"=resNoFilt, "DESeq2-noRepl"=resNoRepl)
   resOut <- lapply(resList, function(res) {
-    pvals <- res$pvalue
+    pval <- res$pvalue
     padj <- res$padj
-    pvals[is.na(pvals)] <- 1
-    pvals[rowSums(exprs(e)) == 0] <- NA
+    pval[is.na(pval)] <- 1
+    pval[rowSums(exprs(e)) == 0] <- NA
     padj[is.na(padj)] <- 1
-    list(pvals=pvals, padj=padj)
+    list(pval=pval, padj=padj)
   })
   return(resOut)
 }
@@ -80,14 +80,14 @@ runEdgeR <- function(e) {
   dgel <- estimateDisp(dgel, design)
   edger.fit <- glmFit(dgel, design)
   edger.lrt <- glmLRT(edger.fit)
-  predbeta <- predFC(exprs(e), design, offset=getOffset(dgel), dispersion=dgel$tagwise.dispersion)
-  predbeta10 <- predFC(exprs(e), design, prior.count=10, offset=getOffset(dgel), dispersion=dgel$tagwise.dispersion)
-  pvals <- edger.lrt$table$PValue
-  pvals[rowSums(exprs(e)) == 0] <- NA
-  padj <- p.adjust(pvals,method="BH")
+  predlogFC <- predFC(exprs(e), design, offset=getOffset(dgel), dispersion=dgel$tagwise.dispersion)
+  predlogFC10 <- predFC(exprs(e), design, prior.count=10, offset=getOffset(dgel), dispersion=dgel$tagwise.dispersion)
+  pval <- edger.lrt$table$PValue
+  pval[rowSums(exprs(e)) == 0] <- NA
+  padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
-  list(pvals=pvals, padj=padj, beta=log2(exp(1)) * edger.fit$coefficients[,"pData(e)$conditionB"],
-       predbeta=predbeta[,"pData(e)$conditionB"], predbeta10=predbeta10[,"pData(e)$conditionB"])
+  list(pval=pval, padj=padj, logFC=log2(exp(1)) * edger.fit$coefficients[,"pData(e)$conditionB"],
+       predlogFC=predlogFC[,"pData(e)$conditionB"], predlogFC10=predlogFC10[,"pData(e)$conditionB"])
 }
 
 runEdgeRRobust <- function(e) {
@@ -98,13 +98,13 @@ runEdgeRRobust <- function(e) {
   dgel <- estimateGLMRobustDisp(dgel, design, maxit=6)
   edger.fit <- glmFit(dgel, design)
   edger.lrt <- glmLRT(edger.fit)
-  predbeta <- predFC(exprs(e), design, offset=getOffset(dgel), dispersion=dgel$tagwise.dispersion)
-  pvals <- edger.lrt$table$PValue
-  pvals[rowSums(exprs(e)) == 0] <- NA
-  padj <- p.adjust(pvals,method="BH")
+  predlogFC <- predFC(exprs(e), design, offset=getOffset(dgel), dispersion=dgel$tagwise.dispersion)
+  pval <- edger.lrt$table$PValue
+  pval[rowSums(exprs(e)) == 0] <- NA
+  padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
-  list(pvals=pvals, padj=padj, beta=log2(exp(1)) * edger.fit$coefficients[,"pData(e)$conditionB"],
-       predbeta=predbeta[,"pData(e)$conditionB"])
+  list(pval=pval, padj=padj, logFC=log2(exp(1)) * edger.fit$coefficients[,"pData(e)$conditionB"],
+       predlogFC=predlogFC[,"pData(e)$conditionB"])
 }
 
 runDSS <- function(e) {
@@ -114,13 +114,16 @@ runDSS <- function(e) {
   seqData <- newSeqCountSet(X, designs)
   seqData <- estNormFactors(seqData)
   seqData <- estDispersion(seqData)
-  result <- waldTest(seqData, "B", "A")
+  # typically gives locfdr warnings about df
+  suppressWarnings({
+    result <- waldTest(seqData, "B", "A")
+  })
   result <- result[match(rownames(seqData),rownames(result)),]
-  pvals <- result$pval
-  pvals[rowSums(exprs(e)) == 0] <- NA
-  padj <- p.adjust(pvals,method="BH")
+  pval <- result$pval
+  pval[rowSums(exprs(e)) == 0] <- NA
+  padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
-  list(pvals=pvals, padj=padj, beta=( log2(exp(1)) * result$lfc ))
+  list(pval=pval, padj=padj, logFC=( log2(exp(1)) * result$lfc ))
 }
 
 runDSSFDR <- function(e) {
@@ -130,13 +133,16 @@ runDSSFDR <- function(e) {
   seqData <- newSeqCountSet(X, designs)
   seqData <- estNormFactors(seqData)
   seqData <- estDispersion(seqData)
-  result <- waldTest(seqData, "B", "A")
+  # typically gives locfdr warnings about df
+  suppressWarnings({
+    result <- waldTest(seqData, "B", "A")
+  })
   result <- result[match(rownames(seqData),rownames(result)),]
-  pvals <- result$pval
-  pvals[rowSums(exprs(e)) == 0] <- NA
+  pval <- result$pval
+  pval[rowSums(exprs(e)) == 0] <- NA
   padj <- result$fdr
   padj[is.na(padj)] <- 1
-  list(pvals=pvals, padj=padj, beta=( log2(exp(1)) * result$lfc ))
+  list(pval=pval, padj=padj, logFC=( log2(exp(1)) * result$lfc ))
 }
 
 runVoom <- function(e) {
@@ -147,11 +153,11 @@ runVoom <- function(e) {
   fit <- lmFit(v,design)
   fit <- eBayes(fit)
   tt <- topTable(fit,coef=ncol(design),n=nrow(dgel),sort.by="none")
-  pvals <- tt$P.Value 
-  pvals[rowSums(exprs(e)) == 0] <- NA
-  padj <- p.adjust(pvals,method="BH")
+  pval <- tt$P.Value 
+  pval[rowSums(exprs(e)) == 0] <- NA
+  padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
-  list(pvals=pvals, padj=padj, beta=tt$logFC)
+  list(pval=pval, padj=padj, logFC=tt$logFC)
 }
 
 runSAMseq <- function(e) {
@@ -159,12 +165,12 @@ runSAMseq <- function(e) {
   x <- exprs(e)
   y <- pData(e)$condition
   capture.output({samfit <- SAMseq(x, y, resp.type = "Two class unpaired")})
-  beta <- log2(samfit$samr.obj$foldchange)
-  pvals <- samr.pvalues.from.perms(samfit$samr.obj$tt, samfit$samr.obj$ttstar)
-  pvals[rowSums(exprs(e)) == 0] <- NA
-  padj <- p.adjust(pvals,method="BH")
+  logFC <- log2(samfit$samr.obj$foldchange)
+  pval <- samr.pvalues.from.perms(samfit$samr.obj$tt, samfit$samr.obj$ttstar)
+  pval[rowSums(exprs(e)) == 0] <- NA
+  padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
-  list(pvals=pvals,padj=padj,beta=beta)
+  list(pval=pval,padj=padj,logFC=logFC)
 }
 
 runSAMseqFDR <- function(e) {
@@ -177,9 +183,9 @@ runSAMseqFDR <- function(e) {
   padj[idx] <- 1/100 * as.numeric(samfit$siggenes.table$genes.up[,"q-value(%)"])
   idx <- as.numeric(samfit$siggenes.table$genes.lo[,"Gene Name"])
   padj[idx] <- 1/100 * as.numeric(samfit$siggenes.table$genes.lo[,"q-value(%)"])
-  beta <- log2(samfit$samr.obj$foldchange)
-  pvals <- rep(NA,nrow(e))
-  list(pvals=pvals,padj=padj,beta=beta)
+  logFC <- log2(samfit$samr.obj$foldchange)
+  pval <- rep(1,nrow(e))
+  list(pval=pval,padj=padj,logFC=logFC)
 }
 
 runEBSeq <- function(e) {
@@ -195,8 +201,7 @@ runEBSeq <- function(e) {
   padj <- rep(1, nrow(exprs(e)))
   # we use 1 - PPDE for the FDR cutoff as this is recommended in the EBSeq vignette
   padj[match(rownames(res$PPMat), rownames(e))] <- res$PPMat[,"PPEE"]
-  beta <- rep(0, nrow(exprs(e)))
-  pvals <- rep(NA,nrow(e))
-  list(pvals=pvals, padj=padj, beta=beta)
+  logFC <- rep(0, nrow(exprs(e)))
+  pval <- rep(1,nrow(e))
+  list(pval=pval, padj=padj, logFC=logFC)
 }
-
