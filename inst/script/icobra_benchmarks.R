@@ -16,16 +16,16 @@ algos <- list("DESeq2"=runDESeq2,
               "SAMseq"=runSAMseqFDR,
               "EBSeq"=runEBSeq)
 
-n <- 5000
-mLevels <- c(6, 8, 10) # total sample size
-derLevels <- c(.1, .2, .3) # DE ratio
+n <- 10000
+mLevels <- c(6, 10, 20) # total sample size
+derLevels <- c(.05, .1, .2) # DE ratio
 
 grid <- expand.grid(
   m=mLevels,
   der=derLevels)
 
 library("parallel")
-options(mc.cores=4)
+options(mc.cores=2)
 
 # only simulate with base mean > 10
 load("meanDispPairs_bottomly.rda")
@@ -37,11 +37,14 @@ cdList <- mclapply(seq_len(nrow(grid)), function(i) {
   der <- grid$der[i]
   condition <- factor(rep(c("A","B"), each = m/2))
   x <- model.matrix(~ condition)
-  beta <- c(rep(0, (1 - der) * n),
-            sample(c(-1,1),der * n,TRUE) * log2(runif(der * n,1.5,2)))
+  beta <- c(rep(0, (1-der) * n),
+            runif(der * n,.5,2)) # half will get flipped negative in makeSim
+  sim <- makeSim(n,m,x,beta,mdp)
+  mat <- sim$mat
+  beta <- sim$beta
   status <- as.integer(beta != 0)
-  truth <- data.frame(status=status, logFC=beta)
-  mat <- makeSim(n,m,x,beta,mdp)$mat
+  mean.bin <- cut(log10(sim$mu0), c(-Inf,2,3,Inf))
+  truth <- data.frame(status=status, logFC=beta, mean.bin=mean.bin)
   e <- ExpressionSet(mat, AnnotatedDataFrame(data.frame(condition)))
   system.time({
     resTest <- lapply(algos, function(f) f(e))
