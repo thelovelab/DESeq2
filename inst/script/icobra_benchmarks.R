@@ -17,7 +17,7 @@ algos <- list("DESeq2"=runDESeq2,
               "EBSeq"=runEBSeq)
 
 n <- 10000
-mLevels <- c(6, 10, 20) # total sample size
+mLevels <- c(6, 8, 10) # total sample size
 derLevels <- c(.05, .1, .2) # DE ratio
 
 grid <- expand.grid(
@@ -68,16 +68,18 @@ for (i in seq_len(nrow(grid))) {
   title <- paste0("m=", grid$m[i], ";  ratio=", grid$der[i])
   plotList[[i]] <- plot_fdrtprcurve(cobraplot, title=title,
                                     xaxisrange=c(0, 0.3),
-                                    yaxisrange=c(0.5, 1))
+                                    yaxisrange=c(0.7, 1))
 }
 
 library(cowplot)
-png(file="icobra.png", width=1200, height=1200)
+png(file="icobra.png", width=1500, height=1500)
 do.call(plot_grid, plotList)
 dev.off()
 
-sessInfo <- sessionInfo()
-save(cdList, sessInfo, file="icobra.rda")
+write.table(session_info()$packages,
+            file="icobra_pkg_versions.txt",
+            quote=FALSE, sep="\t", row.names=FALSE)
+save(cdList, file="icobra.rda")
 
 if (FALSE) {
   load("bottomly_sumexp.RData")

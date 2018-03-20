@@ -28,48 +28,6 @@ runDESeq2LRT <- function(e, retDDS=FALSE) {
   return(list(pval=pval, padj=padj, logFC=logFC))
 }
 
-runDESeq2NoIF <- function(e, retDDS=FALSE) {
-  counts <- exprs(e)
-  mode(counts) <- "integer"
-  dds <- DESeqDataSetFromMatrix(counts, DataFrame(pData(e)), ~ condition)
-  dds <- DESeq(dds,quiet=TRUE)
-  res <- results(dds, independentFiltering=FALSE)
-  logFC <- res$log2FoldChange
-  pval <- res$pvalue
-  padj <- res$padj
-  pval[is.na(pval)] <- 1
-  pval[rowSums(exprs(e)) == 0] <- NA
-  padj[is.na(padj)] <- 1
-  return(list(pval=pval, padj=padj, logFC=logFC))
-}
-
-runDESeq2Outliers <- function(e, retDDS=FALSE) {
-  counts <- exprs(e)
-  mode(counts) <- "integer"
-  dds <- DESeqDataSetFromMatrix(counts, DataFrame(pData(e)), ~ condition)
-  ddsDefault <- DESeq(dds, quiet=TRUE)
-  ddsNoRepl <- ddsDefault
-  if (ncol(e) >= 14) {
-    # insert original maximum Cook's distances
-    # so the rows with replacement will be filtered
-    # this avoid re-running with minReplicateForReplace=Inf
-    mcols(ddsNoRepl)$maxCooks <- apply(assays(ddsNoRepl)[["cooks"]], 1, max)
-  }
-  resDefault <- results(ddsDefault)
-  resNoFilt <- results(ddsDefault, cooksCutoff=FALSE)
-  resNoRepl <- results(ddsNoRepl)
-  resList <- list("DESeq2"=resDefault, "DESeq2-noFilt"=resNoFilt, "DESeq2-noRepl"=resNoRepl)
-  resOut <- lapply(resList, function(res) {
-    pval <- res$pvalue
-    padj <- res$padj
-    pval[is.na(pval)] <- 1
-    pval[rowSums(exprs(e)) == 0] <- NA
-    padj[is.na(padj)] <- 1
-    list(pval=pval, padj=padj)
-  })
-  return(resOut)
-}
-
 runEdgeR <- function(e) {
   design <- model.matrix(~ pData(e)$condition)
   dgel <- DGEList(exprs(e))
@@ -86,8 +44,10 @@ runEdgeR <- function(e) {
   pval[rowSums(exprs(e)) == 0] <- NA
   padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
-  list(pval=pval, padj=padj, logFC=log2(exp(1)) * edger.fit$coefficients[,"pData(e)$conditionB"],
-       predlogFC=predlogFC[,"pData(e)$conditionB"], predlogFC10=predlogFC10[,"pData(e)$conditionB"])
+  list(pval=pval, padj=padj,
+       logFC=log2(exp(1)) * edger.fit$coefficients[,"pData(e)$conditionB"],
+       predlogFC=predlogFC[,"pData(e)$conditionB"],
+       predlogFC10=predlogFC10[,"pData(e)$conditionB"])
 }
 
 runEdgeRRobust <- function(e) {
@@ -103,7 +63,8 @@ runEdgeRRobust <- function(e) {
   pval[rowSums(exprs(e)) == 0] <- NA
   padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
-  list(pval=pval, padj=padj, logFC=log2(exp(1)) * edger.fit$coefficients[,"pData(e)$conditionB"],
+  list(pval=pval, padj=padj,
+       logFC=log2(exp(1)) * edger.fit$coefficients[,"pData(e)$conditionB"],
        predlogFC=predlogFC[,"pData(e)$conditionB"])
 }
 
@@ -121,6 +82,7 @@ runDSS <- function(e) {
   result <- result[match(rownames(seqData),rownames(result)),]
   pval <- result$pval
   pval[rowSums(exprs(e)) == 0] <- NA
+  # adjustment with BH (not the default FDR)
   padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
   list(pval=pval, padj=padj, logFC=( log2(exp(1)) * result$lfc ))
@@ -164,10 +126,13 @@ runSAMseq <- function(e) {
   set.seed(1)
   x <- exprs(e)
   y <- pData(e)$condition
-  capture.output({samfit <- SAMseq(x, y, resp.type = "Two class unpaired")})
+  capture.output({
+    samfit <- SAMseq(x, y, resp.type = "Two class unpaired")
+  })
   logFC <- log2(samfit$samr.obj$foldchange)
   pval <- samr.pvalues.from.perms(samfit$samr.obj$tt, samfit$samr.obj$ttstar)
   pval[rowSums(exprs(e)) == 0] <- NA
+  # adjustment with BH (not the default FDR)
   padj <- p.adjust(pval,method="BH")
   padj[is.na(padj)] <- 1
   list(pval=pval,padj=padj,logFC=logFC)
@@ -177,7 +142,9 @@ runSAMseqFDR <- function(e) {
   set.seed(1)
   x <- exprs(e)
   y <- pData(e)$condition
-  capture.output({samfit <- SAMseq(x, y, resp.type = "Two class unpaired", fdr.output=1)})
+  capture.output({
+    samfit <- SAMseq(x, y, resp.type = "Two class unpaired", fdr.output=1)
+  })
   padj <- rep(1,nrow(e))
   idx <- as.numeric(samfit$siggenes.table$genes.up[,"Gene Name"])
   padj[idx] <- 1/100 * as.numeric(samfit$siggenes.table$genes.up[,"q-value(%)"])
