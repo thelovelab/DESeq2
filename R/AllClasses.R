@@ -151,6 +151,9 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     stop("some values in assay are negative")
   }
   if (!is.integer(assay(se))) {
+    if (!is.numeric(assay(se))) {
+      stop(paste("counts matrix should be numeric, currently it has mode:", mode(assay(se))))
+    }
     if (any(round(assay(se)) != assay(se))) {
       stop("some values in assay are not integers")
     }

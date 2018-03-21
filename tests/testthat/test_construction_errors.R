@@ -25,6 +25,10 @@ test_that("proper errors thrown in object construction", {
   expect_error(DESeqDataSetFromMatrix(counts, coldata, ~ident + x), "design contains")
   expect_message(DESeqDataSetFromMatrix(counts, coldata, ~xx), "characters other than")
 
+  chr.counts <- counts
+  mode(chr.counts) <- "character"
+  expect_error(DESeqDataSetFromMatrix(chr.counts, coldata, ~x), "should be numeric")
+  
   # same colnames but in different order:
   expect_error(DESeqDataSetFromMatrix(matrix(1:16, ncol=4, dimnames=list(1:4, 4:1)), coldata, ~ x))
 
