@@ -534,6 +534,9 @@ of length 3 to 'contrast' instead of using 'name'")
     deseqRes <- filterFun(deseqRes, filter, alpha, pAdjustMethod)
   }
 
+  # stash lfcThreshold
+  metadata(deseqRes)[["lfcThreshold"]] <- lfcThreshold
+  
   # remove rownames and attach as a new column, 'row'
   if (tidy) {
     colnms <- colnames(deseqRes)

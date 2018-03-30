@@ -75,11 +75,14 @@ test_that("results works as expected and throws errors", {
   expect_equivalent(attr(dds,"betaPriorVar"), rep(1e6, 4))
 
   # test thresholding
-  results(dds, lfcThreshold=1)
+  resLFC <- results(dds, lfcThreshold=log2(1.5))
   results(dds, lfcThreshold=1, altHypothesis="lessAbs")
   results(dds, lfcThreshold=1, altHypothesis="greater")
   results(dds, lfcThreshold=1, altHypothesis="less")
 
+  summary.res <- capture.output({ summary(resLFC)})
+  expect_true(any(grepl("0.58", summary.res)))
+  
   dds3 <- DESeq(dds, betaPrior=TRUE)
   expect_error(results(dds3, lfcThreshold=1, altHypothesis="lessAbs"))
 })

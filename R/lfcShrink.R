@@ -250,6 +250,8 @@ lfcShrink <- function(dds, coef, contrast, res,
     mcols(res,use.names=TRUE)[change.cols,"description"] <- mcols(res.shr,use.names=TRUE)[change.cols,"description"]
     
     deseq2.version <- packageVersion("DESeq2")
+    # stash lfcThreshold
+    metadata(res)[["lfcThreshold"]] <- lfcThreshold
     priorInfo(res) <- list(type="normal",
                            package="DESeq2",
                            version=deseq2.version,
@@ -360,6 +362,8 @@ lfcShrink <- function(dds, coef, contrast, res,
     } else {
       res <- res[,c(1:3,5:6)]
     }
+    # stash lfcThreshold
+    metadata(res)[["lfcThreshold"]] <- lfcThreshold
     priorInfo(res) <- list(type="apeglm",
                            package="apeglm",
                            version=packageVersion("apeglm"),
@@ -400,6 +404,8 @@ lfcShrink <- function(dds, coef, contrast, res,
     } else {
       res <- res[,c(1:3,5:6)]
     }
+    # stash lfcThreshold
+    metadata(res)[["lfcThreshold"]] <- lfcThreshold
     priorInfo(res) <- list(type="ashr",
                            package="ashr",
                            version=packageVersion("ashr"),

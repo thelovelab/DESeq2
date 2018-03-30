@@ -38,6 +38,9 @@ test_that("LFC shrinkage works", {
   res0 <- results(dds, name="condition_B_vs_A", lfcThreshold=1)
   res.n <- lfcShrink(dds=dds, coef=2, type="normal", lfcThreshold=1)
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", lfcThreshold=1)
+
+  summary.res <- capture.output({ summary(res.n) })
+  expect_true(any(grepl("1.00", summary.res)))
   
   #plotMA(res0, ylim=c(-4,4), cex=1); abline(h=c(-1,1),col="dodgerblue")
   #plotMA(res.n, ylim=c(-4,4), cex=1); abline(h=c(-1,1),col="dodgerblue")
@@ -55,8 +58,8 @@ test_that("LFC shrinkage works", {
   dev.off()
 
   # summary works with s-values
-  summary(res.ape)
-  summary(res.ash)
+  summary.res <- capture.output({ summary(res.ape) })
+  summary.res <- capture.output({ summary(res.ash) })
   
   # list returned
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", returnList=TRUE)
