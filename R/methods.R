@@ -841,7 +841,7 @@ summary.DESeqResults <- function(object, alpha, ...) {
   
   printsig <- function(x) format(x, digits=2) 
   cat(paste("out of",notallzero,"with nonzero total read count\n"))
-  cat(paste0(test.col.name,"   < ",alpha,"\n"))
+  cat(paste0(test.col.name," < ",alpha,"\n"))
   cat(paste0("LFC > ",pT,": ",up,", ",printsig(up/notallzero*100),"%\n"))
   cat(paste0("LFC < ",mT,": ",down,", ",printsig(down/notallzero*100),"%\n"))
   if (!sval) cat(paste0("outliers [1]       : ",outlier,", ",printsig(outlier/notallzero*100),"%\n"))
