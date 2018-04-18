@@ -68,6 +68,7 @@
 #' execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
 #' parallelization only used with \code{normal} or \code{apeglm}
 #' @param BPPARAM see same argument of \code{\link{DESeq}}
+#' @param quiet whether to print messages 
 #' @param ... arguments passed to \code{apeglm} and \code{ashr}
 #'
 #' @references
@@ -75,6 +76,10 @@
 #' \code{type="normal"}:
 #'
 #' Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
+#'
+#' \code{type="apeglm"}:
+#'
+#' Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences. bioRxiv. \url{https://doi.org/10.1101/303255}
 #' 
 #' \code{type="ashr"}:
 #'
@@ -109,7 +114,8 @@ lfcShrink <- function(dds, coef, contrast, res,
                       svalue=FALSE,
                       returnList=FALSE,
                       apeAdapt=TRUE, apeMethod="nbinomCR",
-                      parallel=FALSE, BPPARAM=bpparam(), ...) {  
+                      parallel=FALSE, BPPARAM=bpparam(),
+                      quiet=FALSE, ...) {  
 
   stopifnot(is(dds, "DESeqDataSet"))
   if (!missing(res)) stopifnot(is(res, "DESeqResults"))
@@ -267,7 +273,10 @@ lfcShrink <- function(dds, coef, contrast, res,
     if (!requireNamespace("apeglm", quietly=TRUE)) {
       stop("type='apeglm' requires installing the Bioconductor package 'apeglm'")
     }
-    message("using 'apeglm' for LFC shrinkage")
+    if (!quiet) message("using 'apeglm' for LFC shrinkage. If used in published research, please cite:
+    Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for
+    sequence count data: removing the noise and preserving large differences.
+    bioRxiv. https://doi.org/10.1101/303255")
     if (!missing(contrast)) {
       stop("type='apeglm' shrinkage only for use with 'coef'")
     }
@@ -383,7 +392,7 @@ lfcShrink <- function(dds, coef, contrast, res,
     if (!requireNamespace("ashr", quietly=TRUE)) {
       stop("type='ashr' requires installing the CRAN package 'ashr'")
     }
-    message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
+    if (!quiet) message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
     https://doi.org/10.1093/biostatistics/kxw041")
     if (lfcThreshold > 0) message("lfcThreshold is not used by type='ashr'")

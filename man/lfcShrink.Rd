@@ -6,7 +6,8 @@
 \usage{
 lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
   lfcThreshold = 0, svalue = FALSE, returnList = FALSE, apeAdapt = TRUE,
-  apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(), ...)
+  apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(),
+  quiet = FALSE, ...)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}
@@ -58,6 +59,8 @@ execution using \code{BiocParallel}, see same argument of \code{\link{DESeq}}
 parallelization only used with \code{normal} or \code{apeglm}}
 
 \item{BPPARAM}{see same argument of \code{\link{DESeq}}}
+
+\item{quiet}{whether to print messages}
 
 \item{...}{arguments passed to \code{apeglm} and \code{ashr}}
 }
@@ -120,6 +123,10 @@ res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
 \code{type="normal"}:
 
 Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
+
+\code{type="apeglm"}:
+
+Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences. bioRxiv. \url{https://doi.org/10.1101/303255}
 
 \code{type="ashr"}:
 

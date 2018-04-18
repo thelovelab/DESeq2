@@ -730,14 +730,20 @@ The options for `type` are:
 * `normal` is the the original DESeq2 shrinkage estimator, an adaptive
   Normal distribution as prior.
 * `apeglm` is the adaptive t prior shrinkage estimator from the 
-  [apeglm](http://bioconductor.org/packages/apeglm) package.
+  [apeglm](http://bioconductor.org/packages/apeglm) package [@Zhu2018].
 * `ashr` is the adaptive shrinkage estimator from the
   [ashr](https://github.com/stephens999/ashr) package [@Stephens2016].
   Here DESeq2 uses the ashr option to fit a mixture of Normal distributions to
   form the prior, with `method="shrinkage"`.
 
-**Note:** if the shrinkage estimator `ashr` is used in published
-research, please cite:
+If the shrinkage estimator `apeglm` is used in published research, please cite:
+
+> Zhu, A., Ibrahim, J.G., Love, M.I. (2018)
+> Heavy-tailed prior distributions for sequence count data: 
+> removing the noise and preserving large differences. 
+> *bioRxiv*. [10.1101/303255](https://doi.org/10.1101/303255)
+
+If the shrinkage estimator `ashr` is used in published research, please cite:
 
 > Stephens, M. (2016) 
 > False discovery rates: a new deal. *Biostatistics*, **18**:2.
@@ -1464,7 +1470,7 @@ Below is a summary table of differences between methods available in `lfcShrink`
 via the `type` argument (and for further technical reference on use of
 arguments please see `?lfcShrink`):
 
-| method:  | `normal`^1^  | `apeglm` | `ashr`^2^ |
+| method:  | `normal`^1^  | `apeglm`^2^ | `ashr`^3^ |
 |---|:-:|:-:|:-:|
 | Good for ranking by LFC | ✓ | ✓ | ✓ |
 | Preserves size of large LFC |  | ✓ | ✓ |
@@ -1474,7 +1480,7 @@ arguments please see `?lfcShrink`):
 | Allows use of `contrast` | ✓ |  | ✓ |
 | Can shrink interaction terms |  | ✓ | ✓ |
 
-**References:** 1. @Love2014; 2. @Stephens2016
+**References:** 1. @Love2014; 2. @Zhu2018; 3. @Stephens2016
 
 Beginning with the first row, all shrinkage methods provided by
 DESeq2 are good for ranking genes by "effect size", that is the log2
