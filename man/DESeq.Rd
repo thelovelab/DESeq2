@@ -173,7 +173,7 @@ res <- results(dds)
 
 # moderated log2 fold changes
 resultsNames(dds)
-resLFC <- lfcShrink(dds, coef=2, res=res)
+resLFC <- lfcShrink(dds, coef=2, type="apeglm")
 
 # an alternate analysis: likelihood ratio test
 ddsLRT <- DESeq(dds, test="LRT", reduced= ~ 1)

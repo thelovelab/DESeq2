@@ -76,7 +76,7 @@ dds <- DESeq(dds)
 resultsNames(dds) # lists the coefficients
 res <- results(dds, name="condition_trt_vs_untrt")
 # or to shrink log fold changes association with condition:
-res <- lfcShrink(dds, coef="condition_trt_vs_untrt")
+res <- lfcShrink(dds, coef="condition_trt_vs_untrt", type="apeglm")
 ```
 
 The following starting functions will be explained below:
@@ -564,26 +564,25 @@ The use of the `contrast` argument is also further discussed [below](#contrasts)
 
 <a name="lfcShrink"/>
 
-### Log fold change shrinkage for ranking and visualization
+### Log fold change shrinkage for visualization and ranking
 
-In previous versions of DESeq2, the *DESeq* function by default 
-would produce moderated, or shrunken, log2 fold changes through the
-use of the `betaPrior` argument. In version 1.16 and higher, we have
-split the moderation of log2 fold changes into a separate function,
-*lfcShrink*. Shrinkage estimation is discussed more in a 
-[later section](#altshrink).
+Shrinkage of effect size (LFC estimates) is useful for visualization
+and ranking of genes. To shrink the LFC, we pass the `dds`
+object to the function `lfcShrink`. Below we specify to use the
+*apeglm* method for effect size shrinkage [@Zhu2018], which improves
+on the previous estimator.
 
-Here we provide the `dds` object and the name or number of the
-coefficient we want to moderate (where the number refers to the order
-of the coefficient as it appears in `resultsNames(dds)`).
-It is also possible to specify a `contrast`, instead of `coef`, which
-works the same as the `contrast` argument of the *results* function.
+We provide the `dds` object and the name or number of the
+coefficient we want to shrink, where the number refers to the order
+of the coefficient as it appears in `resultsNames(dds)`.
 
 ```{r lfcShrink}
 resultsNames(dds)
-resLFC <- lfcShrink(dds, coef="condition_treated_vs_untreated")
+resLFC <- lfcShrink(dds, coef="condition_treated_vs_untreated", type="apeglm")
 resLFC
 ```
+
+Shrinkage estimation is discussed more in a [later section](#altshrink).
 
 <a name="parallel"/>
 
@@ -728,7 +727,9 @@ argument of `lfcShrink`. For more details, see `?lfcShrink`
 The options for `type` are:
 
 * `normal` is the the original DESeq2 shrinkage estimator, an adaptive
-  Normal distribution as prior.
+  Normal distribution as prior. This is currently the default,
+  although the default will likely change to `apeglm` in the 
+  October 2018 release given `apeglm`'s superior performance.
 * `apeglm` is the adaptive t prior shrinkage estimator from the 
   [apeglm](http://bioconductor.org/packages/apeglm) package [@Zhu2018].
 * `ashr` is the adaptive shrinkage estimator from the
@@ -759,15 +760,15 @@ provided by each, see the [extended section on shrinkage estimators](#moreshrink
 ```{r warning=FALSE}
 resultsNames(dds)
 # because we are interested in treated vs untreated, we set 'coef=2'
-resApe <- lfcShrink(dds, coef=2, type="apeglm")
+resNorm <- lfcShrink(dds, coef=2, type="normal")
 resAsh <- lfcShrink(dds, coef=2, type="ashr")
 ```
 
 ```{r fig.width=8, fig.height=3}
 par(mfrow=c(1,3), mar=c(4,4,2,1))
 xlim <- c(1,1e5); ylim <- c(-3,3)
-plotMA(resLFC, xlim=xlim, ylim=ylim, main="normal")
-plotMA(resApe, xlim=xlim, ylim=ylim, main="apeglm")
+plotMA(resLFC, xlim=xlim, ylim=ylim, main="apeglm")
+plotMA(resNorm, xlim=xlim, ylim=ylim, main="normal")
 plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
 ```
 
@@ -1466,6 +1467,10 @@ res <- results(dds)
 ## Extended section on shrinkage estimators
 
 Here we extend the [discussion of shrinkage estimators](#shrinkage).
+To repeat, the current default method in `lfcShrink` is `normal`,
+although it will likely change in the October 2018 release to
+`apeglm`, as this method has improved performance relative to the
+original *DESeq2* estimator, as does `ashr` in some of our benchmarks.
 Below is a summary table of differences between methods available in `lfcShrink`
 via the `type` argument (and for further technical reference on use of
 arguments please see `?lfcShrink`):
