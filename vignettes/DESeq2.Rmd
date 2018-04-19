@@ -1915,7 +1915,7 @@ for log2 fold change shrinkage.
 
 ```{r priorInfo}
 priorInfo(resLFC)
-priorInfo(resApe)
+priorInfo(resNorm)
 priorInfo(resAsh)
 ```
 
