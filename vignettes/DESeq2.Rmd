@@ -1617,23 +1617,23 @@ model.matrix(~grp + cnd + grp:ind + grp:cnd)
 We have a few recommendations for best use of DESeq2 for single-cell
 datasets, which mostly come from a recent manuscript [@Berge2018].
 
-* One can use
-  the
-  [zinbwave](https://bioconductor.org/packages/release/bioc/html/zinbwave.html) and
-  [zingeR](https://github.com/statOmics/zingeR) packages to directly
-  model the zero inflation of the counts. These packages have been
-  developed lately to work in conjunction with DESeq2 and
-  edgeR. The most up-to-date example code for running DESeq2 alongside
-  `zinbwave` and `zingeR` can be found
-  [here](https://github.com/statOmics/zinbwaveZinger/blob/master/zinbwaveSimulations/trapnell_sims_fc2/trapnell_sims_fc2.Rmd).
-* In general, it is best to use `test="LRT"` when working with single
-  cell data, over the Wald test. This has been observed across
-  multiple benchmarks. The LRT performs better with the abundance of
-  zeros -- data on the boundary of the parameter space.
+* One can use the
+  [zinbwave](https://bioconductor.org/packages/zinbwave) package
+  to directly model the zero inflation of the counts, and take account
+  of these in the DESeq2 model. There is example code for combining
+  *zinbwave* and *DESeq2* package functions in the *zinbwave*
+  vignette.
+* The *apeglm* method for LFC shrinkage can be used in conjunction
+  with *zinbwave* observation weights, because the weights are passed
+  through to the *apeglm* functions. An example of such a workflow can
+  be found at this
+  [zinbwave-deseq2](https://github.com/mikelove/zinbwave-deseq2). GitHub repo.
+* It is best to use `test="LRT"` for significance testing when working with
+  single-cell data, over the Wald test. This has been observed across
+  multiple single-cell benchmarks.
 * With single cell data, it is recommended to set the
   parameter `minmu=1e-6`, which can be specified when running
-  `DESeq`. This again deals with potentially an abundance of zeros,
-  and helps to recover power when the small counts may be meaningful.
+  `DESeq`. This is also listed in the *zinbwave* vignette code.
 
 <a name="outlier"/>
 
