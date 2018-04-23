@@ -714,26 +714,29 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     noIncrease <- dispRes$last_lp < dispRes$initial_lp + abs(dispRes$initial_lp)/1e6
     dispGeneEst[which(noIncrease)] <- alpha_init[which(noIncrease)]
   }
-  dispGeneEstConv <- dispIter < maxit
+  # didn't reach the maxmium and iterated more than once
+  dispGeneEstConv <- dispIter < maxit & !(dispIter == 1)
  
   # if lacking convergence from fitDisp() (C++)...
   refitDisp <- !dispGeneEstConv & dispGeneEst > minDisp*10
   if (sum(refitDisp) > 0) {
-
     dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE],
                                    x = modelMatrix,
                                    mu = mu[refitDisp,,drop=FALSE],
                                    logAlphaPriorMean = rep(0,sum(refitDisp)),
                                    logAlphaPriorSigmaSq = 1, usePrior = FALSE,
-                                   weightsSEXP = weights, useWeightsSEXP = useWeights)
+                                   weightsSEXP = weights[refitDisp,,drop=FALSE],
+                                   useWeightsSEXP = useWeights)
     dispGeneEst[refitDisp] <- dispGrid
   }
   dispGeneEst <- pmin(pmax(dispGeneEst, minDisp), maxDisp)
   
-  dispDataFrame <- buildDataFrameWithNARows(list(dispGeneEst=dispGeneEst),
+  dispDataFrame <- buildDataFrameWithNARows(list(dispGeneEst=dispGeneEst,
+                                                 dispGeneIter=dispIter),
                                             mcols(object)$allZero)
   mcols(dispDataFrame) <- DataFrame(type=rep("intermediate",ncol(dispDataFrame)),
-                                    description=c("gene-wise estimates of dispersion"))
+                                    description=c("gene-wise estimates of dispersion",
+                                                  "number of iterations for gene-wise"))
   mcols(object) <- cbind(mcols(object), dispDataFrame)
   assays(object)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
   
@@ -894,12 +897,14 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispConv <- dispResMAP$iter < maxit
   refitDisp <- !dispConv
   if (sum(refitDisp) > 0) {
-    dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE], x = modelMatrix,
-                                  mu = mu[refitDisp,,drop=FALSE],
-                                  logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
-                                  logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
-                                  usePrior=TRUE,
-                                  weightsSEXP = weights, useWeightsSEXP = useWeights)
+    dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE],
+                                   x = modelMatrix,
+                                   mu = mu[refitDisp,,drop=FALSE],
+                                   logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
+                                   logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
+                                   usePrior=TRUE,
+                                   weightsSEXP = weights[refitDisp,,drop=FALSE],
+                                   useWeightsSEXP = useWeights)
     dispMAP[refitDisp] <- dispGrid
   }
 

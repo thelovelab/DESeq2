@@ -1631,10 +1631,12 @@ datasets, which mostly come from a recent manuscript [@Berge2018].
 * It is best to use `test="LRT"` for significance testing when working with
   single-cell data, over the Wald test. This has been observed across
   multiple single-cell benchmarks.
-* With single cell data, it is recommended to set the
-  parameter `minmu=1e-6`, which can be specified when running
-  `DESeq`. This is also listed in the *zinbwave* vignette code.
-
+* It is recommended to set the following `DESeq` arguments: 
+  `sfType="poscounts"`, 
+  `useT=TRUE`,
+  `minmu=1e-6`, and
+  `minReplicatesForReplace=Inf`.
+  
 <a name="outlier"/>
 
 ## Approach to count outliers 

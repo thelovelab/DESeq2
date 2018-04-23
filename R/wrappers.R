@@ -61,7 +61,7 @@ fitDispGridWrapper <- function(y, x, mu, logAlphaPriorMean, logAlphaPriorSigmaSq
                                paste(arg.names[na.test],collapse=", ")))
   minLogAlpha <- log(1e-8)
   maxLogAlpha <- log(max(10, ncol(y)))
-  dispGrid <- seq(from=minLogAlpha, to=maxLogAlpha, length=15)
+  dispGrid <- seq(from=minLogAlpha, to=maxLogAlpha, length=20)
   logAlpha <- fitDispGrid(ySEXP=y, xSEXP=x, mu_hatSEXP=mu, disp_gridSEXP=dispGrid,
                           log_alpha_prior_meanSEXP=logAlphaPriorMean,
                           log_alpha_prior_sigmasqSEXP=logAlphaPriorSigmaSq,
