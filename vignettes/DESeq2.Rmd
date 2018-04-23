@@ -1615,19 +1615,17 @@ model.matrix(~grp + cnd + grp:ind + grp:cnd)
 ## Recommendations for single-cell analysis
 
 We have a few recommendations for best use of DESeq2 for single-cell
-datasets, which mostly come from a recent manuscript [@Berge2018].
+datasets, which have been published in a recent manuscript [@Berge2018].
 
 * One can use the
   [zinbwave](https://bioconductor.org/packages/zinbwave) package
   to directly model the zero inflation of the counts, and take account
   of these in the DESeq2 model. There is example code for combining
   *zinbwave* and *DESeq2* package functions in the *zinbwave*
-  vignette.
-* The *apeglm* method for LFC shrinkage can be used in conjunction
-  with *zinbwave* observation weights, because the weights are passed
-  through to the *apeglm* functions. An example of such a workflow can
-  be found at this
-  [zinbwave-deseq2](https://github.com/mikelove/zinbwave-deseq2). GitHub repo.
+  vignette. We also have an example of ZINB-WaVE + DESeq2 integration using
+  the [splatter](https://bioconductor.org/packages/splatter) package
+  for simulation at the 
+  [zinbwave-deseq2](https://github.com/mikelove/zinbwave-deseq2) GitHub repository.
 * It is best to use `test="LRT"` for significance testing when working with
   single-cell data, over the Wald test. This has been observed across
   multiple single-cell benchmarks.
