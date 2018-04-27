@@ -1616,6 +1616,9 @@ model.matrix(~grp + cnd + grp:ind + grp:cnd)
 
 We have a few recommendations for best use of DESeq2 for single-cell
 datasets, which have been published in a recent manuscript [@Berge2018].
+These recommendations may also be useful for modeling other data that
+better fits to a Zero-Inflated Negative Binomial (ZINB) distribution,
+rather than a Negative Binomial (NB).
 
 * One can use the
   [zinbwave](https://bioconductor.org/packages/zinbwave) package
