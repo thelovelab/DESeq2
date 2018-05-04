@@ -5,7 +5,8 @@
 \title{Shrink log2 fold changes}
 \usage{
 lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
-  lfcThreshold = 0, svalue = FALSE, returnList = FALSE, apeAdapt = TRUE,
+  lfcThreshold = 0, svalue = FALSE, returnList = FALSE,
+  format = c("DataFrame", "GRanges", "GRangesList"), apeAdapt = TRUE,
   apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(),
   quiet = FALSE, ...)
 }
@@ -47,6 +48,9 @@ See Stephens (2016) reference on s-values.}
 \item{returnList}{logical, should \code{lfcShrink} return a list, where
 the first element is the results table, and the second element is the
 output of \code{apeglm} or \code{ashr}}
+
+\item{format}{same as defined in \code{\link{results}},
+either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"}}
 
 \item{apeAdapt}{logical, should \code{apeglm} use the MLE estimates of
 LFC to adapt the prior, or use default or specified \code{prior.control}}

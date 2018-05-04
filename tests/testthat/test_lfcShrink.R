@@ -22,11 +22,19 @@ test_that("LFC shrinkage works", {
   res.n <- lfcShrink(dds=dds, coef=2, type="normal")
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
   res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
-  
+
   # prior info
-  ## str(priorInfo(res.n))
-  ## str(priorInfo(res.ape))
-  ## str(priorInfo(res.ash))
+  str(priorInfo(res.n))
+  str(priorInfo(res.ape))
+  str(priorInfo(res.ash))
+  
+  # ranged versions
+  gr.res <- results(dds, name="condition_B_vs_A", format="GRanges")
+  expect_error(lfcShrink(dds=dds, coef=2, type="normal", res=gr.res), "GRanges")
+  gr.res <- lfcShrink(dds=dds, coef=2, type="normal", format="GRanges")
+  gr.res <- lfcShrink(dds=dds, coef=2, type="apeglm", format="GRanges")
+  gr.res <- lfcShrink(dds=dds, coef=2, type="ashr", format="GRanges")
+  priorInfo(mcols(gr.res)) # still has priorInfo() on the metadata columns
 
   # plot against true
   ## par(mfrow=c(1,3))
@@ -77,5 +85,5 @@ test_that("LFC shrinkage works", {
   res <- results(dds)
   res.normal <- lfcShrink(dds=dds, coef=2, res=res, type="normal")
   res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
-  
+
 })  

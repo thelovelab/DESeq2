@@ -547,26 +547,10 @@ of length 3 to 'contrast' instead of using 'name'")
     rownames(deseqRes) <- NULL
     deseqRes <- as.data.frame(deseqRes)
   }
-  
-  if (format == "DataFrame") {
-    return(deseqRes)
-  } else if (format == "GRangesList") {
-    if (is(rowRanges(object), "GRanges")) warning("rowRanges is GRanges")
-    out <- rowRanges(object)
-    mcols(out) <- deseqRes
-    return(out)
-  } else if (format == "GRanges") {
-    if (is(rowRanges(object), "GRangesList")) {
-      message("rowRanges is GRangesList, performing unlist(range(x)) on the rowRanges")
-      out <- unlist(range(rowRanges(object)))
-      mcols(out) <- deseqRes
-      return(out)
-    } else {
-      out <- rowRanges(object)
-      mcols(out) <- deseqRes
-      return(out)
-    }
-  }
+
+  # return DataFrame, GRanges or GRangesList
+  out <- resultsFormatSwitch(object=object, res=deseqRes, format=format)
+  return(out)
 }
 
 #' @rdname results
@@ -1100,3 +1084,25 @@ or the denominator (second element of contrast list), but not both")
   return(contrast)
 }
 
+# function to determine output of results() and lfcShrink()
+resultsFormatSwitch <- function(object, res, format) {
+  if (format == "DataFrame") {
+    return(res)
+  } else if (format == "GRangesList") {
+    if (is(rowRanges(object), "GRanges")) warning("rowRanges is GRanges")
+    out <- rowRanges(object)
+    mcols(out) <- res
+    return(out)
+  } else if (format == "GRanges") {
+    if (is(rowRanges(object), "GRangesList")) {
+      message("rowRanges is GRangesList, performing unlist(range(x)) on the rowRanges")
+      out <- unlist(range(rowRanges(object)))
+      mcols(out) <- res
+      return(out)
+    } else {
+      out <- rowRanges(object)
+      mcols(out) <- res
+      return(out)
+    }
+  }
+}

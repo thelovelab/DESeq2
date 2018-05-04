@@ -60,6 +60,8 @@
 #' @param returnList logical, should \code{lfcShrink} return a list, where
 #' the first element is the results table, and the second element is the
 #' output of \code{apeglm} or \code{ashr}
+#' @param format same as defined in \code{\link{results}},
+#' either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"}
 #' @param apeAdapt logical, should \code{apeglm} use the MLE estimates of
 #' LFC to adapt the prior, or use default or specified \code{prior.control}
 #' @param apeMethod what \code{method} to run \code{apeglm}, which can
@@ -113,13 +115,17 @@ lfcShrink <- function(dds, coef, contrast, res,
                       lfcThreshold=0,
                       svalue=FALSE,
                       returnList=FALSE,
+                      format=c("DataFrame","GRanges","GRangesList"),
                       apeAdapt=TRUE, apeMethod="nbinomCR",
                       parallel=FALSE, BPPARAM=bpparam(),
                       quiet=FALSE, ...) {  
 
   stopifnot(is(dds, "DESeqDataSet"))
-  if (!missing(res)) stopifnot(is(res, "DESeqResults"))
+  if (!missing(res)) {
+    if (!is(res, "DESeqResults")) stop("res should be a DESeqResults object, for GRanges output use 'format'")
+  }
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))
+  format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
   if (length(resultsNames(dds)) == 0) {
     stop("first run DESeq() before running lfcShrink()")
   }
@@ -262,6 +268,8 @@ lfcShrink <- function(dds, coef, contrast, res,
                            package="DESeq2",
                            version=deseq2.version,
                            betaPriorVar=betaPriorVar)
+
+    res <- resultsFormatSwitch(object=dds, res=res, format=format)
     return(res)
     
   } else if (type == "apeglm") {
@@ -377,6 +385,7 @@ lfcShrink <- function(dds, coef, contrast, res,
                            package="apeglm",
                            version=packageVersion("apeglm"),
                            prior.control=fit$prior.control)
+    res <- resultsFormatSwitch(object=dds, res=res, format=format)
     if (returnList) {
       return(list(res=res, fit=fit))
     } else {
@@ -419,6 +428,7 @@ lfcShrink <- function(dds, coef, contrast, res,
                            package="ashr",
                            version=packageVersion("ashr"),
                            fitted_g=fit$fitted_g)
+    res <- resultsFormatSwitch(object=dds, res=res, format=format)
     if (returnList) {
       return(list(res=res, fit=fit))
     } else{
