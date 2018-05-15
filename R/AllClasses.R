@@ -347,10 +347,11 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, tidy=FALSE, igno
 DESeqDataSetFromHTSeqCount <- function( sampleTable, directory=".", design, ignoreRank=FALSE, ...) 
 {
   if (missing(design)) stop("design is missing")
-  l <- lapply( as.character( sampleTable[,2] ), function(fn) read.table( file.path( directory, fn ) ) )
+  l <- lapply( as.character( sampleTable[,2] ), function(fn) read.table( file.path( directory, fn ), fill=TRUE ) )
   if( ! all( sapply( l, function(a) all( a$V1 == l[[1]]$V1 ) ) ) )
     stop( "Gene IDs (first column) differ between files." )
-  tbl <- sapply( l, function(a) a$V2 )
+  # select last column of 'a', works even if htseq was run with '--additional-attr'
+  tbl <- sapply( l, function(a) a[,ncol(a)] )
   colnames(tbl) <- sampleTable[,1]
   rownames(tbl) <- l[[1]]$V1
   rownames(sampleTable) <- sampleTable[,1]
