@@ -186,7 +186,8 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
       stop("all variables in design formula must be columns in colData")
     }
 
-    designVarsClass <- sapply(designVars, function(v) class(colData(se)[[v]]))
+    designVarsClass <- sapply(designVars, function(v) class(colData(se)[[v]])[1])
+
     if (any(designVarsClass == "character")) {
       warning("some variables in design formula are characters, converting to factors")
       for (v in designVars[designVarsClass == "character"]) {
@@ -218,6 +219,12 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
       }
     }
 
+    if (any(designVarsClass == "ordered")) {
+      stop("the design formula contains an ordered factor. The internal steps
+do not work on ordered factors as a formula. Instead you should provide a matrix to
+the 'design' slot or to the 'full' argument of DESeq(), constructed using model.matrix.")
+    }
+    
     designFactors <- designVars[designVarsClass == "factor"]
     missingLevels <- sapply(designFactors, function(v) any(table(colData(se)[[v]]) == 0))
     if (any(missingLevels)) {

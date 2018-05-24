@@ -2405,11 +2405,9 @@ designAndArgChecker <- function(object, betaPrior) {
 ")
     }
     if (any(sapply(designVars, function(v) is(colData(object)[[v]], "ordered")))) {
-      stop("the design contains an ordered factor. The internal steps
-that estimate the beta prior variance and produce resultsNames
-do not work on ordered factors. You should instead use model.matrix
-and then provide your custom matrix to 'full' argument of DESeq.
-(You should also provide a matrix to 'reduced' for test='LRT'.)")
+      stop("the design formula contains an ordered factor. The internal steps
+do not work on ordered factors as a formula. Instead you should provide a matrix to
+the 'design' slot or to the 'full' argument of DESeq(), constructed using model.matrix.")
     }
   }
 }
