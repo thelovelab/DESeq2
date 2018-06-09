@@ -8,7 +8,7 @@
 \usage{
 \S4method{estimateSizeFactors}{DESeqDataSet}(object, type = c("ratio",
   "poscounts", "iterate"), locfunc = stats::median, geoMeans, controlGenes,
-  normMatrix)
+  normMatrix, quiet = FALSE)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -49,6 +49,8 @@ count matrix divided by \code{normMatrix} and store the product of the
 size factors and \code{normMatrix} as \code{\link{normalizationFactors}}.
 It is recommended to divide out the row-wise geometric mean of
 \code{normMatrix} so the rows roughly are centered on 1.}
+
+\item{quiet}{whether to print messages}
 }
 \value{
 The DESeqDataSet passed as parameters, with the size factors filled

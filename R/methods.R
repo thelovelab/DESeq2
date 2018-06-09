@@ -383,7 +383,7 @@ setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value=
 
 estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts","iterate"),
                                              locfunc=stats::median,
-                                             geoMeans, controlGenes, normMatrix) {
+                                             geoMeans, controlGenes, normMatrix, quiet=FALSE) {
   type <- match.arg(type, c("ratio","poscounts","iterate"))
   # Temporary hack for backward compatibility with "old" DESeqDataSet
   # objects. Remove once all serialized DESeqDataSet objects around have
@@ -409,7 +409,7 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
                                                           locfunc=locfunc,
                                                           geoMeans=geoMeans,
                                                           controlGenes=controlGenes)
-      message("using 'avgTxLength' from assays(dds), correcting for library size")      
+      if (!quiet) message("using 'avgTxLength' from assays(dds), correcting for library size")
     } else if (missing(normMatrix)) {
       sizeFactors(object) <- estimateSizeFactorsForMatrix(counts(object), locfunc=locfunc,
                                                           geoMeans=geoMeans,
@@ -420,7 +420,7 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
                                                           locfunc=locfunc,
                                                           geoMeans=geoMeans,
                                                           controlGenes=controlGenes)
-      message("using 'normMatrix', adding normalization factors which correct for library size")
+      if (!quiet) message("using 'normMatrix', adding normalization factors which correct for library size")
     }
   }
   object
@@ -486,6 +486,7 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
 #' size factors and \code{normMatrix} as \code{\link{normalizationFactors}}.
 #' It is recommended to divide out the row-wise geometric mean of
 #' \code{normMatrix} so the rows roughly are centered on 1.
+#' @param quiet whether to print messages
 #' 
 #' @return The DESeqDataSet passed as parameters, with the size factors filled
 #' in.

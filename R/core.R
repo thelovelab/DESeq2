@@ -337,7 +337,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
     }
   } else {
     if (!quiet) message("estimating size factors")
-    object <- estimateSizeFactors(object, type=sfType)
+    object <- estimateSizeFactors(object, type=sfType, quiet=quiet)
   }
   
   if (!parallel) {
