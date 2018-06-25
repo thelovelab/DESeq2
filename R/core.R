@@ -112,14 +112,9 @@ NULL
 #'
 #' Experiments without replicates do not allow for estimation of the dispersion
 #' of counts around the expected value for each group, which is critical for
-#' differential expression analysis. The DESeq2 authors have decided to no
-#' longer support the data exploratory (with warning) behavior of previous
-#' versions, and so analysis of designs without replicates will be removed
-#' in the Oct 2018 release: DESeq2 v1.22.0, after which DESeq2 will give an error.
-#' The release DESeq2 v1.20.0 will give a deprecation warning, and then use a design
-#' with only an intercept to estimate dispersion, the behavior for all previous
-#' versions of DESeq2 and the DESeq package.
-#'
+#' differential expression analysis. Analysis without replicates was deprecated
+#' in v1.20 and is no longer supported since v1.22.
+#' 
 #' The argument \code{minReplicatesForReplace} is used to decide which samples
 #' are eligible for automatic replacement in the case of extreme Cook's distance.
 #' By default, \code{DESeq} will replace outliers if the Cook's distance is

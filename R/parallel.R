@@ -9,11 +9,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
   nworkers <- BPPARAM$workers
   idx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(object))))
 
-  # cleaning up code: no longer supporting no replicate designs and parallel=TRUE
-  noReps <- checkForExperimentalReplicates(object, modelMatrix)
-  if (noReps) {
-    stop("no replicate designs not supported for parallel=TRUE")
-  }
+  checkForExperimentalReplicates(object, modelMatrix)
   
   # first parallel execution: gene-wise dispersion estimates
   if (!quiet) message("estimating dispersions")

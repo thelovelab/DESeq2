@@ -550,11 +550,7 @@ this column could have come in during colData import and should be removed.")
   stopifnot(length(maxit)==1)
   fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
   
-  noReps <- checkForExperimentalReplicates(object, modelMatrix)
-  if (noReps) {
-    designIn <- design(object)
-    design(object) <- formula(~ 1)
-  }
+  checkForExperimentalReplicates(object, modelMatrix)
   
   if (!quiet) message("gene-wise dispersion estimates")
   object <- estimateDispersionsGeneEst(object, maxit=maxit, quiet=quiet,
@@ -562,10 +558,8 @@ this column could have come in during colData import and should be removed.")
   if (!quiet) message("mean-dispersion relationship")
   object <- estimateDispersionsFit(object, fitType=fitType, quiet=quiet)
   if (!quiet) message("final dispersion estimates")
-  object <- estimateDispersionsMAP(object, maxit=maxit, quiet=quiet, modelMatrix=modelMatrix)
-
-  # replace the previous design
-  if (noReps) design(object) <- designIn
+  object <- estimateDispersionsMAP(object, maxit=maxit, quiet=quiet,
+                                   modelMatrix=modelMatrix)
   
   return(object)
 }
@@ -576,6 +570,7 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
   # been updated.
   if (!.hasSlot(object, "rowRanges"))
     object <- updateObject(object)
+  
   noReps <- if (is.null(modelMatrix)) {
     mmtest <- getModelMatrix(object)
     nrow(mmtest) == ncol(mmtest)
@@ -583,23 +578,15 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
     nrow(modelMatrix) == ncol(modelMatrix)
   }
   if (noReps) {
-    if (!is.null(modelMatrix)) stop("Supplied model matrix has the same number of samples and coefficients")
-    
-    warning("
-
-  Deprectation note: Analysis of designs without replicates will be removed
-  in the Oct 2018 release: DESeq2 v1.22.0, after which DESeq2 will give an error.
-")
-    
-    warning("
+    stop("
 
   The design matrix has the same number of samples and coefficients to fit,
-  estimating dispersion by treating samples as replicates. This analysis
-  is not useful for accurate differential expression analysis, and arguably
-  not for data exploration either, as large differences appear as high dispersion.
+  so estimation of dispersion is not possible. Treating samples
+  as replicates was deprectaed in v1.20 and no longer supported since v1.22.
+
 ")
   }
-  noReps
+  TRUE
 }
 
 #' Estimate the dispersions for a DESeqDataSet

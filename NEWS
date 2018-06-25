@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.22.0
+-------------------------
+
+    o No replicate designs no longer supported (previous
+      version began deprecation with a warning).
+
 CHANGES IN VERSION 1.20.0
 --------------------------
 

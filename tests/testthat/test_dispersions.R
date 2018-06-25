@@ -26,4 +26,8 @@ test_that("expected errors thrown during dispersion estimation", {
   dds$group <- dds$condition
   design(dds) <- ~ group + condition
   expect_error(estimateDispersions(dds))
+
+  dds <- makeExampleDESeqDataSet(n=100, m=2)
+  expect_error({ dds <- DESeq(dds) })
+  
 })
