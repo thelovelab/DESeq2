@@ -711,7 +711,7 @@ idx <- identify(res$baseMean, res$log2FoldChange)
 rownames(res)[idx]
 ``` 
 
-<a name="altshrink"/>
+<a name="shrink"/>
 
 ### Alternative shrinkage estimators
 
@@ -1466,7 +1466,7 @@ res <- results(dds)
 
 ## Extended section on shrinkage estimators
 
-Here we extend the [discussion of shrinkage estimators](#shrinkage).
+Here we extend the [discussion of shrinkage estimators](#shrink).
 To repeat, the current default method in `lfcShrink` is `normal`,
 although it will likely change in the October 2018 release to
 `apeglm`, as this method has improved performance relative to the
