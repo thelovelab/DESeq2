@@ -582,7 +582,7 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 
   The design matrix has the same number of samples and coefficients to fit,
   so estimation of dispersion is not possible. Treating samples
-  as replicates was deprectaed in v1.20 and no longer supported since v1.22.
+  as replicates was deprecated in v1.20 and no longer supported since v1.22.
 
 ")
   }
