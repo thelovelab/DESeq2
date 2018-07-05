@@ -311,6 +311,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
     }
     modelMatrix <- NULL
   } else {
+    # model not as formula, so DESeq() is using supplied model matrix
+    if (!quiet) message("using supplied model matrix")
     if (betaPrior == TRUE) {
       stop("betaPrior=TRUE is not supported for user-provided model matrices")
     }
@@ -602,8 +604,6 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
   if (is.null(modelMatrix)) {
     modelMatrix <- getModelMatrix(object) 
-  } else {
-    if (!quiet) message("using supplied model matrix")    
   }
   checkFullRank(modelMatrix)
   if (nrow(modelMatrix) == ncol(modelMatrix)) {
@@ -818,8 +818,6 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
   if (is.null(modelMatrix)) {
     modelMatrix <- getModelMatrix(object)
-  } else {
-    if (!quiet) message("using supplied model matrix")
   }
   
   # fill in the calculated dispersion prior variance
@@ -1198,7 +1196,6 @@ nbinomWaldTest <- function(object,
     if (betaPrior) {
       if (missing(betaPriorVar)) stop("user-supplied model matrix with betaPrior=TRUE requires supplying betaPriorVar")
     }
-    if (!quiet) message("using supplied model matrix")
     modelAsFormula <- FALSE
     attr(object, "modelMatrixType") <- "user-supplied"
     renameCols <- FALSE
@@ -1613,7 +1610,6 @@ nbinomLRT <- function(object, full=design(object), reduced,
                             data=as.data.frame(colData(object)))
     df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
   } else {
-    if (!quiet) message("using supplied model matrix")
     df <- ncol(full) - ncol(reduced)
   }
   
@@ -1691,6 +1687,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
   # record maximum of Cook's
   maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
 
+  # store hat matrix diagonals
+  assays(object)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
+  
   # store Cook's distance for each sample
   assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
   

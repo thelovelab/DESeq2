@@ -86,4 +86,11 @@ test_that("LFC shrinkage works", {
   res.normal <- lfcShrink(dds=dds, coef=2, res=res, type="normal")
   res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
 
+  # only running LRT upstream
+  dds <- makeExampleDESeqDataSet(m=4)
+  mm <- model.matrix(~condition, colData(dds))
+  mm0 <- model.matrix(~1, colData(dds))
+  dds <- DESeq(dds, full=mm, reduced=mm0, test="LRT")
+  res.normal <- lfcShrink(dds, coef="conditionB", type="normal")
+  
 })  
