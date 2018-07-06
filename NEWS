@@ -4,7 +4,7 @@ CHANGES IN VERSION 1.22.0
     o No replicate designs no longer supported (previous
       version began deprecation with a warning).
 
-CHANGES IN VERSION 1.21.8
+CHANGES IN VERSION 1.21.9
 -------------------------
 
     o DESeq() now only says one time 'using supplied model matrix',
@@ -12,6 +12,9 @@ CHANGES IN VERSION 1.21.8
       Sub-functions therefore no longer print this message.
     o Fixed bug when lfcShrink run directly after LRT
       with supplied model matrices.
+    o Added heuristic to prevent Cook's outlier based filtering
+      when the max Cook's sample has lower counts than 3 other
+      samples. Restricted to two group comparison datasets.
 
 CHANGES IN VERSION 1.20.0
 --------------------------

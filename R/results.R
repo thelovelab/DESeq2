@@ -482,25 +482,41 @@ of length 3 to 'contrast' instead of using 'name'")
   m <- nrow(attr(object,"dispModelMatrix"))
   p <- ncol(attr(object,"dispModelMatrix"))
   
-  # only if more samples than parameters:
-  if (m > p) {
-    defaultCutoff <- qf(.99, p, m - p)
-    if (missing(cooksCutoff)) {
-      cooksCutoff <- defaultCutoff
-    }
-    stopifnot(length(cooksCutoff)==1)
-    if (is.logical(cooksCutoff) & cooksCutoff) {
-      cooksCutoff <- defaultCutoff
-    }
-  } else {
-    cooksCutoff <- FALSE
+  defaultCutoff <- qf(.99, p, m - p)
+  if (missing(cooksCutoff)) {
+    cooksCutoff <- defaultCutoff
+  }
+  stopifnot(length(cooksCutoff)==1)
+  if (is.logical(cooksCutoff) & cooksCutoff) {
+    cooksCutoff <- defaultCutoff
   }
   
   # apply cutoff based on maximum Cook's distance
   performCooksCutoff <- (is.numeric(cooksCutoff) | cooksCutoff) 
-  if ((m > p) & performCooksCutoff) {
+  if (performCooksCutoff) {
     cooksOutlier <- mcols(object)$maxCooks > cooksCutoff
-    res$pvalue[cooksOutlier] <- NA
+    
+    ### BEGIN heuristic to avoid filtering genes with low count outliers
+    # as according to Cook's cutoff. only for two group designs.
+    # dont filter if three or more counts are larger
+    if (any(cooksOutlier,na.rm=TRUE) & is(design(object), "formula")) {
+      designVars <- all.vars(design(object))
+      if (length(designVars) == 1) {
+        var <- colData(object)[[designVars]]
+        if (is(var, "factor") && nlevels(var) == 2) {
+          dontFilter <- logical(sum(cooksOutlier,na.rm=TRUE))
+          for (i in which(cooksOutlier)) {
+            outCount <- counts(object)[i,which.max(assays(object)[["cooks"]][i,])]
+            if (sum(counts(object)[i,] > outCount) >= 3) {
+              dontFilter[i] <- TRUE
+            }
+          }
+          cooksOutlier[which(cooksOutlier)][dontFilter] <- FALSE
+        }
+      }
+    } ### END heuristic ###
+
+    res$pvalue[which(cooksOutlier)] <- NA
   }
 
   # if original baseMean was positive, but now zero due to replaced counts, fill in results

@@ -1,4 +1,4 @@
-context("unmix samples")
+context("unmix")
 test_that("unmixing samples works", {
 
   set.seed(1)
