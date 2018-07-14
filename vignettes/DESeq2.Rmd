@@ -2645,7 +2645,7 @@ res$padj <- ifelse(is.na(res$padj), 1, res$padj)
 
 ## I have trouble installing DESeq2 on Ubuntu/Linux...
 
-"*I try to install DESeq2 using biocLite(), but I get an error trying to
+"*I try to install DESeq2, but I get an error trying to
 install the R packages XML and/or RCurl:*"
 
 `ERROR: configuration failed for package XML`
