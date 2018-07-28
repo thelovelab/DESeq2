@@ -620,18 +620,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # this rough dispersion estimate (alpha_hat)
   # is for estimating mu
   # and for the initial starting point for line search
-  # first check if model matrix is full rank
-  fullRank <- qr(modelMatrix)$rank == ncol(modelMatrix)
-  alpha_hat <- if (fullRank) {
-    # if full rank use this estimator which compares normalized counts to mu
-    roughDisp <- roughDispEstimate(y = counts(objectNZ,normalized=TRUE),
-                                   x = modelMatrix)
-    momentsDisp <- momentsDispEstimate(objectNZ)
-    pmin(roughDisp, momentsDisp)
-  } else {
-    # if not full rank use method of moments across all samples
-    momentsDispEstimate(objectNZ)
-  }
+  roughDisp <- roughDispEstimate(y = counts(objectNZ,normalized=TRUE),
+                                 x = modelMatrix)
+  momentsDisp <- momentsDispEstimate(objectNZ)
+  alpha_hat <- pmin(roughDisp, momentsDisp)
 
   # bound the rough estimated alpha between minDisp and maxDisp for numeric stability
   maxDisp <- max(10, ncol(object))
