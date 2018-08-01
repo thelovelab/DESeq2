@@ -4,7 +4,7 @@
 \alias{unmix}
 \title{Unmix samples using loss in a variance stabilized space}
 \usage{
-unmix(x, pure, alpha, shift, loss = 1, quiet = FALSE)
+unmix(x, pure, alpha, shift, power = 1, format = "matrix", quiet = FALSE)
 }
 \arguments{
 \item{x}{normalized counts or TPMs of the samples to be unmixed}
@@ -20,8 +20,11 @@ the asymptotic value of \code{dispersionFunction(dds)}, when using
 \item{shift}{for TPMs, the shift which approximately stabilizes the variance
 of log shifted TPMs. Can be assessed with \code{vsn::meanSdPlot}.}
 
-\item{loss}{either 1 (for L1) or 2 (for squared) loss function.
+\item{power}{either 1 (for L1) or 2 (for squared) loss function.
 Default is 1.}
+
+\item{format}{\code{"matrix"} or \code{"list"}, default is \code{"matrix"}.
+whether to output just the matrix of mixture components, or a list (see Value).}
 
 \item{quiet}{suppress progress bar. default is FALSE, show progress bar
 if pbapply is installed.}
@@ -30,6 +33,11 @@ if pbapply is installed.}
 a matrix, the mixture components for each sample in \code{x} (rows).
 The "pure" samples make up the columns, and so each row sums to 1.
 If colnames existed on the input matrices they will be propagated to the output matrix.
+If \code{format="list"}, then a list, containing as elements:
+(1) the matrix of mixture components,
+(2) the correlations in the variance stabilized space of the fitted samples
+to the samples in \code{x}, and
+(3) the fitted samples as a matrix with the same dimension as \code{x}.
 }
 \description{
 Unmixes samples in \code{x} according to \code{pure} components,
@@ -40,6 +48,9 @@ samples in \code{x} occurs in a variance stabilized space.
 This task is sometimes referred to as "deconvolution",
 and can be used, for example, to identify contributions from
 various tissues.
+Note: some groups have found that the mixing contributions
+may be more accurate if very lowly expressed genes across \code{x}
+and \code{pure} are first removed. We have not explored this fully.
 Note: if the \code{pbapply} package is installed a progress bar
 will be displayed while mixing components are fit.
 }

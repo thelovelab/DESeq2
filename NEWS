@@ -3,6 +3,13 @@ CHANGES IN VERSION 1.22.0
 
     o No replicate designs no longer supported (previous
       version began deprecation with a warning).
+    o unmix() now optionally will return the correlation
+      (in the variance stabilized space)
+      of the fitted data to the original data, and the
+      matrix of fitted data (format="list"). Argument
+      'loss' was changed to 'power'. Will give warning
+      if the columns of 'pure' have high correlation
+      (in the variance stabilized space).      
 
 CHANGES IN VERSION 1.21.9
 -------------------------

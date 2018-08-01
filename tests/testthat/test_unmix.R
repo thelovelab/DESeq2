@@ -30,8 +30,8 @@ test_that("unmixing samples works", {
 
   pure <- matrix(rnbinom(3*n,mu=1e4*c(a,b,c),size=1/disp),ncol=3)
   colnames(pure) <- c("a","b","c")
-  
-  x <- counts
+
+  colnames(counts) <- paste0("sample",seq_len(ncol(counts)))
   
   alpha <- attr(dispersionFunction(dds),"mean")
 
@@ -47,5 +47,12 @@ test_that("unmixing samples works", {
 
   # test the shifted log (designed for TPMs)
   mix2 <- unmix(counts, pure=pure, shift=0.5, quiet=TRUE)
+
+  # test expanded output
+  mix3 <- unmix(counts, pure=pure, alpha=alpha, format="list", quiet=TRUE)
+
+  # test warning
+  pure <- cbind(pure[,1:3], d=(pure[,3] + rpois(n, 10)))
+  expect_warning(unmix(counts, pure=pure, alpha=alpha, quiet=TRUE), "highly correlated")
   
 })

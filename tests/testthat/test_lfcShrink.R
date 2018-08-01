@@ -24,9 +24,9 @@ test_that("LFC shrinkage works", {
   res.ash <- lfcShrink(dds=dds, res=res, type="ashr")
 
   # prior info
-  str(priorInfo(res.n))
-  str(priorInfo(res.ape))
-  str(priorInfo(res.ash))
+  #str(priorInfo(res.n))
+  #str(priorInfo(res.ape))
+  #str(priorInfo(res.ash))
   
   # ranged versions
   gr.res <- results(dds, name="condition_B_vs_A", format="GRanges")

@@ -8,6 +8,9 @@
 #' This task is sometimes referred to as "deconvolution",
 #' and can be used, for example, to identify contributions from
 #' various tissues.
+#' Note: some groups have found that the mixing contributions
+#' may be more accurate if very lowly expressed genes across \code{x}
+#' and \code{pure} are first removed. We have not explored this fully.
 #' Note: if the \code{pbapply} package is installed a progress bar
 #' will be displayed while mixing components are fit.
 #'
@@ -20,14 +23,22 @@
 #' \code{fitType="mean"}.
 #' @param shift for TPMs, the shift which approximately stabilizes the variance
 #' of log shifted TPMs. Can be assessed with \code{vsn::meanSdPlot}.
-#' @param loss either 1 (for L1) or 2 (for squared) loss function.
+#' @param power either 1 (for L1) or 2 (for squared) loss function.
 #' Default is 1.
+#' @param format \code{"matrix"} or \code{"list"}, default is \code{"matrix"}.
+#' whether to output just the matrix of mixture components, or a list (see Value).
+#' 
 #' @param quiet suppress progress bar. default is FALSE, show progress bar
 #' if pbapply is installed.
 #'
 #' @return a matrix, the mixture components for each sample in \code{x} (rows).
 #' The "pure" samples make up the columns, and so each row sums to 1.
 #' If colnames existed on the input matrices they will be propagated to the output matrix.
+#' If \code{format="list"}, then a list, containing as elements:
+#' (1) the matrix of mixture components,
+#' (2) the correlations in the variance stabilized space of the fitted samples
+#' to the samples in \code{x}, and
+#' (3) the fitted samples as a matrix with the same dimension as \code{x}.
 #'
 #' @examples
 #'
@@ -56,39 +67,47 @@
 #' mix <- unmix(norm.cts, pure, alpha=0.01)
 #' 
 #' @export
-unmix <- function(x, pure, alpha, shift, loss=1, quiet=FALSE) {
+unmix <- function(x, pure, alpha, shift, power=1, format="matrix", quiet=FALSE) {
 
+  format <- match.arg(format, c("matrix","list"))
   if (missing(alpha)) stopifnot(!missing(shift))
   if (missing(shift)) stopifnot(!missing(alpha))
   stopifnot(missing(shift) | missing(alpha))
-  stopifnot(loss %in% 1:2)
+  stopifnot(power %in% 1:2)
   stopifnot(nrow(x) == nrow(pure))
   stopifnot(ncol(pure) > 1)
   
   if (requireNamespace("pbapply", quietly=TRUE) & !quiet) {
     lapply <- pbapply::pblapply
   }
+
+  cor.msg <- "some columns of 'pure' are highly correlated (>.99 after VST),
+  may result in instabilty of unmix(). visually inspect correlations of 'pure'"
   
   if (missing(shift)) {
     stopifnot(alpha > 0)
     # variance stabilizing transformation for NB w/ fixed dispersion alpha
     vst <- function(q, alpha) ( 2 * asinh(sqrt(alpha * q)) - log(alpha) - log(4) ) / log(2)
-    distVST <- function(p, i, vst, alpha, loss) {
-      sum(abs(vst(x[,i], alpha) - vst(pure %*% p, alpha))^loss)
+    pure.cor <- cor(vst(pure, alpha)); diag(pure.cor) <- 0
+    if (any(pure.cor > .99)) warning(cor.msg)
+    sumLossVST <- function(p, i, vst, alpha, power) {
+      sum(abs(vst(x[,i], alpha) - vst(pure %*% p, alpha))^power)
     }
     res <- lapply(seq_len(ncol(x)), function(i) {
-      optim(par=rep(1, ncol(pure)), fn=distVST, gr=NULL, i, vst, alpha, loss,
+      optim(par=rep(1, ncol(pure)), fn=sumLossVST, gr=NULL, i, vst, alpha, power,
             method="L-BFGS-B", lower=0, upper=100)$par
     })
   } else {
     stopifnot(shift > 0)
     # VST of shifted log
     vstSL <- function(q, shift) log(q + shift)
-    distSL <- function(p, i, vst, shift, loss) {
-      sum(abs(vstSL(x[,i], shift) - vstSL(pure %*% p, shift))^loss)
+    pure.cor <- cor(vstSL(pure, shift)); diag(pure.cor) <- 0
+    if (any(pure.cor > .99)) warning(cor.msg)
+    sumLossSL <- function(p, i, vst, shift, power) {
+      sum(abs(vstSL(x[,i], shift) - vstSL(pure %*% p, shift))^power)
     }
     res <- lapply(seq_len(ncol(x)), function(i) {
-      optim(par=rep(1, ncol(pure)), fn=distSL, gr=NULL, i, vstSL, shift, loss,
+      optim(par=rep(1, ncol(pure)), fn=sumLossSL, gr=NULL, i, vstSL, shift, power,
             method="L-BFGS-B", lower=0, upper=100)$par
     })
   }
@@ -97,8 +116,18 @@ unmix <- function(x, pure, alpha, shift, loss=1, quiet=FALSE) {
   mix <- mix / rowSums(mix)
   colnames(mix) <- colnames(pure)
   rownames(mix) <- colnames(x)
-  
-  return(mix)
+
+  if (format == "matrix") {
+    return(mix)
+  } else {
+    fitted <- pure %*% t(mix)
+    cor <- if (missing(shift)) {
+      cor(vst(x, alpha), vst(fitted, alpha))
+    } else {
+      cor(vstSL(x, shift), vstSL(fitted, shift))
+    }
+    return(list(mix=mix, cor=diag(cor), fitted=fitted))
+  }
   
 }
 
