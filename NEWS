@@ -11,6 +11,15 @@ CHANGES IN VERSION 1.22.0
       if the columns of 'pure' have high correlation
       (in the variance stabilized space).      
 
+CHANGES IN VERSION 1.21.13
+--------------------------
+
+    o Adding back a feature from version 1.15, where contrasts
+      of two groups where both had all zero counts would have
+      the LFC zero-ed out, rather than output a small but
+      non-zero value. It's preferable for the Wald test that
+      the LFC be set to zero for such contrasts.
+
 CHANGES IN VERSION 1.21.9
 -------------------------
 
