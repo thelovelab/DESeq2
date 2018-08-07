@@ -40,7 +40,7 @@ setValidity("DESeqDataSet", function(object) {
       any(duplicated(factor.nms))
     }))) {
       return("levels of factors in the design have non-unique level names after make.names() is applied.
-  best to only uobject letters and numbers for levels of factors in the design")
+  best to only use letters and numbers for levels of factors in the design")
     }
     # levels contain characters other than letters, numbers, and underscore
     if (any(sapply(designFactors,function(v) {
