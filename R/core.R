@@ -2374,6 +2374,13 @@ designAndArgChecker <- function(object, betaPrior) {
     stop("betaPrior=FALSE should be used for designs with interactions")
   }
 
+  if (!betaPrior) {
+    mm <- stats::model.matrix(design(object), colData(object))
+    q <- qr(mm)
+    if (q$rank < ncol(mm))
+      stop("full model matrix is less than full rank")
+  }
+  
   design <- design(object)
   designVars <- all.vars(design)
   if (length(designVars) > 0) {

@@ -11,6 +11,19 @@ CHANGES IN VERSION 1.22.0
       if the columns of 'pure' have high correlation
       (in the variance stabilized space).      
 
+CHANGES IN VERSION 1.21.14
+--------------------------
+
+    o The nbinom{WaldTest,LRT} functions will not stop if the
+      design produces a model matrix that is not full rank
+      and betaPrior=FALSE (default). This was assumed by the
+      DESeq2 code, because errors are produced at object
+      construction and at dispersion estimation, but it was
+      possible to call nbinomLRT() from DEXSeq after dispersion
+      estimation and end up with a full model matrix that was
+      not full rank. Instead testForDEU() should be called from
+      DEXSeq.
+
 CHANGES IN VERSION 1.21.13
 --------------------------
 
