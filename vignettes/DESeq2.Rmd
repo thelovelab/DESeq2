@@ -2699,8 +2699,13 @@ Gavin Kelly,
 Rob Patro,
 Charlotte Soneson,
 Koen Van den Berge,
+Fanny Perraudeau,
+Davide Risso,
 Stephan Engelbrecht,
-Nicolas Alcala.
+Nicolas Alcala,
+Jeremy Simon,
+Travis Ptacek,
+Rory Kirchner.
 
 # Session info
 
