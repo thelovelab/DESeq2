@@ -614,6 +614,15 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   
   object <- getBaseMeansAndVariances(object)
 
+  # use weights if they are present in assays(object)
+  # (we need this already to decide about linear mu fitting)
+  wlist <- getAndCheckWeights(object, modelMatrix)
+  object <- wlist$object
+  weights <- wlist$weights
+  # don't let weights go below 1e-6
+  weights <- pmax(weights, 1e-6)
+  useWeights <- wlist$useWeights
+  
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   
@@ -630,14 +639,6 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   alpha_hat <- alpha_hat_new <- alpha_init <- pmin(pmax(minDisp, alpha_hat), maxDisp)
 
   stopifnot(length(niter) == 1 & niter > 0)
-
-  # use weights if they are present in assays(object)
-  # (we need this already to decide about linear mu fitting)
-  wlist <- getAndCheckWeights(object, modelMatrix)
-  weights <- wlist$weights
-  # don't let weights go below 1e-6
-  weights <- pmax(weights, 1e-6)
-  useWeights <- wlist$useWeights
   
   # use a linear model to estimate the expected counts
   # if the number of groups according to the model matrix
@@ -840,6 +841,12 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
   stopifnot(length(dispPriorVar)==1)
 
+  # use weights if they are present in assays(object)
+  wlist <- getAndCheckWeights(object, modelMatrix)
+  object <- wlist$object
+  weights <- wlist$weights
+  useWeights <- wlist$useWeights
+  
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
   varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
   
@@ -857,11 +864,6 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
   # if any missing values, fill in the fitted value to initialize
   dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
-
-  # use weights if they are present in assays(object)
-  wlist <- getAndCheckWeights(object, modelMatrix)
-  weights <- wlist$weights
-  useWeights <- wlist$useWeights
   
   # run with prior
   dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ), xSEXP = modelMatrix, mu_hatSEXP = mu,
@@ -1286,6 +1288,7 @@ nbinomWaldTest <- function(object,
       # and the number of coefficients
       if ("weights" %in% assayNames(object)) {
         # this checks that weights are OK and normalizes to have rowMax == 1
+        # (although this has already happened earlier in estDispGeneEst and estDispMAP...
         wlist <- getAndCheckWeights(objectNZ, dispModelMatrix)
         num.samps <- rowSums(wlist$weights)
       } else {
@@ -2439,12 +2442,22 @@ getAndCheckWeights <- function(object, modelMatrix) {
           weights.ok <- weights.ok & (num.zero != nrow(modelMatrix))
         }
       }
-      stopifnot(all(weights.ok))
+      # instead of giving an error, switch allZero to TRUE for the problem rows
+      if (!all(weights.ok)) {
+        mcols(object)$allZero[!weights.ok] <- TRUE
+        weightsDF <- DataFrame(weightsFail = !weights.ok)
+        mcols(weightsDF) <- DataFrame(type="intermediate",
+                                      description="weights fail to allow parameter estimation")
+        mcols(object) <- cbind(mcols(object), weightsDF)
+        warning(paste("for", sum(!weights.ok), "row(s), the weights as supplied won't allow parameter estimation, producing a
+  degenerate design matrix. These rows have been flagged in mcols(dds)$weightsFail
+  and treated as if the row contained all zeros (mcols(dds)$allZero set to TRUE)."))
+      }
     }
     attr(object, "weightsOK") <- TRUE
   } else {
     useWeights <- FALSE
     weights <- matrix(1, nrow=nrow(object), ncol=ncol(object))
   }
-  list(weights=weights,useWeights=useWeights)
+  list(object=object,weights=weights,useWeights=useWeights)
 }

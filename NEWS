@@ -11,6 +11,15 @@ CHANGES IN VERSION 1.22.0
       if the columns of 'pure' have high correlation
       (in the variance stabilized space).      
 
+CHANGES IN VERSION 1.21.15
+--------------------------
+
+    o Rows of the weights matrix which would produce a degenerate
+      design matrix, instead of giving an error, will produce a
+      warning, and these rows will be treated as if they contained
+      all zeros (mcols(dds)$allZero and mcols(dds)$weightsFail will
+      be set to TRUE).
+
 CHANGES IN VERSION 1.21.14
 --------------------------
 

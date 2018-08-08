@@ -2,6 +2,8 @@ context("weights")
 test_that("weights work", {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=10)
+
+  # check that weight to 0 is like a removed samples
   dds <- DESeq(dds, quiet=TRUE)
   dds2 <- dds
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
@@ -10,10 +12,13 @@ test_that("weights work", {
   dds2 <- nbinomWaldTest(dds2)
   dds3 <- dds[,-1]
   dds3 <- nbinomWaldTest(dds3)
-  
+
+  # in terms of LFC, SE and deviance
   expect_equal(results(dds2)$log2FoldChange[1], results(dds3)$log2FoldChange[1])
   expect_equal(results(dds2)$lfcSE[1], results(dds3)$lfcSE[1])
   expect_equal(mcols(dds2)[1,"deviance"],mcols(dds3)[1,"deviance"])
+
+  # check weights working in the optim code
   
   nf <- matrix(sizeFactors(dds),nrow=nrow(dds),ncol=ncol(dds),byrow=TRUE)
   
@@ -35,12 +40,16 @@ test_that("weights work", {
 
   expect_equal(results(dds3)$log2FoldChange[1], o$betaMatrix[1,2], tolerance=1e-4)
 
+  # can use weights with betaPrior=TRUE
+  
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=10)
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1,1] <- 0
   assays(dds)[["weights"]] <- w
   dds <- DESeq(dds, betaPrior=TRUE, quiet=TRUE)
+
+  # check weights working for intercept only
   
   design(dds) <- ~1
   suppressWarnings({ dds <- DESeq(dds, quiet=TRUE) })
@@ -54,6 +63,8 @@ test_that("weights work", {
   expect_equal(results(dds2)$lfcSE[1], results(dds3)$lfcSE[1])
   expect_equal(mcols(dds2)[1,"deviance"],mcols(dds3)[1,"deviance"])
 
+  # check that weights downweight outlier in dispersion estimation
+  
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=10)
   counts(dds)[1,1] <- 100L
@@ -87,5 +98,19 @@ test_that("weights work", {
   ## })
   ## plot((seq_len(ncol(dds)-1) - 1)/10, lfc, type="b")
   ## abline(h=results(dds)$log2FoldChange[1])
+  
+})
+
+test_that("weights failing check gives warning, passes them through", {
+
+  set.seed(1)
+  dds <- makeExampleDESeqDataSet(n=10)
+  w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
+  w[1,1:6] <- 0
+  assays(dds)[["weights"]] <- w
+  expect_warning(dds <- DESeq(dds))
+  expect_true(mcols(dds)$allZero[1])
+  expect_true(mcols(dds)$weightsFail[1])
+  res <- results(dds)
   
 })
