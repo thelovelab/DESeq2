@@ -185,7 +185,11 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     if (!all(designVars %in% names(colData(se)))) {
       stop("all variables in design formula must be columns in colData")
     }
-
+    for (v in designVars) {
+      if (any(is.na(colData(se)[[v]])))
+        stop(paste("variables in design formula cannot contain NA:", v))
+    }
+    
     designVarsClass <- sapply(designVars, function(v) class(colData(se)[[v]])[1])
 
     if (any(designVarsClass == "character")) {
@@ -212,7 +216,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
         }
       }
       if (warnIntVars) {
-        message("the design formula contains a numeric variable with integer values,
+        message("  the design formula contains a numeric variable with integer values,
   specifying a model with increasing fold change for higher values.
   did you mean for this to be a factor? if so, first convert
   this variable to a factor using the factor() function")
@@ -250,7 +254,7 @@ the 'design' slot or to the 'full' argument of DESeq(), constructed using model.
       for (cSyn in controlSynonyms) {
         if (cSyn %in% lastDVLvls) {
           if (cSyn != lastDVLvls[1]) {
-            message(paste0("it appears that the last variable in the design formula, '",designVars[lastDV],"',
+            message(paste0("  it appears that the last variable in the design formula, '",designVars[lastDV],"',
   has a factor level, '",cSyn,"', which is not the reference level. we recommend
   to use factor(...,levels=...) or relevel() to set this as the reference level
   before proceeding. for more information, please see the 'Note on factor levels'
