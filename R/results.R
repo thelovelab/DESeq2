@@ -507,9 +507,10 @@ of length 3 to 'contrast' instead of using 'name'")
         var <- colData(object)[[designVars]]
         if (is(var, "factor") && nlevels(var) == 2) {
           dontFilter <- logical(sum(cooksOutlier,na.rm=TRUE))
-          for (i in which(cooksOutlier)) {
-            outCount <- counts(object)[i,which.max(assays(object)[["cooks"]][i,])]
-            if (sum(counts(object)[i,] > outCount) >= 3) {
+          for (i in seq_along(dontFilter)) {
+            ii <- which(cooksOutlier)[i]
+            outCount <- counts(object)[ii,which.max(assays(object)[["cooks"]][ii,])]
+            if (sum(counts(object)[ii,] > outCount) >= 3) {
               dontFilter[i] <- TRUE
             }
           }
