@@ -166,11 +166,11 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
   }
   
   if (all(rowSums(assay(se) == assay(se)[,1]) == ncol(se))) {
-    warning("all genes have equal values for all samples. will not be able to perform differential analysis")
+    warning("all genes have equal values for all samples. will not be able to perform differential analysis.\n")
   }
 
   if (any(duplicated(rownames(se)))) {
-    warning(sum(duplicated(rownames(se)))," duplicate rownames were renamed by adding numbers")
+    warning(sum(duplicated(rownames(se)))," duplicate rownames were renamed by adding numbers.\n")
     rnms <- rownames(se)
     dups <- unique(rnms[duplicated(rnms)])
     for (rn in dups) {
@@ -193,7 +193,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     designVarsClass <- sapply(designVars, function(v) class(colData(se)[[v]])[1])
 
     if (any(designVarsClass == "character")) {
-      warning("some variables in design formula are characters, converting to factors")
+      warning("some variables in design formula are characters, converting to factors.\n")
       for (v in designVars[designVarsClass == "character"]) {
         colData(se)[[v]] <- factor(colData(se)[[v]])
       }
