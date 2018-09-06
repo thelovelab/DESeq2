@@ -144,6 +144,10 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     message("renaming the first element in assays to 'counts'")
     assayNames(se)[1] <- "counts"
   }
+  # special tximeta processing
+  if ("tximetaInfo" %in% names(metadata(se))) {
+    se <- processTximeta(se)
+  }  
   # before validity check, try to convert assay to integer mode
   if (any(is.na(assay(se))))
     stop("NA values are not allowed in the count matrix")
@@ -456,4 +460,22 @@ DESeqTransform <- function(SummarizedExperiment) {
     }
   }
   new("DESeqTransform", se)
+}
+
+# unexported helper function
+processTximeta <- function(se) {
+  assay(se) <- round(assay(se))
+  mode(assay(se)) <- "integer"
+  stopifnot("countsFromAbundance" %in% names(metadata(se)))
+  cfa <- metadata(se)$countsFromAbundance
+  stopifnot(cfa %in% c("no","scaledTPM","lengthScaledTPM"))  
+  if (cfa %in% c("scaledTPM","lengthScaledTPM")) {
+    message("using just counts from tximeta")
+  } else {
+    message("using counts and average transcript lengths from tximeta")
+    stopifnot(all(assays(se)$length > 0))
+    anms <- assayNames(se)
+    assayNames(se)[anms == "length"] <- "avgTxLength"
+  }
+  return(se)
 }
