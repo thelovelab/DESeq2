@@ -77,7 +77,9 @@ test_that("outlier filtering doesn't flag small counts", {
   dds <- makeExampleDESeqDataSet(n=100, m=8, dispMeanRel=function(x) 0.01)
   counts(dds)[1,] <- c(0L, 0L, 0L, 100L, 2100L, 2200L, 2300L, 2400L)
   counts(dds)[2:3,1] <- 100000L
+  counts(dds)[4,] <- rep(0L, 8)
   dds <- DESeq(dds, fitType="mean")
-  expect_true(!is.na(results(dds)$pvalue[1]))
-  expect_true(all(is.na(results(dds)$pvalue[2:3])))
+  res <- results(dds)
+  expect_true(!is.na(res$pvalue[1]))
+  expect_true(all(is.na(res$pvalue[2:3])))
 })
