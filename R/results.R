@@ -508,12 +508,17 @@ of length 3 to 'contrast' instead of using 'name'")
         if (is(var, "factor") && nlevels(var) == 2) {
           dontFilter <- logical(sum(cooksOutlier,na.rm=TRUE))
           for (i in seq_along(dontFilter)) {
-            ii <- which(cooksOutlier)[i]
+            # index along rows of object
+            ii <- which(cooksOutlier)[i] 
+            # count for the outlier with max cooks
             outCount <- counts(object)[ii,which.max(assays(object)[["cooks"]][ii,])]
+            # if three or more counts larger than the outlier
             if (sum(counts(object)[ii,] > outCount) >= 3) {
+              # don't filter out the p-value for that gene
               dontFilter[i] <- TRUE
             }
           }
+          # reset the outlier status for these genes
           cooksOutlier[which(cooksOutlier)][dontFilter] <- FALSE
         }
       }

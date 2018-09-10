@@ -10,14 +10,27 @@ test_that("tximport works", {
   samples[,c("pop","center","run","condition")]
   files <- file.path(dir,"salmon", samples$run, "quant.sf.gz")
   names(files) <- samples$run
-  tx2gene <- read_csv(file.path(dir, "tx2gene.gencode.v27.csv"))
-  txi <- tximport(files, type="salmon", tx2gene=tx2gene)
+  #tx2gene <- read_csv(file.path(dir, "tx2gene.gencode.v27.csv"))
+  txi <- tximport(files, type="salmon", txOut=TRUE)
   dds <- DESeqDataSetFromTximport(txi,
                                   colData = samples,
                                   design = ~ condition)
   expect_true("avgTxLength" %in% assayNames(dds))
   dds <- estimateSizeFactors(dds)
   expect_true("normalizationFactors" %in% assayNames(dds))
+  txi2 <- txi
+  # Note to users: this is NOT the ideal way to make CFA, instead use tximport()
+  txi2$counts <- makeCountsFromAbundance(txi$counts,
+                                         txi$abundance,
+                                         txi$length,
+                                         countsFromAbundance="lengthScaledTPM")
+  txi2$countsFromAbundance <- "lengthScaledTPM"
+  dds <- DESeqDataSetFromTximport(txi2,
+                                  colData = samples,
+                                  design = ~ condition)
+  expect_true("counts" == assayNames(dds))
+  dds <- estimateSizeFactors(dds)
+  expect_true("counts" == assayNames(dds))
 })
 test_that("tximeta works", {
   library(tximportData)
