@@ -2177,11 +2177,14 @@ modelMatrixGroups <- function(x) {
 }
 
 linearModelMu <- function(y, x) {
-  qrx <- qr(x)
-  Q <- qr.Q(qrx)
+  qrx <- qr(x)    
+  Q <- qr.Q(qrx)  
   Rinv <- solve(qr.R(qrx))
-  hatmatrix <- x %*% Rinv %*% t(Q)
-  t(hatmatrix %*% t(y))
+  # old code:
+  # hatmatrix <- x %*% Rinv %*% t(Q)
+  # t(hatmatrix %*% t(y))
+  # Wolfgang Huber's rewrite is up to 2 orders of magnitude faster (Sept 2018):
+  (y %*% Q) %*% t(x %*% Rinv)
 }
 
 linearModelMuNormalized <- function(object, x) {

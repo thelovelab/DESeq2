@@ -11,6 +11,14 @@ CHANGES IN VERSION 1.22.0
       if the columns of 'pure' have high correlation
       (in the variance stabilized space).      
 
+CHANGES IN VERSION 1.21.21
+--------------------------
+
+    o Improved code for 'linearModelMu' (an internal fitting function
+      used in dispersion estimation for some models) contributed 
+      by Wolfgang Huber speeds up an internal step by 2 orders
+      of magnitude.
+
 CHANGES IN VERSION 1.21.15
 --------------------------
 
