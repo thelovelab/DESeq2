@@ -71,12 +71,18 @@ parallelization only used with \code{normal} or \code{apeglm}}
 \value{
 a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}
 columns replaced with shrunken LFC and SE.
+For consistency with \code{results} (and similar to the output of \code{bayesglm})
+the column name \code{lfcSE} is used here, although what is returned is a posterior SD.
+For \code{normal} and for \code{apeglm} the estimate is the posterior mode,
+for \code{ashr} it is the posterior mean.
 \code{priorInfo(res)} contains information about the shrinkage procedure,
 relevant to the various methods specified by \code{type}.
 }
 \description{
 Adds shrunken log2 fold changes (LFC) and SE to a
 results table from \code{DESeq} run without LFC shrinkage.
+For consistency with \code{results}, the column name \code{lfcSE}
+is used here although what is returned is a posterior SD.
 Three shrinkage esimators for LFC are available via \code{type}.
 }
 \details{
@@ -124,6 +130,8 @@ res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
 
 }
 \references{
+Publications for the following shrinkage estimators:
+
 \code{type="normal"}:
 
 Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
@@ -135,4 +143,8 @@ Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for s
 \code{type="ashr"}:
 
 Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2. \url{https://doi.org/10.1093/biostatistics/kxw041}
+
+Related work, the \code{bayesglm} function in the \code{arm} package:
+
+Gelman, A., Jakulin, A., Pittau, M.G. and Su, Y.-S. (2009). A Weakly Informative Default Prior Distribution For Logistic And Other Regression Models. The Annals of Applied Statistics 2:4. \url{http://www.stat.columbia.edu/~gelman/research/published/ priors11.pdf}
 }

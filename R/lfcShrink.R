@@ -2,6 +2,8 @@
 #'
 #' Adds shrunken log2 fold changes (LFC) and SE to a
 #' results table from \code{DESeq} run without LFC shrinkage.
+#' For consistency with \code{results}, the column name \code{lfcSE}
+#' is used here although what is returned is a posterior SD.
 #' Three shrinkage esimators for LFC are available via \code{type}.
 #'
 #' As of DESeq2 version 1.18, \code{type="apeglm"} and \code{type="ashr"}
@@ -75,6 +77,8 @@
 #'
 #' @references
 #'
+#' Publications for the following shrinkage estimators:
+#' 
 #' \code{type="normal"}:
 #'
 #' Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
@@ -86,9 +90,17 @@
 #' \code{type="ashr"}:
 #'
 #' Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2. \url{https://doi.org/10.1093/biostatistics/kxw041}
+#'
+#' Related work, the \code{bayesglm} function in the \code{arm} package:
+#'
+#' Gelman, A., Jakulin, A., Pittau, M.G. and Su, Y.-S. (2009). A Weakly Informative Default Prior Distribution For Logistic And Other Regression Models. The Annals of Applied Statistics 2:4. \url{http://www.stat.columbia.edu/~gelman/research/published/ priors11.pdf}
 #' 
 #' @return a DESeqResults object with the \code{log2FoldChange} and \code{lfcSE}
 #' columns replaced with shrunken LFC and SE.
+#' For consistency with \code{results} (and similar to the output of \code{bayesglm})
+#' the column name \code{lfcSE} is used here, although what is returned is a posterior SD.
+#' For \code{normal} and for \code{apeglm} the estimate is the posterior mode,
+#' for \code{ashr} it is the posterior mean.
 #' \code{priorInfo(res)} contains information about the shrinkage procedure,
 #' relevant to the various methods specified by \code{type}.
 #'
@@ -170,6 +182,9 @@ lfcShrink <- function(dds, coef, contrast, res,
     ## normal ##
     ############
 
+    if (!quiet) message("using 'normal' for LFC shrinkage, the Normal prior from Love et al (2014).
+    additional priors are available via the 'type' argument, see ?lfcShrink for details")
+    
     if (is(design(dds), "formula")) {
       if (attr(dds, "modelMatrixType") == "user-supplied") {
         # if 'full' was used, the model matrix should be stored here
@@ -281,18 +296,20 @@ lfcShrink <- function(dds, coef, contrast, res,
     if (!requireNamespace("apeglm", quietly=TRUE)) {
       stop("type='apeglm' requires installing the Bioconductor package 'apeglm'")
     }
-    if (!quiet) message("using 'apeglm' for LFC shrinkage. If used in published research, please cite:
-    Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for
-    sequence count data: removing the noise and preserving large differences.
-    bioRxiv. https://doi.org/10.1101/303255")
     if (!missing(contrast)) {
       stop("type='apeglm' shrinkage only for use with 'coef'")
     }
-    stopifnot(!missing(coef))
+    stopifnot(!missing(coef))    
     incomingCoef <- gsub(" ","_",sub("log2 fold change \\(MLE\\): ","",mcols(res)[2,2]))
     if (coefAlpha != incomingCoef) {
       stop("'coef' should specify same coefficient as in results 'res'")
     }
+
+    if (!quiet) message("using 'apeglm' for LFC shrinkage. If used in published research, please cite:
+    Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for
+    sequence count data: removing the noise and preserving large differences.
+    bioRxiv. https://doi.org/10.1101/303255")
+    
     Y <- counts(dds)
     if (attr(dds, "modelMatrixType") == "user-supplied") {
       design <- attr(dds, "modelMatrix")
@@ -401,9 +418,11 @@ lfcShrink <- function(dds, coef, contrast, res,
     if (!requireNamespace("ashr", quietly=TRUE)) {
       stop("type='ashr' requires installing the CRAN package 'ashr'")
     }
+    
     if (!quiet) message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
     https://doi.org/10.1093/biostatistics/kxw041")
+    
     if (lfcThreshold > 0) message("lfcThreshold is not used by type='ashr'")
     betahat <- res$log2FoldChange
     sebetahat <- res$lfcSE
