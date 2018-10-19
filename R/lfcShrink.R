@@ -183,7 +183,7 @@ lfcShrink <- function(dds, coef, contrast, res,
     ############
 
     if (!quiet) message("using 'normal' for LFC shrinkage, the Normal prior from Love et al (2014).
-    additional priors are available via the 'type' argument, see ?lfcShrink for details")
+additional priors are available via the 'type' argument, see ?lfcShrink for details")
     
     if (is(design(dds), "formula")) {
       if (attr(dds, "modelMatrixType") == "user-supplied") {
