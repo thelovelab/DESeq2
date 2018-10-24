@@ -129,3 +129,17 @@ test_that("the fitting of dispersion gives expected values using various methods
        expect_equal(log(trueDisp), log(dispGeneEst),tol=0.2))
 
 })
+
+## test_that("Expected variance of log dispersions for df <= 3", {
+##   sds <- rep(seq(from=.5, to=2.5, by=.25), each=2)
+##   ests <- numeric(length(sds))
+##   for (i in seq_along(sds)) {
+##     cat(i)
+##     dds <- makeExampleDESeqDataSet(n=1000, m=4, interceptMean=8, interceptSD=1,
+##                                    dispMeanRel=function(x) exp(rnorm(1000,log(0.05),sds[i])))
+##     sizeFactors(dds) <- rep(1,4)
+##     dds <- estimateDispersions(dds, fitType="mean", quiet=TRUE)
+##     ests[i] <- attr(dispersionFunction(dds), "dispPriorVar")
+##   }
+##   plot(sds^2, ests); abline(0,1)
+## })
