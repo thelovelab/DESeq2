@@ -138,7 +138,7 @@ Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and
 
 \code{type="apeglm"}:
 
-Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences. bioRxiv. \url{https://doi.org/10.1101/303255}
+Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences. Bioinformatics. \url{https://doi.org/10.1093/bioinformatics/bty895}
 
 \code{type="ashr"}:
 

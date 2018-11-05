@@ -4,11 +4,11 @@
 \alias{DESeq}
 \title{Differential expression analysis based on the Negative Binomial (a.k.a. Gamma-Poisson) distribution}
 \usage{
-DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric", "local",
-  "mean"), sfType = c("ratio", "poscounts", "iterate"), betaPrior,
-  full = design(object), reduced, quiet = FALSE,
-  minReplicatesForReplace = 7, modelMatrixType, useT = FALSE, minmu = 0.5,
-  parallel = FALSE, BPPARAM = bpparam())
+DESeq(object, test = c("Wald", "LRT"), fitType = c("parametric",
+  "local", "mean"), sfType = c("ratio", "poscounts", "iterate"),
+  betaPrior, full = design(object), reduced, quiet = FALSE,
+  minReplicatesForReplace = 7, modelMatrixType, useT = FALSE,
+  minmu = 0.5, parallel = FALSE, BPPARAM = bpparam())
 }
 \arguments{
 \item{object}{a DESeqDataSet object, see the constructor functions

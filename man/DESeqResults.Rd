@@ -4,7 +4,6 @@
 \name{DESeqResults-class}
 \alias{DESeqResults-class}
 \alias{DESeqResults}
-\alias{DESeqResults-class}
 \title{DESeqResults object and constructor}
 \usage{
 DESeqResults(DataFrame, priorInfo = list())

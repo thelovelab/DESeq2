@@ -4,9 +4,6 @@
 \name{DESeqDataSet-class}
 \alias{DESeqDataSet-class}
 \alias{DESeqDataSet}
-\alias{DESeqDataSet-class}
-\alias{DESeqDataSetFromMatrix}
-\alias{DESeqDataSetFromHTSeqCount}
 \alias{DESeqDataSetFromMatrix}
 \alias{DESeqDataSetFromHTSeqCount}
 \alias{DESeqDataSetFromTximport}

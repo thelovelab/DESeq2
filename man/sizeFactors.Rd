@@ -5,7 +5,6 @@
 \alias{sizeFactors}
 \alias{sizeFactors,DESeqDataSet-method}
 \alias{sizeFactors<-,DESeqDataSet,numeric-method}
-\alias{sizeFactors}
 \title{Accessor functions for the 'sizeFactors' information in a DESeqDataSet
 object.}
 \usage{

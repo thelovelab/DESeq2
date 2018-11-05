@@ -4,10 +4,8 @@
 \name{normalizationFactors}
 \alias{normalizationFactors}
 \alias{normalizationFactors<-}
-\alias{normalizationFactors}
 \alias{normalizationFactors,DESeqDataSet-method}
 \alias{normalizationFactors<-,DESeqDataSet,matrix-method}
-\alias{normalizationFactors}
 \title{Accessor functions for the normalization factors in a DESeqDataSet
 object.}
 \usage{

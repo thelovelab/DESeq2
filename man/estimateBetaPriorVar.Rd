@@ -3,7 +3,6 @@
 \name{estimateBetaPriorVar}
 \alias{estimateBetaPriorVar}
 \alias{estimateMLEForBetaPriorVar}
-\alias{estimateMLEForBetaPriorVar}
 \title{Steps for estimating the beta prior variance}
 \usage{
 estimateBetaPriorVar(object, betaPriorMethod = c("weighted", "quantile"),

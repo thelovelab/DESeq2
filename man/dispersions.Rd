@@ -4,10 +4,8 @@
 \name{dispersions}
 \alias{dispersions}
 \alias{dispersions<-}
-\alias{dispersions}
 \alias{dispersions,DESeqDataSet-method}
 \alias{dispersions<-,DESeqDataSet,numeric-method}
-\alias{dispersions}
 \title{Accessor functions for the dispersion estimates in a DESeqDataSet
 object.}
 \usage{

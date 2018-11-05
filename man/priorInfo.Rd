@@ -4,10 +4,8 @@
 \name{priorInfo}
 \alias{priorInfo}
 \alias{priorInfo<-}
-\alias{priorInfo}
 \alias{priorInfo,DESeqResults-method}
 \alias{priorInfo<-,DESeqResults,list-method}
-\alias{priorInfo}
 \title{Accessors for the 'priorInfo' slot of a DESeqResults object.}
 \usage{
 priorInfo(object, ...)

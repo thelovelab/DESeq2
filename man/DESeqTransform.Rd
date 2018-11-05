@@ -4,7 +4,6 @@
 \name{DESeqTransform-class}
 \alias{DESeqTransform-class}
 \alias{DESeqTransform}
-\alias{DESeqTransform-class}
 \title{DESeqTransform object and constructor}
 \usage{
 DESeqTransform(SummarizedExperiment)

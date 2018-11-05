@@ -3,7 +3,6 @@
 \name{varianceStabilizingTransformation}
 \alias{varianceStabilizingTransformation}
 \alias{getVarianceStabilizedData}
-\alias{getVarianceStabilizedData}
 \title{Apply a variance stabilizing transformation (VST) to the count data}
 \usage{
 varianceStabilizingTransformation(object, blind = TRUE,

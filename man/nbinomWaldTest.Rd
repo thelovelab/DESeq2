@@ -4,9 +4,10 @@
 \alias{nbinomWaldTest}
 \title{Wald test for the GLM coefficients}
 \usage{
-nbinomWaldTest(object, betaPrior = FALSE, betaPriorVar, modelMatrix = NULL,
-  modelMatrixType, betaTol = 1e-08, maxit = 100, useOptim = TRUE,
-  quiet = FALSE, useT = FALSE, df, useQR = TRUE, minmu = 0.5)
+nbinomWaldTest(object, betaPrior = FALSE, betaPriorVar,
+  modelMatrix = NULL, modelMatrixType, betaTol = 1e-08, maxit = 100,
+  useOptim = TRUE, quiet = FALSE, useT = FALSE, df, useQR = TRUE,
+  minmu = 0.5)
 }
 \arguments{
 \item{object}{a DESeqDataSet}

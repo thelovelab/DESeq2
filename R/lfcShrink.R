@@ -85,7 +85,7 @@
 #'
 #' \code{type="apeglm"}:
 #'
-#' Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences. bioRxiv. \url{https://doi.org/10.1101/303255}
+#' Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences. Bioinformatics. \url{https://doi.org/10.1093/bioinformatics/bty895}
 #' 
 #' \code{type="ashr"}:
 #'
@@ -308,7 +308,7 @@ additional priors are available via the 'type' argument, see ?lfcShrink for deta
     if (!quiet) message("using 'apeglm' for LFC shrinkage. If used in published research, please cite:
     Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for
     sequence count data: removing the noise and preserving large differences.
-    bioRxiv. https://doi.org/10.1101/303255")
+    Bioinformatics. https://doi.org/10.1093/bioinformatics/bty895")
     
     Y <- counts(dds)
     if (attr(dds, "modelMatrixType") == "user-supplied") {

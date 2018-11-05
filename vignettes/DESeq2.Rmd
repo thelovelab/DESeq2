@@ -742,7 +742,7 @@ If the shrinkage estimator `apeglm` is used in published research, please cite:
 > Zhu, A., Ibrahim, J.G., Love, M.I. (2018)
 > Heavy-tailed prior distributions for sequence count data: 
 > removing the noise and preserving large differences. 
-> *bioRxiv*. [10.1101/303255](https://doi.org/10.1101/303255)
+> *Bioinformatics*. [10.1093/bioinformatics/bty895](https://doi.org/10.1093/bioinformatics/bty895)
 
 If the shrinkage estimator `ashr` is used in published research, please cite:
 

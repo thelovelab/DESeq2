@@ -4,16 +4,15 @@
 \alias{results}
 \alias{resultsNames}
 \alias{removeResults}
-\alias{resultsNames}
-\alias{removeResults}
 \title{Extract results from a DESeq analysis}
 \usage{
 results(object, contrast, name, lfcThreshold = 0,
   altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
   listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
   alpha = 0.1, filter, theta, pAdjustMethod = "BH", filterFun,
-  format = c("DataFrame", "GRanges", "GRangesList"), test, addMLE = FALSE,
-  tidy = FALSE, parallel = FALSE, BPPARAM = bpparam(), minmu = 0.5)
+  format = c("DataFrame", "GRanges", "GRangesList"), test,
+  addMLE = FALSE, tidy = FALSE, parallel = FALSE,
+  BPPARAM = bpparam(), minmu = 0.5)
 
 resultsNames(object)
 

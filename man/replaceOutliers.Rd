@@ -3,7 +3,6 @@
 \name{replaceOutliers}
 \alias{replaceOutliers}
 \alias{replaceOutliersWithTrimmedMean}
-\alias{replaceOutliersWithTrimmedMean}
 \title{Replace outliers with trimmed mean}
 \usage{
 replaceOutliers(object, trim = 0.2, cooksCutoff, minReplicates = 7,
