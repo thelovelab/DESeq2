@@ -98,7 +98,8 @@ sizeFactors(dds)
 \references{
 Reference for the median ratio method:
 
-Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 2010, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data.
+Genome Biology 2010, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 }
 \seealso{
 \code{\link{estimateSizeFactorsForMatrix}}

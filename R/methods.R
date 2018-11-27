@@ -261,7 +261,8 @@ sizeFactors.DESeqDataSet <- function(object) {
 #' size factor, such that count values in the columns can be brought to a common
 #' scale by dividing by the corresponding size factor (as performed by
 #' \code{counts(dds, normalized=TRUE)}).
-#' See \code{\link{DESeq}} for a description of the use of size factors. If gene-specific normalization
+#' See \code{\link{DESeq}} for a description of the use of size factors.
+#' If gene-specific normalization
 #' is desired for each sample, use \code{\link{normalizationFactors}}.
 #' 
 #' @docType methods
@@ -497,7 +498,8 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
 #'
 #' Reference for the median ratio method:
 #' 
-#' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 2010, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+#' Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data.
+#' Genome Biology 2010, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
 #' 
 #' @examples
 #' 
@@ -664,9 +666,14 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #' accessible via \code{\link{dispersions}}.
 #'
 #' @references \itemize{
-#'   \item Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
-#'   \item McCarthy, DJ, Chen, Y, Smyth, GK: Differential expression analysis of multifactor RNA-Seq experiments with respect to biological variation. Nucleic Acids Research 40 (2012), 4288-4297, \url{http://dx.doi.org/10.1093/nar/gks042}
-#'   \item Wu, H., Wang, C. & Wu, Z. A new shrinkage estimator for dispersion improves differential expression detection in RNA-seq data. Biostatistics (2012). \url{http://dx.doi.org/10.1093/biostatistics/kxs033}
+#'   \item Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data.
+#' Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+#'   \item McCarthy, DJ, Chen, Y, Smyth, GK: Differential expression analysis of multifactor RNA-Seq
+#' experiments with respect to biological variation. Nucleic Acids Research 40 (2012), 4288-4297,
+#' \url{http://dx.doi.org/10.1093/nar/gks042}
+#'   \item Wu, H., Wang, C. & Wu, Z. A new shrinkage estimator for dispersion improves differential
+#' expression detection in RNA-seq data. Biostatistics (2012).
+#' \url{http://dx.doi.org/10.1093/biostatistics/kxs033}
 #' }
 #'
 #' @examples

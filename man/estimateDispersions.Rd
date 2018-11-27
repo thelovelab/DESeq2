@@ -97,8 +97,13 @@ head(dispersions(dds))
 }
 \references{
 \itemize{
-  \item Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data. Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
-  \item McCarthy, DJ, Chen, Y, Smyth, GK: Differential expression analysis of multifactor RNA-Seq experiments with respect to biological variation. Nucleic Acids Research 40 (2012), 4288-4297, \url{http://dx.doi.org/10.1093/nar/gks042}
-  \item Wu, H., Wang, C. & Wu, Z. A new shrinkage estimator for dispersion improves differential expression detection in RNA-seq data. Biostatistics (2012). \url{http://dx.doi.org/10.1093/biostatistics/kxs033}
+  \item Simon Anders, Wolfgang Huber: Differential expression analysis for sequence count data.
+Genome Biology 11 (2010) R106, \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+  \item McCarthy, DJ, Chen, Y, Smyth, GK: Differential expression analysis of multifactor RNA-Seq
+experiments with respect to biological variation. Nucleic Acids Research 40 (2012), 4288-4297,
+\url{http://dx.doi.org/10.1093/nar/gks042}
+  \item Wu, H., Wang, C. & Wu, Z. A new shrinkage estimator for dispersion improves differential
+expression detection in RNA-seq data. Biostatistics (2012).
+\url{http://dx.doi.org/10.1093/biostatistics/kxs033}
 }
 }

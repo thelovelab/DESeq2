@@ -23,7 +23,8 @@ The sizeFactors vector assigns to each column of the count matrix a value, the
 size factor, such that count values in the columns can be brought to a common
 scale by dividing by the corresponding size factor (as performed by
 \code{counts(dds, normalized=TRUE)}).
-See \code{\link{DESeq}} for a description of the use of size factors. If gene-specific normalization
+See \code{\link{DESeq}} for a description of the use of size factors.
+If gene-specific normalization
 is desired for each sample, use \code{\link{normalizationFactors}}.
 }
 \seealso{
