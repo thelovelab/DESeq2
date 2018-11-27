@@ -34,7 +34,7 @@ See the vignette for an example of variance stabilization and PCA plots.
 Note that the source code of \code{plotPCA} is very simple.
 The source can be found by typing \code{DESeq2:::plotPCA.DESeqTransform}
 or \code{getMethod("plotPCA","DESeqTransform")}, or
-browsed on github at \url{https://github.com/Bioconductor-mirror/DESeq2/blob/master/R/plots.R}
+browsed on github at \url{https://github.com/mikelove/DESeq2/blob/master/R/plots.R}
 Users should find it easy to customize this function.
 }
 \examples{
