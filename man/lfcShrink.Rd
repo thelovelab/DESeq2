@@ -83,11 +83,10 @@ Adds shrunken log2 fold changes (LFC) and SE to a
 results table from \code{DESeq} run without LFC shrinkage.
 For consistency with \code{results}, the column name \code{lfcSE}
 is used here although what is returned is a posterior SD.
-Three shrinkage esimators for LFC are available via \code{type}.
+Three shrinkage estimators for LFC are available via \code{type}
+(see the vignette for more details on the estimators).
 }
 \details{
-As of DESeq2 version 1.18, \code{type="apeglm"} and \code{type="ashr"}
-are new features, and still under development.
 Specifying \code{apeglm} passes along DESeq2 MLE log2
 fold changes and standard errors to the \code{apeglm} function
 in the apeglm package, and re-estimates posterior LFCs for
@@ -99,10 +98,6 @@ with arguments \code{mixcompdist="normal"} and \code{method="shrink"}.
 See vignette for a comparison of shrinkage estimators on an example dataset.
 For all shrinkage methods, details on the prior is included in
 \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
-The integration of shrinkage methods from
-external packages will likely evolve over time. We will likely incorporate an
-\code{lfcThreshold} argument which can be passed to apeglm
-to specify regions of the posterior at an arbitrary threshold.
 
 For \code{normal}, and design as a formula, shrinkage cannot be applied
 to coefficients in a model with interaction terms. For \code{normal}
