@@ -178,7 +178,10 @@ lfcShrink <- function(dds, coef, contrast, res,
     ############
 
     if (!quiet) message("using 'normal' for LFC shrinkage, the Normal prior from Love et al (2014).
-additional priors are available via the 'type' argument, see ?lfcShrink for details")
+
+Note that type='apeglm' and type='ashr' have shown to have less bias than type='normal'.
+See ?lfcShrink for more details on shrinkage type, and the DESeq2 vignette.
+Reference: https://doi.org/10.1093/bioinformatics/bty895")
     
     if (is(design(dds), "formula")) {
       if (attr(dds, "modelMatrixType") == "user-supplied") {
