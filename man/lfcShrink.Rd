@@ -16,7 +16,8 @@ lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
 \item{coef}{the name or number of the coefficient (LFC) to shrink,
 consult \code{resultsNames(dds)} after running \code{DESeq(dds)}.
 note: only \code{coef} or \code{contrast} can be specified, not both.
-\code{apeglm} requires use of \code{coef}.}
+\code{apeglm} requires use of \code{coef}.
+For \code{normal}, one of \code{coef} or \code{contrast} must be provided.}
 
 \item{contrast}{see argument description in \code{\link{results}}.
 only \code{coef} or \code{contrast} can be specified, not both.}
@@ -85,6 +86,8 @@ For consistency with \code{results}, the column name \code{lfcSE}
 is used here although what is returned is a posterior SD.
 Three shrinkage estimators for LFC are available via \code{type}
 (see the vignette for more details on the estimators).
+The apeglm publication demonstrates that 'apeglm' and 'ashr' outperform
+the original 'normal' shrinkage estimator.
 }
 \details{
 Specifying \code{apeglm} passes along DESeq2 MLE log2
@@ -101,7 +104,7 @@ For all shrinkage methods, details on the prior is included in
 
 For \code{normal}, and design as a formula, shrinkage cannot be applied
 to coefficients in a model with interaction terms. For \code{normal}
-and user-supplied model matrices, shrinkage is only supported via \code{coef}.
+and user-supplied model matrices, shrinkage is only supported via \code{coef}. 
 For \code{normal} with numeric- or list-style contrasts, it is possible to use \code{lfcShrink},
 but likely easier to use \code{DESeq} with \code{betaPrior=TRUE} followed by \code{results},
 because the numeric or list should reference the coefficients from the expanded model matrix.
