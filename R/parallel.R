@@ -6,7 +6,7 @@
 DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
                           quiet, modelMatrix, useT, minmu, BPPARAM) {
 
-  nworkers <- BPPARAM$workers
+  nworkers <- getNworkers(BPPARAM)
   idx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(object))))
 
   checkForExperimentalReplicates(object, modelMatrix)
@@ -64,4 +64,12 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
     } 
   }
   object
+}
+
+getNworkers <- function(BPPARAM) {
+  nworkers <- BPPARAM$workers
+  if (!nworkers[[1]]) {
+    nworkers <- 1 # serial param gives a list with the element FALSE
+  }
+  nworkers
 }

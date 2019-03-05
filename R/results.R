@@ -406,7 +406,7 @@ of length 3 to 'contrast' instead of using 'name'")
                            test=test, useT=useT, minmu=minmu)
     } else if (parallel) {
       # parallel execution
-      nworkers <- BPPARAM$workers
+      nworkers <- getNworkers(BPPARAM)
       idx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(object))))
       res <- do.call(rbind, bplapply(levels(idx), function(l) {
         cleanContrast(object[idx == l,,drop=FALSE], contrast,
