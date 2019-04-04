@@ -137,20 +137,30 @@ lfcShrink <- function(dds, coef, contrast, res,
   type <- match.arg(type, choices=c("normal","apeglm","ashr"))
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
   if (length(resultsNames(dds)) == 0) {
-    stop("first run DESeq() before running lfcShrink()")
+    if (type != "apeglm" | (type == "apeglm" & apeAdapt)) {
+      stop("first run DESeq() before running lfcShrink()")
+    }
   }
-  if (attr(dds,"betaPrior")) {
+  betaPrior <- attr(dds,"betaPrior")
+  if (!is.null(betaPrior) && betaPrior) {
     stop("lfcShrink() should be used downstream of DESeq() with betaPrior=FALSE (the default)")
   }
   stopifnot(length(lfcThreshold) == 1 && lfcThreshold >= 0)
+  resultsNamesDDS <- resultsNames(dds)
+  # we can run apeglm without running nbinomWaldTest()
+  # but we need to go get the column names of the model matrix first...
+  if (type == "apeglm" & !apeAdapt & length(resultsNames(dds)) == 0) {
+    resultsNamesDDS <- colnames(model.matrix(design(dds), data=colData(dds)))
+  }
+  # checks on the coef numeric or character wrt resultsNames(dds)
   if (!missing(coef)) {
     if (is.numeric(coef)) {
-      stopifnot(coef <= length(resultsNames(dds)))
-      coefAlpha <- resultsNames(dds)[coef]
+      stopifnot(coef <= length(resultsNamesDDS))
+      coefAlpha <- resultsNamesDDS[coef]
       coefNum <- coef
     } else if (is.character(coef)) {
-      stopifnot(coef %in% resultsNames(dds))
-      coefNum <- which(resultsNames(dds) == coef)
+      stopifnot(coef %in% resultsNamesDDS)
+      coefNum <- which(resultsNamesDDS == coef)
       coefAlpha <- coef
     }
   }
@@ -304,10 +314,13 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     if (!missing(contrast)) {
       stop("type='apeglm' shrinkage only for use with 'coef'")
     }
-    stopifnot(!missing(coef))    
-    incomingCoef <- gsub(" ","_",sub("log2 fold change \\(MLE\\): ","",mcols(res)[2,2]))
-    if (coefAlpha != incomingCoef) {
-      stop("'coef' should specify same coefficient as in results 'res'")
+    stopifnot(!missing(coef))
+    # if we are using adaptive prior, get the LFC columns
+    if (apeAdapt) {
+      incomingCoef <- gsub(" ","_",sub("log2 fold change \\(MLE\\): ","",mcols(res)[2,2]))
+      if (coefAlpha != incomingCoef) {
+        stop("'coef' should specify same coefficient as in results 'res'")
+      }
     }
 
     if (!quiet) message("using 'apeglm' for LFC shrinkage. If used in published research, please cite:
@@ -316,7 +329,8 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     Bioinformatics. https://doi.org/10.1093/bioinformatics/bty895")
     
     Y <- counts(dds)
-    if (attr(dds, "modelMatrixType") == "user-supplied") {
+    modelMatrixType <- attr(dds, "modelMatrixType")
+    if (!is.null(modelMatrixType) && modelMatrixType == "user-supplied") {
       design <- attr(dds, "modelMatrix")
     } else {
       design <- model.matrix(design(dds), data=colData(dds))
