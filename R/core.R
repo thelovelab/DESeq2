@@ -153,7 +153,7 @@ NULL
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
 #' @param sfType either "ratio", "poscounts", or "iterate"
-#' for teh type of size factor estimation. See
+#' for the type of size factor estimation. See
 #' \code{\link{estimateSizeFactors}} for description. 
 #' @param betaPrior whether or not to put a zero-mean normal prior on
 #' the non-intercept coefficients 

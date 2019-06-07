@@ -26,7 +26,7 @@ for the type of fitting of dispersions to the mean intensity.
 See \code{\link{estimateDispersions}} for description.}
 
 \item{sfType}{either "ratio", "poscounts", or "iterate"
-for teh type of size factor estimation. See
+for the type of size factor estimation. See
 \code{\link{estimateSizeFactors}} for description.}
 
 \item{betaPrior}{whether or not to put a zero-mean normal prior on
