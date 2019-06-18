@@ -727,7 +727,6 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' defaults to FALSE so that the coefficients are given.
 #' @param ... additional arguments
 #'
-#' @docType methods
 #' @name coef
 #' @rdname coef
 #' @aliases coef coef.DESeqDataSet
@@ -740,7 +739,8 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' dds <- DESeq(dds)
 #' coef(dds)[1,]
 #' coef(dds, SE=TRUE)[1,]
-#' 
+#'
+#' @method coef DESeqDataSet
 #' @export
 coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
   # Temporary hack for backward compatibility with "old" DESeqDataSet
@@ -763,9 +763,6 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
 #'
 #' Print a summary of the results from a DESeq analysis.
 #'
-#' @usage
-#' \method{summary}{DESeqResults}(object, alpha, \dots)
-#' 
 #' @param object a \code{\link{DESeqResults}} object
 #' @param alpha the adjusted p-value cutoff. If not set, this
 #' defaults to the \code{alpha} argument which was used in
@@ -787,6 +784,7 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
 #' res <- results(dds)
 #' summary(res)
 #'
+#' @method summary DESeqResults
 #' @export
 summary.DESeqResults <- function(object, alpha, ...) {
   sval <- "svalue" %in% names(object)

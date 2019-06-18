@@ -6,7 +6,7 @@
 \alias{summary.DESeqResults}
 \title{Summarize DESeq results}
 \usage{
-\method{summary}{DESeqResults}(object, alpha, \dots)
+\method{summary}{DESeqResults}(object, alpha, ...)
 }
 \arguments{
 \item{object}{a \code{\link{DESeqResults}} object}
