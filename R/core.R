@@ -588,7 +588,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        minmu=0.5) {
   if (!is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
-    removeCols <- c("dispGeneEst")
+    removeCols <- c("dispGeneEst","dispGeneIter")
     mcols(object) <- mcols(object)[,!names(mcols(object)) %in% removeCols,drop=FALSE]
   }
   stopifnot(length(minDisp) == 1)
