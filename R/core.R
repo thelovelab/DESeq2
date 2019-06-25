@@ -553,6 +553,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' number of groups defined by the model matrix is equal to the number
 #' of columns of the model matrix
 #' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
+#' @param alphaInit initial guess for the dispersion estimate, alpha
 #' 
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
@@ -585,7 +586,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        dispTol=1e-6, maxit=100, quiet=FALSE,
                                        modelMatrix=NULL, niter=1, linearMu=NULL,
-                                       minmu=0.5) {
+                                       minmu=0.5, alphaInit=NULL) {
   if (!is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst","dispGeneIter")
@@ -625,14 +626,23 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
-  
-  # this rough dispersion estimate (alpha_hat)
-  # is for estimating mu
-  # and for the initial starting point for line search
-  roughDisp <- roughDispEstimate(y = counts(objectNZ,normalized=TRUE),
-                                 x = modelMatrix)
-  momentsDisp <- momentsDispEstimate(objectNZ)
-  alpha_hat <- pmin(roughDisp, momentsDisp)
+
+  if (is.null(alphaInit)) {
+    # this rough dispersion estimate (alpha_hat)
+    # is for estimating mu
+    # and for the initial starting point for line search
+    roughDisp <- roughDispEstimate(y = counts(objectNZ,normalized=TRUE),
+                                   x = modelMatrix)
+    momentsDisp <- momentsDispEstimate(objectNZ)
+    alpha_hat <- pmin(roughDisp, momentsDisp)
+  } else {
+    if (length(alphaInit) == 1) {
+      alpha_hat <- rep(alphaInit, nrow(objectNZ))
+    } else {
+      stopifnot(length(alphaInit) == nrow(objectNZ))
+      alpha_hat <- alphaInit
+    }
+  }
 
   # bound the rough estimated alpha between minDisp and maxDisp for numeric stability
   maxDisp <- max(10, ncol(object))
