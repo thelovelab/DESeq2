@@ -3,10 +3,10 @@
 \docType{methods}
 \name{summary}
 \alias{summary}
-\alias{summary.DESeqResults}
+\alias{summary,DESeqResults-method}
 \title{Summarize DESeq results}
 \usage{
-\method{summary}{DESeqResults}(object, alpha, ...)
+\S4method{summary}{DESeqResults}(object, alpha, ...)
 }
 \arguments{
 \item{object}{a \code{\link{DESeqResults}} object}

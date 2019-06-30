@@ -759,33 +759,6 @@ coef.DESeqDataSet  <- function(object, SE=FALSE, ...) {
   }
 }
 
-#' Summarize DESeq results
-#'
-#' Print a summary of the results from a DESeq analysis.
-#'
-#' @param object a \code{\link{DESeqResults}} object
-#' @param alpha the adjusted p-value cutoff. If not set, this
-#' defaults to the \code{alpha} argument which was used in
-#' \code{\link{results}} to set the target FDR for independent
-#' filtering, or if independent filtering was not performed,
-#' to 0.1.
-#' @param ... additional arguments
-#'
-#' @docType methods
-#' @name summary
-#' @rdname summary
-#' @aliases summary summary.DESeqResults
-#' @author Michael Love
-#'  
-#' @examples
-#'
-#' dds <- makeExampleDESeqDataSet(m=4)
-#' dds <- DESeq(dds)
-#' res <- results(dds)
-#' summary(res)
-#'
-#' @method summary DESeqResults
-#' @export
 summary.DESeqResults <- function(object, alpha, ...) {
   sval <- "svalue" %in% names(object)
   if (sval) {
@@ -845,6 +818,35 @@ summary.DESeqResults <- function(object, alpha, ...) {
   if (ihw) cat("see metadata(res)$ihwResult on hypothesis weighting\n")
   cat("\n")
 }
+
+#' Summarize DESeq results
+#'
+#' Print a summary of the results from a DESeq analysis.
+#'
+#' @param object a \code{\link{DESeqResults}} object
+#' @param alpha the adjusted p-value cutoff. If not set, this
+#' defaults to the \code{alpha} argument which was used in
+#' \code{\link{results}} to set the target FDR for independent
+#' filtering, or if independent filtering was not performed,
+#' to 0.1.
+#' @param ... additional arguments
+#'
+#' @docType methods
+#' @name summary
+#' @rdname summary
+#' @aliases summary summary,DESeqResults-method
+#' @author Michael Love
+#'  
+#' @examples
+#'
+#' dds <- makeExampleDESeqDataSet(m=4)
+#' dds <- DESeq(dds)
+#' res <- results(dds)
+#' summary(res)
+#'
+#' @method summary DESeqResults
+#' @export
+setMethod("summary", signature(object="DESeqResults"), summary.DESeqResults)
 
 #' Accessors for the 'priorInfo' slot of a DESeqResults object.
 #' 
