@@ -23,6 +23,12 @@ using namespace Rcpp;
 #include <R.h>
 #include <Rmath.h>
 #include <R_ext/Utils.h>
+#include <iostream>
+
+void print_matrix(arma::mat matrix) {
+  matrix.print(std::cout);
+}
+
 
 // this function returns the log posterior of dispersion parameter alpha, for negative binomial variables
 // given the counts y, the expected means mu, the design matrix x (used for calculating the Cox-Reid adjustment),
@@ -178,45 +184,45 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
       // note: lgamma is unstable for values around 1e17, where there is a switch in lgamma.c
       // we limit log alpha from going lower than -30
       if (a_propose < -30.0) {
-	kappa = (-30.0 - a)/dlp;
+	      kappa = (-30.0 - a)/dlp;
       }
       // note: we limit log alpha from going higher than 10
       if (a_propose > 10.0) {
-	kappa = (10.0 - a)/dlp;
+	      kappa = (10.0 - a)/dlp;
       }
       theta_kappa = -1.0 * log_posterior(a + kappa*dlp, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
       theta_hat_kappa = -1.0 * lp - kappa * epsilon * R_pow_di(dlp, 2);
       // if this inequality is true, we have satisfied the Armijo rule and 
       // accept the step size kappa, otherwise we halve kappa
       if (theta_kappa <= theta_hat_kappa) {
-	// iter_accept counts the number of accepted proposals;
-	iter_accept(i)++;
-	a = a + kappa * dlp;
-	lpnew = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
-	// look for change in log likelihood
-	change = lpnew - lp;
-	if (change < tol) {
-	  lp = lpnew;
-	  break;
-	}
-	// if log(alpha) is going to -infinity
-	// break the loop
-	if (a < min_log_alpha) {
-	  break;
-	}
-	lp = lpnew;
-	dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
-	// instead of resetting kappa to kappa_0 
-	// multiple kappa by 1.1
-	kappa = fmin(kappa * 1.1, kappa_0);
-	// every 5 accepts, halve kappa
-	// to prevent slow convergence
-	// due to overshooting
-	if (iter_accept(i) % 5 == 0) {
-	  kappa = kappa / 2.0;
-	}
+      	// iter_accept counts the number of accepted proposals;
+      	iter_accept(i)++;
+      	a = a + kappa * dlp;
+      	lpnew = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
+      	// look for change in log likelihood
+      	change = lpnew - lp;
+      	if (change < tol) {
+      	  lp = lpnew;
+      	  break;
+      	}
+      	// if log(alpha) is going to -infinity
+      	// break the loop
+      	if (a < min_log_alpha) {
+      	  break;
+      	}
+      	lp = lpnew;
+      	dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
+      	// instead of resetting kappa to kappa_0 
+      	// multiple kappa by 1.1
+      	kappa = fmin(kappa * 1.1, kappa_0);
+      	// every 5 accepts, halve kappa
+      	// to prevent slow convergence
+      	// due to overshooting
+      	if (iter_accept(i) % 5 == 0) {
+      	  kappa = kappa / 2.0;
+      	}
       } else {
-	kappa = kappa / 2.0;
+	      kappa = kappa / 2.0;
       }
     }
     last_lp(i) = lp;
@@ -243,6 +249,9 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
 //
 // [[Rcpp::export]]
 List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP, SEXP minmuSEXP) {
+  
+  Rcout << "Test output!6!" << std::endl;
+  
   arma::mat y = as<arma::mat>(ySEXP);
   arma::mat nf = as<arma::mat>(nfSEXP);
   arma::mat x = as<arma::mat>(xSEXP);
@@ -260,7 +269,8 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
   arma::colvec contrast = as<arma::colvec>(contrastSEXP);
   int maxit = as<int>(maxitSEXP);
   arma::colvec yrow, nfrow, beta_hat, mu_hat, z;
-  arma::mat w, ridge, sigma;
+  arma::mat ridge, sigma;
+  arma::vec w_vec, w_sqrt_vec;
   // observation weights
   arma::mat weights = as<arma::mat>(weightsSEXP);
   bool useWeights = as<bool>(useWeightsSEXP);
@@ -268,7 +278,7 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
   bool useQR = as<bool>(useQRSEXP);
   arma::colvec gamma_hat, big_z;
   arma::vec big_w_diag;
-  arma::mat weighted_x_ridge, q, r, big_w;
+  arma::mat weighted_x_ridge, q, r, big_w_sqrt;
   // deviance, convergence and tolerance
   double dev, dev_old, conv_test;
   double tol = as<double>(tolSEXP);
@@ -295,21 +305,25 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
       for (int t = 0; t < maxit; t++) {
 	iter(i)++;
 	if (useWeights) {
-	  w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat));
+	  w_vec = weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat);
+	  w_sqrt_vec = sqrt(w_vec);
 	} else {
-	  w = diagmat(mu_hat/(1.0 + alpha_hat(i) * mu_hat));
+	  w_vec = mu_hat/(1.0 + alpha_hat(i) * mu_hat);
+	  w_sqrt_vec = sqrt(w_vec);
 	}
 	// prepare matrices
-	weighted_x_ridge = join_cols(sqrt(w) * x, sqrt(ridge));
+	weighted_x_ridge = join_cols(x.each_col() % w_sqrt_vec, sqrt(ridge));
 	qr(q, r, weighted_x_ridge);
 	big_w_diag = arma::ones(y_m + x_p);
-	big_w_diag(arma::span(0, y_m - 1)) = diagvec(w);
-	big_w = diagmat(big_w_diag);
-	big_z = arma::zeros(y_m + x_p);
+	big_w_diag(arma::span(0, y_m - 1)) = w_vec;
+	// big_w_sqrt = diagmat(sqrt(big_w_diag));
 	z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
-	big_z(arma::span(0,y_m - 1)) = z;
+	arma::vec w_diag = w_vec;
+	arma::mat z_sqrt_w = z.each_col() % sqrt(w_diag);
+	arma::colvec big_z_sqrt_w = arma::zeros(y_m + x_p);
+	big_z_sqrt_w(arma::span(0,y_m - 1)) = z_sqrt_w;
 	// IRLS with Q matrix for X    
-	gamma_hat = q.t() * sqrt(big_w) * big_z;
+	gamma_hat = q.t() * big_z_sqrt_w;
 	solve(beta_hat, r, gamma_hat);
 	if (sum(abs(beta_hat) > large) > 0) {
 	  iter(i) = maxit;
@@ -334,22 +348,26 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
 	  break;
 	}
 	if ((t > 0) & (conv_test < tol)) {
+	  Rcout << "Iterations necessary for convergence: " << t << std::endl;
 	  break;
 	}
 	dev_old = dev;
       }
+
     } else {
       // use the standard design matrix x
       // and matrix inversion
       for (int t = 0; t < maxit; t++) {
 	iter(i)++;
 	if (useWeights) {
-	  w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat));
+	  w_vec = weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat);
+	  w_sqrt_vec = sqrt(w_vec);
 	} else {
-	  w = diagmat(mu_hat/(1.0 + alpha_hat(i) * mu_hat));
+	  w_vec = mu_hat/(1.0 + alpha_hat(i) * mu_hat);
+	  w_sqrt_vec = sqrt(w_vec);
 	}
 	z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
-	solve(beta_hat, x.t() * w * x + ridge, x.t() * w * z);
+	solve(beta_hat, x.t() * (x.each_col() % w_vec) + ridge, x.t() * (z % w_vec));
 	if (sum(abs(beta_hat) > large) > 0) {
 	  iter(i) = maxit;
 	  break;
@@ -382,14 +400,16 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
     beta_mat.row(i) = beta_hat.t();
     // recalculate w so that this is identical if we start with beta_hat
     if (useWeights) {
-      w = diagmat(weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat));
+      w_vec = weights.row(i).t() % mu_hat/(1.0 + alpha_hat(i) * mu_hat);
+      w_sqrt_vec = sqrt(w_vec);
     } else {
-      w = diagmat(mu_hat/(1.0 + alpha_hat(i) * mu_hat));
+      w_vec = mu_hat/(1.0 + alpha_hat(i) * mu_hat);
+      w_sqrt_vec = sqrt(w_vec);
     }
-    hat_matrix = sqrt(w) * x * (x.t() * w * x + ridge).i() * x.t() * sqrt(w);
+    hat_matrix = (x.each_col() % w_sqrt_vec) * (x.t() * (x.each_col() % w_vec) + ridge).i() * (x.each_col() % w_sqrt_vec).t() ;
     hat_diagonals.row(i) = diagvec(hat_matrix).t();
     // sigma is the covariance matrix for the betas
-    sigma = (x.t() * w * x + ridge).i() * x.t() * w * x * (x.t() * w * x + ridge).i();
+    sigma = (x.t() * (x.each_col() % w_vec) + ridge).i() * x.t() * (x.each_col() % w_vec) * (x.t() * (x.each_col() % w_vec) + ridge).i();
     contrast_num.row(i) = contrast.t() * beta_hat;
     contrast_denom.row(i) = sqrt(contrast.t() * sigma * contrast);
     beta_var_mat.row(i) = diagvec(sigma).t();
