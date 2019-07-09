@@ -250,7 +250,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
 // [[Rcpp::export]]
 List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contrastSEXP, SEXP beta_matSEXP, SEXP lambdaSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP useQRSEXP, SEXP minmuSEXP) {
   
-  Rcout << "Test output!6!" << std::endl;
+  // Rcout << "Test output!6!" << std::endl;
   
   arma::mat y = as<arma::mat>(ySEXP);
   arma::mat nf = as<arma::mat>(nfSEXP);
@@ -348,7 +348,7 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
 	  break;
 	}
 	if ((t > 0) & (conv_test < tol)) {
-	  Rcout << "Iterations necessary for convergence: " << t << std::endl;
+	  // Rcout << "Iterations necessary for convergence: " << t << std::endl;
 	  break;
 	}
 	dev_old = dev;
