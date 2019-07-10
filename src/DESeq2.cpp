@@ -36,9 +36,9 @@ void print_matrix(arma::mat matrix) {
 double log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights) {
   double prior_part;
   double alpha = exp(log_alpha);
-  NumericVector w_diag = pow(pow(mu, -1) + alpha, -1);
-  arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
-  arma::mat b = x.t() * w * x;
+  arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
+  // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
+  arma::mat b = x.t() * (x.each_col() % w_diag);
   double cr_term = -0.5 * log(det(b));
   double alpha_neg1 = R_pow_di(alpha, -1);
   double ll_part;
@@ -61,12 +61,12 @@ double log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row 
 double dlog_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights) {
   double prior_part;
   double alpha = exp(log_alpha);
-  NumericVector w_diag = pow(pow(mu, -1) + alpha, -1);
-  arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
-  NumericVector dw_diag = -1.0 * pow(pow(mu, -1) + alpha, -2);
-  arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
-  arma::mat b = x.t() * w * x;
-  arma::mat db = x.t() * dw * x;
+  arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
+  // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
+  arma::vec dw_diag = -1.0 * pow(pow(mu, -1) + alpha, -2);
+  // arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
+  arma::mat b = x.t() * (x.each_col() % w_diag);
+  arma::mat db = x.t() * (x.each_col() % dw_diag);
   double ddetb = ( det(b) * trace(b.i() * db) );
   double cr_term = -0.5 * ddetb / det(b);
   double alpha_neg1 = R_pow_di(alpha, -1);
@@ -93,16 +93,16 @@ double dlog_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row
 double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights) {
   double prior_part;
   double alpha = exp(log_alpha);
-  NumericVector w_diag = pow(pow(mu, -1) + alpha, -1);
-  arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
-  NumericVector dw_diag = -1 * pow(pow(mu, -1) + alpha, -2);
-  arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
-  NumericVector d2w_diag = 2 * pow(pow(mu, -1) + alpha, -3);
-  arma::mat d2w = arma::diagmat(as<arma::vec>(d2w_diag));
-  arma::mat b = x.t() * w * x;
+  arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
+  // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
+  arma::vec dw_diag = -1 * pow(pow(mu, -1) + alpha, -2);
+  // arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
+  arma::vec d2w_diag = 2 * pow(pow(mu, -1) + alpha, -3);
+  // arma::mat d2w = arma::diagmat(as<arma::vec>(d2w_diag));
+  arma::mat b = x.t() * (x.each_col() % w_diag);
   arma::mat b_i = b.i();
-  arma::mat db = x.t() * dw * x;
-  arma::mat d2b = x.t() * d2w * x;
+  arma::mat db = x.t() * (x.each_col() % dw_diag);
+  arma::mat d2b = x.t() * (x.each_col() % d2w_diag);
   double ddetb = ( det(b) * trace(b.i() * db) );
   double d2detb = ( det(b) * (R_pow_di(trace(b_i * db), 2) - trace(b_i * db * b_i * db) + trace(b_i * d2b)) );
   double cr_term = 0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b); 
