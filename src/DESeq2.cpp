@@ -313,7 +313,7 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
 	}
 	// prepare matrices
 	weighted_x_ridge = join_cols(x.each_col() % w_sqrt_vec, sqrt(ridge));
-	qr(q, r, weighted_x_ridge);
+	qr_econ(q, r, weighted_x_ridge);
 	big_w_diag = arma::ones(y_m + x_p);
 	big_w_diag(arma::span(0, y_m - 1)) = w_vec;
 	// big_w_sqrt = diagmat(sqrt(big_w_diag));
