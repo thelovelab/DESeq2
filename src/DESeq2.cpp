@@ -25,11 +25,6 @@ using namespace Rcpp;
 #include <R_ext/Utils.h>
 #include <iostream>
 
-void print_matrix(arma::mat matrix) {
-  matrix.print(std::cout);
-}
-
-
 // this function returns the log posterior of dispersion parameter alpha, for negative binomial variables
 // given the counts y, the expected means mu, the design matrix x (used for calculating the Cox-Reid adjustment),
 // and the parameters for the normal prior on log alpha
