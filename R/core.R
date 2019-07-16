@@ -2098,11 +2098,15 @@ recordMaxCooks <- function(design, colData, modelMatrix, cooks, numRow) {
 # (including that sample)
 # so for a 2 x 3 comparison, the returned vector for n = 3 is:
 # FALSE, FALSE, TRUE, TRUE, TRUE
-nOrMoreInCell <- function(modelMatrix, n) {
-  numEqual <- sapply(seq_len(nrow(modelMatrix)), function(i) {
-    modelMatrixDiff <- t(t(modelMatrix) - modelMatrix[i,])
-    sum(apply(modelMatrixDiff, 1, function(row) all(row == 0)))
-  })
+nOrMoreInCell <- function(modelMatrix, n){
+  numEqual <- rep(NA, nrow(modelMatrix))
+  for(idx in seq_len(nrow(modelMatrix))){
+    if(is.na(numEqual[idx])){
+      modelMatrixDiff <- t(t(modelMatrix) - modelMatrix[idx,])
+      equal_to_idx <- apply(modelMatrixDiff, 1, function(row) all(row == 0))
+      numEqual[equal_to_idx] <- sum(equal_to_idx)
+    }
+  }
   numEqual >= n
 }
 
