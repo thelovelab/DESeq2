@@ -106,6 +106,57 @@ You should **not** email your question to the package authors, as we will
 just reply that the question should be posted to the 
 **Bioconductor support site**.
 
+## Acknowledgments
+
+Constantine Ahlmann-Eltze has contributed core code for increasing the
+computational performance of *DESeq2*.
+
+We have benefited in the development of *DESeq2* from the help and
+feedback of many individuals, including but not limited to: 
+
+The Bionconductor Core Team,
+Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein,
+Nikolaos Ignatiadis (IHW),
+Anqi Zhu (apeglm),
+Joseph Ibrahim (apeglm),
+Vince Carey,
+Owen Solberg,
+Ruping Sun,
+Devon Ryan, 
+Steve Lianoglou, Jessica Larson, Christina Chaivorapol, Pan Du, Richard Bourgon,
+Willem Talloen, 
+Elin Videvall, Hanneke van Deutekom,
+Todd Burwell, 
+Jesse Rowley,
+Igor Dolgalev,
+Stephen Turner,
+Ryan C Thompson,
+Tyr Wiesner-Hanks,
+Konrad Rudolph,
+David Robinson,
+Mingxiang Teng,
+Mathias Lesche,
+Sonali Arora,
+Jordan Ramilowski,
+Ian Dworkin,
+Bjorn Gruning,
+Ryan McMinds,
+Paul Gordon,
+Leonardo Collado Torres,
+Enrico Ferrero,
+Peter Langfelder,
+Gavin Kelly,
+Rob Patro,
+Charlotte Soneson,
+Koen Van den Berge,
+Fanny Perraudeau,
+Davide Risso,
+Stephan Engelbrecht,
+Nicolas Alcala,
+Jeremy Simon,
+Travis Ptacek,
+Rory Kirchner.
+
 ## Input data
 
 ### Why un-normalized counts?
@@ -558,6 +609,12 @@ res <- results(dds, name="condition_treated_vs_untreated")
 res <- results(dds, contrast=c("condition","treated","untreated"))
 ```
 
+One exception to the equivalence of these two commands, is that, using
+`contrast` will additionally set to 0 the estimated LFC in a
+comparison of two groups, where all of the counts in the two groups
+are equal to 0 (while other groups have positive counts). As this may
+be a desired feature to have the LFC in these cases set to 0, one can
+use `contrast` to build these results tables.
 More information about extracting specific coefficients from a fitted
 *DESeqDataSet* object can be found in the help page `?results`.
 The use of the `contrast` argument is also further discussed [below](#contrasts).
@@ -2713,54 +2770,6 @@ your standard package manager, e.g. `sudo apt-get install` or
 
 * libxml2-dev
 * libcurl4-openssl-dev
-
-# Acknowledgments
-
-We have benefited in the development of DESeq2 from the help and
-feedback of many individuals, including but not limited to: 
-
-The Bionconductor Core Team,
-Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein,
-Nikolaos Ignatiadis (IHW),
-Anqi Zhu (apeglm),
-Joseph Ibrahim (apeglm),
-Vince Carey,
-Owen Solberg,
-Ruping Sun,
-Devon Ryan, 
-Steve Lianoglou, Jessica Larson, Christina Chaivorapol, Pan Du, Richard Bourgon,
-Willem Talloen, 
-Elin Videvall, Hanneke van Deutekom,
-Todd Burwell, 
-Jesse Rowley,
-Igor Dolgalev,
-Stephen Turner,
-Ryan C Thompson,
-Tyr Wiesner-Hanks,
-Konrad Rudolph,
-David Robinson,
-Mingxiang Teng,
-Mathias Lesche,
-Sonali Arora,
-Jordan Ramilowski,
-Ian Dworkin,
-Bjorn Gruning,
-Ryan McMinds,
-Paul Gordon,
-Leonardo Collado Torres,
-Enrico Ferrero,
-Peter Langfelder,
-Gavin Kelly,
-Rob Patro,
-Charlotte Soneson,
-Koen Van den Berge,
-Fanny Perraudeau,
-Davide Risso,
-Stephan Engelbrecht,
-Nicolas Alcala,
-Jeremy Simon,
-Travis Ptacek,
-Rory Kirchner.
 
 # Session info
 

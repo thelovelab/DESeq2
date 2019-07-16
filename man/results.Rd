@@ -186,6 +186,10 @@ The argument \code{contrast} can be used to generate results tables for
 any comparison of interest, for example, the log2 fold change between
 two levels of a factor, and its usage is described below. It can also
 accomodate more complicated numeric comparisons.
+Note that \code{contrast} will set to 0 the estimated LFC in a
+comparison of two groups, where all of the counts in the two groups
+are equal to 0 (while other groups have positive counts), while
+\code{name} will not automatically set these LFC to 0.
 The test statistic used for a contrast is:
 
 \deqn{ c^t \beta / \sqrt{c^t \Sigma c } }{ c' beta / sqrt( c' Sigma c ) }
