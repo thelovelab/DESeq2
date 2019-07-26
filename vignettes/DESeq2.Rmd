@@ -525,10 +525,11 @@ control group), the comparisons will be based on the alphabetical
 order of the levels. There are two solutions: you can either
 explicitly tell *results* which comparison to make using the
 `contrast` argument (this will be shown later), or you can explicitly
-set the factors levels. You should only change the factor levels
-of variables in the design before running the DESeq2 analysis, not
-during or afterward. Setting the factor levels can be done in two
-ways, either using factor: 
+set the factors levels. In order to see the change of reference levels
+reflected in the results names, you need to either run `DESeq` or
+`nbinomWaldTest`/`nbinomLRT` after the re-leveling operation.
+Setting the factor levels can be done in two ways, either using
+factor:
 
 ```{r factorlvl}
 dds$condition <- factor(dds$condition, levels = c("untreated","treated"))
