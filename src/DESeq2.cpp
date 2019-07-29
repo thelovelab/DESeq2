@@ -256,7 +256,7 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
   arma::mat beta_var_mat = arma::zeros(beta_mat.n_rows, beta_mat.n_cols);
   arma::mat contrast_num = arma::zeros(beta_mat.n_rows, 1);
   arma::mat contrast_denom = arma::zeros(beta_mat.n_rows, 1);
-  arma::mat hat_matrix = arma::zeros(x.n_rows, x.n_rows);
+  arma::vec hat_matrix_diag = arma::zeros(x.n_rows);
   arma::mat hat_diagonals = arma::zeros(y.n_rows, y.n_cols);
   arma::colvec lambda = as<arma::colvec>(lambdaSEXP);
   arma::colvec contrast = as<arma::colvec>(contrastSEXP);
@@ -398,8 +398,19 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
       w_vec = mu_hat/(1.0 + alpha_hat(i) * mu_hat);
       w_sqrt_vec = sqrt(w_vec);
     }
-    hat_matrix = (x.each_col() % w_sqrt_vec) * (x.t() * (x.each_col() % w_vec) + ridge).i() * (x.each_col() % w_sqrt_vec).t() ;
-    hat_diagonals.row(i) = diagvec(hat_matrix).t();
+    arma::mat xw = x.each_col() % w_sqrt_vec;
+    arma::mat xtwxr_inv = (x.t() * (x.each_col() % w_vec) + ridge).i();
+    
+    // Verbose, but fast way to get diagonal of:
+    // hat_matrix = xw * xtwxr_inv * xw.t() ;
+    for(int jp = 0; jp < y_m; jp++){
+      for(int idx1 = 0; idx1 < x_p; idx1++){
+        for(int idx2 = 0; idx2 < x_p; idx2++){
+          hat_matrix_diag(jp) += xw(jp, idx1) * (xw(jp, idx2) * xtwxr_inv(idx2, idx1));     
+        }
+      }
+    }
+    hat_diagonals.row(i) = hat_matrix_diag.t();
     // sigma is the covariance matrix for the betas
     sigma = (x.t() * (x.each_col() % w_vec) + ridge).i() * x.t() * (x.each_col() % w_vec) * (x.t() * (x.each_col() % w_vec) + ridge).i();
     contrast_num.row(i) = contrast.t() * beta_hat;
