@@ -5,7 +5,7 @@ Title: Differential gene expression analysis based on the negative
 Version: 1.25.8
 Authors@R: c(
     person("Michael", "Love", email="michaelisaiahlove@gmail.com", role = c("aut","cre")),
-    person("Constantine", "Ahlmann-Eltze", role = c("ctb")),
+    person("Constantin", "Ahlmann-Eltze", role = c("ctb")),
     person("Simon", "Anders", role = c("aut","ctb")),
     person("Wolfgang", "Huber", role = c("aut","ctb")))
 Maintainer: Michael Love <michaelisaiahlove@gmail.com>
