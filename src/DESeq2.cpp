@@ -256,7 +256,6 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
   arma::mat beta_var_mat = arma::zeros(beta_mat.n_rows, beta_mat.n_cols);
   arma::mat contrast_num = arma::zeros(beta_mat.n_rows, 1);
   arma::mat contrast_denom = arma::zeros(beta_mat.n_rows, 1);
-  arma::vec hat_matrix_diag = arma::zeros(x.n_rows);
   arma::mat hat_diagonals = arma::zeros(y.n_rows, y.n_cols);
   arma::colvec lambda = as<arma::colvec>(lambdaSEXP);
   arma::colvec contrast = as<arma::colvec>(contrastSEXP);
@@ -398,6 +397,7 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
       w_vec = mu_hat/(1.0 + alpha_hat(i) * mu_hat);
       w_sqrt_vec = sqrt(w_vec);
     }
+    arma::vec hat_matrix_diag = arma::zeros(x.n_rows);
     arma::mat xw = x.each_col() % w_sqrt_vec;
     arma::mat xtwxr_inv = (x.t() * (x.each_col() % w_vec) + ridge).i();
     
