@@ -108,7 +108,7 @@ just reply that the question should be posted to the
 
 ## Acknowledgments
 
-Constantine Ahlmann-Eltze has contributed core code for increasing the
+Constantin Ahlmann-Eltze has contributed core code for increasing the
 computational performance of *DESeq2*.
 
 We have benefited in the development of *DESeq2* from the help and
