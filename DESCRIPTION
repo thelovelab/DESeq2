@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based on the negative
     binomial distribution
-Version: 1.25.9
+Version: 1.25.10
 Authors@R: c(
     person("Michael", "Love", email="michaelisaiahlove@gmail.com", role = c("aut","cre")),
     person("Constantin", "Ahlmann-Eltze", role = c("ctb")),
@@ -30,7 +30,7 @@ Imports:
     Hmisc,
     Rcpp (>= 0.11.0)
 Depends:
-    S4Vectors (>= 0.9.25),
+    S4Vectors (>= 0.23.18),
     IRanges,
     GenomicRanges,
     SummarizedExperiment (>= 1.1.6)

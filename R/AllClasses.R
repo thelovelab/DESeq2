@@ -403,7 +403,7 @@ DESeqDataSetFromTximport <- function(txi, colData, design, ...)
 #' @rdname DESeqResults
 #' @export
 setClass("DESeqResults",
-         contains="DataFrame",
+         contains="DFrame",
          representation = representation( 
            priorInfo = "list")
          )
@@ -411,8 +411,8 @@ setClass("DESeqResults",
 #' DESeqResults object and constructor
 #'
 #' This constructor function would not typically be used by "end users".
-#' This simple class extends the DataFrame class of the IRanges package
-#' to allow other packages to write methods for results
+#' This simple class indirectly extends the DataFrame class defined in the
+#' S4Vectors package to allow other packages to write methods for results
 #' objects from the DESeq2 package. It is used by \code{\link{results}}
 #' to wrap up the results table.
 #'
