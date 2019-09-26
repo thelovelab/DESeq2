@@ -224,12 +224,12 @@ estimated counts:
 
 ### Transcript abundance files and *tximport* input
 
-A newer and recommended pipeline is to use fast transcript 
+Our recommended pipeline for *DESeq2* is to use fast transcript 
 abundance quantifiers upstream of DESeq2, and then to create
 gene-level count matrices for use with DESeq2 
-by importing the quantification data using the
-[tximport](http://bioconductor.org/packages/tximport) 
-package. This workflow allows users to import transcript abundance estimates
+by importing the quantification data using
+[tximport](http://bioconductor.org/packages/tximport) [@Soneson2015].
+This workflow allows users to import transcript abundance estimates
 from a variety of external software, including the following methods:
 
 * [Salmon](http://combine-lab.github.io/salmon/)
@@ -259,7 +259,18 @@ and producing an offset which corrects for potential changes in average
 transcript length across samples are described in [@Soneson2015].
 Note that the tximport-to-DESeq2 approach uses *estimated* gene
 counts from the transcript abundance quantifiers, but not *normalized*
-counts.
+counts. 
+
+**Note:** Another Bioconductor package, 
+[tximeta](https://bioconductor.org/packages/tximeta) [@Love2019],
+extends *tximport*, offering the same functionality, plus the
+additional benefit of automatic addition of annotation metadata for
+commonly used transcriptomes (GENCODE, Ensembl, RefSeq for human and
+mouse). See the [tximeta](https://bioconductor.org/packages/tximeta)
+package vignette for more details. *tximeta* produces a
+*SummarizedExperiment* that can be loaded easily into *DESeq2* using
+the `DESeqDataSet` function, with an example in the *tximeta* package
+vignette. 
 
 A tutorial on how to use the *Salmon* software for quantifying
 transcript abundance can be
