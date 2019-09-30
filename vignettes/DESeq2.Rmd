@@ -81,13 +81,15 @@ res <- lfcShrink(dds, coef="condition_trt_vs_untrt", type="apeglm")
 
 The following starting functions will be explained below:
 
-* If you have transcript quantification files, as produced by
-  *Salmon*, *Sailfish*, or *kallisto*, you would use
-  *DESeqDataSetFromTximport*.
-* If you have *htseq-count* files, the first line would use
-  *DESeqDataSetFromHTSeq*.
-* If you have a *RangedSummarizedExperiment*, the first line would use 
-  *DESeqDataSet*.
+* If you have performed transcript quantification 
+  (with *Salmon*, *kallisto*, *RSEM*, etc.) 
+  you could import the data with *tximport*, which produces a list,
+  and then you can use `DESeqDataSetFromTximport()`.
+* If you imported quantification data with *tximeta*, which produces a
+  *SummarizedExperiment* with additional metadata, you can then use
+  `DESeqDataSet()`.
+* If you have *htseq-count* files, you can use 
+  `DESeqDataSetFromHTSeq()`.
 
 ## How to get help for DESeq2
 

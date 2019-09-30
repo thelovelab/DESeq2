@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based on the negative
     binomial distribution
-Version: 1.25.11
+Version: 1.25.12
 Authors@R: c(
     person("Michael", "Love", email="michaelisaiahlove@gmail.com", role = c("aut","cre")),
     person("Constantin", "Ahlmann-Eltze", role = c("ctb")),
