@@ -1,3 +1,18 @@
+CHANGES IN VERSION 1.25.13
+--------------------------
+
+    o Incorporation of fast code from Constantin Ahlmann-Eltze
+      which speeds up DESeq2 for large sample sizes (n > 100)
+      by at least an order of magnitude. In fact the speed is
+      now linear with number of samples whereas previously
+      DESeq2 would scale quadratically. The critical merge
+      commits were:
+      c96c1c0ad43280c82403d3e6bc3501332a62e7b8 (2019-07-16)
+      0a47a0c750aa5c31df759a171c737d6ed782d6c2 (2019-07-30)
+    o Fixed a bug where rbind() in parallel=TRUE would
+      proliferate metadata items.
+    o Updated vignette to discuss tximeta.
+
 CHANGES IN VERSION 1.22.0
 -------------------------
 

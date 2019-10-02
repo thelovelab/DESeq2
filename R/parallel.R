@@ -19,6 +19,9 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
     estimateDispersionsGeneEst(object[idx == l,], quiet=TRUE, modelMatrix=modelMatrix, minmu=minmu)
   }, BPPARAM=BPPARAM))
 
+  # this is needed bc rbind on SummarizedExperiment will proliferate metadata lists
+  metadata(object) <- metadata(object)[unique(names(metadata(object)))]
+
   # the dispersion fit and dispersion prior are estimated over all rows
   if (!quiet) message("mean-dispersion relationship") 
   object <- estimateDispersionsFit(object, fitType=fitType)
@@ -63,6 +66,10 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
       }, BPPARAM=BPPARAM))
     } 
   }
+
+  # this is needed bc rbind on SummarizedExperiment will proliferate metadata lists
+  metadata(object) <- metadata(object)[unique(names(metadata(object)))]
+  
   object
 }
 

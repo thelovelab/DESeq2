@@ -157,7 +157,8 @@ Stephan Engelbrecht,
 Nicolas Alcala,
 Jeremy Simon,
 Travis Ptacek,
-Rory Kirchner.
+Rory Kirchner,
+R. Butler.
 
 ## Input data
 
