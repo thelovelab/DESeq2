@@ -35,9 +35,10 @@ vignette: >
 ---
 
 ```{r setup, echo=FALSE, results="hide"}
-knitr::opts_chunk$set(tidy=FALSE, cache=FALSE,
-                      dev="png",
-                      message=FALSE, error=FALSE, warning=TRUE)
+knitr::opts_chunk$set(tidy = FALSE,
+                      cache = FALSE,
+                      dev = "png",
+                      message = FALSE, error = FALSE, warning = TRUE)
 ```	
 
 # Standard workflow
@@ -225,7 +226,7 @@ estimated counts:
 
 <a name="tximport"/>
 
-### Transcript abundance files and *tximport* input
+### Transcript abundance files and *tximport* / *tximeta*
 
 Our recommended pipeline for *DESeq2* is to use fast transcript 
 abundance quantifiers upstream of DESeq2, and then to create
@@ -263,17 +264,6 @@ transcript length across samples are described in [@Soneson2015].
 Note that the tximport-to-DESeq2 approach uses *estimated* gene
 counts from the transcript abundance quantifiers, but not *normalized*
 counts. 
-
-**Note:** Another Bioconductor package, 
-[tximeta](https://bioconductor.org/packages/tximeta) [@Love2019],
-extends *tximport*, offering the same functionality, plus the
-additional benefit of automatic addition of annotation metadata for
-commonly used transcriptomes (GENCODE, Ensembl, RefSeq for human and
-mouse). See the [tximeta](https://bioconductor.org/packages/tximeta)
-package vignette for more details. *tximeta* produces a
-*SummarizedExperiment* that can be loaded easily into *DESeq2* using
-the `DESeqDataSet` function, with an example in the *tximeta* package
-vignette. 
 
 A tutorial on how to use the *Salmon* software for quantifying
 transcript abundance can be
@@ -340,6 +330,43 @@ ddsTxi <- DESeqDataSetFromTximport(txi,
 
 The `ddsTxi` object here can then be used as `dds` in the
 following analysis steps.
+
+### Tximeta for import with automatic metadata
+
+Another Bioconductor package, 
+[tximeta](https://bioconductor.org/packages/tximeta) [@Love2019],
+extends *tximport*, offering the same functionality, plus the
+additional benefit of automatic addition of annotation metadata for
+commonly used transcriptomes (GENCODE, Ensembl, RefSeq for human and
+mouse). See the [tximeta](https://bioconductor.org/packages/tximeta)
+package vignette for more details. *tximeta* produces a
+*SummarizedExperiment* that can be loaded easily into *DESeq2* using
+the `DESeqDataSet` function, with an example in the *tximeta* package
+vignette, and below:
+
+```{r}
+coldata <- samples
+coldata$files <- files
+coldata$names <- coldata$run
+```
+
+```{r echo=FALSE}
+library("tximeta")
+se <- tximeta(coldata, skipMeta=TRUE)
+ddsTxi2 <- DESeqDataSet(se, design = ~condition)
+```
+
+```{r eval=FALSE}
+library("tximeta")
+se <- tximeta(coldata)
+ddsTxi <- DESeqDataSet(se, design = ~ condition)
+```
+
+The `ddsTxi` object here can then be used as `dds` in the
+following analysis steps. If *tximeta* recognized the reference
+transcriptome as one of those with a pre-computed hashed checksum, the
+`rowRanges` of the `dds` object will be pre-populated. Again, see the
+*tximeta* vignette for full details.
 
 <a name="countmat"/>
 
