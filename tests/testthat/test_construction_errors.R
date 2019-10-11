@@ -6,6 +6,8 @@ test_that("proper errors thrown in object construction", {
                        name=letters[1:4],
                        ident=factor(rep("A",4)),
                        num=1:4,
+                       big.num=runif(4,100,101),
+                       wide.num=c(-50.5,-10.5,10.5,50.5),
                        missinglevels=factor(c("A","A","B","B"), levels=c("A","B","C")),
                        notref=factor(c("control","control","abc","abc")),
                        row.names=1:4)
@@ -22,7 +24,9 @@ test_that("proper errors thrown in object construction", {
   expect_error(DESeqDataSetFromMatrix(counts, coldata, ~ y), "must be columns in colData")
   expect_warning(DESeqDataSetFromMatrix(counts, coldata, ~ name), "are characters")
   expect_error(DESeqDataSetFromMatrix(counts, coldata, ~ ident), "all samples having the same value")
-  expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ num), "contains a numeric variable")
+  expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ num), "integer values")
+  expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ big.num), "standard deviation larger than 5")
+  expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ wide.num), "standard deviation larger than 5")
   expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ missinglevels), "were dropped")
   expect_message(DESeqDataSetFromMatrix(counts, coldata, ~ notref), "not the reference level")
   expect_error(DESeqDataSetFromMatrix(counts, coldata, ~ident + x), "design contains")

@@ -213,17 +213,27 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
 
     designVarsNumeric <- sapply(designVars, function(v) is.numeric(colData(se)[[v]]))
     if (any(designVarsNumeric)) {
-      warnIntVars <- FALSE
+      msgIntVars <- FALSE
+      msgCenterScale <- FALSE
       for (v in designVars[designVarsNumeric]) {
         if (all(colData(se)[[v]] == round(colData(se)[[v]]))) {
-          warnIntVars <- TRUE
+          msgIntVars <- TRUE
+        }
+        if (mean(colData(se)[[v]]) > 5 | sd(colData(se)[[v]]) > 5) {
+          msgCenterScale <- TRUE
         }
       }
-      if (warnIntVars) {
-        message("  the design formula contains a numeric variable with integer values,
+      if (msgIntVars) {
+        message("  the design formula contains one or more numeric variables with integer values,
   specifying a model with increasing fold change for higher values.
   did you mean for this to be a factor? if so, first convert
   this variable to a factor using the factor() function")
+      }
+      if (msgCenterScale) {
+        message("  the design formula contains one or more numeric variables that have mean or
+  standard deviation larger than 5 (an arbitrary threshold to trigger this message).
+  it is generally a good idea to center and scale numeric variables in the design
+  to improve GLM convergence.")
       }
     }
 
