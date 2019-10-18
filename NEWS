@@ -1,4 +1,4 @@
-CHANGES IN VERSION 1.25.13
+CHANGES IN VERSION 1.26.0
 --------------------------
 
     o Incorporation of fast code from Constantin Ahlmann-Eltze
@@ -11,7 +11,8 @@ CHANGES IN VERSION 1.25.13
       0a47a0c750aa5c31df759a171c737d6ed782d6c2 (2019-07-30)
     o Fixed a bug where rbind() in parallel=TRUE would
       proliferate metadata items.
-    o Updated vignette to discuss tximeta.
+    o Updated vignette to discuss tximeta (workflow also updated
+      to show use of tximeta instead of read counting).
 
 CHANGES IN VERSION 1.22.0
 -------------------------
