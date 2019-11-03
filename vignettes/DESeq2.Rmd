@@ -766,7 +766,8 @@ in published research, please cite:
 > *Nature Methods*, **13**:7.
 > [10.1038/nmeth.3885](http://dx.doi.org/10.1038/nmeth.3885)
 
-```{r IHW}
+```{r IHW, eval=FALSE}
+# (unevaluated code chunk)
 library("IHW")
 resIHW <- results(dds, filterFun=ihw)
 summary(resIHW)
