@@ -75,13 +75,6 @@ by Wu, et al. (2012) and is also implemented in the DSS package.
 In DESeq2, the dispersion estimation procedure described above replaces the
 different methods of dispersion from the previous version of the DESeq package.
 
-\code{estimateDispersions} checks for the case of an analysis
-with as many samples as the number of coefficients to fit,
-and will temporarily substitute a design formula \code{~ 1} for the
-purposes of dispersion estimation. Note that analysis of designs without
-replicates will be removed in the Oct 2018 release: DESeq2 v1.22.0,
-after which DESeq2 will give an error.
-
 The lower-level functions called by \code{estimateDispersions} are:
 \code{\link{estimateDispersionsGeneEst}},
 \code{\link{estimateDispersionsFit}}, and
