@@ -112,8 +112,9 @@ The prior variance is calculated by matching the 0.05 upper quantile
 of the observed MLE coefficients to a zero-centered Normal distribution.
 In a change of methods since the 2014 paper,
 the weighted upper quantile is calculated using the
-\code{wtd.quantile} function from the Hmisc package. The weights are
-the inverse of the expected variance of log counts, so the inverse of
+\code{wtd.quantile} function from the Hmisc package
+(function has been copied into DESeq2 to avoid extra dependencies).
+The weights are the inverse of the expected variance of log counts, so the inverse of
 \eqn{1/\bar{\mu} + \alpha_{tr}}{1/mu-bar + alpha_tr} using the mean of
 normalized counts and the trended dispersion fit. The weighting ensures
 that noisy estimates of log fold changes from small count genes do not
