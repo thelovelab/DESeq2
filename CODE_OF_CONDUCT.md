@@ -78,4 +78,4 @@ This Code of Conduct is adapted from the Contributor Covenant, version
 <https://www.contributor-covenant.org/version/1/4/code-of-conduct.html>
 
 For answers to common questions about this code of conduct, see
-<https://www.contributor-covenant.org/faq >
+<https://www.contributor-covenant.org/faq>
