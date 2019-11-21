@@ -8,10 +8,14 @@
 \title{MA-plot from base means and log fold changes}
 \usage{
 \S4method{plotMA}{DESeqDataSet}(object, alpha = 0.1, main = "",
-  xlab = "mean of normalized counts", ylim, MLE = FALSE, ...)
+  xlab = "mean of normalized counts", ylim, colNonSig = "gray60",
+  colSig = "blue", colLine = "grey40", returnData = FALSE,
+  MLE = FALSE, ...)
 
 \S4method{plotMA}{DESeqResults}(object, alpha, main = "",
-  xlab = "mean of normalized counts", ylim, MLE = FALSE, ...)
+  xlab = "mean of normalized counts", ylim, colNonSig = "gray60",
+  colSig = "blue", colLine = "grey40", returnData = FALSE,
+  MLE = FALSE, ...)
 }
 \arguments{
 \item{object}{a \code{DESeqResults} object produced by \code{\link{results}};
@@ -25,6 +29,14 @@ individual functions \code{\link{nbinomWaldTest}} or \code{\link{nbinomLRT}}}
 \item{xlab}{optional defaults to "mean of normalized counts"}
 
 \item{ylim}{optional y limits}
+
+\item{colNonSig}{color to use for non-significant data points}
+
+\item{colSig}{color to use for significant data points}
+
+\item{colLine}{color to use for the horizontal (y=0) line}
+
+\item{returnData}{logical, whether to return the data.frame used for plotting}
 
 \item{MLE}{if \code{betaPrior=TRUE} was used,
 whether to plot the MLE (unshrunken estimates), defaults to FALSE.
@@ -46,11 +58,12 @@ normalized counts (on the x-axis).
 This function is essentially two lines of code: building a
 \code{data.frame} and passing this to the \code{plotMA} method
 for \code{data.frame} from the geneplotter package.
+The code was modified in version 1.28 to change from red to blue points
+for better visibility for users with color-blindness. The original plots
+can still be made via the use of \code{returnData=TRUE} and passing the
+resulting data.frame directly to \code{geneplotter::plotMA}.
 The code of this function can be seen with:
 \code{getMethod("plotMA","DESeqDataSet")}
-If users wish to modify the graphical parameters of the plot,
-it is recommended to build the data.frame in the
-same manner and call \code{plotMA}.
 If the \code{object} contains a column \code{svalue} then these
 will be used for coloring the points (with a default \code{alpha=0.005}).
 }
