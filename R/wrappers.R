@@ -53,7 +53,7 @@ fitDispWrapper <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_p
 #
 # return a list with elements: 
 fitDispGridWrapper <- function(y, x, mu, logAlphaPriorMean, logAlphaPriorSigmaSq, usePrior,
-                               weightsSEXP, useWeightsSEXP) {
+                               weightsSEXP, useWeightsSEXP, useCRSEXP) {
   # test for any NAs in arguments
   arg.names <- names(formals(fitDispGridWrapper))
   na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
@@ -66,7 +66,9 @@ fitDispGridWrapper <- function(y, x, mu, logAlphaPriorMean, logAlphaPriorSigmaSq
                           log_alpha_prior_meanSEXP=logAlphaPriorMean,
                           log_alpha_prior_sigmasqSEXP=logAlphaPriorSigmaSq,
                           usePriorSEXP=usePrior,
-                          weightsSEXP=weightsSEXP, useWeightsSEXP=useWeightsSEXP)$log_alpha
+                          weightsSEXP=weightsSEXP,
+                          useWeightsSEXP=useWeightsSEXP,
+                          useCRSEXP=useCRSEXP)$log_alpha
   exp(logAlpha)
 }
 

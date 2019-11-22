@@ -542,6 +542,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' @param dispTol control parameter to test for convergence of log dispersion,
 #' stop when increase in log posterior is less than dispTol
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
+#' @param useCR whether to use Cox-Reid correction
 #' @param quiet whether to print messages at each step
 #' @param modelMatrix for advanced use only,
 #' a substitute model matrix for gene-wise and MAP dispersion estimation
@@ -583,7 +584,8 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #'
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
-                                       dispTol=1e-6, maxit=100, quiet=FALSE,
+                                       dispTol=1e-6, maxit=100, useCR=TRUE,
+                                       quiet=FALSE,
                                        modelMatrix=NULL, niter=1, linearMu=NULL,
                                        minmu=0.5, alphaInit=NULL) {
   if (!is.null(mcols(object)$dispGeneEst)) {
@@ -713,7 +715,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   }
   # didn't reach the maxmium and iterated more than once
   dispGeneEstConv <- dispIter < maxit & !(dispIter == 1)
- 
+
   # if lacking convergence from fitDisp() (C++)...
   refitDisp <- !dispGeneEstConv & dispGeneEst > minDisp*10
   if (sum(refitDisp) > 0) {
@@ -723,7 +725,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                    logAlphaPriorMean = rep(0,sum(refitDisp)),
                                    logAlphaPriorSigmaSq = 1, usePrior = FALSE,
                                    weightsSEXP = weights[refitDisp,,drop=FALSE],
-                                   useWeightsSEXP = useWeights)
+                                   useWeightsSEXP = useWeights, useCRSEXP = useCR)
     dispGeneEst[refitDisp] <- dispGrid
   }
   dispGeneEst <- pmin(pmax(dispGeneEst, minDisp), maxDisp)
@@ -803,7 +805,8 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
 #' @export
 estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    minDisp=1e-8, kappa_0=1, dispTol=1e-6,
-                                   maxit=100, modelMatrix=NULL, quiet=FALSE) {
+                                   maxit=100, useCR=TRUE,
+                                   modelMatrix=NULL, quiet=FALSE) {
   stopifnot(length(outlierSD)==1)
   stopifnot(length(minDisp)==1)
   stopifnot(length(kappa_0)==1)
@@ -900,7 +903,8 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
                                    usePrior=TRUE,
                                    weightsSEXP = weights[refitDisp,,drop=FALSE],
-                                   useWeightsSEXP = useWeights)
+                                   useWeightsSEXP = useWeights,
+                                   useCRSEXP=TRUE)
     dispMAP[refitDisp] <- dispGrid
   }
 

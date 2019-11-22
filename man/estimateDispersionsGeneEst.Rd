@@ -8,15 +8,16 @@
 \title{Low-level functions to fit dispersion estimates}
 \usage{
 estimateDispersionsGeneEst(object, minDisp = 1e-08, kappa_0 = 1,
-  dispTol = 1e-06, maxit = 100, quiet = FALSE, modelMatrix = NULL,
-  niter = 1, linearMu = NULL, minmu = 0.5, alphaInit = NULL)
+  dispTol = 1e-06, maxit = 100, useCR = TRUE, quiet = FALSE,
+  modelMatrix = NULL, niter = 1, linearMu = NULL, minmu = 0.5,
+  alphaInit = NULL)
 
 estimateDispersionsFit(object, fitType = c("parametric", "local",
   "mean"), minDisp = 1e-08, quiet = FALSE)
 
 estimateDispersionsMAP(object, outlierSD = 2, dispPriorVar,
   minDisp = 1e-08, kappa_0 = 1, dispTol = 1e-06, maxit = 100,
-  modelMatrix = NULL, quiet = FALSE)
+  useCR = TRUE, modelMatrix = NULL, quiet = FALSE)
 
 estimateDispersionsPriorVar(object, minDisp = 1e-08,
   modelMatrix = NULL)
@@ -35,6 +36,8 @@ in backtracking search, higher kappa_0 results in larger steps}
 stop when increase in log posterior is less than dispTol}
 
 \item{maxit}{control parameter: maximum number of iterations to allow for convergence}
+
+\item{useCR}{whether to use Cox-Reid correction}
 
 \item{quiet}{whether to print messages at each step}
 
