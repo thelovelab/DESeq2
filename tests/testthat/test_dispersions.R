@@ -70,7 +70,8 @@ test_that("the fitting of dispersion gives expected values using various methods
                               log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
                               min_log_alphaSEXP = log(1e-8), kappa_0SEXP = 1,
                               tolSEXP = 1e-16, maxitSEXP = 100, usePriorSEXP = TRUE,
-                              weightsSEXP=matrix(1,nrow=1,ncol=length(y)), useWeightsSEXP=FALSE)
+                              weightsSEXP=matrix(1,nrow=1,ncol=length(y)),
+                              useWeightsSEXP=FALSE, useCRSEXP=TRUE)
   
   # maximum a posteriori (MAP) estimate from DESeq
   dispDESeq <- dispRes$log_alpha
