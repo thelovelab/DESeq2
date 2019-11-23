@@ -695,7 +695,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                               log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
                               kappa_0SEXP = kappa_0, tolSEXP = dispTol,
                               maxitSEXP = maxit, usePriorSEXP = FALSE,
-                              weightsSEXP = weights, useWeightsSEXP = useWeights)
+                              weightsSEXP = weights,
+                              useWeightsSEXP = useWeights,
+                              useCRSEXP = useCR)
     
     dispIter[fitidx] <- dispRes$iter
     alpha_hat_new[fitidx] <- pmin(exp(dispRes$log_alpha), maxDisp)
@@ -878,14 +880,18 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
   
   # run with prior
-  dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ), xSEXP = modelMatrix, mu_hatSEXP = mu,
+  dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ),
+                               xSEXP = modelMatrix,
+                               mu_hatSEXP = mu,
                                log_alphaSEXP = log(dispInit),
                                log_alpha_prior_meanSEXP = log(mcols(objectNZ)$dispFit),
                                log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
                                min_log_alphaSEXP = log(minDisp/10),
                                kappa_0SEXP = kappa_0, tolSEXP = dispTol,
                                maxitSEXP = maxit, usePriorSEXP = TRUE,
-                               weightsSEXP = weights, useWeightsSEXP = useWeights)
+                               weightsSEXP = weights,
+                               useWeightsSEXP = useWeights,
+                               useCRSEXP = useCR)
 
   # prepare dispersions for storage in mcols(object)
   dispMAP <- exp(dispResMAP$log_alpha) 

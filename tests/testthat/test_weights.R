@@ -81,24 +81,6 @@ test_that("weights work", {
   expect_equal(mcols(dds2)[1,"dispGeneEst"],mcols(dds3)[1,"dispGeneEst"],tolerance=1e-3)
   # MAP estimates won't be equal because of different dispersion prior widths...
   expect_true(mcols(dds)[1,"dispMAP"] > mcols(dds2)[1,"dispMAP"])
-
-  # test grid of weights
-  ## set.seed(1)
-  ## dds <- makeExampleDESeqDataSet(n=10, dispMeanRel=function(x) 0.01)
-  ## counts(dds)[1,1] <- 100L
-  ## sizeFactors(dds) <- rep(1,ncol(dds))
-  ## dds <- DESeq(dds, quiet=TRUE, fitType="mean")
-  ## dds2 <- dds
-  ## w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
-  ## lfc <- sapply(seq_len(ncol(dds)-1), function(i) {
-  ##   w[1,1] <- (i-1)/10
-  ##   assays(dds2)[["weights"]] <- w
-  ##   dds2 <- DESeq(dds2, quiet=TRUE, fitType="mean")
-  ##   results(dds2)$log2FoldChange[1]
-  ## })
-  ## plot((seq_len(ncol(dds)-1) - 1)/10, lfc, type="b")
-  ## abline(h=results(dds)$log2FoldChange[1])
-  
 })
 
 test_that("weights failing check gives warning, passes them through", {
@@ -113,4 +95,28 @@ test_that("weights failing check gives warning, passes them through", {
   expect_true(mcols(dds)$weightsFail[1])
   res <- results(dds)
   
+})
+
+test_that("weights with and without CR term included", {
+
+  set.seed(1); alpha <- .1
+  dds <- makeExampleDESeqDataSet(n=100, m=100,
+                                 betaSD=2,
+                                 interceptMean=6,
+                                 dispMeanRel=function(x) alpha)
+  dds$group <- factor(rep(1:50,2))
+  design(dds) <- ~0 + group + condition
+  w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
+  w[,c(1:25, 51:75)] <- 1e-6
+  assays(dds)[["weights"]] <- w
+  counts(dds)[,c(1:25, 51:75)] <- 100L
+  sizeFactors(dds) <- 1
+  dds <- estimateDispersionsGeneEst(dds)
+  dds2 <- estimateDispersionsGeneEst(dds, useCR=FALSE)
+  #par(mfrow=c(1,2))
+  #plot(mcols(dds)$trueBeta, mcols(dds)$dispGeneEst)
+  #abline(h=alpha,col="blue")
+  #plot(mcols(dds2)$trueBeta, mcols(dds2)$dispGeneEst, ylim=c(0,.4))
+  #abline(h=alpha,col="blue")
+    
 })

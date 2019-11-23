@@ -58,17 +58,22 @@ double log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row 
 
 // this function returns the derivative of the log posterior with respect to the log of the 
 // dispersion parameter alpha, given the same inputs as the previous function
-double dlog_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights) {
+double dlog_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights, bool useCR) {
   double prior_part;
+  double cr_term;
   double alpha = exp(log_alpha);
-  arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
-  // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
-  arma::vec dw_diag = -1.0 * pow(pow(mu, -1) + alpha, -2);
-  // arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
-  arma::mat b = x.t() * (x.each_col() % w_diag);
-  arma::mat db = x.t() * (x.each_col() % dw_diag);
-  double ddetb = ( det(b) * trace(b.i() * db) );
-  double cr_term = -0.5 * ddetb / det(b);
+  if (useCR) {
+    arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
+    // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
+    arma::vec dw_diag = -1.0 * pow(pow(mu, -1) + alpha, -2);
+    // arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
+    arma::mat b = x.t() * (x.each_col() % w_diag);
+    arma::mat db = x.t() * (x.each_col() % dw_diag);
+    double ddetb = ( det(b) * trace(b.i() * db) );
+    cr_term = -0.5 * ddetb / det(b);
+  } else {
+    cr_term = 0.0;
+  }
   double alpha_neg1 = R_pow_di(alpha, -1);
   double alpha_neg2 = R_pow_di(alpha, -2);
   double ll_part;
@@ -90,22 +95,27 @@ double dlog_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row
 
 // this function returns the second derivative of the log posterior with respect to the log of the 
 // dispersion parameter alpha, given the same inputs as the previous function
-double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights) {
+double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights, bool useCR) {
   double prior_part;
+  double cr_term;
   double alpha = exp(log_alpha);
-  arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
-  // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
-  arma::vec dw_diag = -1 * pow(pow(mu, -1) + alpha, -2);
-  // arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
-  arma::vec d2w_diag = 2 * pow(pow(mu, -1) + alpha, -3);
-  // arma::mat d2w = arma::diagmat(as<arma::vec>(d2w_diag));
-  arma::mat b = x.t() * (x.each_col() % w_diag);
-  arma::mat b_i = b.i();
-  arma::mat db = x.t() * (x.each_col() % dw_diag);
-  arma::mat d2b = x.t() * (x.each_col() % d2w_diag);
-  double ddetb = ( det(b) * trace(b.i() * db) );
-  double d2detb = ( det(b) * (R_pow_di(trace(b_i * db), 2) - trace(b_i * db * b_i * db) + trace(b_i * d2b)) );
-  double cr_term = 0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b); 
+  if (useCR) {
+    arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
+    // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
+    arma::vec dw_diag = -1 * pow(pow(mu, -1) + alpha, -2);
+    // arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
+    arma::vec d2w_diag = 2 * pow(pow(mu, -1) + alpha, -3);
+    // arma::mat d2w = arma::diagmat(as<arma::vec>(d2w_diag));
+    arma::mat b = x.t() * (x.each_col() % w_diag);
+    arma::mat b_i = b.i();
+    arma::mat db = x.t() * (x.each_col() % dw_diag);
+    arma::mat d2b = x.t() * (x.each_col() % d2w_diag);
+    double ddetb = ( det(b) * trace(b.i() * db) );
+    double d2detb = ( det(b) * (R_pow_di(trace(b_i * db), 2) - trace(b_i * db * b_i * db) + trace(b_i * d2b)) );
+    cr_term = 0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b);
+  } else {
+    cr_term = 0.0;
+  }
   double alpha_neg1 = R_pow_di(alpha, -1);
   double alpha_neg2 = R_pow_di(alpha, -2);
   double ll_part;
@@ -123,7 +133,7 @@ double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Ro
   // Note: return (d2log_post/dalpha2 * alpha^2 + dlog_post/dalpha * alpha) 
   //            = (d2log_post/dalpha2 * alpha^2 + dlog_post/dlogalpha)
   // because we take derivatives w.r.t log alpha
-  double res = ((ll_part + cr_term) * R_pow_di(alpha, 2) + dlog_posterior(log_alpha, y, mu, x, log_alpha_prior_mean, log_alpha_prior_sigmasq, false, weights, useWeights)) + prior_part;
+  double res = ((ll_part + cr_term) * R_pow_di(alpha, 2) + dlog_posterior(log_alpha, y, mu, x, log_alpha_prior_mean, log_alpha_prior_sigmasq, false, weights, useWeights, useCR)) + prior_part;
   return(res);
 }
 
@@ -131,7 +141,7 @@ double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Ro
 // fitting occurs on the scale of log(alpha)
 //
 // [[Rcpp::export]]
-List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP) {
+List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP useCRSEXP) {
   NumericMatrix y(ySEXP);
   arma::mat x = as<arma::mat>(xSEXP);
   int y_n = y.nrow();
@@ -158,6 +168,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
   // observation weights
   NumericMatrix weights(weightsSEXP);
   bool useWeights = as<bool>(useWeightsSEXP);
+  bool useCR = as<bool>(useCRSEXP);
 
   for (int i = 0; i < y_n; i++) {
     if (i % 100 == 0) checkUserInterrupt();
@@ -170,8 +181,8 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
     // we use a line search based on the Armijo rule.
     // define a function theta(kappa) = f(a + kappa * d), where d is the search direction.
     // in this case the search direction is taken by the first derivative of the log likelihood
-    lp = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, true);
-    dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
+    lp = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
+    dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
     kappa = kappa_0;
     initial_lp(i) = lp;
     initial_dlp(i) = dlp;
@@ -190,7 +201,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
       if (a_propose > 10.0) {
 	      kappa = (10.0 - a)/dlp;
       }
-      theta_kappa = -1.0 * log_posterior(a + kappa*dlp, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, true);
+      theta_kappa = -1.0 * log_posterior(a + kappa*dlp, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
       theta_hat_kappa = -1.0 * lp - kappa * epsilon * R_pow_di(dlp, 2);
       // if this inequality is true, we have satisfied the Armijo rule and 
       // accept the step size kappa, otherwise we halve kappa
@@ -198,7 +209,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
       	// iter_accept counts the number of accepted proposals;
       	iter_accept(i)++;
       	a = a + kappa * dlp;
-      	lpnew = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, true);
+      	lpnew = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
       	// look for change in log likelihood
       	change = lpnew - lp;
       	if (change < tol) {
@@ -211,7 +222,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
       	  break;
       	}
       	lp = lpnew;
-      	dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
+      	dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
       	// instead of resetting kappa to kappa_0 
       	// multiple kappa by 1.1
       	kappa = fmin(kappa * 1.1, kappa_0);
@@ -222,26 +233,26 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
       	  kappa = kappa / 2.0;
       	}
       } else {
-	      kappa = kappa / 2.0;
+	kappa = kappa / 2.0;
       }
     }
     last_lp(i) = lp;
     last_dlp(i) = dlp;
-    last_d2lp(i) = d2log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights);
+    last_d2lp(i) = d2log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
     log_alpha(i) = a;
     // last change indicates the change for the final iteration
     last_change(i) = change;
   }
 
   return List::create(Named("log_alpha",log_alpha),
-			    Named("iter",iter),
-			    Named("iter_accept",iter_accept),
-			    Named("last_change",last_change),
-			    Named("initial_lp",initial_lp),
-			    Named("initial_dlp",initial_dlp),
-			    Named("last_lp",last_lp),
-			    Named("last_dlp",last_dlp),
-			    Named("last_d2lp",last_d2lp));
+		      Named("iter",iter),
+		      Named("iter_accept",iter_accept),
+		      Named("last_change",last_change),
+		      Named("initial_lp",initial_lp),
+		      Named("initial_dlp",initial_dlp),
+		      Named("last_lp",last_lp),
+		      Named("last_dlp",last_dlp),
+		      Named("last_d2lp",last_d2lp));
 }
 
 // fit the Negative Binomial GLM.
@@ -424,12 +435,12 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
   }
 
   return List::create(Named("beta_mat",beta_mat),
-			    Named("beta_var_mat",beta_var_mat),
-			    Named("iter",iter),
-			    Named("hat_diagonals",hat_diagonals),
-			    Named("contrast_num",contrast_num),
-			    Named("contrast_denom",contrast_denom),
-			    Named("deviance",deviance));
+		      Named("beta_var_mat",beta_var_mat),
+		      Named("iter",iter),
+		      Named("hat_diagonals",hat_diagonals),
+		      Named("contrast_num",contrast_num),
+		      Named("contrast_denom",contrast_denom),
+		      Named("deviance",deviance));
 }
 
 
