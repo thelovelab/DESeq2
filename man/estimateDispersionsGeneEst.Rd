@@ -40,6 +40,9 @@ stop when increase in log posterior is less than dispTol}
 
 \item{useCR}{whether to use Cox-Reid correction}
 
+\item{weightThreshold}{threshold for subsetting the design matrix and GLM weights
+for calculating the Cox-Reid correction}
+
 \item{quiet}{whether to print messages at each step}
 
 \item{modelMatrix}{for advanced use only,

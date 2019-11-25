@@ -543,6 +543,8 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' stop when increase in log posterior is less than dispTol
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #' @param useCR whether to use Cox-Reid correction
+#' @param weightThreshold threshold for subsetting the design matrix and GLM weights
+#' for calculating the Cox-Reid correction
 #' @param quiet whether to print messages at each step
 #' @param modelMatrix for advanced use only,
 #' a substitute model matrix for gene-wise and MAP dispersion estimation
@@ -2464,20 +2466,28 @@ getAndCheckWeights <- function(object, modelMatrix, weightThreshold=1e-2) {
     weights <- unname(assays(object)[["weights"]])
     stopifnot(all(weights >= 0))
     weights <- weights / apply(weights, 1, max)
-    threshToZero <- function(x) ifelse(x > weightThreshold, x, 0)
     # some code for testing whether still full rank
     # only performed once per analysis, by setting object attribute
     if (is.null(attr(object, "weightsOK"))) {
       m <- ncol(modelMatrix)
       full.rank <- qr(modelMatrix)$rank == m
       weights.ok <- logical(nrow(weights))
+      # most designs are full rank with current version of DESeq2
       if (full.rank) {
         for (i in seq_len(nrow(weights))) {
-          weights.ok[i] <- qr(threshToZero(weights[i,]) * modelMatrix)$rank == m
+          # note: downweighting of samples very low will still be full rank
+          # so this test is kind of minimally in play -- good for checking
+          # the user input however, e.g. all zero weights for a gene
+          test1 <- qr(weights[i,] * modelMatrix)$rank == m
+          # we test that it will be possible to calculate the CR term
+          # following subsetting based on weightThreshold
+          mm.sub <- modelMatrix[weights[i,] > weightThreshold,,drop=FALSE]
+          mm.sub <- mm.sub[,colSums(abs(mm.sub)) > 0,drop=FALSE]
+          test2 <- qr(mm.sub)$rank == ncol(mm.sub)
+          weights.ok[i] <- test1 & test2
         }
       } else {
-        # model matrix is not full rank,
-        # e.g. expanded model matrix from betaPrior=TRUE:
+        # model matrix is not full rank (backwards compatibility for betaPrior=TRUE)
         # just check zero columns
         weights.ok <- rep(TRUE, nrow(weights))
         for (j in seq_len(ncol(modelMatrix))) {

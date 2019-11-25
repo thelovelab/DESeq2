@@ -160,7 +160,9 @@ Jeremy Simon,
 Travis Ptacek,
 Rory Kirchner,
 R. Butler,
-Ben Keith.
+Ben Keith,
+Dan Liang,
+Nil Aygün.
 
 ## Input data
 

@@ -100,19 +100,18 @@ test_that("weights failing check gives warning, passes them through", {
 
 test_that("weights with and without CR term included", {
 
-  ## set.seed(1); alpha <- .25
-  ## dmr <- function(x) alpha
-  ## dds <- makeExampleDESeqDataSet(n=50, m=100, betaSD=1, interceptMean=10, interceptSD=.5, dispMeanRel=dmr)
-  ## dds$group <- factor(rep(1:50,2)); design(dds) <- ~0 + group + condition
-  ## w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
-  ## o <- 35
-  ## w[,c(1:o, 50 + 1:o)] <- 1e-6
-  ## assays(dds)[["weights"]] <- w
-  ## counts(dds)[,c(1:o, 50 + 1:o)] <- 1L
-  ## sizeFactors(dds) <- 1
-  ## dds <- estimateDispersions(dds, fitType="mean")
-  ## dds2 <- estimateDispersions(dds, fitType="mean", useCR=FALSE)
-
+  set.seed(1); alpha <- .25
+  dmr <- function(x) alpha
+  dds <- makeExampleDESeqDataSet(n=50, m=100, betaSD=1, interceptMean=10, interceptSD=.5, dispMeanRel=dmr)
+  dds$group <- factor(rep(1:50,2)); design(dds) <- ~0 + group + condition
+  w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
+  o <- 35
+  w[,c(1:o, 50 + 1:o)] <- 1e-6
+  assays(dds)[["weights"]] <- w
+  counts(dds)[,c(1:o, 50 + 1:o)] <- 1L
+  sizeFactors(dds) <- 1
+  dds <- estimateDispersions(dds, fitType="mean")
+  dds2 <- estimateDispersions(dds, fitType="mean", useCR=FALSE)
   ## dds3 <- estimateDispersions(dds, fitType="mean", weightThreshold=0)
   ## par(mfcol=c(3,2), mar=c(4.5,4.5,1,1), cex=1.1)
   ## for (col in c("dispGeneEst","dispersion")) {

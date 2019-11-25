@@ -50,10 +50,10 @@ test_that("tximeta works", {
                   fasta=fastaFTP,
                   gtf=gtfPath,
                   write=FALSE)
-  se <- tximeta(coldata)
+  expect_warning(se <- tximeta(coldata))
   gse <- summarizeToGene(se)
   # warning about 1 file... ok
-  expect_warning({ dds <- DESeqDataSet(gse, ~1) })
+  expect_warning(dds <- DESeqDataSet(gse, ~1))
   expect_true("avgTxLength" %in% assayNames(dds))
   dds <- estimateSizeFactors(dds)
   expect_true("normalizationFactors" %in% assayNames(dds))
