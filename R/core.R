@@ -2505,7 +2505,8 @@ getAndCheckWeights <- function(object, modelMatrix, weightThreshold=1e-2) {
         warning(paste("for", sum(!weights.ok),
   "row(s), the weights as supplied won't allow parameter estimation, producing a
   degenerate design matrix. These rows have been flagged in mcols(dds)$weightsFail
-  and treated as if the row contained all zeros (mcols(dds)$allZero set to TRUE)."))
+  and treated as if the row contained all zeros (mcols(dds)$allZero set to TRUE).
+  If you are blocking for donors/organisms, consider design = ~0+donor+condition."))
       }
     }
     attr(object, "weightsOK") <- TRUE
