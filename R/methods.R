@@ -522,7 +522,9 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
           estimateSizeFactors.DESeqDataSet)
 
 estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
-                                             maxit=100, useCR=TRUE, quiet=FALSE, modelMatrix=NULL, minmu=0.5) {
+                                             maxit=100, useCR=TRUE,
+                                             weightThreshold=1e-2,
+                                             quiet=FALSE, modelMatrix=NULL, minmu=0.5) {
   # Temporary hack for backward compatibility with "old" DESeqDataSet
   # objects. Remove once all serialized DESeqDataSet objects around have
   # been updated.
@@ -555,12 +557,23 @@ this column could have come in during colData import and should be removed.")
   checkForExperimentalReplicates(object, modelMatrix)
   
   if (!quiet) message("gene-wise dispersion estimates")
-  object <- estimateDispersionsGeneEst(object, maxit=maxit, useCR=useCR, quiet=quiet,
-                                       modelMatrix=modelMatrix, minmu=minmu)
+  object <- estimateDispersionsGeneEst(object,
+                                       maxit=maxit,
+                                       useCR=useCR,
+                                       weightThreshold=weightThreshold,
+                                       quiet=quiet,
+                                       modelMatrix=modelMatrix,
+                                       minmu=minmu)
   if (!quiet) message("mean-dispersion relationship")
-  object <- estimateDispersionsFit(object, fitType=fitType, quiet=quiet)
+  object <- estimateDispersionsFit(object,
+                                   fitType=fitType,
+                                   quiet=quiet)
   if (!quiet) message("final dispersion estimates")
-  object <- estimateDispersionsMAP(object, maxit=maxit, useCR=useCR, quiet=quiet,
+  object <- estimateDispersionsMAP(object,
+                                   maxit=maxit,
+                                   useCR=useCR,
+                                   weightThreshold=weightThreshold,
+                                   quiet=quiet,
                                    modelMatrix=modelMatrix)
   
   return(object)
@@ -650,6 +663,8 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #' }
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #' @param useCR whether to use Cox-Reid correction - see McCarthy et al (2012)
+#' @param weightThreshold threshold for subsetting the design matrix and GLM weights
+#' for calculating the Cox-Reid correction
 #' @param quiet whether to print messages at each step
 #' @param modelMatrix an optional matrix which will be used for fitting the expected counts.
 #' by default, the model matrix is constructed from \code{design(object)}

@@ -18,13 +18,15 @@
 # usePriorSEXP boolean variable, whether to use a prior or just calculate the MLE
 # weightsSEXP n by m matrix of weights
 # useWeightsSEXP whether to use weights
+# weightThresholdSEXP the threshold for subsetting the design matrix and GLM weights
+#   for calculating the Cox-Reid correction
 # useCRSEXP whether to use the Cox-Reid correction
 #
 # return a list with elements: log_alpha, iter, iter_accept, last_change, initial_lp, intial_dlp, last_lp, last_dlp, last_d2lp
 fitDispWrapper <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP,
                             log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP,
                             tolSEXP, maxitSEXP, usePriorSEXP, weightsSEXP, useWeightsSEXP,
-                            useCRSEXP) {
+                            weightThresholdSEXP, useCRSEXP) {
   # test for any NAs in arguments
   arg.names <- names(formals(fitDispWrapper))
   na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
@@ -36,7 +38,7 @@ fitDispWrapper <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_p
           min_log_alphaSEXP=min_log_alphaSEXP, kappa_0SEXP=kappa_0SEXP,
           tolSEXP=tolSEXP, maxitSEXP=maxitSEXP, usePriorSEXP=usePriorSEXP,
           weightsSEXP=weightsSEXP, useWeightsSEXP=useWeightsSEXP,
-          useCRSEXP=useCRSEXP)
+          weightThresholdSEXP, useCRSEXP=useCRSEXP)
 }
 
 # Fit dispersions by evaluating over grid
@@ -53,11 +55,13 @@ fitDispWrapper <- function (ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_p
 # usePriorSEXP boolean variable, whether to use a prior or just calculate the MLE
 # weightsSEXP n by m matrix of weights
 # useWeightsSEXP whether to use weights
+# weightThresholdSEXP the threshold for subsetting the design matrix and GLM weights
+#   for calculating the Cox-Reid correction
 # useCRSEXP whether to use the Cox-Reid correction
 #
 # return the estimate of dispersion (not log scale)
 fitDispGridWrapper <- function(y, x, mu, logAlphaPriorMean, logAlphaPriorSigmaSq, usePrior,
-                               weightsSEXP, useWeightsSEXP, useCRSEXP) {
+                               weightsSEXP, useWeightsSEXP, weightThresholdSEXP, useCRSEXP) {
   # test for any NAs in arguments
   arg.names <- names(formals(fitDispGridWrapper))
   na.test <- sapply(mget(arg.names), function(x) any(is.na(x)))
@@ -72,6 +76,7 @@ fitDispGridWrapper <- function(y, x, mu, logAlphaPriorMean, logAlphaPriorSigmaSq
                           usePriorSEXP=usePrior,
                           weightsSEXP=weightsSEXP,
                           useWeightsSEXP=useWeightsSEXP,
+                          weightThresholdSEXP=weightThresholdSEXP,
                           useCRSEXP=useCRSEXP)$log_alpha
   exp(logAlpha)
 }

@@ -8,16 +8,17 @@
 \title{Low-level functions to fit dispersion estimates}
 \usage{
 estimateDispersionsGeneEst(object, minDisp = 1e-08, kappa_0 = 1,
-  dispTol = 1e-06, maxit = 100, useCR = TRUE, quiet = FALSE,
-  modelMatrix = NULL, niter = 1, linearMu = NULL, minmu = 0.5,
-  alphaInit = NULL)
+  dispTol = 1e-06, maxit = 100, useCR = TRUE,
+  weightThreshold = 0.01, quiet = FALSE, modelMatrix = NULL,
+  niter = 1, linearMu = NULL, minmu = 0.5, alphaInit = NULL)
 
 estimateDispersionsFit(object, fitType = c("parametric", "local",
   "mean"), minDisp = 1e-08, quiet = FALSE)
 
 estimateDispersionsMAP(object, outlierSD = 2, dispPriorVar,
   minDisp = 1e-08, kappa_0 = 1, dispTol = 1e-06, maxit = 100,
-  useCR = TRUE, modelMatrix = NULL, quiet = FALSE)
+  useCR = TRUE, weightThreshold = 0.01, modelMatrix = NULL,
+  quiet = FALSE)
 
 estimateDispersionsPriorVar(object, minDisp = 1e-08,
   modelMatrix = NULL)

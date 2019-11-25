@@ -585,6 +585,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' @export
 estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        dispTol=1e-6, maxit=100, useCR=TRUE,
+                                       weightThreshold=1e-2,
                                        quiet=FALSE,
                                        modelMatrix=NULL, niter=1, linearMu=NULL,
                                        minmu=0.5, alphaInit=NULL) {
@@ -618,7 +619,8 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
   # use weights if they are present in assays(object)
   # (we need this already to decide about linear mu fitting)
-  wlist <- getAndCheckWeights(object, modelMatrix)
+  attr(object, "weightsOK") <- NULL # reset any information
+  wlist <- getAndCheckWeights(object, modelMatrix, weightThreshold=weightThreshold)
   object <- wlist$object
   weights <- wlist$weights
   # don't let weights go below 1e-6
@@ -627,6 +629,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+  weights <- weights[!mcols(object)$allZero,,drop=FALSE]
 
   if (is.null(alphaInit)) {
     # this rough dispersion estimate (alpha_hat)
@@ -697,6 +700,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                               maxitSEXP = maxit, usePriorSEXP = FALSE,
                               weightsSEXP = weights,
                               useWeightsSEXP = useWeights,
+                              weightThresholdSEXP = weightThreshold,
                               useCRSEXP = useCR)
     
     dispIter[fitidx] <- dispRes$iter
@@ -727,7 +731,9 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                    logAlphaPriorMean = rep(0,sum(refitDisp)),
                                    logAlphaPriorSigmaSq = 1, usePrior = FALSE,
                                    weightsSEXP = weights[refitDisp,,drop=FALSE],
-                                   useWeightsSEXP = useWeights, useCRSEXP = useCR)
+                                   useWeightsSEXP = useWeights,
+                                   weightThresholdSEXP = weightThreshold,
+                                   useCRSEXP = useCR)
     dispGeneEst[refitDisp] <- dispGrid
   }
   dispGeneEst <- pmin(pmax(dispGeneEst, minDisp), maxDisp)
@@ -808,6 +814,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
 estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    minDisp=1e-8, kappa_0=1, dispTol=1e-6,
                                    maxit=100, useCR=TRUE,
+                                   weightThreshold=1e-2,
                                    modelMatrix=NULL, quiet=FALSE) {
   stopifnot(length(outlierSD)==1)
   stopifnot(length(minDisp)==1)
@@ -856,12 +863,13 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   stopifnot(length(dispPriorVar)==1)
 
   # use weights if they are present in assays(object)
-  wlist <- getAndCheckWeights(object, modelMatrix)
+  wlist <- getAndCheckWeights(object, modelMatrix, weightThreshold=weightThreshold)
   object <- wlist$object
   weights <- wlist$weights
   useWeights <- wlist$useWeights
   
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
+  weights <- weights[!mcols(object)$allZero,,drop=FALSE]
   varLogDispEsts <- attr( dispersionFunction(object), "varLogDispEsts" )
   
   # set prior variance for fitting dispersion
@@ -891,6 +899,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                maxitSEXP = maxit, usePriorSEXP = TRUE,
                                weightsSEXP = weights,
                                useWeightsSEXP = useWeights,
+                               weightThresholdSEXP = weightThreshold,
                                useCRSEXP = useCR)
 
   # prepare dispersions for storage in mcols(object)
@@ -910,6 +919,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    usePrior=TRUE,
                                    weightsSEXP = weights[refitDisp,,drop=FALSE],
                                    useWeightsSEXP = useWeights,
+                                   weightThresholdSEXP = weightThreshold,
                                    useCRSEXP=TRUE)
     dispMAP[refitDisp] <- dispGrid
   }
@@ -1885,8 +1895,13 @@ replaceOutliersWithTrimmedMean <- replaceOutliers
 # return a DESeqDataSet object with columns baseMean
 # and baseVar in the row metadata columns
 getBaseMeansAndVariances <- function(object) {
-  meanVarZero <- DataFrame(baseMean = unname(rowMeans(counts(object,normalized=TRUE))),
-                           baseVar = unname(rowVars(counts(object,normalized=TRUE))),
+  cts.norm <- counts(object,normalized=TRUE)
+  if ("weights" %in% assayNames(object)) {
+    wts <- assays(object)[["weights"]]
+    cts.norm <- wts * cts.norm
+  }
+  meanVarZero <- DataFrame(baseMean = unname(rowMeans(cts.norm)),
+                           baseVar = unname(rowVars(cts.norm)),
                            allZero = unname(rowSums(counts(object)) == 0))
   mcols(meanVarZero) <- DataFrame(type = rep("intermediate",ncol(meanVarZero)),
                                   description = c("mean of normalized counts for all samples",
@@ -2443,12 +2458,13 @@ getModelMatrix <- function(object) {
   }
 }
 
-getAndCheckWeights <- function(object, modelMatrix) {
+getAndCheckWeights <- function(object, modelMatrix, weightThreshold=1e-2) {
   if ("weights" %in% assayNames(object)) {
     useWeights <- TRUE
     weights <- unname(assays(object)[["weights"]])
     stopifnot(all(weights >= 0))
     weights <- weights / apply(weights, 1, max)
+    threshToZero <- function(x) ifelse(x > weightThreshold, x, 0)
     # some code for testing whether still full rank
     # only performed once per analysis, by setting object attribute
     if (is.null(attr(object, "weightsOK"))) {
@@ -2457,7 +2473,7 @@ getAndCheckWeights <- function(object, modelMatrix) {
       weights.ok <- logical(nrow(weights))
       if (full.rank) {
         for (i in seq_len(nrow(weights))) {
-          weights.ok[i] <- qr(weights[i,] * modelMatrix)$rank == m
+          weights.ok[i] <- qr(threshToZero(weights[i,]) * modelMatrix)$rank == m
         }
       } else {
         # model matrix is not full rank,
@@ -2476,7 +2492,8 @@ getAndCheckWeights <- function(object, modelMatrix) {
         mcols(weightsDF) <- DataFrame(type="intermediate",
                                       description="weights fail to allow parameter estimation")
         mcols(object) <- cbind(mcols(object), weightsDF)
-        warning(paste("for", sum(!weights.ok), "row(s), the weights as supplied won't allow parameter estimation, producing a
+        warning(paste("for", sum(!weights.ok),
+  "row(s), the weights as supplied won't allow parameter estimation, producing a
   degenerate design matrix. These rows have been flagged in mcols(dds)$weightsFail
   and treated as if the row contained all zeros (mcols(dds)$allZero set to TRUE)."))
       }

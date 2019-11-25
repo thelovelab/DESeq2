@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // fitDisp
-List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP useCRSEXP);
-RcppExport SEXP _DESeq2_fitDisp(SEXP ySEXPSEXP, SEXP xSEXPSEXP, SEXP mu_hatSEXPSEXP, SEXP log_alphaSEXPSEXP, SEXP log_alpha_prior_meanSEXPSEXP, SEXP log_alpha_prior_sigmasqSEXPSEXP, SEXP min_log_alphaSEXPSEXP, SEXP kappa_0SEXPSEXP, SEXP tolSEXPSEXP, SEXP maxitSEXPSEXP, SEXP usePriorSEXPSEXP, SEXP weightsSEXPSEXP, SEXP useWeightsSEXPSEXP, SEXP useCRSEXPSEXP) {
+List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP weightThresholdSEXP, SEXP useCRSEXP);
+RcppExport SEXP _DESeq2_fitDisp(SEXP ySEXPSEXP, SEXP xSEXPSEXP, SEXP mu_hatSEXPSEXP, SEXP log_alphaSEXPSEXP, SEXP log_alpha_prior_meanSEXPSEXP, SEXP log_alpha_prior_sigmasqSEXPSEXP, SEXP min_log_alphaSEXPSEXP, SEXP kappa_0SEXPSEXP, SEXP tolSEXPSEXP, SEXP maxitSEXPSEXP, SEXP usePriorSEXPSEXP, SEXP weightsSEXPSEXP, SEXP useWeightsSEXPSEXP, SEXP weightThresholdSEXPSEXP, SEXP useCRSEXPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -25,8 +25,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type usePriorSEXP(usePriorSEXPSEXP);
     Rcpp::traits::input_parameter< SEXP >::type weightsSEXP(weightsSEXPSEXP);
     Rcpp::traits::input_parameter< SEXP >::type useWeightsSEXP(useWeightsSEXPSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type weightThresholdSEXP(weightThresholdSEXPSEXP);
     Rcpp::traits::input_parameter< SEXP >::type useCRSEXP(useCRSEXPSEXP);
-    rcpp_result_gen = Rcpp::wrap(fitDisp(ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP, tolSEXP, maxitSEXP, usePriorSEXP, weightsSEXP, useWeightsSEXP, useCRSEXP));
+    rcpp_result_gen = Rcpp::wrap(fitDisp(ySEXP, xSEXP, mu_hatSEXP, log_alphaSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, min_log_alphaSEXP, kappa_0SEXP, tolSEXP, maxitSEXP, usePriorSEXP, weightsSEXP, useWeightsSEXP, weightThresholdSEXP, useCRSEXP));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -54,8 +55,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fitDispGrid
-List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP useCRSEXP);
-RcppExport SEXP _DESeq2_fitDispGrid(SEXP ySEXPSEXP, SEXP xSEXPSEXP, SEXP mu_hatSEXPSEXP, SEXP disp_gridSEXPSEXP, SEXP log_alpha_prior_meanSEXPSEXP, SEXP log_alpha_prior_sigmasqSEXPSEXP, SEXP usePriorSEXPSEXP, SEXP weightsSEXPSEXP, SEXP useWeightsSEXPSEXP, SEXP useCRSEXPSEXP) {
+List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP weightThresholdSEXP, SEXP useCRSEXP);
+RcppExport SEXP _DESeq2_fitDispGrid(SEXP ySEXPSEXP, SEXP xSEXPSEXP, SEXP mu_hatSEXPSEXP, SEXP disp_gridSEXPSEXP, SEXP log_alpha_prior_meanSEXPSEXP, SEXP log_alpha_prior_sigmasqSEXPSEXP, SEXP usePriorSEXPSEXP, SEXP weightsSEXPSEXP, SEXP useWeightsSEXPSEXP, SEXP weightThresholdSEXPSEXP, SEXP useCRSEXPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -68,16 +69,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type usePriorSEXP(usePriorSEXPSEXP);
     Rcpp::traits::input_parameter< SEXP >::type weightsSEXP(weightsSEXPSEXP);
     Rcpp::traits::input_parameter< SEXP >::type useWeightsSEXP(useWeightsSEXPSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type weightThresholdSEXP(weightThresholdSEXPSEXP);
     Rcpp::traits::input_parameter< SEXP >::type useCRSEXP(useCRSEXPSEXP);
-    rcpp_result_gen = Rcpp::wrap(fitDispGrid(ySEXP, xSEXP, mu_hatSEXP, disp_gridSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, usePriorSEXP, weightsSEXP, useWeightsSEXP, useCRSEXP));
+    rcpp_result_gen = Rcpp::wrap(fitDispGrid(ySEXP, xSEXP, mu_hatSEXP, disp_gridSEXP, log_alpha_prior_meanSEXP, log_alpha_prior_sigmasqSEXP, usePriorSEXP, weightsSEXP, useWeightsSEXP, weightThresholdSEXP, useCRSEXP));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_DESeq2_fitDisp", (DL_FUNC) &_DESeq2_fitDisp, 14},
+    {"_DESeq2_fitDisp", (DL_FUNC) &_DESeq2_fitDisp, 15},
     {"_DESeq2_fitBeta", (DL_FUNC) &_DESeq2_fitBeta, 13},
-    {"_DESeq2_fitDispGrid", (DL_FUNC) &_DESeq2_fitDispGrid, 10},
+    {"_DESeq2_fitDispGrid", (DL_FUNC) &_DESeq2_fitDispGrid, 11},
     {NULL, NULL, 0}
 };
 

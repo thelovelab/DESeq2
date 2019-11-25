@@ -8,7 +8,8 @@
 \usage{
 \S4method{estimateDispersions}{DESeqDataSet}(object,
   fitType = c("parametric", "local", "mean"), maxit = 100,
-  useCR = TRUE, quiet = FALSE, modelMatrix = NULL, minmu = 0.5)
+  useCR = TRUE, weightThreshold = 0.01, quiet = FALSE,
+  modelMatrix = NULL, minmu = 0.5)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -31,6 +32,9 @@ for the type of fitting of dispersions to the mean intensity.
 \item{maxit}{control parameter: maximum number of iterations to allow for convergence}
 
 \item{useCR}{whether to use Cox-Reid correction - see McCarthy et al (2012)}
+
+\item{weightThreshold}{threshold for subsetting the design matrix and GLM weights
+for calculating the Cox-Reid correction}
 
 \item{quiet}{whether to print messages at each step}
 

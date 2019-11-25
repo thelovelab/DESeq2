@@ -81,6 +81,7 @@ test_that("weights work", {
   expect_equal(mcols(dds2)[1,"dispGeneEst"],mcols(dds3)[1,"dispGeneEst"],tolerance=1e-3)
   # MAP estimates won't be equal because of different dispersion prior widths...
   expect_true(mcols(dds)[1,"dispMAP"] > mcols(dds2)[1,"dispMAP"])
+  
 })
 
 test_that("weights failing check gives warning, passes them through", {
@@ -99,24 +100,25 @@ test_that("weights failing check gives warning, passes them through", {
 
 test_that("weights with and without CR term included", {
 
-  set.seed(1); alpha <- .1
-  dds <- makeExampleDESeqDataSet(n=100, m=100,
-                                 betaSD=2,
-                                 interceptMean=6,
-                                 dispMeanRel=function(x) alpha)
-  dds$group <- factor(rep(1:50,2))
-  design(dds) <- ~0 + group + condition
-  w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
-  w[,c(1:25, 51:75)] <- 1e-6
-  assays(dds)[["weights"]] <- w
-  counts(dds)[,c(1:25, 51:75)] <- 100L
-  sizeFactors(dds) <- 1
-  dds <- estimateDispersionsGeneEst(dds)
-  dds2 <- estimateDispersionsGeneEst(dds, useCR=FALSE)
-  #par(mfrow=c(1,2))
-  #plot(mcols(dds)$trueBeta, mcols(dds)$dispGeneEst)
-  #abline(h=alpha,col="blue")
-  #plot(mcols(dds2)$trueBeta, mcols(dds2)$dispGeneEst, ylim=c(0,.4))
-  #abline(h=alpha,col="blue")
-    
+  ## set.seed(1); alpha <- .25
+  ## dmr <- function(x) alpha
+  ## dds <- makeExampleDESeqDataSet(n=50, m=100, betaSD=1, interceptMean=10, interceptSD=.5, dispMeanRel=dmr)
+  ## dds$group <- factor(rep(1:50,2)); design(dds) <- ~0 + group + condition
+  ## w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
+  ## o <- 35
+  ## w[,c(1:o, 50 + 1:o)] <- 1e-6
+  ## assays(dds)[["weights"]] <- w
+  ## counts(dds)[,c(1:o, 50 + 1:o)] <- 1L
+  ## sizeFactors(dds) <- 1
+  ## dds <- estimateDispersions(dds, fitType="mean")
+  ## dds2 <- estimateDispersions(dds, fitType="mean", useCR=FALSE)
+
+  ## dds3 <- estimateDispersions(dds, fitType="mean", weightThreshold=0)
+  ## par(mfcol=c(3,2), mar=c(4.5,4.5,1,1), cex=1.1)
+  ## for (col in c("dispGeneEst","dispersion")) {
+  ##   plot(mcols(dds)$trueBeta, mcols(dds)[[col]], ylim=c(0,2*alpha));abline(h=alpha,col="blue")
+  ##   plot(mcols(dds2)$trueBeta, mcols(dds2)[[col]], ylim=c(0,2*alpha));abline(h=alpha,col="blue")
+  ##   plot(mcols(dds3)$trueBeta, mcols(dds3)[[col]], ylim=c(0,10));abline(h=alpha,col="blue")
+  ## }
+  
 })

@@ -1,7 +1,7 @@
 /*
  * DESeq2 C++ functions
  * 
- * Author: Michael I. Love
+ * Author: Michael I. Love, Constantin Ahlmann-Eltze
  * Last modified: November 22, 2019
  * License: LGPL (>= 3)
  *
@@ -28,14 +28,21 @@ using namespace Rcpp;
 // this function returns the log posterior of dispersion parameter alpha, for negative binomial variables
 // given the counts y, the expected means mu, the design matrix x (used for calculating the Cox-Reid adjustment),
 // and the parameters for the normal prior on log alpha
-double log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights, bool useCR) {
+double log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights, double weightThreshold, bool useCR) {
   double prior_part;
   double cr_term;
   double alpha = exp(log_alpha);
   if (useCR) {
     arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
-    // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
-    arma::mat b = x.t() * (x.each_col() % w_diag);
+    arma::mat b;
+    if (useWeights) {
+      NumericVector wts_vec = weights;
+      arma::vec wts = as<arma::vec>(wts_vec);
+      x = x.rows(find(wts > weightThreshold));
+      x = x.cols(find(sum(abs(x)) > 0.0));
+      w_diag = w_diag(find(wts > weightThreshold));
+    }
+    b = x.t() * (x.each_col() % w_diag);
     cr_term = -0.5 * log(det(b));
   } else {
     cr_term = 0.0;
@@ -58,15 +65,21 @@ double log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row 
 
 // this function returns the derivative of the log posterior with respect to the log of the 
 // dispersion parameter alpha, given the same inputs as the previous function
-double dlog_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights, bool useCR) {
+double dlog_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights, double weightThreshold, bool useCR) {
   double prior_part;
   double cr_term;
   double alpha = exp(log_alpha);
   if (useCR) {
     arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
-    // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
     arma::vec dw_diag = -1.0 * pow(pow(mu, -1) + alpha, -2);
-    // arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
+    if (useWeights) {
+      NumericVector wts_vec = weights;
+      arma::vec wts = as<arma::vec>(wts_vec);
+      x = x.rows(find(wts > weightThreshold));
+      x = x.cols(find(sum(abs(x)) > 0.0));
+      w_diag = w_diag(find(wts > weightThreshold));
+      dw_diag = dw_diag(find(wts > weightThreshold));
+    }
     arma::mat b = x.t() * (x.each_col() % w_diag);
     arma::mat db = x.t() * (x.each_col() % dw_diag);
     double ddetb = ( det(b) * trace(b.i() * db) );
@@ -95,22 +108,29 @@ double dlog_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row
 
 // this function returns the second derivative of the log posterior with respect to the log of the 
 // dispersion parameter alpha, given the same inputs as the previous function
-double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights, bool useCR) {
+double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Row mu, arma::mat x, double log_alpha_prior_mean, double log_alpha_prior_sigmasq, bool usePrior, NumericMatrix::Row weights, bool useWeights, double weightThreshold, bool useCR) {
   double prior_part;
   double cr_term;
   double alpha = exp(log_alpha);
+  arma::mat x_orig = x;
   if (useCR) {
     arma::vec w_diag = pow(pow(mu, -1) + alpha, -1);
-    // arma::mat w = arma::diagmat(as<arma::vec>(w_diag));
     arma::vec dw_diag = -1 * pow(pow(mu, -1) + alpha, -2);
-    // arma::mat dw = arma::diagmat(as<arma::vec>(dw_diag));
     arma::vec d2w_diag = 2 * pow(pow(mu, -1) + alpha, -3);
-    // arma::mat d2w = arma::diagmat(as<arma::vec>(d2w_diag));
+    if (useWeights) {
+      NumericVector wts_vec = weights;
+      arma::vec wts = as<arma::vec>(wts_vec);
+      x = x.rows(find(wts > weightThreshold));
+      x = x.cols(find(sum(abs(x)) > 0.0));
+      w_diag = w_diag(find(wts > weightThreshold));
+      dw_diag = dw_diag(find(wts > weightThreshold));
+      d2w_diag = d2w_diag(find(wts > weightThreshold));
+    }    
     arma::mat b = x.t() * (x.each_col() % w_diag);
     arma::mat b_i = b.i();
     arma::mat db = x.t() * (x.each_col() % dw_diag);
     arma::mat d2b = x.t() * (x.each_col() % d2w_diag);
-    double ddetb = ( det(b) * trace(b.i() * db) );
+    double ddetb = ( det(b) * trace(b_i * db) );
     double d2detb = ( det(b) * (R_pow_di(trace(b_i * db), 2) - trace(b_i * db * b_i * db) + trace(b_i * d2b)) );
     cr_term = 0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b);
   } else {
@@ -133,7 +153,7 @@ double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Ro
   // Note: return (d2log_post/dalpha2 * alpha^2 + dlog_post/dalpha * alpha) 
   //            = (d2log_post/dalpha2 * alpha^2 + dlog_post/dlogalpha)
   // because we take derivatives w.r.t log alpha
-  double res = ((ll_part + cr_term) * R_pow_di(alpha, 2) + dlog_posterior(log_alpha, y, mu, x, log_alpha_prior_mean, log_alpha_prior_sigmasq, false, weights, useWeights, useCR)) + prior_part;
+  double res = ((ll_part + cr_term) * R_pow_di(alpha, 2) + dlog_posterior(log_alpha, y, mu, x_orig, log_alpha_prior_mean, log_alpha_prior_sigmasq, false, weights, useWeights, weightThreshold, useCR)) + prior_part;
   return(res);
 }
 
@@ -141,7 +161,7 @@ double d2log_posterior(double log_alpha, NumericMatrix::Row y, NumericMatrix::Ro
 // fitting occurs on the scale of log(alpha)
 //
 // [[Rcpp::export]]
-List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP useCRSEXP) {
+List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP min_log_alphaSEXP, SEXP kappa_0SEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP weightThresholdSEXP, SEXP useCRSEXP) {
   NumericMatrix y(ySEXP);
   arma::mat x = as<arma::mat>(xSEXP);
   int y_n = y.nrow();
@@ -168,6 +188,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
   // observation weights
   NumericMatrix weights(weightsSEXP);
   bool useWeights = as<bool>(useWeightsSEXP);
+  double weightThreshold = as<double>(weightThresholdSEXP);
   bool useCR = as<bool>(useCRSEXP);
 
   for (int i = 0; i < y_n; i++) {
@@ -181,8 +202,8 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
     // we use a line search based on the Armijo rule.
     // define a function theta(kappa) = f(a + kappa * d), where d is the search direction.
     // in this case the search direction is taken by the first derivative of the log likelihood
-    lp = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
-    dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
+    lp = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
+    dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
     kappa = kappa_0;
     initial_lp(i) = lp;
     initial_dlp(i) = dlp;
@@ -201,7 +222,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
       if (a_propose > 10.0) {
 	      kappa = (10.0 - a)/dlp;
       }
-      theta_kappa = -1.0 * log_posterior(a + kappa*dlp, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
+      theta_kappa = -1.0 * log_posterior(a + kappa*dlp, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
       theta_hat_kappa = -1.0 * lp - kappa * epsilon * R_pow_di(dlp, 2);
       // if this inequality is true, we have satisfied the Armijo rule and 
       // accept the step size kappa, otherwise we halve kappa
@@ -209,7 +230,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
       	// iter_accept counts the number of accepted proposals;
       	iter_accept(i)++;
       	a = a + kappa * dlp;
-      	lpnew = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
+      	lpnew = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
       	// look for change in log likelihood
       	change = lpnew - lp;
       	if (change < tol) {
@@ -222,7 +243,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
       	  break;
       	}
       	lp = lpnew;
-      	dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
+      	dlp = dlog_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
       	// instead of resetting kappa to kappa_0 
       	// multiple kappa by 1.1
       	kappa = fmin(kappa * 1.1, kappa_0);
@@ -238,7 +259,7 @@ List fitDisp(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP log_alphaSEXP, SEXP l
     }
     last_lp(i) = lp;
     last_dlp(i) = dlp;
-    last_d2lp(i) = d2log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
+    last_d2lp(i) = d2log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
     log_alpha(i) = a;
     // last change indicates the change for the final iteration
     last_change(i) = change;
@@ -445,7 +466,7 @@ List fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXP, SEXP contr
 
 
 // [[Rcpp::export]]
-List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP useCRSEXP) {
+List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SEXP log_alpha_prior_meanSEXP, SEXP log_alpha_prior_sigmasqSEXP, SEXP usePriorSEXP, SEXP weightsSEXP, SEXP useWeightsSEXP, SEXP weightThresholdSEXP, SEXP useCRSEXP) {
   NumericMatrix y(ySEXP);
   arma::mat x = as<arma::mat>(xSEXP);
   int y_n = y.nrow();
@@ -465,6 +486,7 @@ List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SE
   // observation weights
   NumericMatrix weights(weightsSEXP);
   bool useWeights = as<bool>(useWeightsSEXP);
+  double weightThreshold = as<double>(weightThresholdSEXP);
   bool useCR = as<bool>(useCRSEXP);
 
   for (int i = 0; i < y_n; i++) {
@@ -474,14 +496,14 @@ List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SE
     for (int t = 0; t < disp_grid_n; t++) {
       // maximize the log likelihood over the variable a, the log of alpha, the dispersion parameter
       a = disp_grid(t);
-      logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
+      logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
     }
     logpostvec.max(idxmax);
     a_hat = disp_grid(idxmax);
     disp_grid_fine = arma::linspace<arma::vec>(a_hat - delta, a_hat + delta, disp_grid_n);
     for (int t = 0; t < disp_grid_n; t++) {
       a = disp_grid_fine(t);
-      logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, useCR);
+      logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
     }
     logpostvec.max(idxmax);
     log_alpha(i) = disp_grid_fine(idxmax);
