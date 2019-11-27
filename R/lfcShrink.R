@@ -168,6 +168,9 @@ lfcShrink <- function(dds, coef, contrast, res,
     if (!missing(coef)) {
       res <- results(dds, name=coefAlpha)
     } else if (!missing(contrast)) {
+      if (type=="normal" & is.numeric(contrast)) {
+        stop("for type='normal' and numeric contrast, user must provide 'res' object")
+      }
       res <- results(dds, contrast=contrast)
     } else {
       stop("one of coef or contrast required if 'res' is missing")
