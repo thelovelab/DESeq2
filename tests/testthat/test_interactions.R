@@ -11,10 +11,13 @@ test_that("interactions throw error", {
 
   # also lfcShrink
   res <- results(dds, name="conditionB.groupY")
-  expect_error(res <- lfcShrink(dds, coef=4, res=res), "not implemented")
+  expect_error(res <- lfcShrink(dds, coef=4,
+                                res=res, type="normal"),
+               "not implemented")
 
   res <- results(dds, contrast=c("condition","B","A"))
-  expect_error(res <- lfcShrink(dds, contrast=c("condition","B","A"), res=res),
+  expect_error(res <- lfcShrink(dds, contrast=c("condition","B","A"),
+                                res=res, type="normal"),
                "not implemented")
   
   # however, this is allowed...
@@ -22,6 +25,6 @@ test_that("interactions throw error", {
   design(dds2) <- model.matrix(~ condition + group + condition:group, colData(dds))
   dds2 <- DESeq(dds2)
   res2 <- results(dds2, name="conditionB.groupY")
-  res2 <- lfcShrink(dds2, coef=4, res=res)
+  res2 <- lfcShrink(dds2, coef=4, res=res, type="normal")
 
 })

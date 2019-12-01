@@ -1,3 +1,11 @@
+CHANGES IN VERSION 1.27.12
+--------------------------
+
+    o For lfcShrink(), changed order of `type` options:
+      "normal" will no longer be first, as it under-performed
+      "apeglm" and "ashr" in Zhu et al (2018). The new order
+      is type=c("apeglm", "ashr", "normal").
+
 CHANGES IN VERSION 1.27.9
 -------------------------
 

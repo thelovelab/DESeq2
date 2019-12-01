@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based on the negative
     binomial distribution
-Version: 1.27.11
+Version: 1.27.12
 Authors@R: c(
     person("Michael", "Love", email="michaelisaiahlove@gmail.com", role = c("aut","cre")),
     person("Constantin", "Ahlmann-Eltze", role = c("ctb")),
@@ -17,38 +17,13 @@ License: LGPL (>= 3)
 VignetteBuilder:
     knitr,
     rmarkdown
-Imports:
-    BiocGenerics (>= 0.7.5),
-    Biobase,
-    BiocParallel,
-    genefilter,
-    methods,
-    stats4,
-    locfit,
-    geneplotter,
-    ggplot2,
-    Rcpp (>= 0.11.0)
-Depends:
-    S4Vectors (>= 0.23.18),
-    IRanges,
-    GenomicRanges,
+Imports: BiocGenerics (>= 0.7.5), Biobase, BiocParallel, genefilter,
+    methods, stats4, locfit, geneplotter, ggplot2, Rcpp (>= 0.11.0)
+Depends: S4Vectors (>= 0.23.18), IRanges, GenomicRanges,
     SummarizedExperiment (>= 1.1.6)
-Suggests:
-    testthat,
-    knitr,
-    rmarkdown,
-    vsn,
-    pheatmap,
-    RColorBrewer,
-    apeglm,
-    ashr,
-    tximport,
-    tximeta,
-    tximportData,
-    readr,
-    pbapply,
-    airway,
-    pasilla (>= 0.2.10)
+Suggests: testthat, knitr, rmarkdown, vsn, pheatmap, RColorBrewer,
+    apeglm, ashr, tximport, tximeta, tximportData, readr, pbapply,
+    airway, pasilla (>= 0.2.10)
 LinkingTo: Rcpp, RcppArmadillo
 URL: https://github.com/mikelove/DESeq2
 biocViews: Sequencing, RNASeq, ChIPSeq, GeneExpression, Transcription,

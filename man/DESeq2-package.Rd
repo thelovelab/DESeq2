@@ -5,23 +5,42 @@
 \alias{DESeq2-package}
 \title{DESeq2 package for differential analysis of count data}
 \description{
-The main functions for differential analysis are \code{\link{DESeq}} and
-\code{\link{results}}. See the examples at \code{\link{DESeq}} for basic analysis steps.
-Two transformations offered for count data are the variance stabilizing transformation,
-\code{\link{vst}}, and the "regularized logarithm", \code{\link{rlog}}.
-For more detailed information on usage, see the package vignette, by typing
+The DESeq2 package is designed for normalization,
+visualization, and differential analysis of high-dimensional
+count data. It makes use of empirical Bayes techniques
+to estimate priors for log fold change and dispersion, and
+to calculate posterior estimates for these quantities.
+}
+\details{
+The main functions are:
+
+\itemize{
+\item \code{\link{DESeqDataSet}} - build the dataset, see tximeta & tximport packages for preparing input
+\item \code{\link{DESeq}} - perform differential analysis
+\item \code{\link{results}} - build a results table
+\item \code{\link{lfcShrink}} - estimate shrunken LFC (posterior estimates) using apeglm & ashr pakges
+\item \code{\link{vst}} - apply variance stabilizing transformation, e.g. for PCA or sample clustering
+\item Plots, e.g.: \code{\link{plotPCA}}, \code{\link{plotMA}}, \code{\link{plotCounts}}
+}
+
+For detailed information on usage, see the package vignette, by typing
 \code{vignette("DESeq2")}, or the workflow linked to on the first page
-of the vignette. All support questions should be posted to the Bioconductor
-support site: \url{http://support.bioconductor.org}.
+of the vignette.
+
+All software-related questions should be posted to the Bioconductor Support Site:
+
+\url{http://support.bioconductor.org}
+
+The code can be viewed at the GitHub repository,
+which also lists the contributtor code of conduct:
+
+\url{https://github.com/mikelove/tximport}
 }
 \references{
-DESeq2 reference:
-
-Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{http://dx.doi.org/10.1186/s13059-014-0550-8}
-
-DESeq reference:
-
-Simon Anders, Wolfgang Huber (2010) Differential expression analysis for sequence count data. Genome Biology, 11:106. \url{http://dx.doi.org/10.1186/gb-2010-11-10-r106}
+Love, M.I., Huber, W., Anders, S. (2014)
+Moderated estimation of fold change and dispersion
+for RNA-seq data with DESeq2. Genome Biology, 15:550.
+\url{https://doi.org/10.1186/s13059-014-0550-8}
 }
 \author{
 Michael Love, Wolfgang Huber, Simon Anders

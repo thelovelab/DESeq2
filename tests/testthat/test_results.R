@@ -38,32 +38,13 @@ test_that("results works as expected and throws errors", {
   expect_error(results(dds, contrast=list(character(), character())))
   expect_error(results(dds, contrast=rep(0, 6)))
 
-  # check to see if the contrasts with expanded model matrix
-  # are close to expected (although shrunk due to the beta prior).
-  # lfcShrink() here calls results()
-  lfc31 <- lfcShrink(dds,contrast=c("condition","3","1"))[1,"log2FoldChange"]
-  lfc21 <- lfcShrink(dds,contrast=c("condition","2","1"))[1,"log2FoldChange"]
-  lfc32 <- lfcShrink(dds,contrast=c("condition","3","2"))[1,"log2FoldChange"]
-  expect_equal(lfc31, 3, tolerance=.1)
-  expect_equal(lfc21, 1, tolerance=.1)
-  expect_equal(lfc32, 2, tolerance=.1)
-  expect_equal(results(dds,contrast=c("condition","1","3"))[1,2], -3, tolerance=.1)
-  expect_equal(results(dds,contrast=c("condition","1","2"))[1,2], -1, tolerance=.1)
-  expect_equal(results(dds,contrast=c("condition","2","3"))[1,2], -2, tolerance=.1)
-
-  # check that results are not changed by releveling
-  dds2 <- dds
-  colData(dds2)$condition <- relevel(colData(dds2)$condition, "2")
-  dds2 <- DESeq(dds2)
-  expect_equal(lfcShrink(dds2,contrast=c("condition","3","1"))[1,"log2FoldChange"],
-               lfc31, tolerance=1e-6)
-  expect_equal(lfcShrink(dds2,contrast=c("condition","2","1"))[1,"log2FoldChange"],
-               lfc21, tolerance=1e-6)
-  expect_equal(lfcShrink(dds2,contrast=c("condition","3","2"))[1,"log2FoldChange"],
-               lfc32, tolerance=1e-6)
+  expect_equal(results(dds,contrast=c("condition","1","3"))[1,2], -3, tolerance=1e-6)
+  expect_equal(results(dds,contrast=c("condition","1","2"))[1,2], -1, tolerance=1e-6)
+  expect_equal(results(dds,contrast=c("condition","2","3"))[1,2], -2, tolerance=1e-6)
 
   # test a number of contrast as list options
-  expect_equal(results(dds, contrast=list("condition_3_vs_1","condition_2_vs_1"))[1,2],
+  expect_equal(results(dds,
+                       contrast=list("condition_3_vs_1","condition_2_vs_1"))[1,2],
                2, tolerance=1e-6)
   results(dds, contrast=list("condition_3_vs_1","condition_2_vs_1"), listValues=c(.5,-.5))
   results(dds, contrast=list("condition_3_vs_1",character()))
@@ -80,10 +61,6 @@ test_that("results works as expected and throws errors", {
   results(dds, lfcThreshold=1, altHypothesis="greater")
   results(dds, lfcThreshold=1, altHypothesis="less")
 
-  # this doesn't work in R-devel as of June 2019...
-  #summary.res <- capture.output({ summary(resLFC)})
-  #expect_true(any(grepl("0.58", summary.res)))
-  
   dds3 <- DESeq(dds, betaPrior=TRUE)
   expect_error(results(dds3, lfcThreshold=1, altHypothesis="lessAbs"))
 })

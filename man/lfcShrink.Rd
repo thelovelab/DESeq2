@@ -4,7 +4,7 @@
 \alias{lfcShrink}
 \title{Shrink log2 fold changes}
 \usage{
-lfcShrink(dds, coef, contrast, res, type = c("normal", "apeglm", "ashr"),
+lfcShrink(dds, coef, contrast, res, type = c("apeglm", "ashr", "normal"),
   lfcThreshold = 0, svalue = FALSE, returnList = FALSE,
   format = c("DataFrame", "GRanges", "GRangesList"), apeAdapt = TRUE,
   apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(),
@@ -27,11 +27,11 @@ default pipeline, i.e. \code{DESeq} followed by \code{results}.
 If not provided, it will be generated internally using \code{coef} or \code{contrast}.
 For \code{ashr}, if \code{res} is provided, then \code{coef} and \code{contrast} are ignored.}
 
-\item{type}{\code{"normal"} is the original DESeq2 shrinkage estimator;
-\code{"apeglm"} is the adaptive t prior shrinkage estimator from the 'apeglm' package;
+\item{type}{\code{"apeglm"} is the adaptive Student's t prior shrinkage estimator from the 'apeglm' package;
 \code{"ashr"} is the adaptive shrinkage estimator from the 'ashr' package,
 using a fitted mixture of normals prior
-- see the Stephens (2016) reference below for citation}
+- see the Stephens (2016) reference below for citation;
+\code{"normal"} is the 2014 DESeq2 shrinkage estimator using a Normal prior;}
 
 \item{lfcThreshold}{a non-negative value which specifies a log2 fold change
 threshold (as in \code{\link{results}}). This can be used in conjunction with
@@ -90,25 +90,36 @@ The apeglm publication demonstrates that 'apeglm' and 'ashr' outperform
 the original 'normal' shrinkage estimator.
 }
 \details{
-Specifying \code{apeglm} passes along DESeq2 MLE log2
-fold changes and standard errors to the \code{apeglm} function
-in the apeglm package, and re-estimates posterior LFCs for
-the coefficient specified by \code{coef}.
-Specifying \code{ashr} passes along DESeq2 MLE log2
-fold changes and standard errors to the \code{ash} function
-in the ashr package, 
-with arguments \code{mixcompdist="normal"} and \code{method="shrink"}.
 See vignette for a comparison of shrinkage estimators on an example dataset.
 For all shrinkage methods, details on the prior is included in
 \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
 
-For \code{normal}, and design as a formula, shrinkage cannot be applied
-to coefficients in a model with interaction terms. For \code{normal}
-and user-supplied model matrices, shrinkage is only supported via \code{coef}. 
-For \code{normal} with numeric- or list-style contrasts, it is possible to use \code{lfcShrink},
-but likely easier to use \code{DESeq} with \code{betaPrior=TRUE} followed by \code{results},
-because the numeric or list should reference the coefficients from the expanded model matrix.
-These coefficients will be printed to console if 'contrast' is used with \code{normal}.
+\strong{For type="apeglm":}
+Specifying \code{apeglm} passes along DESeq2 MLE log2
+fold changes and standard errors to the \code{apeglm} function
+in the apeglm package, and re-estimates posterior LFCs for
+the coefficient specified by \code{coef}.
+
+\strong{For type="ashr":}
+Specifying \code{ashr} passes along DESeq2 MLE log2
+fold changes and standard errors to the \code{ash} function
+in the ashr package, 
+with arguments \code{mixcompdist="normal"} and \code{method="shrink"}.
+
+\strong{For type="normal":}
+For design as a formula, shrinkage cannot be applied
+to coefficients in a model with interaction terms. 
+For user-supplied model matrices, shrinkage is only
+supported via \code{coef}. \code{coef} will make use
+of standard model matrices, while \code{contrast}
+will make use of expanded model matrices, and for the
+latter, a results object should be provided to
+\code{res}. With numeric- or list-style contrasts,
+it is possible to use \code{lfcShrink}, but likely easier to use
+\code{DESeq} with \code{betaPrior=TRUE} followed by \code{results},
+because the numeric or list should reference the coefficients
+from the expanded model matrix. These coefficients will be printed
+to console if 'contrast' is used.
 }
 \examples{
 
@@ -121,28 +132,35 @@ res <- results(dds)
 # we can specify them using 'coef' by name or number below
 resultsNames(dds)
 
-res.shr <- lfcShrink(dds=dds, coef=2)
-res.shr <- lfcShrink(dds=dds, contrast=c("condition","B","A"))
 res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
 res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
+res.norm <- lfcShrink(dds=dds, coef=2, type="normal")
 
 }
 \references{
 Publications for the following shrinkage estimators:
 
-\code{type="normal"}:
-
-Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
-
 \code{type="apeglm"}:
 
-Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences. Bioinformatics. \url{https://doi.org/10.1093/bioinformatics/bty895}
+Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for
+sequence count data: removing the noise and preserving large differences.
+Bioinformatics. \url{https://doi.org/10.1093/bioinformatics/bty895}
 
 \code{type="ashr"}:
 
-Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2. \url{https://doi.org/10.1093/biostatistics/kxw041}
+Stephens, M. (2016) False discovery rates: a new deal.
+Biostatistics, 18:2. \url{https://doi.org/10.1093/biostatistics/kxw041}
+
+\code{type="normal"}:
+
+Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and
+dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550.
+\url{https://doi.org/10.1186/s13059-014-0550-8}
 
 Related work, the \code{bayesglm} function in the \code{arm} package:
 
-Gelman, A., Jakulin, A., Pittau, M.G. and Su, Y.-S. (2009). A Weakly Informative Default Prior Distribution For Logistic And Other Regression Models. The Annals of Applied Statistics 2:4. \url{http://www.stat.columbia.edu/~gelman/research/published/ priors11.pdf}
+Gelman, A., Jakulin, A., Pittau, M.G. and Su, Y.-S. (2009).
+A Weakly Informative Default Prior Distribution For Logistic And Other Regression Models.
+The Annals of Applied Statistics 2:4.
+\url{http://www.stat.columbia.edu/~gelman/research/published/ priors11.pdf}
 }
