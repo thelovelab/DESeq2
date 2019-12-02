@@ -29,7 +29,7 @@ of the vignette.
 
 All software-related questions should be posted to the Bioconductor Support Site:
 
-\url{http://support.bioconductor.org}
+\url{https://support.bioconductor.org}
 
 The code can be viewed at the GitHub repository,
 which also lists the contributtor code of conduct:
