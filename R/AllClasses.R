@@ -51,7 +51,7 @@ setValidity("DESeqDataSet", function(object) {
       message("  Note: levels of factors in the design contain characters other than
   letters, numbers, '_' and '.'. It is recommended (but not required) to use
   only letters, numbers, and delimiters '_' or '.', as these are safe characters
-  for column names in R. [This is a message, not an warning or error]")
+  for column names in R. [This is a message, not a warning or an error]")
     }
   } else if (is(design, "matrix")) {
     # TODO add some more tests for if 'design' is matrix
