@@ -829,16 +829,15 @@ argument of `lfcShrink`. For more details, see `?lfcShrink`
 
 The options for `type` are:
 
-* `normal` is the the original DESeq2 shrinkage estimator, an adaptive
-  Normal distribution as prior. This is currently the default,
-  although the default will likely change to `apeglm` in the 
-  October 2018 release given `apeglm`'s superior performance.
 * `apeglm` is the adaptive t prior shrinkage estimator from the 
-  [apeglm](http://bioconductor.org/packages/apeglm) package [@Zhu2018].
+  [apeglm](http://bioconductor.org/packages/apeglm) package
+  [@Zhu2018]. As of version 1.28.0, it is the default estimator.
 * `ashr` is the adaptive shrinkage estimator from the
   [ashr](https://github.com/stephens999/ashr) package [@Stephens2016].
   Here DESeq2 uses the ashr option to fit a mixture of Normal distributions to
   form the prior, with `method="shrinkage"`.
+* `normal` is the the original DESeq2 shrinkage estimator, an adaptive
+  Normal distribution as prior.
 
 If the shrinkage estimator `apeglm` is used in published research, please cite:
 
@@ -1600,25 +1599,21 @@ res <- results(dds)
 ## Extended section on shrinkage estimators
 
 Here we extend the [discussion of shrinkage estimators](#shrink).
-To repeat, the current default method in `lfcShrink` is `normal`,
-although it will likely change in the October 2018 release to
-`apeglm`, as this method has improved performance relative to the
-original *DESeq2* estimator, as does `ashr` in some of our benchmarks.
 Below is a summary table of differences between methods available in `lfcShrink`
 via the `type` argument (and for further technical reference on use of
 arguments please see `?lfcShrink`):
 
-| method:  | `normal`^1^  | `apeglm`^2^ | `ashr`^3^ |
+| method:  | `apeglm`^1^ | `ashr`^2^ |`normal`^3^ |
 |---|:-:|:-:|:-:|
 | Good for ranking by LFC | ✓ | ✓ | ✓ |
-| Preserves size of large LFC |  | ✓ | ✓ |
-| Can compute *s-values* [@Stephens2016] |  | ✓ | ✓ |
+| Preserves size of large LFC | ✓ | ✓ |   |
+| Can compute *s-values* [@Stephens2016] | ✓ | ✓ |   |
 | Allows use of `coef` | ✓ | ✓ | ✓ |
-| Allows use of `lfcThreshold` | ✓ | ✓ |  |
-| Allows use of `contrast` | ✓ |  | ✓ |
-| Can shrink interaction terms |  | ✓ | ✓ |
+| Allows use of `lfcThreshold` | ✓ |   | ✓ |
+| Allows use of `contrast` |   | ✓ | ✓ |
+| Can shrink interaction terms | ✓ | ✓ |   |
 
-**References:** 1. @Love2014; 2. @Zhu2018; 3. @Stephens2016
+**References:** 1. @Zhu2018; 2. @Stephens2016; 3. @Love2014
 
 Beginning with the first row, all shrinkage methods provided by
 DESeq2 are good for ranking genes by "effect size", that is the log2
