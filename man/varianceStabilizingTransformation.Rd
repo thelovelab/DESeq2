@@ -14,7 +14,7 @@ getVarianceStabilizedData(object)
 \item{object}{a DESeqDataSet or matrix of counts}
 
 \item{blind}{logical, whether to blind the transformation to the experimental
-design. blind=TRUE should be used for comparing samples in an manner unbiased by
+design. blind=TRUE should be used for comparing samples in a manner unbiased by
 prior information on samples, for example to perform sample QA (quality assurance).
 blind=FALSE should be used for transforming data for downstream analysis,
 where the full use of the design information should be made.

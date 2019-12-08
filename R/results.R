@@ -175,11 +175,12 @@
 #' @param test this is automatically detected internally if not provided.
 #' the one exception is after \code{nbinomLRT} has been run, \code{test="Wald"}
 #' will generate Wald statistics and Wald test p-values.
-#' @param addMLE if \code{betaPrior=TRUE} was used,
-#' whether the "unshrunken" maximum likelihood estimates (MLE)
+#' @param addMLE if \code{betaPrior=TRUE} was used (non-default),
+#' this logical argument specifies if the "unshrunken" maximum likelihood estimates (MLE)
 #' of log2 fold change should be added as a column to the results table (default is FALSE).
-#' This argument is preserved for backward compatability, as now the
-#' recommended pipeline is to generate shrunken MAP estimates using \code{\link{lfcShrink}}.
+#' This argument is preserved for backward compatability, as now \code{betaPrior=TRUE}
+#' by default and the recommended pipeline is
+#' to generate shrunken MAP estimates using \code{\link{lfcShrink}}.
 #' This argument functionality is only implemented for \code{contrast}
 #' specified as three element character vectors.
 #' @param tidy whether to output the results table with rownames as a first column 'row'.
@@ -232,8 +233,6 @@
 #' design(dds) <- ~ genotype + condition + genotype:condition
 #' dds <- DESeq(dds) 
 #' resultsNames(dds)
-#'
-#' # Note: design with interactions terms by default have betaPrior=FALSE
 #'
 #' # the condition effect for genotype I (the main effect)
 #' results(dds, contrast=c("condition","B","A"))
