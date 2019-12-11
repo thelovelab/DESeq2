@@ -2633,6 +2633,22 @@ assay(vsd) <- mat
 plotPCA(vsd)
 ```
 
+## Do normalized counts correct for variables in the design?
+
+No. The design variables are not used when estimating the size
+factors, and `counts(dds, normalized=TRUE)` is providing counts scaled
+by size or normalization factors. The design is only used when
+estimating dispersion and log2 fold changes.
+
+The only case in which there is more than size factor scaling on the
+counts is when either normalization factors have been provided
+(e.g. from `cqn` or `EDASeq`), or if `tximport` is used and the
+upstream software corrected for various technical biases
+(e.g. *Salmon* quantification with GC bias correction). In this case,
+the average transcript length is taken into account when scaling the
+counts with `counts(dds, normalized=TRUE)`. For details, see the
+*tximport* package vignette and citation [@Soneson2015].
+
 ## Can I use DESeq2 to analyze paired samples?
 
 Yes, you should use a multi-factor design which includes the sample
@@ -2710,14 +2726,7 @@ reads, as this will speed up the fitting procedure.
 
 ## Can I use DESeq2 to analyze a dataset without replicates?
 
-If a *DESeqDataSet* is provided with an experimental design without replicates,
-a warning is printed, that the samples are treated as replicates
-for estimation of dispersion. This kind of analysis is
-only useful for exploring the data, but will not provide the kind of
-proper statistical inference on differences between groups.
-Without biological replicates, it is not possible to estimate the biological
-variability of each gene. 
-More details can be found in the manual page for `?DESeq`.
+No. This analysis is not possible in *DESeq2*.
 
 ## How can I include a continuous covariate in the design formula?
 
@@ -2726,8 +2735,8 @@ the same manner as factorial covariates, and then *results* for the
 continuous covariate can be extracted by specifying `name`.
 Continuous covariates might make sense in certain experiments, where a
 constant fold change might be 
-expected for each unit of the covariate.  However, in many cases, more
-meaningful results can be obtained by cutting continuous covariates
+expected for each unit of the covariate.  However, in some cases, more
+meaningful results may be obtained by cutting continuous covariates
 into a factor defined over a small number of bins (e.g. 3-5).  In this
 way, the average effect of each group is controlled for, regardless of
 the trend over the continuous covariates.  In R, *numeric*
@@ -2767,7 +2776,6 @@ See the manual page for *DESeq*, which links to the
 subfunctions which are called in order, where complete details are
 listed. Also you can read the three steps listed in the 
 [DESeq2 model](#theory) in this document.
-
 
 ## Is there an official Galaxy tool for DESeq2?
 
