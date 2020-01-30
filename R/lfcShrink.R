@@ -135,9 +135,7 @@
 #' # we can specify them using 'coef' by name or number below
 #' resultsNames(dds)
 #' 
-#' res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
-#' res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
-#' res.norm <- lfcShrink(dds=dds, coef=2, type="normal")
+#' res <- lfcShrink(dds=dds, coef=2, type="apeglm")
 #' 
 lfcShrink <- function(dds, coef, contrast, res,
                       type=c("apeglm","ashr","normal"),

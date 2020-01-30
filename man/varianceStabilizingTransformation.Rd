@@ -5,8 +5,7 @@
 \alias{getVarianceStabilizedData}
 \title{Apply a variance stabilizing transformation (VST) to the count data}
 \usage{
-varianceStabilizingTransformation(object, blind = TRUE,
-  fitType = "parametric")
+varianceStabilizingTransformation(object, blind = TRUE, fitType = "parametric")
 
 getVarianceStabilizedData(object)
 }

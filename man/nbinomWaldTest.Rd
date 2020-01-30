@@ -4,10 +4,21 @@
 \alias{nbinomWaldTest}
 \title{Wald test for the GLM coefficients}
 \usage{
-nbinomWaldTest(object, betaPrior = FALSE, betaPriorVar,
-  modelMatrix = NULL, modelMatrixType, betaTol = 1e-08, maxit = 100,
-  useOptim = TRUE, quiet = FALSE, useT = FALSE, df, useQR = TRUE,
-  minmu = 0.5)
+nbinomWaldTest(
+  object,
+  betaPrior = FALSE,
+  betaPriorVar,
+  modelMatrix = NULL,
+  modelMatrixType,
+  betaTol = 1e-08,
+  maxit = 100,
+  useOptim = TRUE,
+  quiet = FALSE,
+  useT = FALSE,
+  df,
+  useQR = TRUE,
+  minmu = 0.5
+)
 }
 \arguments{
 \item{object}{a DESeqDataSet}
@@ -121,7 +132,7 @@ that noisy estimates of log fold changes from small count genes do not
 overly influence the calculation of the prior variance.
 See \code{\link{estimateBetaPriorVar}}.
 The final prior variance for a factor level is the average of the
-estimated prior variance over all contrasts of all levels of the factor.
+estimated prior variance over all contrasts of all levels of the factor. 
 
 When a log2 fold change prior is used (betaPrior=TRUE),
 then \code{nbinomWaldTest} will by default use expanded model matrices,

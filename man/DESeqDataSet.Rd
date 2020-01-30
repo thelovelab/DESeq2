@@ -11,11 +11,22 @@
 \usage{
 DESeqDataSet(se, design, ignoreRank = FALSE)
 
-DESeqDataSetFromMatrix(countData, colData, design, tidy = FALSE,
-  ignoreRank = FALSE, ...)
+DESeqDataSetFromMatrix(
+  countData,
+  colData,
+  design,
+  tidy = FALSE,
+  ignoreRank = FALSE,
+  ...
+)
 
-DESeqDataSetFromHTSeqCount(sampleTable, directory = ".", design,
-  ignoreRank = FALSE, ...)
+DESeqDataSetFromHTSeqCount(
+  sampleTable,
+  directory = ".",
+  design,
+  ignoreRank = FALSE,
+  ...
+)
 
 DESeqDataSetFromTximport(txi, colData, design, ...)
 }

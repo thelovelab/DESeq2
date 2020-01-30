@@ -4,11 +4,23 @@
 \alias{lfcShrink}
 \title{Shrink log2 fold changes}
 \usage{
-lfcShrink(dds, coef, contrast, res, type = c("apeglm", "ashr", "normal"),
-  lfcThreshold = 0, svalue = FALSE, returnList = FALSE,
-  format = c("DataFrame", "GRanges", "GRangesList"), apeAdapt = TRUE,
-  apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(),
-  quiet = FALSE, ...)
+lfcShrink(
+  dds,
+  coef,
+  contrast,
+  res,
+  type = c("apeglm", "ashr", "normal"),
+  lfcThreshold = 0,
+  svalue = FALSE,
+  returnList = FALSE,
+  format = c("DataFrame", "GRanges", "GRangesList"),
+  apeAdapt = TRUE,
+  apeMethod = "nbinomCR",
+  parallel = FALSE,
+  BPPARAM = bpparam(),
+  quiet = FALSE,
+  ...
+)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}
@@ -132,9 +144,7 @@ res <- results(dds)
 # we can specify them using 'coef' by name or number below
 resultsNames(dds)
 
-res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
-res.ash <- lfcShrink(dds=dds, coef=2, type="ashr")
-res.norm <- lfcShrink(dds=dds, coef=2, type="normal")
+res <- lfcShrink(dds=dds, coef=2, type="apeglm")
 
 }
 \references{

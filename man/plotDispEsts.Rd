@@ -6,9 +6,20 @@
 \alias{plotDispEsts,DESeqDataSet-method}
 \title{Plot dispersion estimates}
 \usage{
-\S4method{plotDispEsts}{DESeqDataSet}(object, ymin, CV = FALSE,
-  genecol = "black", fitcol = "red", finalcol = "dodgerblue",
-  legend = TRUE, xlab, ylab, log = "xy", cex = 0.45, ...)
+\S4method{plotDispEsts}{DESeqDataSet}(
+  object,
+  ymin,
+  CV = FALSE,
+  genecol = "black",
+  fitcol = "red",
+  finalcol = "dodgerblue",
+  legend = TRUE,
+  xlab,
+  ylab,
+  log = "xy",
+  cex = 0.45,
+  ...
+)
 }
 \arguments{
 \item{object}{a DESeqDataSet, with dispersions estimated}
