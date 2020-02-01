@@ -24,7 +24,7 @@ test_that("design can be a matrix", {
 
   res <- lfcShrink(dds, coef="condition2", type="normal")
   res <- lfcShrink(dds, coef="condition2", type="apeglm")
-  res <- lfcShrink(dds, coef="condition2", type="ashr")
+  # CRAN issue res <- lfcShrink(dds, coef="condition2", type="ashr")
   
   # test replace with matrix
   design(dds) <- dm
