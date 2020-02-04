@@ -4,7 +4,8 @@
 \alias{unmix}
 \title{Unmix samples using loss in a variance stabilized space}
 \usage{
-unmix(x, pure, alpha, shift, power = 1, format = "matrix", quiet = FALSE)
+unmix(x, pure, alpha, shift, power = 1, format = "matrix",
+  quiet = FALSE)
 }
 \arguments{
 \item{x}{normalized counts or TPMs of the samples to be unmixed}

@@ -4,19 +4,9 @@
 \alias{plotCounts}
 \title{Plot of normalized counts for a single gene}
 \usage{
-plotCounts(
-  dds,
-  gene,
-  intgroup = "condition",
-  normalized = TRUE,
-  transform = TRUE,
-  main,
-  xlab = "group",
-  returnData = FALSE,
-  replaced = FALSE,
-  pc,
-  ...
-)
+plotCounts(dds, gene, intgroup = "condition", normalized = TRUE,
+  transform = TRUE, main, xlab = "group", returnData = FALSE,
+  replaced = FALSE, pc, ...)
 }
 \arguments{
 \item{dds}{a \code{DESeqDataSet}}

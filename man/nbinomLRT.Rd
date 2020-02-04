@@ -4,17 +4,9 @@
 \alias{nbinomLRT}
 \title{Likelihood ratio test (chi-squared test) for GLMs}
 \usage{
-nbinomLRT(
-  object,
-  full = design(object),
-  reduced,
-  betaTol = 1e-08,
-  maxit = 100,
-  useOptim = TRUE,
-  quiet = FALSE,
-  useQR = TRUE,
-  minmu = 0.5
-)
+nbinomLRT(object, full = design(object), reduced, betaTol = 1e-08,
+  maxit = 100, useOptim = TRUE, quiet = FALSE, useQR = TRUE,
+  minmu = 0.5)
 }
 \arguments{
 \item{object}{a DESeqDataSet}

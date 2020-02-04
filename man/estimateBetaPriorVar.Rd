@@ -5,20 +5,11 @@
 \alias{estimateMLEForBetaPriorVar}
 \title{Steps for estimating the beta prior variance}
 \usage{
-estimateBetaPriorVar(
-  object,
-  betaPriorMethod = c("weighted", "quantile"),
-  upperQuantile = 0.05,
-  modelMatrix = NULL
-)
+estimateBetaPriorVar(object, betaPriorMethod = c("weighted", "quantile"),
+  upperQuantile = 0.05, modelMatrix = NULL)
 
-estimateMLEForBetaPriorVar(
-  object,
-  maxit = 100,
-  useOptim = TRUE,
-  useQR = TRUE,
-  modelMatrixType = NULL
-)
+estimateMLEForBetaPriorVar(object, maxit = 100, useOptim = TRUE,
+  useQR = TRUE, modelMatrixType = NULL)
 }
 \arguments{
 \item{object}{a DESeqDataSet}

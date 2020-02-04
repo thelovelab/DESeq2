@@ -6,28 +6,13 @@
 \alias{removeResults}
 \title{Extract results from a DESeq analysis}
 \usage{
-results(
-  object,
-  contrast,
-  name,
-  lfcThreshold = 0,
+results(object, contrast, name, lfcThreshold = 0,
   altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
-  listValues = c(1, -1),
-  cooksCutoff,
-  independentFiltering = TRUE,
-  alpha = 0.1,
-  filter,
-  theta,
-  pAdjustMethod = "BH",
-  filterFun,
-  format = c("DataFrame", "GRanges", "GRangesList"),
-  test,
-  addMLE = FALSE,
-  tidy = FALSE,
-  parallel = FALSE,
-  BPPARAM = bpparam(),
-  minmu = 0.5
-)
+  listValues = c(1, -1), cooksCutoff, independentFiltering = TRUE,
+  alpha = 0.1, filter, theta, pAdjustMethod = "BH", filterFun,
+  format = c("DataFrame", "GRanges", "GRangesList"), test,
+  addMLE = FALSE, tidy = FALSE, parallel = FALSE,
+  BPPARAM = bpparam(), minmu = 0.5)
 
 resultsNames(object)
 
@@ -196,7 +181,7 @@ If \code{results} is run without specifying \code{contrast} or \code{name},
 it will return the comparison of the last level of the last variable in the
 design formula over the first level of this variable. For example, for a simple two-group
 comparison, this would return the log2 fold changes of the second group over the
-first group (the reference level). Please see examples below and in the vignette. 
+first group (the reference level). Please see examples below and in the vignette.
 
 The argument \code{contrast} can be used to generate results tables for
 any comparison of interest, for example, the log2 fold change between
@@ -238,7 +223,7 @@ number of rejections is close to the peak of a curve fit
 to the number of rejections over the filter quantiles.
 'Close to' is defined as within 1 residual standard deviation.
 The adjusted p-values for the genes which do not pass the filter threshold
-are set to \code{NA}. 
+are set to \code{NA}.
 
 By default, \code{results} assigns a p-value of \code{NA}
 to genes containing count outliers, as identified using Cook's distance.

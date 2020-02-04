@@ -863,15 +863,15 @@ provided by each, see the [extended section on shrinkage estimators](#moreshrink
 resultsNames(dds)
 # because we are interested in treated vs untreated, we set 'coef=2'
 resNorm <- lfcShrink(dds, coef=2, type="normal")
-# resAsh <- lfcShrink(dds, coef=2, type="ashr") # ashr not avail on CRAN
+resAsh <- lfcShrink(dds, coef=2, type="ashr")
 ```
 
 ```{r fig.width=8, fig.height=3}
-par(mfrow=c(1,2), mar=c(4,4,2,1))
+par(mfrow=c(1,3), mar=c(4,4,2,1))
 xlim <- c(1,1e5); ylim <- c(-3,3)
 plotMA(resLFC, xlim=xlim, ylim=ylim, main="apeglm")
 plotMA(resNorm, xlim=xlim, ylim=ylim, main="normal")
-#plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
+plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
 ```
 
 **Note:** We have sped up the `apeglm` method so it takes roughly

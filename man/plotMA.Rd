@@ -7,33 +7,15 @@
 \alias{plotMA,DESeqResults-method}
 \title{MA-plot from base means and log fold changes}
 \usage{
-\S4method{plotMA}{DESeqDataSet}(
-  object,
-  alpha = 0.1,
-  main = "",
-  xlab = "mean of normalized counts",
-  ylim,
-  colNonSig = "gray60",
-  colSig = "blue",
-  colLine = "grey40",
-  returnData = FALSE,
-  MLE = FALSE,
-  ...
-)
+\S4method{plotMA}{DESeqDataSet}(object, alpha = 0.1, main = "",
+  xlab = "mean of normalized counts", ylim, colNonSig = "gray60",
+  colSig = "blue", colLine = "grey40", returnData = FALSE,
+  MLE = FALSE, ...)
 
-\S4method{plotMA}{DESeqResults}(
-  object,
-  alpha,
-  main = "",
-  xlab = "mean of normalized counts",
-  ylim,
-  colNonSig = "gray60",
-  colSig = "blue",
-  colLine = "grey40",
-  returnData = FALSE,
-  MLE = FALSE,
-  ...
-)
+\S4method{plotMA}{DESeqResults}(object, alpha, main = "",
+  xlab = "mean of normalized counts", ylim, colNonSig = "gray60",
+  colSig = "blue", colLine = "grey40", returnData = FALSE,
+  MLE = FALSE, ...)
 }
 \arguments{
 \item{object}{a \code{DESeqResults} object produced by \code{\link{results}};
