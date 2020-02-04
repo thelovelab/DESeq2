@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based on the negative
     binomial distribution
-Version: 1.27.21
+Version: 1.27.20
 Authors@R: c(
     person("Michael", "Love", email="michaelisaiahlove@gmail.com", role = c("aut","cre")),
     person("Constantin", "Ahlmann-Eltze", role = c("ctb")),
@@ -22,7 +22,7 @@ Imports: BiocGenerics (>= 0.7.5), Biobase, BiocParallel, genefilter,
 Depends: S4Vectors (>= 0.23.18), IRanges, GenomicRanges,
     SummarizedExperiment (>= 1.1.6)
 Suggests: testthat, knitr, rmarkdown, vsn, pheatmap, RColorBrewer,
-    apeglm, tximport, tximeta, tximportData, readr, pbapply,
+    apeglm, ashr, tximport, tximeta, tximportData, readr, pbapply,
     airway, pasilla (>= 0.2.10)
 LinkingTo: Rcpp, RcppArmadillo
 URL: https://github.com/mikelove/DESeq2
