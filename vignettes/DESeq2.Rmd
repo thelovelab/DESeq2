@@ -2624,7 +2624,8 @@ and which are of interest).
 It is possible to visualize the transformed data with batch variation
 removed, using the `removeBatchEffect` function from *limma*. This
 simply removes any shifts in the log2-scale expression data that can
-be explained by batch. The paradigm for this operation would be:
+be explained by batch. The paradigm for this operation for designs
+with balanced batches would be:
 
 ```{r, eval=FALSE}
 mat <- assay(vsd)
@@ -2632,6 +2633,10 @@ mat <- limma::removeBatchEffect(mat, vsd$batch)
 assay(vsd) <- mat
 plotPCA(vsd)
 ```
+
+For unbalanced batches (e.g. the condition groups are not distributed
+balanced across batches), the `design` argument should be used, see
+`?removeBatchEffect` in the *limma* package for details.
 
 ## Do normalized counts correct for variables in the design?
 
