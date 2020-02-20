@@ -8,7 +8,7 @@ test_that("weights work", {
   dds2 <- dds
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1,1] <- 0
-  assays(dds2)[["weights"]] <- w
+  assays(dds2, withDimnames=FALSE)[["weights"]] <- w
   dds2 <- nbinomWaldTest(dds2)
   dds3 <- dds[,-1]
   dds3 <- nbinomWaldTest(dds3)
@@ -46,7 +46,7 @@ test_that("weights work", {
   dds <- makeExampleDESeqDataSet(n=10)
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1,1] <- 0
-  assays(dds)[["weights"]] <- w
+  assays(dds, withDimnames=FALSE)[["weights"]] <- w
   dds <- DESeq(dds, betaPrior=TRUE, quiet=TRUE)
 
   # check weights working for intercept only
@@ -54,7 +54,7 @@ test_that("weights work", {
   design(dds) <- ~1
   suppressWarnings({ dds <- DESeq(dds, quiet=TRUE) })
   dds2 <- dds
-  assays(dds2)[["weights"]] <- w
+  assays(dds2, withDimnames=FALSE)[["weights"]] <- w
   dds2 <- nbinomWaldTest(dds2)
   dds3 <- dds[,-1]
   dds3 <- nbinomWaldTest(dds3)
@@ -73,7 +73,7 @@ test_that("weights work", {
   dds2 <- dds
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1,1] <- 0
-  assays(dds2)[["weights"]] <- w
+  assays(dds2, withDimnames=FALSE)[["weights"]] <- w
   dds2 <- estimateDispersions(dds2)
   dds3 <- dds[,-1]
   dds3 <- estimateDispersions(dds3)
@@ -90,7 +90,7 @@ test_that("weights failing check gives warning, passes them through", {
   dds <- makeExampleDESeqDataSet(n=10)
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1,1:6] <- 0
-  assays(dds)[["weights"]] <- w
+  assays(dds, withDimnames=FALSE)[["weights"]] <- w
   expect_warning(dds <- DESeq(dds))
   expect_true(mcols(dds)$allZero[1])
   expect_true(mcols(dds)$weightsFail[1])
@@ -107,7 +107,7 @@ test_that("weights with and without CR term included", {
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   o <- 35
   w[,c(1:o, 50 + 1:o)] <- 1e-6
-  assays(dds)[["weights"]] <- w
+  assays(dds, withDimnames=FALSE)[["weights"]] <- w
   counts(dds)[,c(1:o, 50 + 1:o)] <- 1L
   sizeFactors(dds) <- 1
   dds <- estimateDispersions(dds, fitType="mean")

@@ -45,7 +45,7 @@ test_that("useT uses proper degrees of freedom", {
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1:100,1] <- 0
   w[1,c(1:4,6:9,11:14)] <- 0
-  assays(dds)[["weights"]] <- w
+  assays(dds, withDimnames=FALSE)[["weights"]] <- w
   dds <- DESeq(dds, useT=TRUE)
   res <- results(dds)
   expect_true(is.na(res$pvalue[1]))
