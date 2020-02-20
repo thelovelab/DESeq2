@@ -766,7 +766,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                     description=c("gene-wise estimates of dispersion",
                                                   "number of iterations for gene-wise"))
   mcols(object) <- cbind(mcols(object), dispDataFrame)
-  assays(object)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
+  assays(object, withDimnames=FALSE)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
   
   return(object)
 }
@@ -1282,11 +1282,11 @@ nbinomWaldTest <- function(object,
 
   # store 'mu' and 'H', the hat matrix diagonals
   dimnames(mu) <- NULL
-  assays(objectNZ)[["mu"]] <- mu
-  assays(object)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
+  assays(objectNZ, withDimnames=FALSE)[["mu"]] <- mu
+  assays(object, withDimnames=FALSE)[["mu"]] <- buildMatrixWithNARows(mu, mcols(object)$allZero)
   dimnames(H) <- NULL
-  assays(objectNZ)[["H"]] <- H
-  assays(object)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
+  assays(objectNZ, withDimnames=FALSE)[["H"]] <- H
+  assays(object, withDimnames=FALSE)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
   
   # store the prior variance directly as an attribute
   # of the DESeqDataSet object, so it can be pulled later by
@@ -1309,7 +1309,7 @@ nbinomWaldTest <- function(object,
   maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
 
   # store Cook's distance for each sample
-  assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
+  assays(object, withDimnames=FALSE)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
   
   # add betas, standard errors and Wald p-values to the object
   modelMatrixNames <- colnames(modelMatrix)
@@ -1578,7 +1578,7 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
   # remove any MLE columns if they exist
   mcols(object) <- mcols(object)[,grep("MLE_",names(mcols(object)),invert=TRUE)]
   mcols(object) <- cbind(mcols(object), buildDataFrameWithNARows(DataFrame(mleBetaMatrix), mcols(object)$allZero))
-  assays(object)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
+  assays(object, withDimnames=FALSE)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
   object
 }
 
@@ -1720,8 +1720,8 @@ nbinomLRT <- function(object, full=design(object), reduced,
 
   # store mu in case the user did not call estimateDispersionsGeneEst
   dimnames(fullModel$mu) <- NULL
-  assays(objectNZ)[["mu"]] <- fullModel$mu
-  assays(object)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
+  assays(objectNZ, withDimnames=FALSE)[["mu"]] <- fullModel$mu
+  assays(object, withDimnames=FALSE)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
 
   H <- fullModel$hat_diagonals
 
@@ -1734,10 +1734,10 @@ nbinomLRT <- function(object, full=design(object), reduced,
   maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
 
   # store hat matrix diagonals
-  assays(object)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
+  assays(object, withDimnames=FALSE)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
   
   # store Cook's distance for each sample
-  assays(object)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
+  assays(object, withDimnames=FALSE)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
   
   if (any(!fullModel$betaConv)) {
     if (!quiet) message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT"))
@@ -1857,7 +1857,7 @@ replaceOutliers <- function(object, trim=.2, cooksCutoff, minReplicates=7, which
   p <- ncol(attr(object,"modelMatrix"))
   m <- ncol(object)
   if (m <= p) {
-    assays(object)[["originalCounts"]] <- counts(object)
+    assays(object, withDimnames=FALSE)[["originalCounts"]] <- counts(object)
     return(object)
   }
   if (missing(cooksCutoff)) {
@@ -1886,7 +1886,7 @@ replaceOutliers <- function(object, trim=.2, cooksCutoff, minReplicates=7, which
   object$replaceable <- whichSamples
   mcols(colData(object),use.names=TRUE)["replaceable",] <- DataFrame(type="intermediate",
                          description="outliers can be replaced")
-  assays(object)[["originalCounts"]] <- counts(object)
+  assays(object, withDimnames=FALSE)[["originalCounts"]] <- counts(object)
   if (sum(whichSamples) == 0) {
     return(object)
   }
@@ -2333,12 +2333,12 @@ refitWithoutOutliers <- function(object, test, betaPrior, full, reduced,
   
   if ( nrefit > 0 ) {
     # save the counts used for fitting as replaceCounts
-    assays(object)[["replaceCounts"]] <- counts(object)
-    assays(object)[["replaceCooks"]] <- assays(object)[["cooks"]]
+    assays(object, withDimnames=FALSE)[["replaceCounts"]] <- counts(object)
+    assays(object, withDimnames=FALSE)[["replaceCooks"]] <- assays(object)[["cooks"]]
 
     # preserve original counts and Cook's distances
     counts(object) <- assays(object)[["originalCounts"]]
-    assays(object)[["cooks"]] <- cooks
+    assays(object, withDimnames=FALSE)[["cooks"]] <- cooks
     
     # no longer need this assay slot
     assays(object)[["originalCounts"]] <- NULL
