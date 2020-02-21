@@ -774,6 +774,9 @@ cleanContrast <- function(object, contrast, expanded=FALSE, listValues, test, us
     if (!contrastFactor %in% names(colData(object))) {
       stop(paste(contrastFactor,"should be the name of a factor in the colData of the DESeqDataSet"))
     }
+    if (!is(colData(object)[[contrastFactor]], "factor")) {
+      stop(paste(contrastFactor,"is not a factor, see ?results"))
+    }
     contrastNumLevel <- contrast[2]
     contrastDenomLevel <- contrast[3]
     contrastBaseLevel <- levels(colData(object)[,contrastFactor])[1]

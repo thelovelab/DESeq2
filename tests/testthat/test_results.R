@@ -5,6 +5,7 @@ test_that("results works as expected and throws errors", {
   dds <- makeExampleDESeqDataSet(n=200,m=12)
   dds$condition <- factor(rep(1:3,each=4))
   dds$group <- factor(rep(1:2,length=ncol(dds)))
+  dds$foo <- rep(c("lo","hi"),each=6)
   counts(dds)[1,] <- rep(c(100L,200L,800L),each=4)
 
   design(dds) <- ~ group + condition
@@ -37,7 +38,8 @@ test_that("results works as expected and throws errors", {
   expect_error(results(dds, contrast=list("condition_2_vs_1","condition_2_vs_1")))
   expect_error(results(dds, contrast=list(character(), character())))
   expect_error(results(dds, contrast=rep(0, 6)))
-
+  expect_error(results(dds, contrast=c("foo","lo","hi")), "factor")
+  
   expect_equal(results(dds,contrast=c("condition","1","3"))[1,2], -3, tolerance=1e-6)
   expect_equal(results(dds,contrast=c("condition","1","2"))[1,2], -1, tolerance=1e-6)
   expect_equal(results(dds,contrast=c("condition","2","3"))[1,2], -2, tolerance=1e-6)
