@@ -337,7 +337,7 @@ following analysis steps.
 ### Tximeta for import with automatic metadata
 
 Another Bioconductor package, 
-[tximeta](https://bioconductor.org/packages/tximeta) [@Love2019],
+[tximeta](https://bioconductor.org/packages/tximeta) [@Love2020],
 extends *tximport*, offering the same functionality, plus the
 additional benefit of automatic addition of annotation metadata for
 commonly used transcriptomes (GENCODE, Ensembl, RefSeq for human and
