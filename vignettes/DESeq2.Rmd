@@ -1,4 +1,4 @@
----
+--
 title: "Analyzing RNA-seq data with DESeq2"
 author: "Michael I. Love, Simon Anders, and Wolfgang Huber"
 date: "`r format(Sys.Date(), '%m/%d/%Y')`"
@@ -403,6 +403,8 @@ pasAnno <- system.file("extdata",
 cts <- as.matrix(read.csv(pasCts,sep="\t",row.names="gene_id"))
 coldata <- read.csv(pasAnno, row.names=1)
 coldata <- coldata[,c("condition","type")]
+coldata$condition <- factor(coldata$condition)
+coldata$type <- factor(coldata$type)
 ```
 
 We examine the count matrix and column data to see if they are
@@ -505,6 +507,7 @@ sampleCondition <- sub("(.*treated).*","\\1",sampleFiles)
 sampleTable <- data.frame(sampleName = sampleFiles,
                           fileName = sampleFiles,
                           condition = sampleCondition)
+sampleTable$condition <- factor(sampleTable$condition)
 ```
 
 Then we build the *DESeqDataSet* using the following function:
