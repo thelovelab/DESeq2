@@ -524,11 +524,9 @@ ddsHTSeq
 
 ### *SummarizedExperiment* input
 
-An example of the steps to produce a *RangedSummarizedExperiment* can
-be found in the [RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene/)
-and in the vignette for the data package [airway](http://bioconductor.org/packages/airway).
-Here we load the *RangedSummarizedExperiment* from that package in
-order to build a *DESeqDataSet*.
+If one has already created or obtained a *SummarizedExperiment*, it
+can be easily input into DESeq2 as follows. First we load the package
+containing the `airway` dataset.
 
 ```{r loadSumExp}
 library("airway")
