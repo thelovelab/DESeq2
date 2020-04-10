@@ -1650,10 +1650,8 @@ nbinomLRT <- function(object, full=design(object), reduced,
     
     # try to form model matrices, test for difference
     # in residual degrees of freedom
-    fullModelMatrix <- stats::model.matrix.default(full,
-                         data=as.data.frame(colData(object)))
-    reducedModelMatrix <- stats::model.matrix.default(reduced,
-                            data=as.data.frame(colData(object)))
+    fullModelMatrix <- stats::model.matrix.default(full, data=as.data.frame(colData(object)))
+    reducedModelMatrix <- stats::model.matrix.default(reduced, data=as.data.frame(colData(object)))
     df <- ncol(fullModelMatrix) - ncol(reducedModelMatrix)
   } else {
     df <- ncol(full) - ncol(reduced)
@@ -2441,7 +2439,7 @@ designAndArgChecker <- function(object, betaPrior) {
   }
 
   if (!betaPrior) {
-    mm <- stats::model.matrix(design(object), colData(object))
+    mm <- stats::model.matrix(design(object), data=as.data.frame(colData(object)))
     q <- qr(mm)
     if (q$rank < ncol(mm))
       stop("full model matrix is less than full rank")

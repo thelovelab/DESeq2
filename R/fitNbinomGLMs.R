@@ -34,8 +34,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   }
   if (is.null(modelMatrix)) {
     modelAsFormula <- TRUE
-    modelMatrix <- stats::model.matrix.default(modelFormula,
-                     data=as.data.frame(colData(object)))
+    modelMatrix <- stats::model.matrix.default(modelFormula, data=as.data.frame(colData(object)))
   } else {
     modelAsFormula <- FALSE
   }
@@ -101,7 +100,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
                  } else {
                    rowSums(logLikeMat)
                  }
-      modelMatrix <- stats::model.matrix.default(~ 1, as.data.frame(colData(object)))
+      modelMatrix <- stats::model.matrix.default(~ 1, data=as.data.frame(colData(object)))
       colnames(modelMatrix) <- modelMatrixNames <- "Intercept"
       w <- if (useWeights) {
              weights * (mu^-1 + alpha)^-1
