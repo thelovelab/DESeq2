@@ -1,3 +1,19 @@
+CHANGES IN VERSION 1.28.0
+-------------------------
+
+    o For lfcShrink(), changed order of `type` options:
+      "normal" will no longer be first, as it under-performed
+      "apeglm" and "ashr" in Zhu et al (2018). The new order
+      is type=c("apeglm", "ashr", "normal").
+    o Added arguments to estimateDispersions: useCR (logical),
+      and weightThreshold (numeric, default of 1e-2). The first
+      argument optionally avoid the calculation of Cox-Reid
+      adjustment term. The second argument sets the threshold for
+      subsetting the design matrix and GLM weights when calculating
+      the adjustment term. In addition, baseMean uses weights
+      when calculating the mean of normalized counts, if weights
+      matrix is provided.
+
 CHANGES IN VERSION 1.27.12
 --------------------------
 

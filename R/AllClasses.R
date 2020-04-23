@@ -338,6 +338,14 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, tidy=FALSE, igno
   # check that these agree in number
   stopifnot(ncol(countData) == nrow(colData))
 
+  if (is(countData, "data.frame")) {
+    if (any(sapply(countData, is, "factor"))) {
+      warning("\n\n  'countData' is a data.frame with one or more factor columns.
+  Be aware that converting directly to numeric can lead to errors.
+  Provide matrices of integers to avoid this error.")
+    }
+  }
+  
   # we expect a matrix of counts, which are non-negative integers
   countData <- as.matrix( countData )
 
