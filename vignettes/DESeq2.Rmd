@@ -1,4 +1,4 @@
---
+---
 title: "Analyzing RNA-seq data with DESeq2"
 author: "Michael I. Love, Simon Anders, and Wolfgang Huber"
 date: "`r format(Sys.Date(), '%m/%d/%Y')`"
