@@ -509,7 +509,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
     } else if (type == "poscounts") {
       lc <- log(counts)
       lc[!is.finite(lc)] <- 0
-      loggeomeans <- rowMeans(rowMeans(lc))
+      loggeomeans <- rowMeans(lc)
       allZero <- rowSums(counts) == 0
       loggeomeans[allZero] <- -Inf
     }
