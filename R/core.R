@@ -484,6 +484,9 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' for a "frozen" size factor calculation
 #' @param controlGenes optional, numeric or logical index vector specifying those genes to
 #' use for size factor estimation (e.g. housekeeping or spike-in genes)
+#' @param type standard median ratio (\code{"ratio"}) or where the
+#' geometric mean is only calculated over positive counts per row
+#' (\code{"poscounts"})
 #' @return a vector with the estimates size factors, one element per column
 #' @author Simon Anders
 #' @seealso \code{\link{estimateSizeFactors}}
@@ -496,10 +499,20 @@ makeExampleDESeqDataSet <- function(n=1000,m=12,betaSD=0,interceptMean=4,interce
 #' 
 #' @export
 estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
-                                         geoMeans, controlGenes) {
+                                         geoMeans, controlGenes,
+                                         type=c("ratio","poscounts")) {
+  type <- match.arg(type, c("ratio","poscounts"))
   if (missing(geoMeans)) {
     incomingGeoMeans <- FALSE
-    loggeomeans <- rowMeans(log(counts))
+    if (type == "ratio") {
+      loggeomeans <- rowMeans(log(counts))
+    } else if (type="poscounts") {
+      lc <- log(counts)
+      lc[!is.finite(lc)] <- 0
+      loggeomeans <- rowMeans(rowMeans(lc))
+      allZero <- rowSums(counts) == 0
+      loggeomeans[allZero] <- -Inf
+    }
   } else {
     incomingGeoMeans <- TRUE
     if (length(geoMeans) != nrow(counts)) {
