@@ -4,8 +4,13 @@
 \alias{estimateSizeFactorsForMatrix}
 \title{Low-level function to estimate size factors with robust regression.}
 \usage{
-estimateSizeFactorsForMatrix(counts, locfunc = stats::median, geoMeans,
-  controlGenes)
+estimateSizeFactorsForMatrix(
+  counts,
+  locfunc = stats::median,
+  geoMeans,
+  controlGenes,
+  type = c("ratio", "poscounts")
+)
 }
 \arguments{
 \item{counts}{a matrix or data frame of counts, i.e., non-negative integer
@@ -22,6 +27,10 @@ for a "frozen" size factor calculation}
 
 \item{controlGenes}{optional, numeric or logical index vector specifying those genes to
 use for size factor estimation (e.g. housekeeping or spike-in genes)}
+
+\item{type}{standard median ratio (\code{"ratio"}) or where the
+geometric mean is only calculated over positive counts per row
+(\code{"poscounts"})}
 }
 \value{
 a vector with the estimates size factors, one element per column

@@ -4,11 +4,23 @@
 \alias{lfcShrink}
 \title{Shrink log2 fold changes}
 \usage{
-lfcShrink(dds, coef, contrast, res, type = c("apeglm", "ashr", "normal"),
-  lfcThreshold = 0, svalue = FALSE, returnList = FALSE,
-  format = c("DataFrame", "GRanges", "GRangesList"), apeAdapt = TRUE,
-  apeMethod = "nbinomCR", parallel = FALSE, BPPARAM = bpparam(),
-  quiet = FALSE, ...)
+lfcShrink(
+  dds,
+  coef,
+  contrast,
+  res,
+  type = c("apeglm", "ashr", "normal"),
+  lfcThreshold = 0,
+  svalue = FALSE,
+  returnList = FALSE,
+  format = c("DataFrame", "GRanges", "GRangesList"),
+  apeAdapt = TRUE,
+  apeMethod = "nbinomCR",
+  parallel = FALSE,
+  BPPARAM = bpparam(),
+  quiet = FALSE,
+  ...
+)
 }
 \arguments{
 \item{dds}{a DESeqDataSet object, after running \code{\link{DESeq}}}

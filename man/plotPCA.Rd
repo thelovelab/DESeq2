@@ -6,8 +6,7 @@
 \alias{plotPCA,DESeqTransform-method}
 \title{Sample PCA plot for transformed data}
 \usage{
-\S4method{plotPCA}{DESeqTransform}(object, intgroup = "condition",
-  ntop = 500, returnData = FALSE)
+\S4method{plotPCA}{DESeqTransform}(object, intgroup = "condition", ntop = 500, returnData = FALSE)
 }
 \arguments{
 \item{object}{a \code{\link{DESeqTransform}} object, with data in \code{assay(x)},

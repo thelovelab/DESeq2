@@ -506,7 +506,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
     incomingGeoMeans <- FALSE
     if (type == "ratio") {
       loggeomeans <- rowMeans(log(counts))
-    } else if (type="poscounts") {
+    } else if (type == "poscounts") {
       lc <- log(counts)
       lc[!is.finite(lc)] <- 0
       loggeomeans <- rowMeans(rowMeans(lc))

@@ -5,11 +5,21 @@
 \alias{replaceOutliersWithTrimmedMean}
 \title{Replace outliers with trimmed mean}
 \usage{
-replaceOutliers(object, trim = 0.2, cooksCutoff, minReplicates = 7,
-  whichSamples)
+replaceOutliers(
+  object,
+  trim = 0.2,
+  cooksCutoff,
+  minReplicates = 7,
+  whichSamples
+)
 
-replaceOutliersWithTrimmedMean(object, trim = 0.2, cooksCutoff,
-  minReplicates = 7, whichSamples)
+replaceOutliersWithTrimmedMean(
+  object,
+  trim = 0.2,
+  cooksCutoff,
+  minReplicates = 7,
+  whichSamples
+)
 }
 \arguments{
 \item{object}{a DESeqDataSet object, which has already been processed by

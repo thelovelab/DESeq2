@@ -5,11 +5,15 @@
 \alias{rlogTransformation}
 \title{Apply a 'regularized log' transformation}
 \usage{
-rlog(object, blind = TRUE, intercept, betaPriorVar,
-  fitType = "parametric")
+rlog(object, blind = TRUE, intercept, betaPriorVar, fitType = "parametric")
 
-rlogTransformation(object, blind = TRUE, intercept, betaPriorVar,
-  fitType = "parametric")
+rlogTransformation(
+  object,
+  blind = TRUE,
+  intercept,
+  betaPriorVar,
+  fitType = "parametric"
+)
 }
 \arguments{
 \item{object}{a DESeqDataSet, or matrix of counts}

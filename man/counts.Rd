@@ -7,8 +7,7 @@
 \alias{counts<-,DESeqDataSet,matrix-method}
 \title{Accessors for the 'counts' slot of a DESeqDataSet object.}
 \usage{
-\S4method{counts}{DESeqDataSet}(object, normalized = FALSE,
-  replaced = FALSE)
+\S4method{counts}{DESeqDataSet}(object, normalized = FALSE, replaced = FALSE)
 
 \S4method{counts}{DESeqDataSet,matrix}(object) <- value
 }
