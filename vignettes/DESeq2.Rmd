@@ -1762,10 +1762,10 @@ rather than a Negative Binomial (NB).
   single-cell data, over the Wald test. This has been observed across
   multiple single-cell benchmarks.
 * It is recommended to set the following `DESeq` arguments: 
-  `sfType="poscounts"`, 
-  `useT=TRUE`,
-  `minmu=1e-6`, and
-  `minReplicatesForReplace=Inf`.
+  `useT=TRUE`, `minmu=1e-6`, and `minReplicatesForReplace=Inf`. The
+  default size factors are not optimal for single cell count matrices,
+  instead consider setting `sizeFactors` from
+  `scran::computeSumFactors`.
   
 <a name="outlier"/>
 
