@@ -622,7 +622,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        weightThreshold=1e-2,
                                        quiet=FALSE,
                                        modelMatrix=NULL, niter=1, linearMu=NULL,
-                                       minmu=0.5, alphaInit=NULL) {
+                                       minmu=0.5, alphaInit=NULL,
+                                       type = c("DESeq2", "glmGamPoi")) {
+  
+  type <- match.arg(type, c("DESeq2", "glmGamPoi"))
   if (!is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst","dispGeneIter")
@@ -711,7 +714,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     if (!linearMu) {
       fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],
                            alpha_hat=alpha_hat[fitidx],
-                           modelMatrix=modelMatrix)
+                           modelMatrix=modelMatrix, type=type)
       fitMu <- fit$mu
     } else {
       fitMu <- linearModelMuNormalized(objectNZ[fitidx,,drop=FALSE],
@@ -719,38 +722,59 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     }
     fitMu[fitMu < minmu] <- minmu
     mu[fitidx,] <- fitMu
-
+    
+    
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
-
-    dispRes <- fitDispWrapper(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
-                              xSEXP = modelMatrix,
-                              mu_hatSEXP = fitMu,
-                              log_alphaSEXP = log(alpha_hat)[fitidx],
-                              log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
-                              log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
-                              kappa_0SEXP = kappa_0, tolSEXP = dispTol,
-                              maxitSEXP = maxit, usePriorSEXP = FALSE,
-                              weightsSEXP = weights,
-                              useWeightsSEXP = useWeights,
-                              weightThresholdSEXP = weightThreshold,
-                              useCRSEXP = useCR)
-    
-    dispIter[fitidx] <- dispRes$iter
-    alpha_hat_new[fitidx] <- pmin(exp(dispRes$log_alpha), maxDisp)
-    # only rerun those rows which moved
+    if(type == "DESeq2"){
+      dispRes <- fitDispWrapper(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
+                                xSEXP = modelMatrix,
+                                mu_hatSEXP = fitMu,
+                                log_alphaSEXP = log(alpha_hat)[fitidx],
+                                log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
+                                log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
+                                kappa_0SEXP = kappa_0, tolSEXP = dispTol,
+                                maxitSEXP = maxit, usePriorSEXP = FALSE,
+                                weightsSEXP = weights,
+                                useWeightsSEXP = useWeights,
+                                weightThresholdSEXP = weightThreshold,
+                                useCRSEXP = useCR)
+      
+      dispIter[fitidx] <- dispRes$iter
+      alpha_hat_new[fitidx] <- pmin(exp(dispRes$log_alpha), maxDisp)
+      last_lp <- dispRes$last_lp
+      initial_lp <- dispRes$initial_lp
+      # only rerun those rows which moved
+    }else{
+      Counts <- counts(objectNZ)
+      initial_lp <- vapply(which(fitidx), function(idx){
+        glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
+                                                    log_theta = log(alpha_hat)[idx], model_matrix = modelMatrix,
+                                                    do_cr_adj = TRUE)
+      }, FUN.VALUE = 0.0)
+      dispersion_fits <- lapply(which(fitidx), function(idx){
+        glmGamPoi::gampoi_overdispersion_mle(Counts[idx, ], mean = fitMu[idx, ],
+                                             model_matrix = modelMatrix, verbose = ! quiet)
+      })
+      dispIter[fitidx] <- vapply(dispersion_fits, function(e) e$iterations, FUN.VALUE = 0.0)
+      alpha_hat_new[fitidx] <- pmin(vapply(dispersion_fits, function(e) e$estimate, FUN.VALUE = 0.0), maxDisp)
+      last_lp <- vapply(which(fitidx), function(idx){
+        glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
+                                                    log_theta = log(alpha_hat_new)[idx], model_matrix = modelMatrix,
+                                                    do_cr_adj = TRUE)
+      }, FUN.VALUE = 0.0)
+    }
     fitidx <- abs(log(alpha_hat_new) - log(alpha_hat)) > .05
     alpha_hat <- alpha_hat_new
     if (sum(fitidx) == 0) break
   }
- 
   # dont accept moves if the log posterior did not
   # increase by more than one millionth,
   # and set the small estimates to the minimum dispersion
   dispGeneEst <- alpha_hat
   if (niter == 1) {
-    noIncrease <- dispRes$last_lp < dispRes$initial_lp + abs(dispRes$initial_lp)/1e6
+    noIncrease <- last_lp < initial_lp + abs(initial_lp)/1e6
     dispGeneEst[which(noIncrease)] <- alpha_init[which(noIncrease)]
   }
   # didn't reach the maxmium and iterated more than once
