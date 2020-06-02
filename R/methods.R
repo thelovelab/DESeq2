@@ -522,6 +522,7 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
           estimateSizeFactors.DESeqDataSet)
 
 estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
+                                             dispersionEstimator = c("DESeq2", "glmGamPoi"),
                                              maxit=100, useCR=TRUE,
                                              weightThreshold=1e-2,
                                              quiet=FALSE, modelMatrix=NULL, minmu=0.5) {
@@ -553,6 +554,8 @@ this column could have come in during colData import and should be removed.")
   }
   stopifnot(length(maxit)==1)
   fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
+  dispersionEstimator <- match.arg(dispersionEstimator, c("DESeq2", "glmGamPoi"))
+  
   
   checkForExperimentalReplicates(object, modelMatrix)
   
@@ -563,10 +566,11 @@ this column could have come in during colData import and should be removed.")
                                        weightThreshold=weightThreshold,
                                        quiet=quiet,
                                        modelMatrix=modelMatrix,
-                                       minmu=minmu)
+                                       minmu=minmu,
+                                       type = dispersionEstimator)
   if (!quiet) message("mean-dispersion relationship")
   object <- estimateDispersionsFit(object,
-                                   fitType=fitType,
+                                   fitType= if(dispersionEstimator == "DESeq2") fitType else dispersionEstimator,
                                    quiet=quiet)
   if (!quiet) message("final dispersion estimates")
   object <- estimateDispersionsMAP(object,
@@ -574,7 +578,8 @@ this column could have come in during colData import and should be removed.")
                                    useCR=useCR,
                                    weightThreshold=weightThreshold,
                                    quiet=quiet,
-                                   modelMatrix=modelMatrix)
+                                   modelMatrix=modelMatrix,
+                                   type = dispersionEstimator)
   
   return(object)
 }
