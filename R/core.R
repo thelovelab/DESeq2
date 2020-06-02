@@ -1724,8 +1724,10 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
                       betaTol=1e-8, maxit=100, useOptim=TRUE, quiet=FALSE,
-                      useQR=TRUE, minmu=0.5) {
-
+                      useQR=TRUE, minmu=0.5,
+                      type = c("DESeq2", "glmGamPoi")) {
+  
+  type <- match.arg(type, c("DESeq2", "glmGamPoi"))
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
@@ -1780,108 +1782,122 @@ nbinomLRT <- function(object, full=design(object), reduced,
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
-  if (modelAsFormula) {
-    fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
-                               renameCols=renameCols,
-                               betaTol=betaTol, maxit=maxit,
-                               useOptim=useOptim, useQR=useQR,
-                               warnNonposVar=FALSE, minmu=minmu)
-    modelMatrix <- fullModel$modelMatrix
-    reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced,
-                                  betaTol=betaTol, maxit=maxit,
-                                  useOptim=useOptim, useQR=useQR,
-                                  warnNonposVar=FALSE, minmu=minmu)
-  } else {
-    fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
-                               renameCols=FALSE,
-                               betaTol=betaTol, maxit=maxit,
-                               useOptim=useOptim, useQR=useQR,
-                               warnNonposVar=FALSE, minmu=minmu)
-    modelMatrix <- full
-    reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
-                                  renameCols=FALSE,
-                                  betaTol=betaTol, maxit=maxit,
-                                  useOptim=useOptim, useQR=useQR,
-                                  warnNonposVar=FALSE, minmu=minmu)
+  if(type == "DESeq2"){
+    if (modelAsFormula) {
+      fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
+                                 renameCols=renameCols,
+                                 betaTol=betaTol, maxit=maxit,
+                                 useOptim=useOptim, useQR=useQR,
+                                 warnNonposVar=FALSE, minmu=minmu)
+      modelMatrix <- fullModel$modelMatrix
+      reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced,
+                                    betaTol=betaTol, maxit=maxit,
+                                    useOptim=useOptim, useQR=useQR,
+                                    warnNonposVar=FALSE, minmu=minmu)
+    } else {
+      fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
+                                 renameCols=FALSE,
+                                 betaTol=betaTol, maxit=maxit,
+                                 useOptim=useOptim, useQR=useQR,
+                                 warnNonposVar=FALSE, minmu=minmu)
+      modelMatrix <- full
+      reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
+                                    renameCols=FALSE,
+                                    betaTol=betaTol, maxit=maxit,
+                                    useOptim=useOptim, useQR=useQR,
+                                    warnNonposVar=FALSE, minmu=minmu)
+    }
+    betaPriorVar <- rep(1e6, ncol(modelMatrix))
+    
+    attr(object,"betaPrior") <- FALSE
+    attr(object,"betaPriorVar") <- betaPriorVar
+    attr(object,"modelMatrix") <- modelMatrix
+    attr(object,"reducedModelMatrix") <- reducedModel$modelMatrix
+    attr(object,"test") <- "LRT"
+  
+    # store mu in case the user did not call estimateDispersionsGeneEst
+    dimnames(fullModel$mu) <- NULL
+    assays(objectNZ, withDimnames=FALSE)[["mu"]] <- fullModel$mu
+    assays(object, withDimnames=FALSE)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
+  
+    H <- fullModel$hat_diagonals
+  
+    # calculate Cook's distance
+    dispModelMatrix <- modelMatrix
+    attr(object,"dispModelMatrix") <- dispModelMatrix
+    cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
+    
+    # record maximum of Cook's
+    maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
+  
+    # store hat matrix diagonals
+    assays(object, withDimnames=FALSE)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
+    
+    # store Cook's distance for each sample
+    assays(object, withDimnames=FALSE)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
+    
+    if (any(!fullModel$betaConv)) {
+      if (!quiet) message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT"))
+    }
+  
+    # calculate LRT statistic and p-values
+    LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
+    LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
+    
+    # no need to store additional betas (no beta prior)
+    mleBetas <- NULL
+    
+    # continue storing LRT results
+    resultsList <- c(matrixToList(fullModel$betaMatrix),
+                     matrixToList(fullModel$betaSE),
+                     mleBetas,
+                     list(LRTStatistic = LRTStatistic,
+                          LRTPvalue = LRTPvalue,
+                          fullBetaConv = fullModel$betaConv,
+                          reducedBetaConv = reducedModel$betaConv,
+                          betaIter = fullModel$betaIter,
+                          deviance = -2 * fullModel$logLike,
+                          maxCooks = maxCooks))
+    LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
+  
+    modelComparison <- if (modelAsFormula) {
+      paste0("'",paste(as.character(full),collapse=" "),
+             "' vs '", paste(as.character(reduced),collapse=" "),"'")
+    } else {
+      "full vs reduced"
+    }
+  
+    modelMatrixNames <- colnames(fullModel$betaMatrix)
+    modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
+    lfcType <- "MLE"
+    coefInfo <- paste(paste0("log2 fold change (",lfcType,"):"),modelMatrixNamesSpaces)
+    seInfo <- paste("standard error:",modelMatrixNamesSpaces)
+    mleInfo <- NULL
+    statInfo <- paste("LRT statistic:",modelComparison)
+    pvalInfo <- paste("LRT p-value:",modelComparison)
+  
+    mcols(LRTResults) <- DataFrame(type = rep("results",ncol(LRTResults)),
+                                   description = c(coefInfo, seInfo, mleInfo,
+                                     statInfo, pvalInfo, 
+                                     "convergence of betas for full model",
+                                     "convergence of betas for reduced model",
+                                     "iterations for betas for full model",
+                                     "deviance of the full model",
+                                     "maximum Cook's distance for row"))
+    mcols(object) <- cbind(mcols(object),LRTResults)
+  }else{
+    browser()
+    sf <- sizeFactors(objectNZ)
+    disp_trend <- mcols(objectNZ)$dispFit
+    fit_full <- glmGamPoi::glm_gp(objectNZ, design = full, size_factors = sf, 
+                                  overdispersion = disp_trend,
+                                  overdispersion_shrinkage = FALSE)
+    qlr <- glmGamPoi::gampoi_test_qlr(objectNZ, fit = fit_full, 
+                                      reduced = reduced, verbose = !quiet)
+    
+    
+    
   }
-  betaPriorVar <- rep(1e6, ncol(modelMatrix))
-  
-  attr(object,"betaPrior") <- FALSE
-  attr(object,"betaPriorVar") <- betaPriorVar
-  attr(object,"modelMatrix") <- modelMatrix
-  attr(object,"reducedModelMatrix") <- reducedModel$modelMatrix
-  attr(object,"test") <- "LRT"
-
-  # store mu in case the user did not call estimateDispersionsGeneEst
-  dimnames(fullModel$mu) <- NULL
-  assays(objectNZ, withDimnames=FALSE)[["mu"]] <- fullModel$mu
-  assays(object, withDimnames=FALSE)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
-
-  H <- fullModel$hat_diagonals
-
-  # calculate Cook's distance
-  dispModelMatrix <- modelMatrix
-  attr(object,"dispModelMatrix") <- dispModelMatrix
-  cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
-  
-  # record maximum of Cook's
-  maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
-
-  # store hat matrix diagonals
-  assays(object, withDimnames=FALSE)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
-  
-  # store Cook's distance for each sample
-  assays(object, withDimnames=FALSE)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
-  
-  if (any(!fullModel$betaConv)) {
-    if (!quiet) message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT"))
-  }
-
-  # calculate LRT statistic and p-values
-  LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
-  LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
-
-  # no need to store additional betas (no beta prior)
-  mleBetas <- NULL
-  
-  # continue storing LRT results
-  resultsList <- c(matrixToList(fullModel$betaMatrix),
-                   matrixToList(fullModel$betaSE),
-                   mleBetas,
-                   list(LRTStatistic = LRTStatistic,
-                        LRTPvalue = LRTPvalue,
-                        fullBetaConv = fullModel$betaConv,
-                        reducedBetaConv = reducedModel$betaConv,
-                        betaIter = fullModel$betaIter,
-                        deviance = -2 * fullModel$logLike,
-                        maxCooks = maxCooks))
-  LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
-
-  modelComparison <- if (modelAsFormula) {
-    paste0("'",paste(as.character(full),collapse=" "),
-           "' vs '", paste(as.character(reduced),collapse=" "),"'")
-  } else {
-    "full vs reduced"
-  }
-
-  modelMatrixNames <- colnames(fullModel$betaMatrix)
-  modelMatrixNamesSpaces <- gsub("_"," ",modelMatrixNames)
-  lfcType <- "MLE"
-  coefInfo <- paste(paste0("log2 fold change (",lfcType,"):"),modelMatrixNamesSpaces)
-  seInfo <- paste("standard error:",modelMatrixNamesSpaces)
-  mleInfo <- NULL
-  statInfo <- paste("LRT statistic:",modelComparison)
-  pvalInfo <- paste("LRT p-value:",modelComparison)
-
-  mcols(LRTResults) <- DataFrame(type = rep("results",ncol(LRTResults)),
-                                 description = c(coefInfo, seInfo, mleInfo,
-                                   statInfo, pvalInfo, 
-                                   "convergence of betas for full model",
-                                   "convergence of betas for reduced model",
-                                   "iterations for betas for full model",
-                                   "deviance of the full model",
-                                   "maximum Cook's distance for row"))
-  mcols(object) <- cbind(mcols(object),LRTResults)
   return(object)
 }
 
