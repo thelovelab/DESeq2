@@ -810,7 +810,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),
+estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean", "glmGamPoi"),
                                    minDisp=1e-8, quiet=FALSE) {
 
   if (is.null(mcols(object)$allZero)) {
@@ -827,7 +827,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
   ...then continue with testing using nbinomWaldTest or nbinomLRT")
   }
   
-  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
   stopifnot(length(fitType)==1)
   stopifnot(length(minDisp)==1)
   if (fitType == "parametric") {
@@ -852,7 +852,24 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
     dispFunction <- function(means) meanDisp
     attr( dispFunction, "mean" ) <- meanDisp
   }
-  if (!(fitType %in% c("parametric","local","mean"))) {
+  if (fitType == "glmGamPoi") {
+    base_means <- mcols(objectNZ)$baseMean[useForFit]
+    median_fit <- glmGamPoi:::loc_median_fit(base_means,
+                                             mcols(objectNZ)$dispGeneEst[useForFit])    
+    get_closest_index <- function(x, vec){
+      iv <- findInterval(x, vec)
+      dist_left <- x - vec[ifelse(iv == 0, NA, iv)]
+      dist_right <- vec[iv + 1] - x
+      ifelse(! is.na(dist_left) & (is.na(dist_right) | dist_left < dist_right), iv, iv + 1)
+    }
+    sorted_bm <- sort(base_means)
+    ordered_medians <- median_fit[order(base_means)]
+    dispFunction <- function(means){
+      indices <- get_closest_index(means, sorted_bm)
+      ordered_medians[indices]
+    }
+  }
+  if (!(fitType %in% c("parametric","local","mean", "glmGamPoi"))) {
     stop("unknown fitType")
   }
  
