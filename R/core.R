@@ -890,12 +890,15 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    minDisp=1e-8, kappa_0=1, dispTol=1e-6,
                                    maxit=100, useCR=TRUE,
                                    weightThreshold=1e-2,
-                                   modelMatrix=NULL, quiet=FALSE) {
+                                   modelMatrix=NULL, 
+                                   type = c("DESeq2", "glmGamPoi"),
+                                   quiet=FALSE) {
   stopifnot(length(outlierSD)==1)
   stopifnot(length(minDisp)==1)
   stopifnot(length(kappa_0)==1)
   stopifnot(length(dispTol)==1)
   stopifnot(length(maxit)==1)
+  type <- match.arg(type, c("DESeq2", "glmGamPoi"))
   if (is.null(mcols(object)$allZero)) {
     object <- getBaseMeansAndVariances(object)
   }
@@ -952,53 +955,88 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
   # get previously calculated mu
   mu <- assays(objectNZ)[["mu"]]
-
-  # start fitting at gene estimate unless the points are one order of magnitude
-  # below the fitted line, then start at fitted line
-  dispInit <- ifelse(mcols(objectNZ)$dispGeneEst >  0.1 * mcols(objectNZ)$dispFit,
-                     mcols(objectNZ)$dispGeneEst,
-                     mcols(objectNZ)$dispFit)
-
-  # if any missing values, fill in the fitted value to initialize
-  dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
   
-  # run with prior
-  dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ),
-                               xSEXP = modelMatrix,
-                               mu_hatSEXP = mu,
-                               log_alphaSEXP = log(dispInit),
-                               log_alpha_prior_meanSEXP = log(mcols(objectNZ)$dispFit),
-                               log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
-                               min_log_alphaSEXP = log(minDisp/10),
-                               kappa_0SEXP = kappa_0, tolSEXP = dispTol,
-                               maxitSEXP = maxit, usePriorSEXP = TRUE,
-                               weightsSEXP = weights,
-                               useWeightsSEXP = useWeights,
-                               weightThresholdSEXP = weightThreshold,
-                               useCRSEXP = useCR)
-
-  # prepare dispersions for storage in mcols(object)
-  dispMAP <- exp(dispResMAP$log_alpha) 
-
-  # when lacking convergence from fitDisp() (C++)
-  # we use a function to maximize dispersion parameter
-  # along an adaptive grid (also C++)
-  dispConv <- dispResMAP$iter < maxit
-  refitDisp <- !dispConv
-  if (sum(refitDisp) > 0) {
-    dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE],
-                                   x = modelMatrix,
-                                   mu = mu[refitDisp,,drop=FALSE],
-                                   logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
-                                   logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
-                                   usePrior=TRUE,
-                                   weightsSEXP = weights[refitDisp,,drop=FALSE],
-                                   useWeightsSEXP = useWeights,
-                                   weightThresholdSEXP = weightThreshold,
-                                   useCRSEXP=TRUE)
-    dispMAP[refitDisp] <- dispGrid
+  if (type == "DESeq2" ) {
+    # start fitting at gene estimate unless the points are one order of magnitude
+    # below the fitted line, then start at fitted line
+    dispInit <- ifelse(mcols(objectNZ)$dispGeneEst >  0.1 * mcols(objectNZ)$dispFit,
+                       mcols(objectNZ)$dispGeneEst,
+                       mcols(objectNZ)$dispFit)
+  
+    # if any missing values, fill in the fitted value to initialize
+    dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
+    
+    # run with prior
+    dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ),
+                                 xSEXP = modelMatrix,
+                                 mu_hatSEXP = mu,
+                                 log_alphaSEXP = log(dispInit),
+                                 log_alpha_prior_meanSEXP = log(mcols(objectNZ)$dispFit),
+                                 log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
+                                 min_log_alphaSEXP = log(minDisp/10),
+                                 kappa_0SEXP = kappa_0, tolSEXP = dispTol,
+                                 maxitSEXP = maxit, usePriorSEXP = TRUE,
+                                 weightsSEXP = weights,
+                                 useWeightsSEXP = useWeights,
+                                 weightThresholdSEXP = weightThreshold,
+                                 useCRSEXP = useCR)
+  
+    # prepare dispersions for storage in mcols(object)
+    dispMAP <- exp(dispResMAP$log_alpha) 
+    dispIter <- dispResMAP$iter
+    
+    # when lacking convergence from fitDisp() (C++)
+    # we use a function to maximize dispersion parameter
+    # along an adaptive grid (also C++)
+    dispConv <- dispResMAP$iter < maxit
+    refitDisp <- !dispConv
+    if (sum(refitDisp) > 0) {
+      dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE],
+                                     x = modelMatrix,
+                                     mu = mu[refitDisp,,drop=FALSE],
+                                     logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
+                                     logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
+                                     usePrior=TRUE,
+                                     weightsSEXP = weights[refitDisp,,drop=FALSE],
+                                     useWeightsSEXP = useWeights,
+                                     weightThresholdSEXP = weightThreshold,
+                                     useCRSEXP=TRUE)
+      dispMAP[refitDisp] <- dispGrid
+      
+    }
+  } else if (type == "glmGamPoi") {
+    stopifnot("type = 'glmGamPoi' cannot handle weights" = ! useWeights)
+    gene_means <- mcols(objectNZ)$baseMean
+    disp_est <- mcols(objectNZ)$dispGeneEst
+    disp_trend <- mcols(objectNZ)$dispFit
+    shrink_res <- glmGamPoi:::shrink_ql_dispersion(disp_est, 
+                                                   gene_means = gene_means,
+                                                   df= ncol(objectNZ) - ncol(modelMatrix), 
+                                                   disp_trend = disp_trend)
+    dispFitCorrected <- (shrink_res$ql_disp_trend * (gene_means + gene_means^2 * disp_trend) - gene_means) / gene_means^2
+    dispFitCorrected <- pmin(pmax(dispFitCorrected, minDisp), max(10, ncol(object)))
+    
+    qlResultsList <- list(qlDispMLE = shrink_res$ql_disp_estimate,
+                          qlDispFit = shrink_res$ql_disp_trend,
+                          qlDispMAP = shrink_res$ql_disp_shrunken,
+                          dispFitQLCorrected = dispFitCorrected)
+    
+    qlDispDataFrame <- buildDataFrameWithNARows(qlResultsList, mcols(object)$allZero)
+    mcols(qlDispDataFrame) <- DataFrame(type=rep("intermediate",ncol(qlDispDataFrame)),
+                                      description=c("quasi likelihood dispersion MLE",
+                                                    "quasi likelihood dispersion Trend",
+                                                    "quasi likelihood dispersion MAP",
+                                                    "dispersion trend corrected by quasi likelihood"))
+    
+    mcols(object) <- cbind(mcols(object), qlDispDataFrame)
+    attr( object, "quasiLikelihood_df0" ) <- shrink_res$ql_df0
+    # Quick way to find alpha that would give same variance as shrunken quasi
+    # likelihood dispersion with dispFit
+    dispMAP <- (shrink_res$ql_disp_shrunken * (gene_means + gene_means^2 * disp_trend) - gene_means) / gene_means^2
+    dispIter <- rep(NA, length(dispMAP))
   }
-
+  
+  
   # bound the dispersion estimate between minDisp and maxDisp for numeric stability
   maxDisp <- max(10, ncol(object))
   dispMAP <- pmin(pmax(dispMAP, minDisp), maxDisp)
@@ -1018,7 +1056,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispersionFinal[dispOutlier] <- mcols(objectNZ)$dispGeneEst[dispOutlier]
  
   resultsList <- list(dispersion = dispersionFinal,
-                      dispIter = dispResMAP$iter,
+                      dispIter = dispIter,
                       dispOutlier = dispOutlier,
                       dispMAP = dispMAP)
 
