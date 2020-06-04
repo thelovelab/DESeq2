@@ -751,9 +751,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     }else{
       Counts <- counts(objectNZ)
       initial_lp <- vapply(which(fitidx), function(idx){
-        glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
-                                                    log_theta = log(alpha_hat)[idx], model_matrix = modelMatrix,
-                                                    do_cr_adj = TRUE)
+        # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
+        #                                             log_theta = log(alpha_hat)[idx], model_matrix = modelMatrix,
+        #                                             do_cr_adj = TRUE)
+        sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
       dispersion_fits <- lapply(which(fitidx), function(idx){
         glmGamPoi::gampoi_overdispersion_mle(Counts[idx, ], mean = fitMu[idx, ],
@@ -762,9 +763,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
       dispIter[fitidx] <- vapply(dispersion_fits, function(e) e$iterations, FUN.VALUE = 0.0)
       alpha_hat_new[fitidx] <- pmin(vapply(dispersion_fits, function(e) e$estimate, FUN.VALUE = 0.0), maxDisp)
       last_lp <- vapply(which(fitidx), function(idx){
-        glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
-                                                    log_theta = log(alpha_hat_new)[idx], model_matrix = modelMatrix,
-                                                    do_cr_adj = TRUE)
+        # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
+        #                                             log_theta = log(alpha_hat_new)[idx], model_matrix = modelMatrix,
+        #                                             do_cr_adj = TRUE)
+        sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat_new[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
     }
     fitidx <- abs(log(alpha_hat_new) - log(alpha_hat)) > .05
