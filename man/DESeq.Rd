@@ -7,7 +7,7 @@
 DESeq(
   object,
   test = c("Wald", "LRT"),
-  fitType = c("parametric", "local", "mean"),
+  fitType = c("parametric", "local", "mean", "glmGamPoi"),
   sfType = c("ratio", "poscounts", "iterate"),
   betaPrior,
   full = design(object),
@@ -32,7 +32,7 @@ Wald significance tests (defined by \code{\link{nbinomWaldTest}}),
 or the likelihood ratio test on the difference in deviance between a
 full and reduced model formula (defined by \code{\link{nbinomLRT}})}
 
-\item{fitType}{either "parametric", "local", or "mean"
+\item{fitType}{either "parametric", "local", "mean", or "glmGamPoi"
 for the type of fitting of dispersions to the mean intensity.
 See \code{\link{estimateDispersions}} for description.}
 

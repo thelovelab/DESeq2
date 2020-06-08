@@ -168,7 +168,7 @@ NULL
 #' Wald significance tests (defined by \code{\link{nbinomWaldTest}}),
 #' or the likelihood ratio test on the difference in deviance between a
 #' full and reduced model formula (defined by \code{\link{nbinomLRT}})
-#' @param fitType either "parametric", "local", or "mean"
+#' @param fitType either "parametric", "local", "mean", or "glmGamPoi"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
 #' @param sfType either "ratio", "poscounts", or "iterate"
@@ -563,7 +563,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' examples below.
 #'
 #' @param object a DESeqDataSet
-#' @param fitType either "parametric", "local", or "mean"
+#' @param fitType either "parametric", "local", "mean", or "glmGamPoi"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
 #' @param outlierSD the number of standard deviations of log
@@ -598,6 +598,9 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' of columns of the model matrix
 #' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
 #' @param alphaInit initial guess for the dispersion estimate, alpha
+#' @param type can either be "DESeq2" or "glmGamPoi". Specifies if the glmGamPoi
+#' package is used to calculate the dispersion. This can be significantly faster
+#' if there are many replicates with small counts.
 #' 
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
@@ -1711,6 +1714,13 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
 #' @param minmu lower bound on the estimated count while fitting the GLM
+#' @param type either "DESeq2" or "glmGamPoi". If \code{type = "DESeq2"} a
+#' classical likelihood ratio test based on the Chi-squared distribution is
+#' conducted. If \code{type = "glmGamPoi"} and previously the dispersion has
+#' been estimated with glmGamPoi as well, a quasi-likelihood ratio test based
+#' on the F-distribution is conducted. It is supposed to be more accurate, because
+#' it takes the uncertainty of dispersion estimate into account in the same way
+#' that a t-test improves upon a Z-test.
 #' 
 #' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
