@@ -753,7 +753,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
       last_lp <- dispRes$last_lp
       initial_lp <- dispRes$initial_lp
       # only rerun those rows which moved
-    }else{
+    }else if(type == "glmGamPoi") {
       Counts <- counts(objectNZ)
       initial_lp <- vapply(which(fitidx), function(idx){
         # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
@@ -1844,6 +1844,12 @@ nbinomLRT <- function(object, full=design(object), reduced,
     fit_full$overdispersion_shrinkage_list <- list(ql_df0 = attr(object, "quasiLikelihood_df0"),
                                                    ql_disp_shrunken = mcols(objectNZ)$qlDispMAP,
                                                    dispersion_trend = mcols(objectNZ)$dispFit)
+    if(any(vapply(fit_full$overdispersion_shrinkage_list, is.null, FUN.VALUE = FALSE))) {
+      stop("nbinomLRT of type 'glmGamPoi' called, but one or more of 'attr(object, \"quasiLikelihood_df0\")', ",
+           "'mcols(object)$qlDispMAP', or 'mcols(object)$dispFit' was null.\n",
+           "Please call 'estimateDispersions(dds, fitType = \"glmGamPoi\")' before you call 'nbinomLRT' with ",
+           "type \"glmGamPoi\"")
+    }
     qlr <- glmGamPoi::test_de(fit_full, reduced = reduced, verbose = ! quiet)
     
     LRTStatistic <- qlr$f_statistic

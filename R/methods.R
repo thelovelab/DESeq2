@@ -521,8 +521,7 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
 setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
           estimateSizeFactors.DESeqDataSet)
 
-estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
-                                             dispersionEstimator = c("DESeq2", "glmGamPoi"),
+estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean", "glmGamPoi"),
                                              maxit=100, useCR=TRUE,
                                              weightThreshold=1e-2,
                                              quiet=FALSE, modelMatrix=NULL, minmu=0.5) {
@@ -553,8 +552,12 @@ this column could have come in during colData import and should be removed.")
     mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results")),drop=FALSE]
   }
   stopifnot(length(maxit)==1)
-  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
-  dispersionEstimator <- match.arg(dispersionEstimator, c("DESeq2", "glmGamPoi"))
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
+  dispersionEstimator <- if(fitType == "glmGamPoi"){
+    "glmGamPoi"
+  }else{
+    "DESeq2"
+  }
   
   
   checkForExperimentalReplicates(object, modelMatrix)
@@ -570,7 +573,7 @@ this column could have come in during colData import and should be removed.")
                                        type = dispersionEstimator)
   if (!quiet) message("mean-dispersion relationship")
   object <- estimateDispersionsFit(object,
-                                   fitType= if(dispersionEstimator == "DESeq2") fitType else dispersionEstimator,
+                                   fitType= fitType,
                                    quiet=quiet)
   if (!quiet) message("final dispersion estimates")
   object <- estimateDispersionsMAP(object,
