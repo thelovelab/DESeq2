@@ -261,8 +261,7 @@ NULL
 #'
 #' @export
 DESeq <- function(object, test=c("Wald","LRT"),
-                  fitType=c("parametric","local","mean"),
-                  dispersionEstimator = c("DESeq2", "glmGamPoi"),
+                  fitType=c("parametric","local","mean", "glmGamPoi"),
                   sfType=c("ratio","poscounts","iterate"),
                   betaPrior,
                   full=design(object), reduced, quiet=FALSE,
@@ -272,8 +271,12 @@ DESeq <- function(object, test=c("Wald","LRT"),
   # check arguments
   stopifnot(is(object, "DESeqDataSet"))
   test <- match.arg(test, choices=c("Wald","LRT"))
-  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
-  dispersionEstimator <- match.arg(dispersionEstimator, c("DESeq2", "glmGamPoi"))
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
+  dispersionEstimator <- if(fitType == "glmGamPoi"){
+    "glmGamPoi"
+  }else{
+    "DESeq2"
+  }
   sfType <- match.arg(sfType, choices=c("ratio","poscounts","iterate"))
   # more check arguments
   stopifnot(is.logical(quiet))
