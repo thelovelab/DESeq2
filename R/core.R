@@ -756,12 +756,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
         #                                             do_cr_adj = TRUE)
         sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
-      dispersion_fits <- lapply(which(fitidx), function(idx){
-        glmGamPoi::gampoi_overdispersion_mle(Counts[idx, ], mean = fitMu[idx, ],
-                                             model_matrix = modelMatrix, verbose = ! quiet)
-      })
-      dispIter[fitidx] <- vapply(dispersion_fits, function(e) e$iterations, FUN.VALUE = 0.0)
-      alpha_hat_new[fitidx] <- pmin(vapply(dispersion_fits, function(e) e$estimate, FUN.VALUE = 0.0), maxDisp)
+      dispersion_fits <- glmGamPoi::overdispersion_mle(Counts[fitidx, ], mean = fitMu[fitidx, ],
+                                                       model_matrix = modelMatrix, verbose = ! quiet)
+      dispIter[fitidx] <- dispersion_fits$iterations
+      alpha_hat_new[fitidx] <- pmin(dispersion_fits$estimates, maxDisp)
       last_lp <- vapply(which(fitidx), function(idx){
         # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
         #                                             log_theta = log(alpha_hat_new)[idx], model_matrix = modelMatrix,
@@ -1013,10 +1011,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
     gene_means <- mcols(objectNZ)$baseMean
     disp_est <- mcols(objectNZ)$dispGeneEst
     disp_trend <- mcols(objectNZ)$dispFit
-    shrink_res <- glmGamPoi:::shrink_ql_dispersion(disp_est, 
-                                                   gene_means = gene_means,
-                                                   df= ncol(objectNZ) - ncol(modelMatrix), 
-                                                   disp_trend = disp_trend)
+    shrink_res <- glmGamPoi::overdispersion_shrinkage(disp_est, gene_means = gene_means, 
+                                        df = ncol(objectNZ) - ncol(modelMatrix),
+                                        disp_trend = disp_trend)
     dispFitCorrected <- (shrink_res$ql_disp_trend * (gene_means + gene_means^2 * disp_trend) - gene_means) / gene_means^2
     dispFitCorrected <- pmin(pmax(dispFitCorrected, minDisp), max(10, ncol(object)))
     
@@ -1842,8 +1839,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
     fit_full$overdispersion_shrinkage_list <- list(ql_df0 = attr(object, "quasiLikelihood_df0"),
                                                    ql_disp_shrunken = mcols(objectNZ)$qlDispMAP,
                                                    dispersion_trend = mcols(objectNZ)$dispFit)
-    qlr <- glmGamPoi::gampoi_test_qlr(objectNZ, fit = fit_full, 
-                                      reduced = reduced, verbose = !quiet)
+    qlr <- glmGamPoi::test_de(fit_full, reduced = reduced, verbose = ! quiet)
     
     LRTStatistic <- qlr$f_statistic
     LRTPvalue <- qlr$pval
