@@ -317,6 +317,10 @@ DESeq <- function(object, test=c("Wald","LRT"),
   if (test == "Wald" & !missing(reduced)) {
     stop("'reduced' ignored when test='Wald'")
   }
+  if(dispersionEstimator == "glmGamPoi" && test == "Wald") {
+    warning("glmGamPoi dispersion estimator should be used in combination with a LRT and not a Wald test.",
+            call. = FALSE)
+  }
   
   if (modelAsFormula) {
     # run some tests common to DESeq, nbinomWaldTest, nbinomLRT
@@ -370,7 +374,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
     } else if (test == "LRT") {
       object <- nbinomLRT(object, full=full,
                           reduced=reduced, quiet=quiet,
-                          minmu=minmu)
+                          minmu=minmu,
+                          type = dispersionEstimator)
     }
   } else if (parallel) {
     if (!missing(modelMatrixType)) {
