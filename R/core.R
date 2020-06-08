@@ -1034,7 +1034,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
     # Quick way to find alpha that would give same variance as shrunken quasi
     # likelihood dispersion with dispFit
     dispMAP <- (shrink_res$ql_disp_shrunken * (gene_means + gene_means^2 * disp_trend) - gene_means) / gene_means^2
-    dispIter <- rep(NA, length(dispMAP))
+    dispIter <- rep(0, length(dispMAP))
   }
   
   
