@@ -366,7 +366,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   
   if (!parallel) {
     if (!quiet) message("estimating dispersions")
-    object <- estimateDispersions(object, fitType=fitType, dispersionEstimator = dispersionEstimator, quiet=quiet, modelMatrix=modelMatrix, minmu=minmu)
+    object <- estimateDispersions(object, fitType=fitType, quiet=quiet, modelMatrix=modelMatrix, minmu=minmu)
     if (!quiet) message("fitting model and testing")
     if (test == "Wald") {
       object <- nbinomWaldTest(object, betaPrior=betaPrior, quiet=quiet,
@@ -760,6 +760,12 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
       initial_lp <- dispRes$initial_lp
       # only rerun those rows which moved
     }else if(type == "glmGamPoi") {
+      if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+        stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+      }
+      if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+        stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+      }
       Counts <- counts(objectNZ)
       initial_lp <- vapply(which(fitidx), function(idx){
         # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
@@ -866,6 +872,9 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean",
     attr( dispFunction, "mean" ) <- meanDisp
   }
   if (fitType == "glmGamPoi") {
+    if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+      stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+    }
     base_means <- mcols(objectNZ)$baseMean[useForFit]
     median_fit <- glmGamPoi:::loc_median_fit(base_means,
                                              mcols(objectNZ)$dispGeneEst[useForFit])    
@@ -1018,6 +1027,9 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
       
     }
   } else if (type == "glmGamPoi") {
+    if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+      stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+    }
     stopifnot("type = 'glmGamPoi' cannot handle weights" = ! useWeights)
     gene_means <- mcols(objectNZ)$baseMean
     disp_est <- mcols(objectNZ)$dispGeneEst

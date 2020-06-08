@@ -554,6 +554,9 @@ this column could have come in during colData import and should be removed.")
   stopifnot(length(maxit)==1)
   fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
   dispersionEstimator <- if(fitType == "glmGamPoi"){
+    if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+      stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+    }
     "glmGamPoi"
   }else{
     "DESeq2"
