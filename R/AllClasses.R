@@ -401,6 +401,7 @@ DESeqDataSetFromHTSeqCount <- function( sampleTable, directory=".", design, igno
 #' @export
 DESeqDataSetFromTximport <- function(txi, colData, design, ...) 
 {
+  stopifnot(is(txi, "list"))
   counts <- round(txi$counts)
   mode(counts) <- "integer"
   object <- DESeqDataSetFromMatrix(countData=counts, colData=colData, design=design, ...)
