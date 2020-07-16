@@ -72,7 +72,7 @@
 #' \url{https://support.bioconductor.org}
 #'
 #' The code can be viewed at the GitHub repository,
-#' which also lists the contributtor code of conduct:
+#' which also lists the contributor code of conduct:
 #'
 #' \url{https://github.com/mikelove/tximport}
 #' 
