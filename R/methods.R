@@ -474,7 +474,8 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
 #' @param geoMeans by default this is not provided and the
 #' geometric means of the counts are calculated within the function.
 #' A vector of geometric means from another count matrix can be provided
-#' for a "frozen" size factor calculation
+#' for a "frozen" size factor calculation. The size factors will be 
+#' scaled to have a geometric mean of 1 when supplying \code{geoMeans}.
 #' @param controlGenes optional, numeric or logical index vector specifying those genes to
 #' use for size factor estimation (e.g. housekeeping or spike-in genes)
 #' @param normMatrix optional, a matrix of normalization factors which do not yet
