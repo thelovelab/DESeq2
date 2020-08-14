@@ -192,6 +192,10 @@ resLRT <- results(ddsLRT)
 }
 \references{
 Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
+
+For \code{fitType="glmGamPoi"}:
+
+Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data. bioRxiv. \url{https://doi.org/10.1101/2020.08.13.249623}
 }
 \seealso{
 \code{link{results}}, \code{\link{lfcShrink}}, \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}

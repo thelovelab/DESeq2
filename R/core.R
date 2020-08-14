@@ -227,6 +227,10 @@ NULL
 #' @references
 #'
 #' Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. \url{https://doi.org/10.1186/s13059-014-0550-8}
+#'
+#' For \code{fitType="glmGamPoi"}:
+#' 
+#' Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data. bioRxiv. \url{https://doi.org/10.1101/2020.08.13.249623}
 #' 
 #' @import BiocGenerics BiocParallel S4Vectors IRanges GenomicRanges SummarizedExperiment Biobase Rcpp methods
 #'
@@ -275,7 +279,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   # check arguments
   stopifnot(is(object, "DESeqDataSet"))
   test <- match.arg(test, choices=c("Wald","LRT"))
-  fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean","glmGamPoi"))
   dispersionEstimator <- if(fitType == "glmGamPoi"){
     "glmGamPoi"
   }else{
@@ -744,7 +748,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
-    if(type == "DESeq2"){
+    if (type == "DESeq2") {
       dispRes <- fitDispWrapper(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
                                 xSEXP = modelMatrix,
                                 mu_hatSEXP = fitMu,
@@ -763,18 +767,19 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
       last_lp <- dispRes$last_lp
       initial_lp <- dispRes$initial_lp
       # only rerun those rows which moved
-    }else if(type == "glmGamPoi") {
+    } else if (type == "glmGamPoi") {
       if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
         stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
       }
-      if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
-        stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
-      }
+      if (!quiet) message("using 'glmGamPoi' as fitType. If used in published research, please cite:
+    Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson
+    Generalized Linear Models on Single Cell Count Data. bioRxiv.
+    https://doi.org/10.1101/2020.08.13.249623")
       Counts <- counts(objectNZ)
       initial_lp <- vapply(which(fitidx), function(idx){
         # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
-        #                                             log_theta = log(alpha_hat)[idx], model_matrix = modelMatrix,
-        #                                             do_cr_adj = TRUE)
+        #   log_theta = log(alpha_hat)[idx], model_matrix = modelMatrix,
+        #   do_cr_adj = TRUE)
         sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
       dispersion_fits <- glmGamPoi::overdispersion_mle(Counts[fitidx, ], mean = fitMu[fitidx, ],
@@ -783,8 +788,8 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
       alpha_hat_new[fitidx] <- pmin(dispersion_fits$estimates, maxDisp)
       last_lp <- vapply(which(fitidx), function(idx){
         # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
-        #                                             log_theta = log(alpha_hat_new)[idx], model_matrix = modelMatrix,
-        #                                             do_cr_adj = TRUE)
+        #   log_theta = log(alpha_hat_new)[idx], model_matrix = modelMatrix,
+        #   do_cr_adj = TRUE)
         sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat_new[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
     }
