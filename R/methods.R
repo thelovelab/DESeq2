@@ -522,7 +522,7 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
 setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
           estimateSizeFactors.DESeqDataSet)
 
-estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean"),
+estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean", "glmGamPoi"),
                                              maxit=100, useCR=TRUE,
                                              weightThreshold=1e-2,
                                              quiet=FALSE, modelMatrix=NULL, minmu=0.5) {
@@ -553,7 +553,16 @@ this column could have come in during colData import and should be removed.")
     mcols(object) <- mcols(object)[,!(mcols(mcols(object))$type %in% c("intermediate","results")),drop=FALSE]
   }
   stopifnot(length(maxit)==1)
-  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
+  dispersionEstimator <- if(fitType == "glmGamPoi"){
+    if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+      stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+    }
+    "glmGamPoi"
+  }else{
+    "DESeq2"
+  }
+  
   
   checkForExperimentalReplicates(object, modelMatrix)
   
@@ -564,10 +573,11 @@ this column could have come in during colData import and should be removed.")
                                        weightThreshold=weightThreshold,
                                        quiet=quiet,
                                        modelMatrix=modelMatrix,
-                                       minmu=minmu)
+                                       minmu=minmu,
+                                       type = dispersionEstimator)
   if (!quiet) message("mean-dispersion relationship")
   object <- estimateDispersionsFit(object,
-                                   fitType=fitType,
+                                   fitType= fitType,
                                    quiet=quiet)
   if (!quiet) message("final dispersion estimates")
   object <- estimateDispersionsMAP(object,
@@ -575,7 +585,8 @@ this column could have come in during colData import and should be removed.")
                                    useCR=useCR,
                                    weightThreshold=weightThreshold,
                                    quiet=quiet,
-                                   modelMatrix=modelMatrix)
+                                   modelMatrix=modelMatrix,
+                                   type = dispersionEstimator)
   
   return(object)
 }
@@ -637,6 +648,13 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #'
 #' In DESeq2, the dispersion estimation procedure described above replaces the
 #' different methods of dispersion from the previous version of the DESeq package.
+#' 
+#' Since version 1.29, DESeq2 can call the glmGamPoi package, which can speed up the inference
+#' and is optimized for fitting many samles with very small counts (for example single cell 
+#' RNA-seq data). To call functions from the glmGamPoi package, make sure that it is installed
+#' and set \code{fitType = "glmGamPoi"}. In addition, to the gene estimates, the trend and the MAP,
+#' the glmGamPoi package calculates the corresponding quasi-likelihood estimates. Those can be
+#' used with the \code{nbinomLRT()} test to get more precise p-value estimates.
 #'
 #' The lower-level functions called by \code{estimateDispersions} are:
 #' \code{\link{estimateDispersionsGeneEst}},
@@ -648,7 +666,7 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #' @rdname estimateDispersions
 #' @aliases estimateDispersions estimateDispersions,DESeqDataSet-method
 #' @param object a DESeqDataSet
-#' @param fitType either "parametric", "local", or "mean"
+#' @param fitType either "parametric", "local", "mean", or "glmGamPoi"
 #' for the type of fitting of dispersions to the mean intensity.
 #' \itemize{
 #'   \item parametric - fit a dispersion-mean relation of the form:
@@ -661,6 +679,9 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #'     are input and output for \code{\link{dispersionFunction}}). The points
 #'     are weighted by normalized mean count in the local regression.
 #'   \item mean - use the mean of gene-wise dispersion estimates.
+#'   \item glmGamPoi - use the glmGamPoi package to fit the gene-wise dispersion, its trend
+#'     and calculate the MAP based on the quasi-likelihood framework. The trend is 
+#'     calculated using a local median regression.
 #' }
 #' @param maxit control parameter: maximum number of iterations to allow for convergence
 #' @param useCR whether to use Cox-Reid correction - see McCarthy et al (2012)

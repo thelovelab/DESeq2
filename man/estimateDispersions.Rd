@@ -8,7 +8,7 @@
 \usage{
 \S4method{estimateDispersions}{DESeqDataSet}(
   object,
-  fitType = c("parametric", "local", "mean"),
+  fitType = c("parametric", "local", "mean", "glmGamPoi"),
   maxit = 100,
   useCR = TRUE,
   weightThreshold = 0.01,
@@ -20,7 +20,7 @@
 \arguments{
 \item{object}{a DESeqDataSet}
 
-\item{fitType}{either "parametric", "local", or "mean"
+\item{fitType}{either "parametric", "local", "mean", or "glmGamPoi"
 for the type of fitting of dispersions to the mean intensity.
 \itemize{
   \item parametric - fit a dispersion-mean relation of the form:
@@ -33,6 +33,9 @@ for the type of fitting of dispersions to the mean intensity.
     are input and output for \code{\link{dispersionFunction}}). The points
     are weighted by normalized mean count in the local regression.
   \item mean - use the mean of gene-wise dispersion estimates.
+  \item glmGamPoi - use the glmGamPoi package to fit the gene-wise dispersion, its trend
+    and calculate the MAP based on the quasi-likelihood framework. The trend is 
+    calculated using a local median regression.
 }}
 
 \item{maxit}{control parameter: maximum number of iterations to allow for convergence}
@@ -86,6 +89,13 @@ by Wu, et al. (2012) and is also implemented in the DSS package.
 
 In DESeq2, the dispersion estimation procedure described above replaces the
 different methods of dispersion from the previous version of the DESeq package.
+
+Since version 1.29, DESeq2 can call the glmGamPoi package, which can speed up the inference
+and is optimized for fitting many samles with very small counts (for example single cell 
+RNA-seq data). To call functions from the glmGamPoi package, make sure that it is installed
+and set \code{fitType = "glmGamPoi"}. In addition, to the gene estimates, the trend and the MAP,
+the glmGamPoi package calculates the corresponding quasi-likelihood estimates. Those can be
+used with the \code{nbinomLRT()} test to get more precise p-value estimates.
 
 The lower-level functions called by \code{estimateDispersions} are:
 \code{\link{estimateDispersionsGeneEst}},

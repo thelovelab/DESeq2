@@ -28,7 +28,10 @@
 # errors on the log2 scale
 fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lambda,
                           renameCols=TRUE, betaTol=1e-8, maxit=100, useOptim=TRUE,
-                          useQR=TRUE, forceOptim=FALSE, warnNonposVar=TRUE, minmu=0.5) {
+                          useQR=TRUE, forceOptim=FALSE, warnNonposVar=TRUE, minmu=0.5,
+                          type = c("DESeq2", "glmGamPoi")) {
+  type <- match.arg(type, c("DESeq2", "glmGamPoi"))
+  
   if (missing(modelFormula)) {
     modelFormula <- design(object)
   }
@@ -74,6 +77,21 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   wlist <- getAndCheckWeights(object, modelMatrix)
   weights <- wlist$weights
   useWeights <- wlist$useWeights
+  
+  if(type == "glmGamPoi"){
+    stopifnot("type = 'glmGamPoi' cannot handle weights" = ! useWeights,
+              "type = 'glmGamPoi' does not support NA's in alpha_hat" = all(! is.na(alpha_hat))) 
+    gp_res <- glmGamPoi::glm_gp(counts(object), design = modelMatrix,
+                                size_factors = FALSE, offset = log(normalizationFactors),
+                                overdispersion = alpha_hat, verbose = FALSE)
+    logLikeMat <- dnbinom(counts(object), mu=gp_res$Mu, size=1/alpha_hat, log=TRUE)
+    logLike <- rowSums(logLikeMat)
+    res <- list(logLike = logLike, betaConv =  rep(TRUE, nrow(object)), betaMatrix = gp_res$Beta / log(2),
+                betaSE = NULL, mu = gp_res$Mu, betaIter = rep(NA,nrow(object)),
+                modelMatrix=modelMatrix, 
+                nterms=ncol(modelMatrix), hat_diagonals = NULL)
+    return(res)
+  }
   
   # bypass the beta fitting if the model formula is only intercept and
   # the prior variance is large (1e6)

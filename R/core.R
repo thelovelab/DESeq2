@@ -168,7 +168,7 @@ NULL
 #' Wald significance tests (defined by \code{\link{nbinomWaldTest}}),
 #' or the likelihood ratio test on the difference in deviance between a
 #' full and reduced model formula (defined by \code{\link{nbinomLRT}})
-#' @param fitType either "parametric", "local", or "mean"
+#' @param fitType either "parametric", "local", "mean", or "glmGamPoi"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
 #' @param sfType either "ratio", "poscounts", or "iterate"
@@ -261,7 +261,7 @@ NULL
 #'
 #' @export
 DESeq <- function(object, test=c("Wald","LRT"),
-                  fitType=c("parametric","local","mean"),
+                  fitType=c("parametric","local","mean", "glmGamPoi"),
                   sfType=c("ratio","poscounts","iterate"),
                   betaPrior,
                   full=design(object), reduced, quiet=FALSE,
@@ -271,7 +271,12 @@ DESeq <- function(object, test=c("Wald","LRT"),
   # check arguments
   stopifnot(is(object, "DESeqDataSet"))
   test <- match.arg(test, choices=c("Wald","LRT"))
-  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
+  dispersionEstimator <- if(fitType == "glmGamPoi"){
+    "glmGamPoi"
+  }else{
+    "DESeq2"
+  }
   sfType <- match.arg(sfType, choices=c("ratio","poscounts","iterate"))
   # more check arguments
   stopifnot(is.logical(quiet))
@@ -314,6 +319,10 @@ DESeq <- function(object, test=c("Wald","LRT"),
   }
   if (test == "Wald" & !missing(reduced)) {
     stop("'reduced' ignored when test='Wald'")
+  }
+  if(dispersionEstimator == "glmGamPoi" && test == "Wald") {
+    warning("glmGamPoi dispersion estimator should be used in combination with a LRT and not a Wald test.",
+            call. = FALSE)
   }
   
   if (modelAsFormula) {
@@ -368,7 +377,8 @@ DESeq <- function(object, test=c("Wald","LRT"),
     } else if (test == "LRT") {
       object <- nbinomLRT(object, full=full,
                           reduced=reduced, quiet=quiet,
-                          minmu=minmu)
+                          minmu=minmu,
+                          type = dispersionEstimator)
     }
   } else if (parallel) {
     if (!missing(modelMatrixType)) {
@@ -553,7 +563,7 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' examples below.
 #'
 #' @param object a DESeqDataSet
-#' @param fitType either "parametric", "local", or "mean"
+#' @param fitType either "parametric", "local", "mean", or "glmGamPoi"
 #' for the type of fitting of dispersions to the mean intensity.
 #' See \code{\link{estimateDispersions}} for description.
 #' @param outlierSD the number of standard deviations of log
@@ -588,6 +598,9 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
 #' of columns of the model matrix
 #' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
 #' @param alphaInit initial guess for the dispersion estimate, alpha
+#' @param type can either be "DESeq2" or "glmGamPoi". Specifies if the glmGamPoi
+#' package is used to calculate the dispersion. This can be significantly faster
+#' if there are many replicates with small counts.
 #' 
 #' @return a DESeqDataSet with gene-wise, fitted, or final MAP
 #' dispersion estimates in the metadata columns of the object.
@@ -622,7 +635,10 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        weightThreshold=1e-2,
                                        quiet=FALSE,
                                        modelMatrix=NULL, niter=1, linearMu=NULL,
-                                       minmu=0.5, alphaInit=NULL) {
+                                       minmu=0.5, alphaInit=NULL,
+                                       type = c("DESeq2", "glmGamPoi")) {
+  
+  type <- match.arg(type, c("DESeq2", "glmGamPoi"))
   if (!is.null(mcols(object)$dispGeneEst)) {
     if (!quiet) message("found already estimated gene-wise dispersions, removing these")
     removeCols <- c("dispGeneEst","dispGeneIter")
@@ -711,7 +727,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     if (!linearMu) {
       fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],
                            alpha_hat=alpha_hat[fitidx],
-                           modelMatrix=modelMatrix)
+                           modelMatrix=modelMatrix, type=type)
       fitMu <- fit$mu
     } else {
       fitMu <- linearModelMuNormalized(objectNZ[fitidx,,drop=FALSE],
@@ -719,38 +735,65 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     }
     fitMu[fitMu < minmu] <- minmu
     mu[fitidx,] <- fitMu
-
+    
+    
     # use of kappa_0 in backtracking search
     # initial proposal = log(alpha) + kappa_0 * deriv. of log lik. w.r.t. log(alpha)
     # use log(minDisp/10) to stop if dispersions going to -infinity
-
-    dispRes <- fitDispWrapper(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
-                              xSEXP = modelMatrix,
-                              mu_hatSEXP = fitMu,
-                              log_alphaSEXP = log(alpha_hat)[fitidx],
-                              log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
-                              log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
-                              kappa_0SEXP = kappa_0, tolSEXP = dispTol,
-                              maxitSEXP = maxit, usePriorSEXP = FALSE,
-                              weightsSEXP = weights,
-                              useWeightsSEXP = useWeights,
-                              weightThresholdSEXP = weightThreshold,
-                              useCRSEXP = useCR)
-    
-    dispIter[fitidx] <- dispRes$iter
-    alpha_hat_new[fitidx] <- pmin(exp(dispRes$log_alpha), maxDisp)
-    # only rerun those rows which moved
+    if(type == "DESeq2"){
+      dispRes <- fitDispWrapper(ySEXP = counts(objectNZ)[fitidx,,drop=FALSE],
+                                xSEXP = modelMatrix,
+                                mu_hatSEXP = fitMu,
+                                log_alphaSEXP = log(alpha_hat)[fitidx],
+                                log_alpha_prior_meanSEXP = log(alpha_hat)[fitidx],
+                                log_alpha_prior_sigmasqSEXP = 1, min_log_alphaSEXP = log(minDisp/10),
+                                kappa_0SEXP = kappa_0, tolSEXP = dispTol,
+                                maxitSEXP = maxit, usePriorSEXP = FALSE,
+                                weightsSEXP = weights,
+                                useWeightsSEXP = useWeights,
+                                weightThresholdSEXP = weightThreshold,
+                                useCRSEXP = useCR)
+      
+      dispIter[fitidx] <- dispRes$iter
+      alpha_hat_new[fitidx] <- pmin(exp(dispRes$log_alpha), maxDisp)
+      last_lp <- dispRes$last_lp
+      initial_lp <- dispRes$initial_lp
+      # only rerun those rows which moved
+    }else if(type == "glmGamPoi") {
+      if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+        stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+      }
+      if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+        stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+      }
+      Counts <- counts(objectNZ)
+      initial_lp <- vapply(which(fitidx), function(idx){
+        # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
+        #                                             log_theta = log(alpha_hat)[idx], model_matrix = modelMatrix,
+        #                                             do_cr_adj = TRUE)
+        sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat[idx], log = TRUE))
+      }, FUN.VALUE = 0.0)
+      dispersion_fits <- glmGamPoi::overdispersion_mle(Counts[fitidx, ], mean = fitMu[fitidx, ],
+                                                       model_matrix = modelMatrix, verbose = ! quiet)
+      dispIter[fitidx] <- dispersion_fits$iterations
+      alpha_hat_new[fitidx] <- pmin(dispersion_fits$estimates, maxDisp)
+      last_lp <- vapply(which(fitidx), function(idx){
+        # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
+        #                                             log_theta = log(alpha_hat_new)[idx], model_matrix = modelMatrix,
+        #                                             do_cr_adj = TRUE)
+        sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat_new[idx], log = TRUE))
+      }, FUN.VALUE = 0.0)
+    }
     fitidx <- abs(log(alpha_hat_new) - log(alpha_hat)) > .05
     alpha_hat <- alpha_hat_new
     if (sum(fitidx) == 0) break
   }
- 
   # dont accept moves if the log posterior did not
   # increase by more than one millionth,
   # and set the small estimates to the minimum dispersion
   dispGeneEst <- alpha_hat
   if (niter == 1) {
-    noIncrease <- dispRes$last_lp < dispRes$initial_lp + abs(dispRes$initial_lp)/1e6
+    noIncrease <- last_lp < initial_lp + abs(initial_lp)/1e6
     dispGeneEst[which(noIncrease)] <- alpha_init[which(noIncrease)]
   }
   # didn't reach the maxmium and iterated more than once
@@ -786,7 +829,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
 
 #' @rdname estimateDispersionsGeneEst
 #' @export
-estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean"),
+estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean", "glmGamPoi"),
                                    minDisp=1e-8, quiet=FALSE) {
 
   if (is.null(mcols(object)$allZero)) {
@@ -803,7 +846,7 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
   ...then continue with testing using nbinomWaldTest or nbinomLRT")
   }
   
-  fitType <- match.arg(fitType, choices=c("parametric","local","mean"))
+  fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
   stopifnot(length(fitType)==1)
   stopifnot(length(minDisp)==1)
   if (fitType == "parametric") {
@@ -828,7 +871,27 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean")
     dispFunction <- function(means) meanDisp
     attr( dispFunction, "mean" ) <- meanDisp
   }
-  if (!(fitType %in% c("parametric","local","mean"))) {
+  if (fitType == "glmGamPoi") {
+    if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+      stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+    }
+    base_means <- mcols(objectNZ)$baseMean[useForFit]
+    median_fit <- glmGamPoi:::loc_median_fit(base_means,
+                                             mcols(objectNZ)$dispGeneEst[useForFit])    
+    get_closest_index <- function(x, vec){
+      iv <- findInterval(x, vec)
+      dist_left <- x - vec[ifelse(iv == 0, NA, iv)]
+      dist_right <- vec[iv + 1] - x
+      ifelse(! is.na(dist_left) & (is.na(dist_right) | dist_left < dist_right), iv, iv + 1)
+    }
+    sorted_bm <- sort(base_means)
+    ordered_medians <- median_fit[order(base_means)]
+    dispFunction <- function(means){
+      indices <- get_closest_index(means, sorted_bm)
+      ordered_medians[indices]
+    }
+  }
+  if (!(fitType %in% c("parametric","local","mean", "glmGamPoi"))) {
     stop("unknown fitType")
   }
  
@@ -849,12 +912,15 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
                                    minDisp=1e-8, kappa_0=1, dispTol=1e-6,
                                    maxit=100, useCR=TRUE,
                                    weightThreshold=1e-2,
-                                   modelMatrix=NULL, quiet=FALSE) {
+                                   modelMatrix=NULL, 
+                                   type = c("DESeq2", "glmGamPoi"),
+                                   quiet=FALSE) {
   stopifnot(length(outlierSD)==1)
   stopifnot(length(minDisp)==1)
   stopifnot(length(kappa_0)==1)
   stopifnot(length(dispTol)==1)
   stopifnot(length(maxit)==1)
+  type <- match.arg(type, c("DESeq2", "glmGamPoi"))
   if (is.null(mcols(object)$allZero)) {
     object <- getBaseMeansAndVariances(object)
   }
@@ -911,53 +977,90 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
 
   # get previously calculated mu
   mu <- assays(objectNZ)[["mu"]]
-
-  # start fitting at gene estimate unless the points are one order of magnitude
-  # below the fitted line, then start at fitted line
-  dispInit <- ifelse(mcols(objectNZ)$dispGeneEst >  0.1 * mcols(objectNZ)$dispFit,
-                     mcols(objectNZ)$dispGeneEst,
-                     mcols(objectNZ)$dispFit)
-
-  # if any missing values, fill in the fitted value to initialize
-  dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
   
-  # run with prior
-  dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ),
-                               xSEXP = modelMatrix,
-                               mu_hatSEXP = mu,
-                               log_alphaSEXP = log(dispInit),
-                               log_alpha_prior_meanSEXP = log(mcols(objectNZ)$dispFit),
-                               log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
-                               min_log_alphaSEXP = log(minDisp/10),
-                               kappa_0SEXP = kappa_0, tolSEXP = dispTol,
-                               maxitSEXP = maxit, usePriorSEXP = TRUE,
-                               weightsSEXP = weights,
-                               useWeightsSEXP = useWeights,
-                               weightThresholdSEXP = weightThreshold,
-                               useCRSEXP = useCR)
-
-  # prepare dispersions for storage in mcols(object)
-  dispMAP <- exp(dispResMAP$log_alpha) 
-
-  # when lacking convergence from fitDisp() (C++)
-  # we use a function to maximize dispersion parameter
-  # along an adaptive grid (also C++)
-  dispConv <- dispResMAP$iter < maxit
-  refitDisp <- !dispConv
-  if (sum(refitDisp) > 0) {
-    dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE],
-                                   x = modelMatrix,
-                                   mu = mu[refitDisp,,drop=FALSE],
-                                   logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
-                                   logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
-                                   usePrior=TRUE,
-                                   weightsSEXP = weights[refitDisp,,drop=FALSE],
-                                   useWeightsSEXP = useWeights,
-                                   weightThresholdSEXP = weightThreshold,
-                                   useCRSEXP=TRUE)
-    dispMAP[refitDisp] <- dispGrid
+  if (type == "DESeq2" ) {
+    # start fitting at gene estimate unless the points are one order of magnitude
+    # below the fitted line, then start at fitted line
+    dispInit <- ifelse(mcols(objectNZ)$dispGeneEst >  0.1 * mcols(objectNZ)$dispFit,
+                       mcols(objectNZ)$dispGeneEst,
+                       mcols(objectNZ)$dispFit)
+  
+    # if any missing values, fill in the fitted value to initialize
+    dispInit[is.na(dispInit)] <- mcols(objectNZ)$dispFit[is.na(dispInit)]
+    
+    # run with prior
+    dispResMAP <- fitDispWrapper(ySEXP = counts(objectNZ),
+                                 xSEXP = modelMatrix,
+                                 mu_hatSEXP = mu,
+                                 log_alphaSEXP = log(dispInit),
+                                 log_alpha_prior_meanSEXP = log(mcols(objectNZ)$dispFit),
+                                 log_alpha_prior_sigmasqSEXP = log_alpha_prior_sigmasq,
+                                 min_log_alphaSEXP = log(minDisp/10),
+                                 kappa_0SEXP = kappa_0, tolSEXP = dispTol,
+                                 maxitSEXP = maxit, usePriorSEXP = TRUE,
+                                 weightsSEXP = weights,
+                                 useWeightsSEXP = useWeights,
+                                 weightThresholdSEXP = weightThreshold,
+                                 useCRSEXP = useCR)
+  
+    # prepare dispersions for storage in mcols(object)
+    dispMAP <- exp(dispResMAP$log_alpha) 
+    dispIter <- dispResMAP$iter
+    
+    # when lacking convergence from fitDisp() (C++)
+    # we use a function to maximize dispersion parameter
+    # along an adaptive grid (also C++)
+    dispConv <- dispResMAP$iter < maxit
+    refitDisp <- !dispConv
+    if (sum(refitDisp) > 0) {
+      dispGrid <- fitDispGridWrapper(y = counts(objectNZ)[refitDisp,,drop=FALSE],
+                                     x = modelMatrix,
+                                     mu = mu[refitDisp,,drop=FALSE],
+                                     logAlphaPriorMean = log(mcols(objectNZ)$dispFit)[refitDisp],
+                                     logAlphaPriorSigmaSq = log_alpha_prior_sigmasq,
+                                     usePrior=TRUE,
+                                     weightsSEXP = weights[refitDisp,,drop=FALSE],
+                                     useWeightsSEXP = useWeights,
+                                     weightThresholdSEXP = weightThreshold,
+                                     useCRSEXP=TRUE)
+      dispMAP[refitDisp] <- dispGrid
+      
+    }
+  } else if (type == "glmGamPoi") {
+    if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
+      stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
+    }
+    stopifnot("type = 'glmGamPoi' cannot handle weights" = ! useWeights)
+    gene_means <- mcols(objectNZ)$baseMean
+    disp_est <- mcols(objectNZ)$dispGeneEst
+    disp_trend <- mcols(objectNZ)$dispFit
+    shrink_res <- glmGamPoi::overdispersion_shrinkage(disp_est, gene_means = gene_means, 
+                                        df = ncol(objectNZ) - ncol(modelMatrix),
+                                        disp_trend = disp_trend)
+    dispFitCorrected <- (shrink_res$ql_disp_trend * (gene_means + gene_means^2 * disp_trend) - gene_means) / gene_means^2
+    dispFitCorrected <- pmin(pmax(dispFitCorrected, minDisp), max(10, ncol(object)))
+    
+    qlResultsList <- list(qlDispMLE = shrink_res$ql_disp_estimate,
+                          qlDispFit = shrink_res$ql_disp_trend,
+                          qlDispMAP = shrink_res$ql_disp_shrunken,
+                          dispFitQLCorrected = dispFitCorrected)
+    
+    qlDispDataFrame <- buildDataFrameWithNARows(qlResultsList, mcols(object)$allZero)
+    mcols(qlDispDataFrame) <- DataFrame(type=rep("intermediate",ncol(qlDispDataFrame)),
+                                      description=c("quasi likelihood dispersion MLE",
+                                                    "quasi likelihood dispersion Trend",
+                                                    "quasi likelihood dispersion MAP",
+                                                    "dispersion trend corrected by quasi likelihood"))
+    
+    mcols(object) <- cbind(mcols(object), qlDispDataFrame)
+    attr( object, "quasiLikelihood_df0" ) <- shrink_res$ql_df0
+    # Quick way to find alpha that would give same variance as shrunken quasi
+    # likelihood dispersion with dispFit
+    dispMAP <- (shrink_res$ql_disp_shrunken * (gene_means + gene_means^2 * disp_trend) - gene_means) / gene_means^2
+    dispIter <- rep(0, length(dispMAP))
   }
-
+  
+  
   # bound the dispersion estimate between minDisp and maxDisp for numeric stability
   maxDisp <- max(10, ncol(object))
   dispMAP <- pmin(pmax(dispMAP, minDisp), maxDisp)
@@ -977,7 +1080,7 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
   dispersionFinal[dispOutlier] <- mcols(objectNZ)$dispGeneEst[dispOutlier]
  
   resultsList <- list(dispersion = dispersionFinal,
-                      dispIter = dispResMAP$iter,
+                      dispIter = dispIter,
                       dispOutlier = dispOutlier,
                       dispMAP = dispMAP)
 
@@ -1623,6 +1726,13 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @param useQR whether to use the QR decomposition on the design
 #' matrix X while fitting the GLM
 #' @param minmu lower bound on the estimated count while fitting the GLM
+#' @param type either "DESeq2" or "glmGamPoi". If \code{type = "DESeq2"} a
+#' classical likelihood ratio test based on the Chi-squared distribution is
+#' conducted. If \code{type = "glmGamPoi"} and previously the dispersion has
+#' been estimated with glmGamPoi as well, a quasi-likelihood ratio test based
+#' on the F-distribution is conducted. It is supposed to be more accurate, because
+#' it takes the uncertainty of dispersion estimate into account in the same way
+#' that a t-test improves upon a Z-test.
 #' 
 #' @return a DESeqDataSet with new results columns accessible
 #' with the \code{\link{results}} function.  The coefficients and standard errors are
@@ -1641,8 +1751,10 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
                       betaTol=1e-8, maxit=100, useOptim=TRUE, quiet=FALSE,
-                      useQR=TRUE, minmu=0.5) {
-
+                      useQR=TRUE, minmu=0.5,
+                      type = c("DESeq2", "glmGamPoi")) {
+  
+  type <- match.arg(type, c("DESeq2", "glmGamPoi"))
   if (is.null(dispersions(object))) {
     stop("testing requires dispersion estimates, first call estimateDispersions()")
   }
@@ -1697,36 +1809,100 @@ nbinomLRT <- function(object, full=design(object), reduced,
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
-  if (modelAsFormula) {
-    fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
-                               renameCols=renameCols,
-                               betaTol=betaTol, maxit=maxit,
-                               useOptim=useOptim, useQR=useQR,
-                               warnNonposVar=FALSE, minmu=minmu)
-    modelMatrix <- fullModel$modelMatrix
-    reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced,
-                                  betaTol=betaTol, maxit=maxit,
-                                  useOptim=useOptim, useQR=useQR,
-                                  warnNonposVar=FALSE, minmu=minmu)
-  } else {
-    fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
-                               renameCols=FALSE,
-                               betaTol=betaTol, maxit=maxit,
-                               useOptim=useOptim, useQR=useQR,
-                               warnNonposVar=FALSE, minmu=minmu)
-    modelMatrix <- full
-    reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
-                                  renameCols=FALSE,
-                                  betaTol=betaTol, maxit=maxit,
-                                  useOptim=useOptim, useQR=useQR,
-                                  warnNonposVar=FALSE, minmu=minmu)
+  if(type == "DESeq2"){
+    if (modelAsFormula) {
+      fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
+                                 renameCols=renameCols,
+                                 betaTol=betaTol, maxit=maxit,
+                                 useOptim=useOptim, useQR=useQR,
+                                 warnNonposVar=FALSE, minmu=minmu)
+      modelMatrix <- fullModel$modelMatrix
+      reducedModel <- fitNbinomGLMs(objectNZ, modelFormula=reduced,
+                                    betaTol=betaTol, maxit=maxit,
+                                    useOptim=useOptim, useQR=useQR,
+                                    warnNonposVar=FALSE, minmu=minmu)
+      reducedModelMatrix <- reducedModel$modelMatrix
+    } else {
+      fullModel <- fitNbinomGLMs(objectNZ, modelMatrix=full,
+                                 renameCols=FALSE,
+                                 betaTol=betaTol, maxit=maxit,
+                                 useOptim=useOptim, useQR=useQR,
+                                 warnNonposVar=FALSE, minmu=minmu)
+      modelMatrix <- full
+      reducedModel <- fitNbinomGLMs(objectNZ, modelMatrix=reduced,
+                                    renameCols=FALSE,
+                                    betaTol=betaTol, maxit=maxit,
+                                    useOptim=useOptim, useQR=useQR,
+                                    warnNonposVar=FALSE, minmu=minmu)
+      reducedModelMatrix <- reduced
+    }
+    
+    # calculate LRT statistic and p-values
+    LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
+    LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
+    
+    deviance <- -2 * fullModel$logLike
+    
+    ### Handle Hat matrix and Cook distances
+    H <- fullModel$hat_diagonals
+    
+    # calculate Cook's distance
+    dispModelMatrix <- modelMatrix
+    attr(object,"dispModelMatrix") <- dispModelMatrix
+    cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
+    
+    # record maximum of Cook's
+    maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
+    
+    # store hat matrix diagonals
+    assays(object, withDimnames=FALSE)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
+    
+    # store Cook's distance for each sample
+    assays(object, withDimnames=FALSE)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
+  }else if(type == "glmGamPoi") {
+    sf <- sizeFactors(objectNZ)
+    disp_trend <- mcols(objectNZ)$dispFit
+    fit_full <- glmGamPoi::glm_gp(objectNZ, design = full, size_factors = sf, 
+                                  overdispersion = disp_trend,
+                                  overdispersion_shrinkage = FALSE)
+    # Get the stuff from objectNZ that is saved there by estimateDispersionMAP()
+    fit_full$overdispersion_shrinkage_list <- list(ql_df0 = attr(object, "quasiLikelihood_df0"),
+                                                   ql_disp_shrunken = mcols(objectNZ)$qlDispMAP,
+                                                   dispersion_trend = mcols(objectNZ)$dispFit)
+    if(any(vapply(fit_full$overdispersion_shrinkage_list, is.null, FUN.VALUE = FALSE))) {
+      stop("nbinomLRT of type 'glmGamPoi' called, but one or more of 'attr(object, \"quasiLikelihood_df0\")', ",
+           "'mcols(object)$qlDispMAP', or 'mcols(object)$dispFit' was null.\n",
+           "Please call 'estimateDispersions(dds, fitType = \"glmGamPoi\")' before you call 'nbinomLRT' with ",
+           "type \"glmGamPoi\"")
+    }
+    qlr <- glmGamPoi::test_de(fit_full, reduced = reduced, verbose = ! quiet)
+    
+    LRTStatistic <- qlr$f_statistic
+    LRTPvalue <- qlr$pval
+    
+    modelMatrix <- fit_full$model_matrix
+    reducedModelMatrix <- if(is.matrix(reduced)){
+      reduced
+    }else{
+      stats::model.matrix.default(reduced, data=as.data.frame(colData(objectNZ)))
+    }
+    
+    fullModel <- list(betaMatrix = fit_full$Beta / log(2), # Make sure Beta are on log2-scale
+                      betaSE = array(NA, dim(fit_full$Beta), dimnames = list(rownames(fit_full$Beta), paste0("SE_",colnames(fit_full$Beta)))),
+                      mu = fit_full$Mu, betaConv = rep(TRUE, nrow(objectNZ)), betaIter = rep(NA, nrow(objectNZ)))
+    reducedModel <- list(betaConv = rep(TRUE, nrow(objectNZ)))
+    deviance <- fit_full$deviances
+    maxCooks <- rep(NA, nrow(objectNZ))
+    dispModelMatrix <- modelMatrix
+    attr(object,"dispModelMatrix") <- dispModelMatrix
   }
-  betaPriorVar <- rep(1e6, ncol(modelMatrix))
   
+  betaPriorVar <- rep(1e6, ncol(modelMatrix))
+    
   attr(object,"betaPrior") <- FALSE
   attr(object,"betaPriorVar") <- betaPriorVar
   attr(object,"modelMatrix") <- modelMatrix
-  attr(object,"reducedModelMatrix") <- reducedModel$modelMatrix
+  attr(object,"reducedModelMatrix") <- reducedModelMatrix
   attr(object,"test") <- "LRT"
 
   # store mu in case the user did not call estimateDispersionsGeneEst
@@ -1734,30 +1910,13 @@ nbinomLRT <- function(object, full=design(object), reduced,
   assays(objectNZ, withDimnames=FALSE)[["mu"]] <- fullModel$mu
   assays(object, withDimnames=FALSE)[["mu"]] <- buildMatrixWithNARows(fullModel$mu, mcols(object)$allZero)
 
-  H <- fullModel$hat_diagonals
-
-  # calculate Cook's distance
-  dispModelMatrix <- modelMatrix
-  attr(object,"dispModelMatrix") <- dispModelMatrix
-  cooks <- calculateCooksDistance(objectNZ, H, dispModelMatrix)
-  
-  # record maximum of Cook's
-  maxCooks <- recordMaxCooks(design(object), colData(object), dispModelMatrix, cooks, nrow(objectNZ))
-
-  # store hat matrix diagonals
-  assays(object, withDimnames=FALSE)[["H"]] <- buildMatrixWithNARows(H, mcols(object)$allZero)
-  
-  # store Cook's distance for each sample
-  assays(object, withDimnames=FALSE)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
   
   if (any(!fullModel$betaConv)) {
     if (!quiet) message(paste(sum(!fullModel$betaConv),"rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT"))
   }
 
-  # calculate LRT statistic and p-values
-  LRTStatistic <- (2 * (fullModel$logLike - reducedModel$logLike))
-  LRTPvalue <- pchisq(LRTStatistic, df=df, lower.tail=FALSE)
-
+ 
+  
   # no need to store additional betas (no beta prior)
   mleBetas <- NULL
   
@@ -1770,7 +1929,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
                         fullBetaConv = fullModel$betaConv,
                         reducedBetaConv = reducedModel$betaConv,
                         betaIter = fullModel$betaIter,
-                        deviance = -2 * fullModel$logLike,
+                        deviance = deviance,
                         maxCooks = maxCooks))
   LRTResults <- buildDataFrameWithNARows(resultsList, mcols(object)$allZero)
 
@@ -1799,6 +1958,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
                                    "deviance of the full model",
                                    "maximum Cook's distance for row"))
   mcols(object) <- cbind(mcols(object),LRTResults)
+  
   return(object)
 }
 

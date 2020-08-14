@@ -13,7 +13,8 @@ nbinomLRT(
   useOptim = TRUE,
   quiet = FALSE,
   useQR = TRUE,
-  minmu = 0.5
+  minmu = 0.5,
+  type = c("DESeq2", "glmGamPoi")
 )
 }
 \arguments{
@@ -41,6 +42,14 @@ converge within maxit}
 matrix X while fitting the GLM}
 
 \item{minmu}{lower bound on the estimated count while fitting the GLM}
+
+\item{type}{either "DESeq2" or "glmGamPoi". If \code{type = "DESeq2"} a
+classical likelihood ratio test based on the Chi-squared distribution is
+conducted. If \code{type = "glmGamPoi"} and previously the dispersion has
+been estimated with glmGamPoi as well, a quasi-likelihood ratio test based
+on the F-distribution is conducted. It is supposed to be more accurate, because
+it takes the uncertainty of dispersion estimate into account in the same way
+that a t-test improves upon a Z-test.}
 }
 \value{
 a DESeqDataSet with new results columns accessible

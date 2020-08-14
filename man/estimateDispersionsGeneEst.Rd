@@ -20,12 +20,13 @@ estimateDispersionsGeneEst(
   niter = 1,
   linearMu = NULL,
   minmu = 0.5,
-  alphaInit = NULL
+  alphaInit = NULL,
+  type = c("DESeq2", "glmGamPoi")
 )
 
 estimateDispersionsFit(
   object,
-  fitType = c("parametric", "local", "mean"),
+  fitType = c("parametric", "local", "mean", "glmGamPoi"),
   minDisp = 1e-08,
   quiet = FALSE
 )
@@ -41,6 +42,7 @@ estimateDispersionsMAP(
   useCR = TRUE,
   weightThreshold = 0.01,
   modelMatrix = NULL,
+  type = c("DESeq2", "glmGamPoi"),
   quiet = FALSE
 )
 
@@ -83,7 +85,11 @@ of columns of the model matrix}
 
 \item{alphaInit}{initial guess for the dispersion estimate, alpha}
 
-\item{fitType}{either "parametric", "local", or "mean"
+\item{type}{can either be "DESeq2" or "glmGamPoi". Specifies if the glmGamPoi
+package is used to calculate the dispersion. This can be significantly faster
+if there are many replicates with small counts.}
+
+\item{fitType}{either "parametric", "local", "mean", or "glmGamPoi"
 for the type of fitting of dispersions to the mean intensity.
 See \code{\link{estimateDispersions}} for description.}
 
