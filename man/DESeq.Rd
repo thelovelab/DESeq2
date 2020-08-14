@@ -16,7 +16,7 @@ DESeq(
   minReplicatesForReplace = 7,
   modelMatrixType,
   useT = FALSE,
-  minmu = 0.5,
+  minmu = if (fitType == "glmGamPoi") 1e-06 else 0.5,
   parallel = FALSE,
   BPPARAM = bpparam()
 )
@@ -78,7 +78,11 @@ to be fit.}
 where Wald statistics are assumed to follow a standard Normal}
 
 \item{minmu}{lower bound on the estimated count for fitting gene-wise dispersion
-and for use with \code{nbinomWaldTest} and \code{nbinomLRT}}
+and for use with \code{nbinomWaldTest} and \code{nbinomLRT}.
+If \code{fitType="glmGamPoi"}, then 1e-6 will be used
+(as this fitType is optimized for single cell data, where a lower
+minmu is recommended), otherwise the default value
+as evaluated on bulk datasets is 0.5}
 
 \item{parallel}{if FALSE, no parallelization. if TRUE, parallel
 execution using \code{BiocParallel}, see next argument \code{BPPARAM}.

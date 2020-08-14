@@ -205,7 +205,11 @@ NULL
 #' @param useT logical, passed to \code{\link{nbinomWaldTest}}, default is FALSE,
 #' where Wald statistics are assumed to follow a standard Normal
 #' @param minmu lower bound on the estimated count for fitting gene-wise dispersion
-#' and for use with \code{nbinomWaldTest} and \code{nbinomLRT}
+#' and for use with \code{nbinomWaldTest} and \code{nbinomLRT}.
+#' If \code{fitType="glmGamPoi"}, then 1e-6 will be used
+#' (as this fitType is optimized for single cell data, where a lower
+#' minmu is recommended), otherwise the default value
+#' as evaluated on bulk datasets is 0.5
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
 #' execution using \code{BiocParallel}, see next argument \code{BPPARAM}.
 #' A note on running in parallel using \code{BiocParallel}: it may be
@@ -266,7 +270,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
                   betaPrior,
                   full=design(object), reduced, quiet=FALSE,
                   minReplicatesForReplace=7, modelMatrixType,
-                  useT=FALSE, minmu=0.5,
+                  useT=FALSE, minmu=if (fitType=="glmGamPoi") 1e-6 else 0.5,
                   parallel=FALSE, BPPARAM=bpparam()) {
   # check arguments
   stopifnot(is(object, "DESeqDataSet"))
