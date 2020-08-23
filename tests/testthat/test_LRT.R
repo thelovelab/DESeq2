@@ -14,12 +14,12 @@ test_that("test='LRT' gives correct errors", {
 
 test_that("test='LRT' with quasi-likelihood estimates gives correct errors", {
   
-  ## dds <- makeExampleDESeqDataSet(n=100, m=4)
-  ## dds$group <- factor(c(1,2,1,2))
-  ## design(dds) <- ~ condition + group
-  ## expect_warning(DESeq(dds, test="Wald", fitType = "glmGamPoi"))
-  ## dds <- estimateSizeFactors(dds)
-  ## dds_gp <- estimateDispersions(dds)
-  ## expect_error(nbinomLRT(dds_gp, reduced = ~ condition, type = "glmGamPoi"))
+  dds <- makeExampleDESeqDataSet(n=100, m=4)
+  dds$group <- factor(c(1,2,1,2))
+  design(dds) <- ~ condition + group
+  expect_warning(DESeq(dds, test="Wald", fitType = "glmGamPoi"))
+  dds <- estimateSizeFactors(dds)
+  dds_gp <- estimateDispersions(dds)
+  expect_error(nbinomLRT(dds_gp, reduced = ~ condition, type = "glmGamPoi"))
     
 })
