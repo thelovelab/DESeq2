@@ -14,7 +14,7 @@
   weightThreshold = 0.01,
   quiet = FALSE,
   modelMatrix = NULL,
-  minmu = 0.5
+  minmu = if (fitType == "glmGamPoi") 1e-06 else 0.5
 )
 }
 \arguments{

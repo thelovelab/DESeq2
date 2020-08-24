@@ -13,7 +13,7 @@ nbinomLRT(
   useOptim = TRUE,
   quiet = FALSE,
   useQR = TRUE,
-  minmu = 0.5,
+  minmu = if (type == "glmGamPoi") 1e-06 else 0.5,
   type = c("DESeq2", "glmGamPoi")
 )
 }

@@ -525,7 +525,8 @@ setMethod("estimateSizeFactors", signature(object="DESeqDataSet"),
 estimateDispersions.DESeqDataSet <- function(object, fitType=c("parametric","local","mean", "glmGamPoi"),
                                              maxit=100, useCR=TRUE,
                                              weightThreshold=1e-2,
-                                             quiet=FALSE, modelMatrix=NULL, minmu=0.5) {
+                                             quiet=FALSE, modelMatrix=NULL,
+                                             minmu=if (fitType=="glmGamPoi") 1e-6 else 0.5) {
   # Temporary hack for backward compatibility with "old" DESeqDataSet
   # objects. Remove once all serialized DESeqDataSet objects around have
   # been updated.
@@ -554,12 +555,12 @@ this column could have come in during colData import and should be removed.")
   }
   stopifnot(length(maxit)==1)
   fitType <- match.arg(fitType, choices=c("parametric","local","mean", "glmGamPoi"))
-  dispersionEstimator <- if(fitType == "glmGamPoi"){
+  dispersionEstimator <- if (fitType == "glmGamPoi") {
     if (!requireNamespace("glmGamPoi", quietly=TRUE)) {
       stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
     }
     "glmGamPoi"
-  }else{
+  } else {
     "DESeq2"
   }
   

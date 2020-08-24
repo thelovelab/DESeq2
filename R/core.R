@@ -280,9 +280,9 @@ DESeq <- function(object, test=c("Wald","LRT"),
   stopifnot(is(object, "DESeqDataSet"))
   test <- match.arg(test, choices=c("Wald","LRT"))
   fitType <- match.arg(fitType, choices=c("parametric","local","mean","glmGamPoi"))
-  dispersionEstimator <- if(fitType == "glmGamPoi"){
+  dispersionEstimator <- if (fitType == "glmGamPoi") {
     "glmGamPoi"
-  }else{
+  } else {
     "DESeq2"
   }
   sfType <- match.arg(sfType, choices=c("ratio","poscounts","iterate"))
@@ -328,7 +328,7 @@ DESeq <- function(object, test=c("Wald","LRT"),
   if (test == "Wald" & !missing(reduced)) {
     stop("'reduced' ignored when test='Wald'")
   }
-  if(dispersionEstimator == "glmGamPoi" && test == "Wald") {
+  if (dispersionEstimator == "glmGamPoi" && test == "Wald") {
     warning("glmGamPoi dispersion estimator should be used in combination with a LRT and not a Wald test.",
             call. = FALSE)
   }
@@ -643,7 +643,8 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
                                        weightThreshold=1e-2,
                                        quiet=FALSE,
                                        modelMatrix=NULL, niter=1, linearMu=NULL,
-                                       minmu=0.5, alphaInit=NULL,
+                                       minmu=if (type=="glmGamPoi") 1e-6 else 0.5,
+                                       alphaInit=NULL,
                                        type = c("DESeq2", "glmGamPoi")) {
   
   type <- match.arg(type, c("DESeq2", "glmGamPoi"))
@@ -1754,7 +1755,8 @@ estimateMLEForBetaPriorVar <- function(object, maxit=100, useOptim=TRUE, useQR=T
 #' @export
 nbinomLRT <- function(object, full=design(object), reduced,
                       betaTol=1e-8, maxit=100, useOptim=TRUE, quiet=FALSE,
-                      useQR=TRUE, minmu=0.5,
+                      useQR=TRUE,
+                      minmu=if (type=="glmGamPoi") 1e-6 else 0.5,
                       type = c("DESeq2", "glmGamPoi")) {
   
   type <- match.arg(type, c("DESeq2", "glmGamPoi"))
@@ -1812,7 +1814,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
   # only continue on the rows with non-zero row mean
   objectNZ <- object[!mcols(object)$allZero,,drop=FALSE]
 
-  if(type == "DESeq2"){
+  if (type == "DESeq2") {
     if (modelAsFormula) {
       fullModel <- fitNbinomGLMs(objectNZ, modelFormula=full,
                                  renameCols=renameCols,
@@ -1862,7 +1864,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
     
     # store Cook's distance for each sample
     assays(object, withDimnames=FALSE)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
-  }else if(type == "glmGamPoi") {
+  } else if (type == "glmGamPoi") {
     sf <- sizeFactors(objectNZ)
     disp_trend <- mcols(objectNZ)$dispFit
     fit_full <- glmGamPoi::glm_gp(objectNZ, design = full, size_factors = sf, 
@@ -1872,7 +1874,7 @@ nbinomLRT <- function(object, full=design(object), reduced,
     fit_full$overdispersion_shrinkage_list <- list(ql_df0 = attr(object, "quasiLikelihood_df0"),
                                                    ql_disp_shrunken = mcols(objectNZ)$qlDispMAP,
                                                    dispersion_trend = mcols(objectNZ)$dispFit)
-    if(any(vapply(fit_full$overdispersion_shrinkage_list, is.null, FUN.VALUE = FALSE))) {
+    if (any(vapply(fit_full$overdispersion_shrinkage_list, is.null, FUN.VALUE = FALSE))) {
       stop("nbinomLRT of type 'glmGamPoi' called, but one or more of 'attr(object, \"quasiLikelihood_df0\")', ",
            "'mcols(object)$qlDispMAP', or 'mcols(object)$dispFit' was null.\n",
            "Please call 'estimateDispersions(dds, fitType = \"glmGamPoi\")' before you call 'nbinomLRT' with ",
@@ -1884,9 +1886,9 @@ nbinomLRT <- function(object, full=design(object), reduced,
     LRTPvalue <- qlr$pval
     
     modelMatrix <- fit_full$model_matrix
-    reducedModelMatrix <- if(is.matrix(reduced)){
+    reducedModelMatrix <- if (is.matrix(reduced)) {
       reduced
-    }else{
+    } else {
       stats::model.matrix.default(reduced, data=as.data.frame(colData(objectNZ)))
     }
     

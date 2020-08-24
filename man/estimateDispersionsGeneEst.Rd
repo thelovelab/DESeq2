@@ -19,7 +19,7 @@ estimateDispersionsGeneEst(
   modelMatrix = NULL,
   niter = 1,
   linearMu = NULL,
-  minmu = 0.5,
+  minmu = if (type == "glmGamPoi") 1e-06 else 0.5,
   alphaInit = NULL,
   type = c("DESeq2", "glmGamPoi")
 )
