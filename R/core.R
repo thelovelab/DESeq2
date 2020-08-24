@@ -777,19 +777,13 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     https://doi.org/10.1101/2020.08.13.249623")
       Counts <- counts(objectNZ)
       initial_lp <- vapply(which(fitidx), function(idx){
-        # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
-        #   log_theta = log(alpha_hat)[idx], model_matrix = modelMatrix,
-        #   do_cr_adj = TRUE)
         sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
       dispersion_fits <- glmGamPoi::overdispersion_mle(Counts[fitidx, ], mean = fitMu[fitidx, ],
                                                        model_matrix = modelMatrix, verbose = ! quiet)
       dispIter[fitidx] <- dispersion_fits$iterations
-      alpha_hat_new[fitidx] <- pmin(dispersion_fits$estimates, maxDisp)
+      alpha_hat_new[fitidx] <- pmin(dispersion_fits$estimate, maxDisp)
       last_lp <- vapply(which(fitidx), function(idx){
-        # glmGamPoi:::conventional_loglikelihood_fast(Counts[idx, ], mu = fitMu[idx, ],
-        #   log_theta = log(alpha_hat_new)[idx], model_matrix = modelMatrix,
-        #   do_cr_adj = TRUE)
         sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat_new[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
     }
