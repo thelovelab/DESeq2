@@ -879,8 +879,8 @@ estimateDispersionsFit <- function(object,fitType=c("parametric","local","mean",
       stop("type='glmGamPoi' requires installing the Bioconductor package 'glmGamPoi'")
     }
     base_means <- mcols(objectNZ)$baseMean[useForFit]
-    median_fit <- glmGamPoi:::loc_median_fit(base_means,
-                                             mcols(objectNZ)$dispGeneEst[useForFit])    
+    median_fit <- glmGamPoi::loc_median_fit(base_means, 
+                                            mcols(objectNZ)$dispGeneEst[useForFit])
     get_closest_index <- function(x, vec){
       iv <- findInterval(x, vec)
       dist_left <- x - vec[ifelse(iv == 0, NA, iv)]
