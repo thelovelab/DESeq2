@@ -238,7 +238,7 @@ NULL
 #' @importFrom genefilter rowVars filtered_p
 #' @importFrom graphics axis hist plot points
 #' @importFrom stats Gamma as.formula coefficients df dnbinom dnorm formula glm loess lowess model.matrix optim p.adjust pchisq pnorm prcomp predict pt qf qnorm rchisq relevel rnbinom rnorm runif splinefun terms terms.formula approx
-#' @importFrom utils read.table
+#' @importFrom utils read.table read.csv askYesNo menu
 #' @importFrom stats4 summary
 #' 
 #' @useDynLib DESeq2
