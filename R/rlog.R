@@ -259,6 +259,7 @@ rlogData <- function(object, intercept, betaPriorVar) {
   if (!missing(intercept)) {
     normalizedData <- normalizedData + ifelse(infiniteIntercept, 0, intercept)
   }
+  rownames(normalizedData) <- rownames(object)
   colnames(normalizedData) <- colnames(object)
   attr(normalizedData,"betaPriorVar") <- betaPriorVar
   if ("Intercept" %in% modelMatrixNames) {
