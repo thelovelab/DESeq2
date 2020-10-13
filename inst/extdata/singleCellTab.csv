@@ -15,7 +15,7 @@ scRNAseq,BuettnerESCData,NA,mouse,Buettner 2015,288,Mouse embryonic stem cells
 scRNAseq,CampbellBrainData,NA,mouse,Campbell 2017,21086,Mouse brain
 scRNAseq,ChenBrainData,NA,mouse,Chen 2017,14437,Mouse brain
 scRNAseq,GrunHSCData,NA,mouse,Grun 2016,1915,Mouse Haematopoietic stem cells
-scRNAseq,KolodziejczykESCData,NA,mouse,Kolodziejczyk 2015,704,Mouse mebryonic stem cells
+scRNAseq,KolodziejczykESCData,NA,mouse,Kolodziejczyk 2015,704,Mouse embryonic stem cells
 scRNAseq,LaMannoBrainData,human-es,human,LaManno 2016,1715,Human embryonic stem cells
 scRNAseq,LaMannoBrainData,human-embryo,human,LaManno 2016,1977,Human embryonic midbrain
 scRNAseq,LaMannoBrainData,human-ips,human,LaManno 2016,337,Human induced pluripotent stem cells

@@ -37,6 +37,10 @@ which can be installed with \code{install_github("KwameForbes/vizWithSCE")}.
 
 \dontrun{
   # involves interactive menu selection...
+  dds <- makeExampleDESeqDataSet()
+  rownames(dds) <- paste0("ENSG",1:nrow(dds))
+  dds <- DESeq(dds)
+  res <- results(dds)
   dat <- integrateWithSingleCell(res, dds)
 }
 

@@ -1,3 +1,25 @@
+CHANGES IN VERSION 1.30.0
+-------------------------
+
+    o Major overhaul of dispersion estimation and GLM estimation
+      functions from Constantin Ahlmann-Eltze, which will allow use of
+      the glmGamPoi package from within DESeq2, in particular relevant
+      for single-cell datasets.  DESeq() can be directed to use
+      glmGamPoi for dispersion and GLM fitting by specifying
+      fitType="glmGamPoi". The glmGamPoi estimation is much faster
+      than original DESeq2 estimation for single-cell datasets,
+      e.g. for 30,000 cells, calling glmGamPoi was 13x faster than
+      original DESeq2. In addition, the dispersion estimation is more
+      accurate for genes with many small counts, as found in
+      single-cell datasets.
+      See glmGamPoi manuscript for details on methods,
+      doi: 10.1101/2020.08.13.249623.
+    o Added integrateWithSingleCell(), written by Kwame Forbes,
+      which directs user to a menu of single-cell datasets
+      available on Bioconductor and downloads/loads the one
+      chosen by the user for further analysis visualization.
+      (Interactive only)
+
 CHANGES IN VERSION 1.28.0
 -------------------------
 

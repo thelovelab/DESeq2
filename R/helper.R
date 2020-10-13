@@ -447,6 +447,10 @@ normTransform <- function(object, f=log2, pc=1) {
 #'
 #' \dontrun{
 #'   # involves interactive menu selection...
+#'   dds <- makeExampleDESeqDataSet()
+#'   rownames(dds) <- paste0("ENSG",1:nrow(dds))
+#'   dds <- DESeq(dds)
+#'   res <- results(dds)
 #'   dat <- integrateWithSingleCell(res, dds)
 #' }
 #' 
@@ -488,21 +492,27 @@ integrateWithSingleCell <- function(res, dds) {
            }
   }
   
-  message(paste("Your dataset appears to be", org))
+  message(paste("Your dataset appears to be", org, "\n"))
 
   # read in table of options from vizWithSCE CSV file
   csv.file <- system.file("extdata/singleCellTab.csv", package="DESeq2")
   tab <- read.csv(csv.file)
   
-  message(paste("Choose a",org,"single-cell dataset to integrate with (0 to cancel)"))
+  message(paste("Choose a",org,"single-cell dataset to integrate with (0 to cancel):\n"))
   
   tab <- tab[tab$org == org,]
-  tab2 <- tab[,c("pkg","func","data", "pub","nCells")]
+  tab2 <- tab[,c("pkg","func","data", "pub","nCells","desc")]
   tab2$data <- ifelse(is.na(tab2$data), "", tab2$data)
   rownames(tab2) <- seq_len(nrow(tab2))
 
-  # print the table
-  print(tab2)
+  # print the table in two parts
+  print(tab2[,1:3])
+  print(tab2[,4:6])
+
+  cat("\n")
+  
+  # repeat the message below the fold
+  message(paste("Choose a",org,"single-cell dataset to integrate with (0 to cancel):"))
   
   menuOpts <- ifelse(is.na(tab2$data), tab2$func, paste(tab2$func, tab2$data, sep="-"))
   ans <- menu(menuOpts)
