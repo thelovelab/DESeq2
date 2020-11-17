@@ -162,7 +162,8 @@ Rory Kirchner,
 R. Butler,
 Ben Keith,
 Dan Liang,
-Nil Aygün.
+Nil Aygün,
+Rory Nolan.
 
 ## Input data
 
