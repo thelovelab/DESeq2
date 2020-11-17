@@ -74,7 +74,7 @@ DESeqParallel <- function(object, test, fitType, betaPrior, full, reduced,
 }
 
 getNworkers <- function(BPPARAM) {
-  nworkers <- BPPARAM$workers
+  nworkers <- bpworkers(BPPARAM)
   if (!nworkers[[1]]) {
     nworkers <- 1 # serial param gives a list with the element FALSE
   }
