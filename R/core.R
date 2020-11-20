@@ -1871,12 +1871,14 @@ nbinomLRT <- function(object, full=design(object), reduced,
     # check for normalization factors, if missing use size factors
     if (is.null(normalizationFactors(objectNZ))) {
       sf <- sizeFactors(objectNZ)
-      fit_full <- glmGamPoi::glm_gp(objectNZ, design = full, size_factors = sf, 
+      fit_full <- glmGamPoi::glm_gp(objectNZ, design = full,
+                                    size_factors = sf, 
                                     overdispersion = disp_trend,
                                     overdispersion_shrinkage = FALSE)
     } else {
       offset <- log( normalizationFactors(objectNZ) )
-      fit_full <- glmGamPoi::glm_gp(objectNZ, design = full, offset = offset,
+      fit_full <- glmGamPoi::glm_gp(objectNZ, design = full,
+                                    size_factors = FALSE, offset = offset,
                                     overdispersion = disp_trend,
                                     overdispersion_shrinkage = FALSE)
     }
