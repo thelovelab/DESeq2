@@ -1865,11 +1865,22 @@ nbinomLRT <- function(object, full=design(object), reduced,
     # store Cook's distance for each sample
     assays(object, withDimnames=FALSE)[["cooks"]] <- buildMatrixWithNARows(cooks, mcols(object)$allZero)
   } else if (type == "glmGamPoi") {
-    sf <- sizeFactors(objectNZ)
+
     disp_trend <- mcols(objectNZ)$dispFit
-    fit_full <- glmGamPoi::glm_gp(objectNZ, design = full, size_factors = sf, 
-                                  overdispersion = disp_trend,
-                                  overdispersion_shrinkage = FALSE)
+    
+    # check for normalization factors, if missing use size factors
+    if (is.null(normalizationFactors(objectNZ))) {
+      sf <- sizeFactors(objectNZ)
+      fit_full <- glmGamPoi::glm_gp(objectNZ, design = full, size_factors = sf, 
+                                    overdispersion = disp_trend,
+                                    overdispersion_shrinkage = FALSE)
+    } else {
+      offset <- log( normalizationFactors(objectNZ) )
+      fit_full <- glmGamPoi::glm_gp(objectNZ, design = full, offset = offset,
+                                    overdispersion = disp_trend,
+                                    overdispersion_shrinkage = FALSE)
+    }
+
     # Get the stuff from objectNZ that is saved there by estimateDispersionMAP()
     fit_full$overdispersion_shrinkage_list <- list(ql_df0 = attr(object, "quasiLikelihood_df0"),
                                                    ql_disp_shrunken = mcols(objectNZ)$qlDispMAP,

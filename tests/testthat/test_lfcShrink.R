@@ -3,14 +3,15 @@ test_that("LFC shrinkage works", {
   
   # testing out various methods for LFC shrinkage
   set.seed(1)
-  dds <- makeExampleDESeqDataSet(betaSD=1,n=1000,m=20)
+  dds <- makeExampleDESeqDataSet(betaSD=1,n=200,m=20)
   expect_error(lfcShrink(dds, coef=2), "first run")
   dds <- DESeq(dds)
   res <- results(dds, name="condition_B_vs_A")
 
   # dds and res must match
-  expect_error(lfcShrink(dds=dds, coef=2, res=res[1:500,], type="normal"), "rownames")
-  expect_error(lfcShrink(dds=dds, coef=2, res=res[1:500,], type="apeglm"), "rownames")
+  idx <- 1:(nrow(dds)/2)
+  expect_error(lfcShrink(dds=dds, coef=2, res=res[idx,], type="normal"), "rownames")
+  expect_error(lfcShrink(dds=dds, coef=2, res=res[idx,], type="apeglm"), "rownames")
 
   # some quick contrast tests
   expect_error(lfcShrink(dds=dds, contrast=c("treatment","B","A"), res=res, type="normal"))
@@ -88,7 +89,7 @@ test_that("LFC shrinkage works", {
   res.ape <- lfcShrink(dds=dds, coef=2, res=res, type="apeglm")
 
   # only running LRT upstream
-  dds <- makeExampleDESeqDataSet(m=4)
+  dds <- makeExampleDESeqDataSet(m=4, n=200)
   mm <- model.matrix(~condition, colData(dds))
   mm0 <- model.matrix(~1, colData(dds))
   dds <- DESeq(dds, full=mm, reduced=mm0, test="LRT")
