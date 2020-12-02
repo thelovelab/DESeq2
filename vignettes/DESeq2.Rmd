@@ -901,7 +901,8 @@ for accounting for unwanted variation in combination with ashr [@Gerard2017].
 
 It can also be useful to examine the counts of reads for a single gene
 across the groups. A simple function for making this
-plot is *plotCounts*, which normalizes counts by sequencing depth
+plot is *plotCounts*, which normalizes counts by the estimated size factors
+(or normalization factors if these were used)
 and adds a pseudocount of 1/2 to allow for log scale plotting.
 The counts are grouped by the variables in `intgroup`, where
 more than one variable can be specified. Here we specify the gene
