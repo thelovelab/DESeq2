@@ -164,7 +164,8 @@ Ben Keith,
 Dan Liang,
 Nil Aygün,
 Rory Nolan,
-Michael Schubert.
+Michael Schubert,
+Hugo Tavares.
 
 ## Input data
 
@@ -1412,14 +1413,19 @@ results(dds, contrast=c("condition","C","B"))
 ``` 
 
 Log2 fold changes can also be added and subtracted by providing a
-`list` to the `contrast` argument which has two elements:
-the names of the log2 fold changes to add, and the names of the log2
-fold changes to subtract. The names used in the list should come from
-`resultsNames(dds)`. Alternatively, a numeric vector of the
-length of `resultsNames(dds)` can be provided, for manually
-specifying the linear combination of terms.  Demonstrations of the use
-of contrasts for various designs can be found in the examples section
-of the help page `?results`. The mathematical formula that is used to
+`list` to the `contrast` argument which has two elements: the names of
+the log2 fold changes to add, and the names of the log2 fold changes
+to subtract. The names used in the list should come from
+`resultsNames(dds)`.
+Alternatively, a numeric vector of the length of `resultsNames(dds)`
+can be provided, for manually specifying the linear combination of
+terms. A 
+[tutorial](https://github.com/tavareshugo/tutorial_DESeq2_contrasts) 
+describing the use of numeric contrasts for DESeq2 explains a general
+approach to comparing across groups of samples.
+Demonstrations of the use of contrasts for various designs can be
+found in the examples section of the help page `?results`.
+The mathematical formula that is used to
 generate the contrasts can be found [below](#theory).
 
 <a name="interactions"/>
