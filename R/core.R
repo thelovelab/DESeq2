@@ -230,7 +230,7 @@ NULL
 #'
 #' For \code{fitType="glmGamPoi"}:
 #' 
-#' Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data. bioRxiv. \url{https://doi.org/10.1101/2020.08.13.249623}
+#' Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data. Bioinformatics. \url{https://doi.org/10.1093/bioinformatics/btaa1009}
 #' 
 #' @import BiocGenerics BiocParallel S4Vectors IRanges GenomicRanges SummarizedExperiment Biobase Rcpp methods
 #'
@@ -774,8 +774,8 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
       }
       if (!quiet) message("using 'glmGamPoi' as fitType. If used in published research, please cite:
     Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson
-    Generalized Linear Models on Single Cell Count Data. bioRxiv.
-    https://doi.org/10.1101/2020.08.13.249623")
+    Generalized Linear Models on Single Cell Count Data. Bioinformatics.
+    https://doi.org/10.1093/bioinformatics/btaa1009")
       Counts <- counts(objectNZ)
       initial_lp <- vapply(which(fitidx), function(idx){
         sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat[idx], log = TRUE))

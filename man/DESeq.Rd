@@ -195,7 +195,7 @@ Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and
 
 For \code{fitType="glmGamPoi"}:
 
-Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data. bioRxiv. \url{https://doi.org/10.1101/2020.08.13.249623}
+Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data. Bioinformatics. \url{https://doi.org/10.1093/bioinformatics/btaa1009}
 }
 \seealso{
 \code{link{results}}, \code{\link{lfcShrink}}, \code{\link{nbinomWaldTest}}, \code{\link{nbinomLRT}}

@@ -706,8 +706,8 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #'   \item Wu, H., Wang, C. & Wu, Z. A new shrinkage estimator for dispersion improves differential
 #' expression detection in RNA-seq data. Biostatistics (2012).
 #' \url{http://dx.doi.org/10.1093/biostatistics/kxs033}
-#'   \item Ahlmann-Eltze, C., Huber, W. glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data. bioRxiv (2020).
-#' \url{https://doi.org/10.1101/2020.08.13.249623}
+#'   \item Ahlmann-Eltze, C., Huber, W. glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data. Bioinformatics (2020).
+#' \url{https://doi.org/10.1093/bioinformatics/btaa1009}
 #' }
 #'
 #' @examples
