@@ -112,7 +112,8 @@ just reply that the question should be posted to the
 ## Acknowledgments
 
 Constantin Ahlmann-Eltze has contributed core code for increasing the
-computational performance of *DESeq2*.
+computational performance of *DESeq2* and building an interface to his
+*glmGamPoi* package.
 
 We have benefited in the development of *DESeq2* from the help and
 feedback of many individuals, including but not limited to: 
@@ -1767,6 +1768,16 @@ rather than a Negative Binomial (NB).
   the [splatter](https://bioconductor.org/packages/splatter) package
   for simulation at the 
   [zinbwave-deseq2](https://github.com/mikelove/zinbwave-deseq2) GitHub repository.
+* One important concern for single-cell data analysis is the size of the datasets and
+  associated processing time. To address the speed concerns, *DESeq2* provides an 
+  interface to [glmGamPoi](https://bioconductor.org/packages/glmGamPoi/), 
+  which implements faster dispersion and parameter estimation routines for 
+  single-cell data [@AhlmannEltze2020]. To use this feature, set `fitType = "glmGamPoi"`.
+  Alternatively, one can use *glmGamPoi*  as a standalone package. 
+  This provides the additional option to process data on-disk if the 
+  full dataset does not fit in memory, a quasi-likelihood framework for differential 
+  testing, and the ability to form pseudobulk samples (more details how to 
+  use *glmGamPoi* are in its [README](https://github.com/const-ae/glmGamPoi)).
 * It is best to use `test="LRT"` for significance testing when working with
   single-cell data, over the Wald test. This has been observed across
   multiple single-cell benchmarks.
