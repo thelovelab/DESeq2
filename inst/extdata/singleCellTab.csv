@@ -41,3 +41,10 @@ scRNAseq,XinPancreasData,NA,human,Xin 2016,1600,Human pancreas
 scRNAseq,ZeiselBrainData,NA,mouse,Zeisel 2015,3005,Mouse brain
 MouseGastrulationData,MouseGastrulationData,NA,mouse,Griffiths 2019,2945,Mouse gastrulation and organogenesis
 TabulaMurisData,TabulaMurisDroplet,NA,mouse,Soneson 2020,23341,10x and SmartSeq2 single-cell RNA-seq data sets
+scRNAseq,ZilionisLungData,NA,human,Zilionis 2019,173954,lung
+scRNAseq,ZilionisLungData,mouse,mouse,Zilionis 2019,17549,lung
+scRNAseq,HermannSpermatogenesisData,NA,mouse,Hermann 2018,2325,spermatogenic cells
+scRNAseq,MairPBMCData,NA,human,NA,29033,peripheral blood mononuclear cells	
+scRNAseq,KotliarovPBMCData,NA,human,Kotliarov 2020,58654,peripheral blood mononuclear cells	
+scRNAseq,WuKidneyData,NA,mouse,Wu 2019,17542,kidney
+scRNAseq,HuCortexData,NA,mouse,HU 2017,48000,cortex
