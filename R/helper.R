@@ -514,7 +514,7 @@ integrateWithSingleCell <- function(res, dds) {
   # repeat the message below the fold
   message(paste("Choose a",org,"single-cell dataset to integrate with (0 to cancel):"))
   
-  menuOpts <- ifelse(is.na(tab2$data), tab2$func, paste(tab2$func, tab2$data, sep="-"))
+  menuOpts <- ifelse(is.na(tab$data), tab$func, paste(tab$func, tab$data, sep="-"))
   ans <- menu(menuOpts)
 
   if (ans == 0) stop("No scRNA-seq dataset selected")
