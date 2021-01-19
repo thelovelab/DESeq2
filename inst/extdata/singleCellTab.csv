@@ -39,7 +39,13 @@ scRNAseq,UsoskinBrainData,NA,mouse,Usoskin 2015,864,Mouse brain
 scRNAseq,TasicBrainData,NA,mouse,Tasic 2016,1809,Mouse brain
 scRNAseq,XinPancreasData,NA,human,Xin 2016,1600,Human pancreas
 scRNAseq,ZeiselBrainData,NA,mouse,Zeisel 2015,3005,Mouse brain
-MouseGastrulationData,MouseGastrulationData,NA,mouse,Griffiths 2019,2945,Mouse gastrulation/organogenesis
+MouseGastrulationData,AtlasSampleMetadata,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
+MouseGastrulationData,EmbryoAtlasData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
+MouseGastrulationData,EmbryoCelltypeColours,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
+MouseGastrulationData,GuibentifExtraData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
+MouseGastrulationData,Tal1ChimeraData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
+MouseGastrulationData,TChimeraData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
+MouseGastrulationData,WTChimeraData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
 TabulaMurisData,TabulaMurisDroplet,NA,mouse,Soneson 2020,23341,10x and SmartSeq2 scRNA-seq
 scRNAseq,ZilionisLungData,human,human,Zilionis 2019,173954,lung cancer
 scRNAseq,ZilionisLungData,mouse,mouse,Zilionis 2019,17549,lung cancer
