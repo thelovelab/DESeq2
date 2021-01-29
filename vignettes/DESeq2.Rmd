@@ -2251,7 +2251,12 @@ Note that, if you have unbalanced numbers of individuals in the two
 groups, you will have zeros for some of the interactions between `grp`
 and `ind.n`. You can remove these columns manually from the model
 matrix and pass the corrected model matrix to the `full` argument of
-the *DESeq* function. See example code in the next section.
+the *DESeq* function. See example code in the next section. Note that,
+in this case, you will not be able to create the *DESeqDataSet* with
+the design that leads to less than full rank model matrix. You can
+either use `design=~1` when creating the dataset object, or you can
+provide the corrected model matrix to the `design` slot of the dataset
+from the start.
 
 Above, the terms `grpX.cndB` and `grpY.cndB` give the
 group-specific condition effects, in other words, the condition B vs A
