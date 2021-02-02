@@ -232,8 +232,8 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
       if (msgCenterScale) {
         message("  the design formula contains one or more numeric variables that have mean or
   standard deviation larger than 5 (an arbitrary threshold to trigger this message).
-  it is generally a good idea to center and scale numeric variables in the design
-  to improve GLM convergence.")
+  Including numeric variables with large mean can induce collinearity with the intercept.
+  Users should center and scale numeric variables in the design to improve GLM convergence.")
       }
     }
 
