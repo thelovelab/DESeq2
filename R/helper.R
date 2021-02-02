@@ -439,6 +439,7 @@ normTransform <- function(object, f=log2, pc=1) {
 #' @param res a results table, as produced via \code{\link{results}}
 #' @param dds a DESeqDataSet with the bulk gene expression data
 #' (should contain gene-level counts)
+#' @param ... additional arguments passed to the dataset-accessing function
 #'
 #' @return list containing: res, dds, and a SingleCellExperiment as selected
 #' by the user
@@ -457,7 +458,7 @@ normTransform <- function(object, f=log2, pc=1) {
 #' @author Kwame Forbes
 #' 
 #' @export
-integrateWithSingleCell <- function(res, dds) {
+integrateWithSingleCell <- function(res, dds, ...) {
 
   # function written by Kwame Forbes, to assist with integration of
   # bulk DE results with Bioconductor single-cell RNA-seq datasets.
@@ -521,20 +522,20 @@ integrateWithSingleCell <- function(res, dds) {
   
   pkg <- tab$pkg[ans]
   if (!requireNamespace(package=pkg, quietly=TRUE)) {
-    message(paste0("Package: '",pkg, "' not installed."))
-    ask <- askYesNo("Would you like to install package?")
+    message(paste0("Package: '",pkg, "' is not installed"))
+    ask <- askYesNo("Would you like to install the necessary data package?")
     if (ask) {
       if (!requireNamespace(package="BiocManager", quietly=TRUE)) {
-        stop("BiocManager required to install packages, install from CRAN")
+        stop("'BiocManager' required to install packages, install from CRAN")
       }
       BiocManager::install(pkg)
     } else {
       stop("Package would need to be installed")
     }
-    if (!requireNamespace(package=pkg, quietly=TRUE)) {
-      message("Package installed successfully")
+    if (requireNamespace(package=pkg, quietly=TRUE)) {
+      message("Data package was installed successfully")
     } else {
-      stop("Package needs to be installed")
+      stop("Data package still needs to be installed for integrateWithSingleCell to work")
     }
   }
 
@@ -545,16 +546,16 @@ integrateWithSingleCell <- function(res, dds) {
   if (pkg == "scRNAseq") {
     # if only one dataset within the function...
     if (is.na(tab$data[ans])) {
-      sce <- do.call(tab$func[ans], list(ensembl=TRUE))
+      sce <- do.call(tab$func[ans], list(ensembl=TRUE, ...))
     } else {
-      sce <- do.call(tab$func[ans], list(which=tab$data[ans], ensembl=TRUE))
+      sce <- do.call(tab$func[ans], list(which=tab$data[ans], ensembl=TRUE, ...))
     }
   } else {
     # if only one dataset within the function...
     if (is.na(tab$data[ans])) {
-      sce <- do.call(tab$func[ans], list())
+      sce <- do.call(tab$func[ans], list(...))
     } else {
-      sce <- do.call(tab$func[ans], list(dataset=tab$data[ans]))
+      sce <- do.call(tab$func[ans], list(dataset=tab$data[ans], ...))
     }
   }
 

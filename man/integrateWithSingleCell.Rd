@@ -4,13 +4,15 @@
 \alias{integrateWithSingleCell}
 \title{Integrate bulk DE results with Bioconductor single-cell RNA-seq datasets}
 \usage{
-integrateWithSingleCell(res, dds)
+integrateWithSingleCell(res, dds, ...)
 }
 \arguments{
 \item{res}{a results table, as produced via \code{\link{results}}}
 
 \item{dds}{a DESeqDataSet with the bulk gene expression data
 (should contain gene-level counts)}
+
+\item{...}{additional arguments passed to the dataset-accessing function}
 }
 \value{
 list containing: res, dds, and a SingleCellExperiment as selected

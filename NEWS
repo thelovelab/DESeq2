@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.31.13
+--------------------------
+
+    o Allow additional arguments to be passed to data-accessing
+      functions in integrateWithSingleCell().
+
 CHANGES IN VERSION 1.31.2
 -------------------------
 
