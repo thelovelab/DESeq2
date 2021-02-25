@@ -39,9 +39,7 @@ scRNAseq,UsoskinBrainData,NA,mouse,Usoskin 2015,864,Mouse brain
 scRNAseq,TasicBrainData,NA,mouse,Tasic 2016,1809,Mouse brain
 scRNAseq,XinPancreasData,NA,human,Xin 2016,1600,Human pancreas
 scRNAseq,ZeiselBrainData,NA,mouse,Zeisel 2015,3005,Mouse brain
-MouseGastrulationData,AtlasSampleMetadata,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
 MouseGastrulationData,EmbryoAtlasData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
-MouseGastrulationData,EmbryoCelltypeColours,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
 MouseGastrulationData,GuibentifExtraData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
 MouseGastrulationData,Tal1ChimeraData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
 MouseGastrulationData,TChimeraData,NA,mouse,Griffiths 2019,29452,Mouse gastrulation/organogenesis
