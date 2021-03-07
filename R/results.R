@@ -172,6 +172,8 @@
 #' the \code{GRanges} or \code{GRangesList} \code{rowRanges} of the \code{DESeqDataSet}.
 #' If the \code{rowRanges} is a \code{GRangesList}, and \code{GRanges} is requested, 
 #' the range of each gene will be returned
+#' @param saveCols character or numeric vector, the columns of
+#' \code{mcols(object)} to pass into the \code{results} output
 #' @param test this is automatically detected internally if not provided.
 #' the one exception is after \code{nbinomLRT} has been run, \code{test="Wald"}
 #' will generate Wald statistics and Wald test p-values.
@@ -300,7 +302,8 @@ results <- function(object, contrast, name,
                     pAdjustMethod="BH",
                     filterFun,
                     format=c("DataFrame","GRanges","GRangesList"),
-                    test, 
+                    saveCols=NULL,
+                    test,
                     addMLE=FALSE,
                     tidy=FALSE,
                     parallel=FALSE, BPPARAM=bpparam(), 
@@ -311,12 +314,12 @@ results <- function(object, contrast, name,
   # match args
   format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
   altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
-
   if (!missing(test)) {
     test <- match.arg(test, choices=c("Wald","LRT"))
   }
   
-  # initial argument testing
+  ### initial argument testing ###
+  
   stopifnot(lfcThreshold >= 0)
   stopifnot(length(lfcThreshold)==1)
   stopifnot(length(alpha)==1)
@@ -355,6 +358,17 @@ of length 3 to 'contrast' instead of using 'name'")
       stop("rowRanges is GRangesList and one or more GRanges have length 0. Use format='DataFrame' or 'GRangesList'")
     }
   }
+
+  if (!is.null(saveCols)) {
+    if (is(saveCols, "character"))
+      stopifnot(all(saveCols %in% colnames(mcols(object))))
+    if (is(saveCols, "numeric")) {
+      stopifnot(saveCols == round(saveCols))
+      stopifnot(min(saveCols) > 0)
+      stopifnot(max(saveCols) <= ncol(mcols(object)))
+    }
+  }
+
   if (!missing(contrast)) {
     if (attr(object,"modelMatrixType") == "user-supplied" & is.character(contrast)) {
       stop("only list- and numeric-type contrasts are supported for user-supplied model matrices")
@@ -387,6 +401,8 @@ of length 3 to 'contrast' instead of using 'name'")
       stop("the argument 'name' should be a character vector of length 1")
     }
   }
+
+  ### done with input argument testing ###
   
   WaldResults <- paste0("WaldPvalue_",name) %in% names(mcols(object))
   LRTResults <- "LRTPvalue" %in% names(mcols(object))
@@ -576,7 +592,7 @@ of length 3 to 'contrast' instead of using 'name'")
   }
 
   # return DataFrame, GRanges or GRangesList
-  out <- resultsFormatSwitch(object=object, res=deseqRes, format=format)
+  out <- resultsFormatSwitch(object=object, res=deseqRes, format=format, saveCols=saveCols)
   return(out)
 }
 
@@ -1131,26 +1147,36 @@ or the denominator (second element of contrast list), but not both")
 }
 
 # function to determine output of results() and lfcShrink()
-resultsFormatSwitch <- function(object, res, format) {
+resultsFormatSwitch <- function(object, res, format, saveCols) {
+  
   if (format == "DataFrame") {
-    return(res)
+    out <- res
   } else if (format == "GRangesList") {
     if (is(rowRanges(object), "GRanges")) warning("rowRanges is GRanges")
     out <- rowRanges(object)
     mcols(out) <- res
-    return(out)
   } else if (format == "GRanges") {
     if (is(rowRanges(object), "GRangesList")) {
       message("rowRanges is GRangesList, performing unlist(range(x)) on the rowRanges")
       out <- unlist(range(rowRanges(object)))
       mcols(out) <- res
-      return(out)
     } else {
       out <- rowRanges(object)
       mcols(out) <- res
-      return(out)
     }
   }
+
+  # code to save certain columns of mcols(rowRanges) / rowData
+  if (!is.null(saveCols)) {
+    mcols2Save <- mcols(object)[,saveCols,drop=FALSE]
+    if (format == "DataFrame") {
+      out <- cbind(out, mcols2Save)
+    } else {
+      mcols(out) <- cbind(mcols(out), mcols2Save)
+    }
+  }
+
+  out
 }
 
 

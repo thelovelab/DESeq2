@@ -14,6 +14,7 @@ lfcShrink(
   svalue = FALSE,
   returnList = FALSE,
   format = c("DataFrame", "GRanges", "GRangesList"),
+  saveCols = NULL,
   apeAdapt = TRUE,
   apeMethod = "nbinomCR",
   parallel = FALSE,
@@ -64,6 +65,9 @@ output of \code{apeglm} or \code{ashr}}
 
 \item{format}{same as defined in \code{\link{results}},
 either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"}}
+
+\item{saveCols}{same as defined in \code{\link{results}},
+which metadata columns to pass into output}
 
 \item{apeAdapt}{logical, should \code{apeglm} use the MLE estimates of
 LFC to adapt the prior, or use default or specified \code{prior.control}}

@@ -21,6 +21,7 @@ results(
   pAdjustMethod = "BH",
   filterFun,
   format = c("DataFrame", "GRanges", "GRangesList"),
+  saveCols = NULL,
   test,
   addMLE = FALSE,
   tidy = FALSE,
@@ -130,6 +131,9 @@ or if the results DataFrame should be attached as metadata columns to
 the \code{GRanges} or \code{GRangesList} \code{rowRanges} of the \code{DESeqDataSet}.
 If the \code{rowRanges} is a \code{GRangesList}, and \code{GRanges} is requested, 
 the range of each gene will be returned}
+
+\item{saveCols}{character or numeric vector, the columns of
+\code{mcols(object)} to pass into the \code{results} output}
 
 \item{test}{this is automatically detected internally if not provided.
 the one exception is after \code{nbinomLRT} has been run, \code{test="Wald"}

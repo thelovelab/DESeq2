@@ -117,10 +117,16 @@ test_that("results: likelihood ratio test", {
               -1 * results(dds, test="LRT", contrast=c("group","2","1"))$log2FoldChange))
 })
 
-test_that("results basics regarding format, tidy, MLE, remove are working", {
+test_that("results basics regarding format, saveCols, tidy, MLE, remove are working", {
   dds <- makeExampleDESeqDataSet(n=100)
+  mcols(dds)$score <- 1:100
   dds <- DESeq(dds)
-  res <- results(dds, format="GRanges")
+
+  # try saving metadata columns
+  res <- results(dds, saveCols=4) # integer
+  res <- results(dds, saveCols="score") # character
+  res <- results(dds, format="GRanges", saveCols=4)
+  
   expect_warning(results(dds, format="GRangesList"))
 
   rowRanges(dds) <- as(rowRanges(dds), "GRangesList")

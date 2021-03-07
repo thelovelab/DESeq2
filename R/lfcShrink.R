@@ -74,6 +74,8 @@
 #' output of \code{apeglm} or \code{ashr}
 #' @param format same as defined in \code{\link{results}},
 #' either \code{"DataFrame"}, \code{"GRanges"}, or \code{"GRangesList"}
+#' @param saveCols same as defined in \code{\link{results}},
+#' which metadata columns to pass into output
 #' @param apeAdapt logical, should \code{apeglm} use the MLE estimates of
 #' LFC to adapt the prior, or use default or specified \code{prior.control}
 #' @param apeMethod what \code{method} to run \code{apeglm}, which can
@@ -145,6 +147,7 @@ lfcShrink <- function(dds, coef, contrast, res,
                       svalue=FALSE,
                       returnList=FALSE,
                       format=c("DataFrame","GRanges","GRangesList"),
+                      saveCols=NULL,
                       apeAdapt=TRUE, apeMethod="nbinomCR",
                       parallel=FALSE, BPPARAM=bpparam(),
                       quiet=FALSE, ...) {  
@@ -321,7 +324,7 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
                            version=deseq2.version,
                            betaPriorVar=betaPriorVar)
 
-    res <- resultsFormatSwitch(object=dds, res=res, format=format)
+    res <- resultsFormatSwitch(object=dds, res=res, format=format, saveCols=saveCols)
     return(res)
     
   } else if (type == "apeglm") {
@@ -443,7 +446,7 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
                            package="apeglm",
                            version=packageVersion("apeglm"),
                            prior.control=fit$prior.control)
-    res <- resultsFormatSwitch(object=dds, res=res, format=format)
+    res <- resultsFormatSwitch(object=dds, res=res, format=format, saveCols=saveCols)
     if (returnList) {
       return(list(res=res, fit=fit))
     } else {
@@ -488,7 +491,7 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
                            package="ashr",
                            version=packageVersion("ashr"),
                            fitted_g=fit$fitted_g)
-    res <- resultsFormatSwitch(object=dds, res=res, format=format)
+    res <- resultsFormatSwitch(object=dds, res=res, format=format, saveCols=saveCols)
     if (returnList) {
       return(list(res=res, fit=fit))
     } else{

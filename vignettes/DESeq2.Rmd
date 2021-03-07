@@ -166,7 +166,8 @@ Dan Liang,
 Nil Aygün,
 Rory Nolan,
 Michael Schubert,
-Hugo Tavares.
+Hugo Tavares,
+Eric Davis.
 
 ## Input data
 
