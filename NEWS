@@ -1,3 +1,8 @@
+CHANGES IN VERSION 1.31.16
+--------------------------
+
+    o Turning off outlier replacement with glmGamPoi fitting.
+
 CHANGES IN VERSION 1.31.15
 --------------------------
 

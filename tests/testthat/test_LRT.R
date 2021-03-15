@@ -13,11 +13,16 @@ test_that("test='LRT' gives correct errors", {
 
 test_that("glmGamPoi works", {
 
-  dds <- makeExampleDESeqDataSet(n=100, m=8)
-  dds$group <- factor(rep(1:2,times=4))
+  dds <- makeExampleDESeqDataSet(n=100, m=20)
+  dds$group <- factor(rep(1:2, times=10))
   design(dds) <- ~group + condition
   dds <- DESeq(dds, test="LRT", reduced=~1, fitType="glmGamPoi")
 
+  # test outlier
+  counts(dds)[1,1] <- 10000L
+  design(dds) <- ~condition
+  dds <- DESeq(dds, test="LRT", reduced=~1, fitType="glmGamPoi")
+  
   # Michael Schubert's test
   dds <- makeExampleDESeqDataSet(n=100, m=8)
   nm = matrix(2, nrow=nrow(dds), ncol=ncol(dds))

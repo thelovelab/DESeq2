@@ -138,6 +138,7 @@ NULL
 #' are eligible for automatic replacement in the case of extreme Cook's distance.
 #' By default, \code{DESeq} will replace outliers if the Cook's distance is
 #' large for a sample which has 7 or more replicates (including itself).
+#' Outlier replacement is turned off entirely for \code{fitType="glmGamPoi"}.
 #' This replacement is performed by the \code{\link{replaceOutliers}}
 #' function. This default behavior helps to prevent filtering genes
 #' based on Cook's distance when there are many degrees of freedom.
@@ -194,6 +195,7 @@ NULL
 #' sample. If there are samples with so many replicates, the model will
 #' be refit after these replacing outliers, flagged by Cook's distance.
 #' Set to \code{Inf} in order to never replace outliers.
+#' It set to \code{Inf} for \code{fitType="glmGamPoi"}.
 #' @param modelMatrixType either "standard" or "expanded", which describe
 #' how the model matrix, X of the GLM formula is formed.
 #' "standard" is as created by \code{model.matrix} using the
@@ -284,6 +286,10 @@ DESeq <- function(object, test=c("Wald","LRT"),
     "glmGamPoi"
   } else {
     "DESeq2"
+  }
+  # turn off outlier replacement for glmGamPoi
+  if (fitType == "glmGamPoi") {
+    minReplicatesForReplace <- Inf
   }
   sfType <- match.arg(sfType, choices=c("ratio","poscounts","iterate"))
   # more check arguments

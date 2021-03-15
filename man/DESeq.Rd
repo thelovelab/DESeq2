@@ -63,7 +63,8 @@ alternatively, it can be a model matrix constructed by the user}
 in order to use \code{\link{replaceOutliers}} on a
 sample. If there are samples with so many replicates, the model will
 be refit after these replacing outliers, flagged by Cook's distance.
-Set to \code{Inf} in order to never replace outliers.}
+Set to \code{Inf} in order to never replace outliers.
+It set to \code{Inf} for \code{fitType="glmGamPoi"}.}
 
 \item{modelMatrixType}{either "standard" or "expanded", which describe
 how the model matrix, X of the GLM formula is formed.
@@ -151,6 +152,7 @@ The argument \code{minReplicatesForReplace} is used to decide which samples
 are eligible for automatic replacement in the case of extreme Cook's distance.
 By default, \code{DESeq} will replace outliers if the Cook's distance is
 large for a sample which has 7 or more replicates (including itself).
+Outlier replacement is turned off entirely for \code{fitType="glmGamPoi"}.
 This replacement is performed by the \code{\link{replaceOutliers}}
 function. This default behavior helps to prevent filtering genes
 based on Cook's distance when there are many degrees of freedom.
