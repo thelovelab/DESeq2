@@ -2656,13 +2656,14 @@ with balanced batches would be:
 
 ```{r, eval=FALSE}
 mat <- assay(vsd)
-mat <- limma::removeBatchEffect(mat, vsd$batch)
+mm <- model.matrix(~condition, colData(vsd))
+mat <- limma::removeBatchEffect(mat, batch=vsd$batch, design=mm)
 assay(vsd) <- mat
 plotPCA(vsd)
 ```
 
-For unbalanced batches (e.g. the condition groups are not distributed
-balanced across batches), the `design` argument should be used, see
+The `design` argument is necessary to avoiding removing variation
+associated with the treatment conditions. See
 `?removeBatchEffect` in the *limma* package for details.
 
 ## Do normalized counts correct for variables in the design?
