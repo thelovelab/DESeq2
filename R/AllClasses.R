@@ -141,6 +141,12 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     }
   }
   if (is.null(assayNames(se)) || assayNames(se)[1] != "counts") {
+    # check if "counts" are in another assay spot:
+    if (length(assayNames(se)) > 1) {
+      if ("counts" %in% assayNames(se)[-1]) {
+        stop("'counts' assay is not the first in assays list, re-arrange so that 'counts' is first")
+      }
+    }
     message("renaming the first element in assays to 'counts'")
     assayNames(se)[1] <- "counts"
   }
