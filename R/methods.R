@@ -34,10 +34,7 @@ calling DESeq() will replace outliers if they are detected and store this assay.
 #' count values, one row for each observational unit (gene or the like), and one
 #' column for each sample. 
 #'
-#' @docType methods
-#' @name counts
 #' @rdname counts
-#' @aliases counts counts,DESeqDataSet-method counts<-,DESeqDataSet,matrix-method
 #'
 #' @param object a \code{DESeqDataSet} object.
 #' @param normalized logical indicating whether or not to divide the counts by
@@ -61,9 +58,8 @@ calling DESeq() will replace outliers if they are detected and store this assay.
 #' @export
 setMethod("counts", signature(object="DESeqDataSet"), counts.DESeqDataSet)
 
-#' @name counts
 #' @rdname counts
-#' @exportMethod "counts<-"
+#' @export
 setReplaceMethod("counts", signature(object="DESeqDataSet", value="matrix"),
                  function( object, value ) {
                    assays(object)[["counts"]] <- value
@@ -80,10 +76,8 @@ design.DESeqDataSet <- function(object) object@design
 #' counts depend on the variables in \code{colData}.
 #' See \code{\link{DESeqDataSet}} for details.
 #' 
-#' @docType methods
-#' @name design
 #' @rdname design
-#' @aliases design design,DESeqDataSet-method design<-,DESeqDataSet,formula-method design<-,DESeqDataSet,matrix-method
+#'
 #' @param object a \code{DESeqDataSet} object
 #' @param value a \code{formula} used for estimating dispersion
 #' and fitting Negative Binomial GLMs
@@ -107,14 +101,12 @@ design.replace <- function( object, value ) {
   object
 }
 
-#' @name design
 #' @rdname design
-#' @exportMethod "design<-"
+#' @export
 setReplaceMethod("design", signature(object="DESeqDataSet", value="formula"), design.replace)
 
-#' @name design
 #' @rdname design
-#' @exportMethod "design<-"
+#' @export
 setReplaceMethod("design", signature(object="DESeqDataSet", value="matrix"), design.replace)
 
 dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
@@ -128,10 +120,8 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 #' Setting this will also overwrite \code{mcols(object)$dispFit} and the estimate
 #' the variance of dispersion residuals, see \code{estimateVar} below.
 #'
-#' @docType methods
-#' @name dispersionFunction
 #' @rdname dispersionFunction
-#' @aliases dispersionFunction dispersionFunction,DESeqDataSet-method dispersionFunction<-,DESeqDataSet,function-method
+#'
 #' @param object a \code{DESeqDataSet} object.
 #' @param value a \code{function}
 #' @param estimateVar whether to estimate the variance of dispersion residuals.
@@ -203,9 +193,8 @@ dispFun.replace <- function(object, value, estimateVar=TRUE) {
   object
 }
 
-#' @name dispersionFunction
 #' @rdname dispersionFunction
-#' @exportMethod "dispersionFunction<-"
+#' @export
 setReplaceMethod("dispersionFunction", signature(object="DESeqDataSet", value="function"), dispFun.replace)
 
 dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
@@ -216,10 +205,8 @@ dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
 #' The dispersions for each row of the DESeqDataSet.  Generally,
 #' these are set by \code{\link{estimateDispersions}}.
 #' 
-#' @docType methods
-#' @name dispersions
 #' @rdname dispersions
-#' @aliases dispersions dispersions,DESeqDataSet-method dispersions<-,DESeqDataSet,numeric-method
+#'
 #' @param object a \code{DESeqDataSet} object.
 #' @param value the dispersions to use for the Negative Binomial modeling
 #' @param ... additional arguments
@@ -231,9 +218,8 @@ dispersions.DESeqDataSet <- function(object) mcols(object)$dispersion
 setMethod("dispersions", signature(object="DESeqDataSet"),
           dispersions.DESeqDataSet)
 
-#' @name dispersions
 #' @rdname dispersions
-#' @exportMethod "dispersions<-"
+#' @export
 setReplaceMethod("dispersions", signature(object="DESeqDataSet", value="numeric"),
                  function(object, value) {
                    firstRowDataColumn <- ncol(mcols(object)) == 0
@@ -265,10 +251,8 @@ sizeFactors.DESeqDataSet <- function(object) {
 #' If gene-specific normalization
 #' is desired for each sample, use \code{\link{normalizationFactors}}.
 #' 
-#' @docType methods
-#' @name sizeFactors
 #' @rdname sizeFactors
-#' @aliases sizeFactors sizeFactors,DESeqDataSet-method sizeFactors<-,DESeqDataSet,numeric-method
+#'
 #' @param object a \code{DESeqDataSet} object.
 #' @param value a numeric vector, one size factor for each column in the count
 #' data.
@@ -279,9 +263,8 @@ sizeFactors.DESeqDataSet <- function(object) {
 setMethod("sizeFactors", signature(object="DESeqDataSet"),
           sizeFactors.DESeqDataSet)
 
-#' @name sizeFactors
 #' @rdname sizeFactors
-#' @exportMethod "sizeFactors<-"
+#' @export
 setReplaceMethod("sizeFactors", signature(object="DESeqDataSet", value="numeric"),
                  function( object, value ) {
                    stopifnot(all(!is.na(value)))
@@ -361,9 +344,8 @@ normalizationFactors.DESeqDataSet <- function(object) {
 setMethod("normalizationFactors", signature(object="DESeqDataSet"),
           normalizationFactors.DESeqDataSet)
 
-#' @name normalizationFactors
 #' @rdname normalizationFactors
-#' @exportMethod "normalizationFactors<-"
+#' @export
 setReplaceMethod("normalizationFactors", signature(object="DESeqDataSet", value="matrix"),
                  function(object, value) {
                    stopifnot(all(!is.na(value)))
@@ -449,10 +431,7 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
 #' Internally, the function calls \code{\link{estimateSizeFactorsForMatrix}}, 
 #' which provides more details on the calculation.
 #'
-#' @docType methods
-#' @name estimateSizeFactors
 #' @rdname estimateSizeFactors
-#' @aliases estimateSizeFactors estimateSizeFactors,DESeqDataSet-method
 #' 
 #' @param object a DESeqDataSet
 #' @param type Method for estimation: either "ratio", "poscounts", or "iterate".
@@ -662,10 +641,8 @@ checkForExperimentalReplicates <- function(object, modelMatrix) {
 #' \code{\link{estimateDispersionsFit}}, and
 #' \code{\link{estimateDispersionsMAP}}.
 #' 
-#' @docType methods
-#' @name estimateDispersions
 #' @rdname estimateDispersions
-#' @aliases estimateDispersions estimateDispersions,DESeqDataSet-method
+#'
 #' @param object a DESeqDataSet
 #' @param fitType either "parametric", "local", "mean", or "glmGamPoi"
 #' for the type of fitting of dispersions to the mean intensity.
@@ -729,10 +706,8 @@ setMethod("estimateDispersions", signature(object="DESeqDataSet"),
 #' and p-values, then shows the DataFrame using the
 #' standard method.
 #' 
-#' @docType methods
-#' @name show
 #' @rdname show
-#' @aliases show show,DESeqResults-method
+#'
 #' @author Michael Love
 #' 
 #' @param object a DESeqResults object
@@ -761,9 +736,8 @@ setMethod("show", signature(object="DESeqResults"), function(object) {
 #' defaults to FALSE so that the coefficients are given.
 #' @param ... additional arguments
 #'
-#' @name coef
 #' @rdname coef
-#' @aliases coef coef.DESeqDataSet
+#'
 #' @author Michael Love
 #' @importFrom stats coef
 #'
@@ -865,10 +839,8 @@ summary.DESeqResults <- function(object, alpha, ...) {
 #' to 0.1.
 #' @param ... additional arguments
 #'
-#' @docType methods
-#' @name summary
 #' @rdname summary
-#' @aliases summary summary,DESeqResults-method
+#'
 #' @author Michael Love
 #'  
 #' @examples
@@ -886,10 +858,7 @@ setMethod("summary", signature(object="DESeqResults"), summary.DESeqResults)
 #' 
 #' The priorInfo slot contains details about the prior on log fold changes
 #' 
-#' @docType methods
-#' @name priorInfo
 #' @rdname priorInfo
-#' @aliases priorInfo priorInfo,DESeqResults-method priorInfo<-,DESeqResults,list-method
 #' 
 #' @param object a \code{DESeqResults} object
 #' @param value a \code{list}
@@ -899,9 +868,8 @@ setMethod("summary", signature(object="DESeqResults"), summary.DESeqResults)
 setMethod("priorInfo", signature(object="DESeqResults"),
           function(object) object@priorInfo)
 
-#' @name priorInfo
 #' @rdname priorInfo
-#' @exportMethod "priorInfo<-"
+#' @export
 setReplaceMethod("priorInfo", signature(object="DESeqResults", value="list"),
                  function(object, value) {
                    object@priorInfo <- value
