@@ -170,6 +170,13 @@ Hugo Tavares,
 Eric Davis,
 Wancen Mu.
 
+## Funding
+
+DESeq2 and its developers have been partially supported by funding from
+the European Union’s 7th Framework Programme via Project RADIANT,
+NIH NHGRI R01-HG009937,
+and by a CZI EOSS award.
+
 ## Input data
 
 ### Why un-normalized counts?
