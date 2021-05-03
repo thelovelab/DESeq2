@@ -493,14 +493,19 @@ processTximeta <- function(se) {
   mode(assay(se)) <- "integer"
   stopifnot("countsFromAbundance" %in% names(metadata(se)))
   cfa <- metadata(se)$countsFromAbundance
-  stopifnot(cfa %in% c("no","scaledTPM","lengthScaledTPM"))  
+  stopifnot(cfa %in% c("no","scaledTPM","lengthScaledTPM"))
+  lengthPresent <- "length" %in% assayNames(se)
   if (cfa %in% c("scaledTPM","lengthScaledTPM")) {
     message("using just counts from tximeta")
   } else {
-    message("using counts and average transcript lengths from tximeta")
-    stopifnot(all(assays(se)$length > 0))
-    anms <- assayNames(se)
-    assayNames(se)[anms == "length"] <- "avgTxLength"
+    if (lengthPresent) {
+      message("using counts and average transcript lengths from tximeta")
+      stopifnot(all(assays(se)$length > 0))
+      anms <- assayNames(se)
+      assayNames(se)[anms == "length"] <- "avgTxLength"
+    } else {
+      message("length assay is missing, using original counts without length adjustment")
+    }
   }
   return(se)
 }
