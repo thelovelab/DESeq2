@@ -7,7 +7,7 @@ CHANGES IN VERSION 1.31.15
 --------------------------
 
     o Added 'saveCols' in results() and lfcShrink() to pass
-      metadata columsn to output.
+      metadata columns to output.
 
 CHANGES IN VERSION 1.31.13
 --------------------------
