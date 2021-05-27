@@ -290,6 +290,9 @@ DESeq <- function(object, test=c("Wald","LRT"),
   # turn off outlier replacement for glmGamPoi
   if (fitType == "glmGamPoi") {
     minReplicatesForReplace <- Inf
+    if (parallel) {
+      warning("parallelization of DESeq() is not implemented for fitType='glmGamPoi'")
+    }
   }
   sfType <- match.arg(sfType, choices=c("ratio","poscounts","iterate"))
   # more check arguments
