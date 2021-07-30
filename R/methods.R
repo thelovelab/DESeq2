@@ -801,7 +801,7 @@ summary.DESeqResults <- function(object, alpha, ...) {
   cat("\n")
   notallzero <- sum(object$baseMean > 0)
   up <- sum(object[[test.col]] < alpha & object$log2FoldChange > T, na.rm=TRUE)
-  down <- sum(object[[test.col]] < alpha & object$log2FoldChange < T, na.rm=TRUE)
+  down <- sum(object[[test.col]] < alpha & object$log2FoldChange < -T, na.rm=TRUE)
   if (!sval) {
     filt <- sum(!is.na(object$pvalue) & is.na(object$padj))
     outlier <- sum(object$baseMean > 0 & is.na(object$pvalue))
