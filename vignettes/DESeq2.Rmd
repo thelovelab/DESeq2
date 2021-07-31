@@ -168,7 +168,8 @@ Rory Nolan,
 Michael Schubert,
 Hugo Tavares,
 Eric Davis,
-Wancen Mu.
+Wancen Mu,
+Zhang Cheng.
 
 ## Funding
 
