@@ -214,7 +214,13 @@ NULL
 #' as evaluated on bulk datasets is 0.5
 #' @param parallel if FALSE, no parallelization. if TRUE, parallel
 #' execution using \code{BiocParallel}, see next argument \code{BPPARAM}.
-#' A note on running in parallel using \code{BiocParallel}: it may be
+#' Two notes on running in parallel using \code{BiocParallel}:
+#' 1) it is recommended to filter out genes where all samples have
+#' low counts before running DESeq2 in parellel: this improves efficiency
+#' as otherwise you will be sending data to child processes, though those
+#' have little power for detection of differences, and will likely be
+#' removed by independent filtering anyway;
+#' 2) it may be
 #' advantageous to remove large, unneeded objects from your current
 #' R environment before calling \code{DESeq},
 #' as it is possible that R's internal garbage collection
