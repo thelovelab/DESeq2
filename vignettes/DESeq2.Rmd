@@ -1778,21 +1778,24 @@ model.matrix(~grp + cnd + grp:ind + grp:cnd)
 
 ## Recommendations for single-cell analysis
 
-We have a few recommendations for best use of DESeq2 for single-cell
-datasets, which have been published in a recent manuscript [@Berge2018].
-These recommendations may also be useful for modeling other data that
-better fits to a Zero-Inflated Negative Binomial (ZINB) distribution,
-rather than a Negative Binomial (NB).
+The DESeq2 developers and collaborating groups have published
+recommendations for the best use of DESeq2 for single-cell datasets,
+which have been described first in @Berge2018. Default values for
+DESeq2 were designed for bulk data and will not be appropriate for
+single-cell datasets. These settings and additional improvements have
+also been tested subsequently and published in @Zhu2018 and
+@AhlmannEltze2020.
 
-* One can use the
-  [zinbwave](https://bioconductor.org/packages/zinbwave) package
-  to directly model the zero inflation of the counts, and take account
-  of these in the DESeq2 model. There is example code for combining
-  *zinbwave* and *DESeq2* package functions in the *zinbwave*
-  vignette. We also have an example of ZINB-WaVE + DESeq2 integration using
-  the [splatter](https://bioconductor.org/packages/splatter) package
-  for simulation at the 
-  [zinbwave-deseq2](https://github.com/mikelove/zinbwave-deseq2) GitHub repository.
+* Use `test="LRT"` for significance testing when working with
+  single-cell data, over the Wald test. This has been observed across
+  multiple single-cell benchmarks.
+* Set the following `DESeq` arguments to these values:
+  `useT=TRUE`, `minmu=1e-6`, and `minReplicatesForReplace=Inf`. 
+  The default setting of `minmu` was benchmarked on bulk RNA-seq and
+  is not appropriate for single cell data when the expected count is
+  often much less than 1.
+* The default size factors are not optimal for single cell count matrices,
+  instead consider setting `sizeFactors` from `scran::computeSumFactors`.
 * One important concern for single-cell data analysis is the size of the datasets and
   associated processing time. To address the speed concerns, *DESeq2* provides an 
   interface to [glmGamPoi](https://bioconductor.org/packages/glmGamPoi/), 
@@ -1803,14 +1806,22 @@ rather than a Negative Binomial (NB).
   full dataset does not fit in memory, a quasi-likelihood framework for differential 
   testing, and the ability to form pseudobulk samples (more details how to 
   use *glmGamPoi* are in its [README](https://github.com/const-ae/glmGamPoi)).
-* It is best to use `test="LRT"` for significance testing when working with
-  single-cell data, over the Wald test. This has been observed across
-  multiple single-cell benchmarks.
-* It is recommended to set the following `DESeq` arguments: 
-  `useT=TRUE`, `minmu=1e-6`, and `minReplicatesForReplace=Inf`. The
-  default size factors are not optimal for single cell count matrices,
-  instead consider setting `sizeFactors` from
-  `scran::computeSumFactors`.
+
+Optionally, one can consider using the
+[zinbwave](https://bioconductor.org/packages/zinbwave) 
+package to directly model the zero inflation of the counts, and take
+account of these in the DESeq2 model. This allows for the DESeq2
+inference to apply to the part of the data which is not due to zero
+inflation. Not all single cell datasets exhibit zero inflation, and
+instead may just reflect low conditional estimated counts
+(conditional on cell type or cell state).There is example code for
+combining *zinbwave* and *DESeq2* package functions in the
+*zinbwave* vignette. We also have an example of ZINB-WaVE + DESeq2
+integration using the 
+[splatter](https://bioconductor.org/packages/splatter) 
+package for simulation at the
+[zinbwave-deseq2](https://github.com/mikelove/zinbwave-deseq2)
+GitHub repository.
   
 <a name="outlier"/>
 
