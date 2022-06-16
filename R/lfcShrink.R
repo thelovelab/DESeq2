@@ -163,6 +163,9 @@ lfcShrink <- function(dds, coef, contrast, res,
       stop("first run DESeq() before running lfcShrink()")
     }
   }
+  if (returnList) {
+    stopifnot(type %in% c("apeglm","ashr"))
+  }
   betaPrior <- attr(dds,"betaPrior")
   if (!is.null(betaPrior) && betaPrior) {
     stop("lfcShrink() should be used downstream of DESeq() with betaPrior=FALSE (the default)")
@@ -315,18 +318,7 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
       res[[column]] <- res.shr[[column]]
     }
     mcols(res,use.names=TRUE)[change.cols,"description"] <- mcols(res.shr,use.names=TRUE)[change.cols,"description"]
-    
-    deseq2.version <- packageVersion("DESeq2")
-    # stash lfcThreshold
-    metadata(res)[["lfcThreshold"]] <- lfcThreshold
-    priorInfo(res) <- list(type="normal",
-                           package="DESeq2",
-                           version=deseq2.version,
-                           betaPriorVar=betaPriorVar)
-
-    res <- resultsFormatSwitch(object=dds, res=res, format=format, saveCols=saveCols)
-    return(res)
-    
+        
   } else if (type == "apeglm") {
 
     ############
@@ -440,18 +432,6 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     } else {
       res <- res[,c(1:3,5:6)]
     }
-    # stash lfcThreshold
-    metadata(res)[["lfcThreshold"]] <- lfcThreshold
-    priorInfo(res) <- list(type="apeglm",
-                           package="apeglm",
-                           version=packageVersion("apeglm"),
-                           prior.control=fit$prior.control)
-    res <- resultsFormatSwitch(object=dds, res=res, format=format, saveCols=saveCols)
-    if (returnList) {
-      return(list(res=res, fit=fit))
-    } else {
-      return(res)
-    }
 
   } else if (type == "ashr") {
 
@@ -485,18 +465,31 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     } else {
       res <- res[,c(1:3,5:6)]
     }
-    # stash lfcThreshold
-    metadata(res)[["lfcThreshold"]] <- lfcThreshold
-    priorInfo(res) <- list(type="ashr",
-                           package="ashr",
-                           version=packageVersion("ashr"),
-                           fitted_g=fit$fitted_g)
-    res <- resultsFormatSwitch(object=dds, res=res, format=format, saveCols=saveCols)
-    if (returnList) {
-      return(list(res=res, fit=fit))
-    } else{
-      return(res)
-    }
 
   }
+
+  # stash lfcThreshold and type/pkg details
+  metadata(res)[["lfcThreshold"]] <- lfcThreshold
+  pkg <- if (type == "normal") "DESeq2" else type
+  priorInfo(res) <- list(type=type,
+                         package=pkg,
+                         version=packageVersion(pkg))
+
+  # information on the fitted prior
+  if (type == "normal") {
+    priorInfo(res) <- c(priorInfo(res), list(betaPriorVar=betaPriorVar))
+  } else if (type == "apeglm") {
+    priorInfo(res) <- c(priorInfo(res), list(prior.control=fit$prior.control))
+  } else if (type == "ashr") {
+    priorInfo(res) <- c(priorInfo(res), list(fitted_g=fit$fitted_g))
+  }
+    
+  res <- resultsFormatSwitch(object=dds, res=res, format=format, saveCols=saveCols)
+
+  if (returnList) {
+    return(list(res=res, fit=fit))
+  } else {
+    return(res)
+  }
+
 }
