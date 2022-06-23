@@ -43,7 +43,7 @@ test_that("tximeta works", {
                 "ftp://ftp.ensembl.org/pub/release-98/fasta/drosophila_melanogaster/ncrna/Drosophila_melanogaster.BDGP6.ncrna.all.fa.gz")
   gtfPath <- file.path(dir,"Drosophila_melanogaster.BDGP6.22.98.gtf.gz")
   makeLinkedTxome(indexDir=indexDir,
-                  source="Ensembl",
+                  source="LocalEnsembl",
                   organism="Drosophila melanogaster",
                   release="98",
                   genome="BDGP6.22",

@@ -47,11 +47,12 @@ using a fitted mixture of normals prior
 \code{"normal"} is the 2014 DESeq2 shrinkage estimator using a Normal prior;}
 
 \item{lfcThreshold}{a non-negative value which specifies a log2 fold change
-threshold (as in \code{\link{results}}). This can be used in conjunction with
-\code{normal} and \code{apeglm}, where it will produce new p-values or
+threshold (as in \code{\link{results}}). This can be used with any
+shrinkage \code{type}. It will produce new p-values or
 s-values testing whether the LFC is greater in absolute value than the threshold.
-The s-values returned in combination with \code{apeglm} provide the probability
-of FSOS events, "false sign or small", among the tests with equal or smaller s-value
+The s-values returned in combination with \code{apeglm} or \code{ashr}
+provide the probability of FSOS events, "false sign or small",
+among the tests with equal or smaller s-value
 than a given gene's s-value, where "small" is specified by \code{lfcThreshold}.}
 
 \item{svalue}{logical, should p-values and adjusted p-values be replaced

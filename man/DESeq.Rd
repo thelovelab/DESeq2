@@ -92,7 +92,8 @@ Two notes on running in parallel using \code{BiocParallel}:
 low counts before running DESeq2 in parellel: this improves efficiency
 as otherwise you will be sending data to child processes, though those
 have little power for detection of differences, and will likely be
-removed by independent filtering anyway; 2) it may be
+removed by independent filtering anyway;
+2) it may be
 advantageous to remove large, unneeded objects from your current
 R environment before calling \code{DESeq},
 as it is possible that R's internal garbage collection
