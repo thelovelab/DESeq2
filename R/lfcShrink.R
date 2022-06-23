@@ -59,11 +59,12 @@
 #' - see the Stephens (2016) reference below for citation;
 #' \code{"normal"} is the 2014 DESeq2 shrinkage estimator using a Normal prior;
 #' @param lfcThreshold a non-negative value which specifies a log2 fold change
-#' threshold (as in \code{\link{results}}). This can be used in conjunction with
-#' \code{normal} and \code{apeglm}, where it will produce new p-values or
+#' threshold (as in \code{\link{results}}). This can be used with any
+#' shrinkage \code{type}. It will produce new p-values or
 #' s-values testing whether the LFC is greater in absolute value than the threshold.
-#' The s-values returned in combination with \code{apeglm} provide the probability
-#' of FSOS events, "false sign or small", among the tests with equal or smaller s-value
+#' The s-values returned in combination with \code{apeglm} or \code{ashr}
+#' provide the probability of FSOS events, "false sign or small",
+#' among the tests with equal or smaller s-value
 #' than a given gene's s-value, where "small" is specified by \code{lfcThreshold}.
 #' @param svalue logical, should p-values and adjusted p-values be replaced
 #' with s-values when using \code{apeglm} or \code{ashr}. s-values provide the probability
@@ -412,7 +413,7 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     stopifnot(nrow(fit$map) == nrow(dds))
     conv <- fit$diag[,"conv"]
     if (!all(conv[!is.na(conv)] == 0)) {
-      message("Some rows did not converge in finding the MAP")
+      message("some rows did not converge in finding the MAP")
     }
     res$log2FoldChange <- log2(exp(1)) * fit$map[,coefNum]
     res$lfcSE <- log2(exp(1)) * fit$sd[,coefNum]
@@ -446,8 +447,7 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     if (!quiet) message("using 'ashr' for LFC shrinkage. If used in published research, please cite:
     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
     https://doi.org/10.1093/biostatistics/kxw041")
-    
-    if (lfcThreshold > 0) message("lfcThreshold is not used by type='ashr'")
+
     betahat <- res$log2FoldChange
     sebetahat <- res$lfcSE
     fit <- ashr::ash(betahat, sebetahat,
@@ -456,16 +456,36 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     res$lfcSE <- fit$result$PosteriorSD
     mcols(res)$description[2] <- sub("MLE","MMSE",mcols(res)$description[2])
     mcols(res)$description[3] <- sub("standard error","posterior SD",mcols(res)$description[3])
-    if (svalue) {
-      coefAlphaSpaces <- sub(".*p-value: ","",mcols(res)$description[5])
-      res <- res[,1:3]
-      res$svalue <- fit$result$svalue
-      mcols(res)[4,] <- DataFrame(type="results",
-                                  description=paste("s-value:",coefAlphaSpaces))
-    } else {
-      res <- res[,c(1:3,5:6)]
-    }
 
+    # coefficient name (in words, with spaces)
+    coefAlphaSpaces <- sub(".*p-value: ","",mcols(res)$description[5])
+
+    # switch on whether LFC threshold is > 0
+    if (lfcThreshold == 0) {
+      if (svalue) {
+        res <- res[,1:3]
+        res$svalue <- fit$result$svalue
+      } else {
+        res <- res[,c(1:3,5:6)]
+      }
+    } else {
+      message(paste0("computing FSOS 'false sign or small' s-values (T=",round(lfcThreshold,3),")"))
+      # code contributed by Frederik Ziebell 2022
+      svalue <- TRUE
+      cdf_pos_lfc <- ashr::cdf_post(fit$fitted_g, lfcThreshold,
+                                    ashr::set_data(betahat, sebetahat))
+      cdf_neg_lfc <- ashr::cdf_post(fit$fitted_g, -lfcThreshold,
+                                    ashr::set_data(betahat, sebetahat))
+      lfsr <- ifelse(res$log2FoldChange > 0, cdf_pos_lfc, 1 - cdf_neg_lfc)
+      res$svalue <- apeglm::svalue(lfsr)      
+    }
+  }
+  
+  # add metadata column for svalue
+  if (svalue) {
+    mcols(res)[4,] <- DataFrame(
+      type="results",
+      description=paste("s-value:",coefAlphaSpaces))
   }
 
   # stash lfcThreshold and type/pkg details

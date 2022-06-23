@@ -169,7 +169,8 @@ Michael Schubert,
 Hugo Tavares,
 Eric Davis,
 Wancen Mu,
-Zhang Cheng.
+Zhang Cheng,
+Frederik Ziebell.
 
 ## Funding
 

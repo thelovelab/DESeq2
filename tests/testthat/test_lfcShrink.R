@@ -47,6 +47,7 @@ test_that("LFC shrinkage works", {
   res0 <- results(dds, name="condition_B_vs_A", lfcThreshold=1)
   res.n <- lfcShrink(dds=dds, coef=2, type="normal", lfcThreshold=1)
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", lfcThreshold=1)
+  res.ash <- lfcShrink(dds=dds, coef=2, type="ashr", lfcThreshold=1)
 
   # this doesn't work in R-devel as of June 2019...
   #summary.res <- capture.output({ summary(res.n) })
