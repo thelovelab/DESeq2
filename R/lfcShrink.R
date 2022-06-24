@@ -477,7 +477,7 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
       cdf_neg_lfc <- ashr::cdf_post(fit$fitted_g, -lfcThreshold,
                                     ashr::set_data(betahat, sebetahat))
       lfsr <- ifelse(res$log2FoldChange > 0, cdf_pos_lfc, 1 - cdf_neg_lfc)
-      res$svalue <- apeglm::svalue(lfsr)      
+      res$svalue <- apeglm_svalue(lfsr)
     }
   }
   
@@ -512,4 +512,12 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     return(res)
   }
 
+}
+
+# copied from apeglm package to avoid extra package installation for ashr shrinkage
+apeglm_svalue <- function(lfsr) {
+  lfsr.sorted <- sort(lfsr, na.last = TRUE)
+  cumsum.idx <- seq_along(lfsr)
+  cumsum.lfsr <- cumsum(lfsr.sorted)
+  (cumsum.lfsr/cumsum.idx)[rank(lfsr, ties.method = "first", na.last = TRUE)]
 }
