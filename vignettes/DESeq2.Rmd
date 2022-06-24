@@ -563,14 +563,27 @@ While it is not necessary to pre-filter low count genes before running
 the DESeq2 functions, there are two reasons which make pre-filtering
 useful: by removing rows in which there are very few reads, we reduce
 the memory size of the `dds` data object, and we increase the speed of
-the transformation and testing functions within DESeq2. Here we
-perform a minimal pre-filtering to keep only rows that have at least
+the transformation and testing functions within DESeq2. It can also
+improve visualizations, as features with no information for
+differential expression are not plotted.
+
+Here we perform a minimal pre-filtering to keep only rows that have at least
 10 reads total. Note that more strict filtering to increase power is
 *automatically* applied via [independent filtering](#indfilt) on the
 mean of normalized counts within the *results* function.
 
 ```{r prefilter}
 keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+```
+
+Alternatively, a popular filter is to ensure at least *X* samples with
+a count of 10 or more, where *X* can be chosen as the sample size of
+the smallest group of samples:
+
+```{r eval=FALSE}
+# unevaluated chunk...
+keep <- rowSums(counts(dds) >= 10) >= X
 dds <- dds[keep,]
 ```
 
@@ -1084,6 +1097,19 @@ to `condition`. There are multiple ways to analyze experiments when the
 additional variables are of interest and not just controlling factors 
 (see [section on interactions](#interactions)).
 
+**Experiments with many samples**: in experiments with many samples
+(e.g. 50, 100, etc.) it is highly likely that there will be technical
+variation affecting the observed counts. Failing to model this
+additional technical variation will lead to spurious results. Many
+methods exist that can be used to model technical variation, which can
+be easily included in the DESeq2 design to control for technical
+variation which estimating effects of interest. See the 
+[RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene)
+for examples of using RUV or SVA in combination with DESeq2. 
+For more details on why it is important to control for technical
+variation in large sample experiments, see the following
+[thread](https://twitter.com/mikelove/status/1513468597288452097).
+
 The data in the [pasilla](http://bioconductor.org/packages/pasilla) 
 package have a condition of interest 
 (the column `condition`), as well as information on the type of sequencing 
@@ -1422,6 +1448,26 @@ dds <- estimateDispersions(dds)
 dds <- nbinomWaldTest(dds)
 ```
 
+## Control features for estimating size factors
+
+In some experiments, it may not be appropriate to assume that a
+minority of features (genes) are affected greatly by the condition,
+such that the standard median-ratio method for estimating the size
+factors will not provide correct inference (the log fold changes for
+features that were truly un-changing will not centered on zero). This
+is a difficult inference problem for any method, but there is an
+important feature that can be used: the `controlGenes` argument of
+`estimateSizeFactors`. If there is any prior information about
+features (genes) that should not be changing with respect to the
+condition, providing this set of features to `controlGenes` will
+ensure that the log fold changes for these features will be centered
+around 0. The paradigm then becomes:
+
+```{r eval=FALSE}
+dds <- estimateSizeFactors(dds, controlGenes=ctrlGenes)
+dds <- DESeq(dds)
+```
+
 <a name="contrasts"/>
 
 ## Contrasts 
@@ -1646,7 +1692,7 @@ arguments please see `?lfcShrink`):
 | Preserves size of large LFC | ✓ | ✓ |   |
 | Can compute *s-values* [@Stephens2016] | ✓ | ✓ |   |
 | Allows use of `coef` | ✓ | ✓ | ✓ |
-| Allows use of `lfcThreshold` | ✓ |   | ✓ |
+| Allows use of `lfcThreshold` | ✓ | ✓ | ✓ |
 | Allows use of `contrast` |   | ✓ | ✓ |
 | Can shrink interaction terms | ✓ | ✓ |   |
 
@@ -1701,11 +1747,13 @@ DESeq2 shrinkage method is not really compatible with computing s-values.
 The last four rows explain differences in whether coefficients or
 contrasts can have shrinkage applied by the various methods. All three
 methods can use `coef` with either the name or numeric index from
-`resultsNames(dds)` to specify which coefficient to shrink. `normal`
-and `apeglm` also allow for a positive `lfcThreshold` to be specified,
+`resultsNames(dds)` to specify which coefficient to shrink.
+All three methods
+allow for a positive `lfcThreshold` to be specified,
 in which case, they will return p-values and adjusted p-values or
 s-values for the LFC being greater in absolute value than the
-threshold (see [this section](#thresh) for `normal`). For `apeglm`,
+threshold (see [this section](#thresh) for `normal`). 
+For `apeglm` and `ashr`,
 setting a threshold means that the s-values will give the "false sign
 or small" rate (FSOS) among genes with equal or small s-value.
 We found FSOS to be a useful description for when the LFC is either
@@ -1714,6 +1762,12 @@ the wrong sign or less than the threshold distance from 0.
 ```{r apeThresh}
 resApeT <- lfcShrink(dds, coef=2, type="apeglm", lfcThreshold=1)
 plotMA(resApeT, ylim=c(-3,3), cex=.8)
+abline(h=c(-1,1), col="dodgerblue", lwd=2)
+```
+
+```{r ashThresh}
+resAshT <- lfcShrink(dds, coef=2, type="ashr", lfcThreshold=1)
+plotMA(resAshT, ylim=c(-3,3), cex=.8)
 abline(h=c(-1,1), col="dodgerblue", lwd=2)
 ```
 
