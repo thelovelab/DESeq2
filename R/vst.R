@@ -203,12 +203,6 @@ getVarianceStabilizedData <- function(object) {
 #' subsetting to a smaller number of genes in order to estimate this dispersion trend.
 #' The subset of genes is chosen deterministically, to span the range
 #' of genes' mean normalized count.
-#' This wrapper for the VST is not blind to the experimental design:
-#' the sample covariate information is used to estimate the global trend
-#' of genes' dispersion values over the genes' mean normalized count.
-#' It can be made strictly blind to experimental design by first
-#' assigning a \code{\link{design}} of \code{~1} before running this function,
-#' or by avoiding subsetting and using \code{\link{varianceStabilizingTransformation}}.
 #' 
 #' @param object a DESeqDataSet or a matrix of counts
 #' @param blind logical, whether to blind the transformation to the experimental
@@ -265,7 +259,8 @@ vst <- function(object, blind=TRUE, nsub=1000, fitType="parametric") {
   # assign to the full object
   suppressMessages({dispersionFunction(object) <- dispersionFunction(object.sub)})
 
-  # calculate and apply the VST
+  # calculate and apply the VST (note blinding is accomplished above,
+  # here blind=FALSE is used to avoid re-calculating dispersion)
   vsd <- varianceStabilizingTransformation(object, blind=FALSE)
   if (matrixIn) {
     return(assay(vsd))

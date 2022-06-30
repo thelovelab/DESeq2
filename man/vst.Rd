@@ -27,12 +27,6 @@ the formula for the VST. The speed-up is accomplished by
 subsetting to a smaller number of genes in order to estimate this dispersion trend.
 The subset of genes is chosen deterministically, to span the range
 of genes' mean normalized count.
-This wrapper for the VST is not blind to the experimental design:
-the sample covariate information is used to estimate the global trend
-of genes' dispersion values over the genes' mean normalized count.
-It can be made strictly blind to experimental design by first
-assigning a \code{\link{design}} of \code{~1} before running this function,
-or by avoiding subsetting and using \code{\link{varianceStabilizingTransformation}}.
 }
 \examples{
 
