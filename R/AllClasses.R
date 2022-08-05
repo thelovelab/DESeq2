@@ -385,6 +385,7 @@ DESeqDataSetFromMatrix <- function( countData, colData, design, tidy=FALSE, igno
 #' @export
 DESeqDataSetFromHTSeqCount <- function( sampleTable, directory=".", design, ignoreRank=FALSE, ...) 
 {
+  sampleTable <- as.data.frame(sampleTable) # in case tibble or data.table are provided
   if (missing(design)) stop("design is missing")
   l <- lapply( as.character( sampleTable[,2] ), function(fn) read.table( file.path( directory, fn ), fill=TRUE ) )
   if( ! all( sapply( l, function(a) all( a$V1 == l[[1]]$V1 ) ) ) )
