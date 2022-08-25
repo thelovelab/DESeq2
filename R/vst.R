@@ -67,14 +67,11 @@
 #' logarithm to base 2 of normalized counts.
 #'
 #' The variance stabilizing transformation from a previous dataset
-#' can be frozen and reapplied to new samples. See the 'Data quality assessment'
-#' section of the vignette for strategies to see if new samples are
-#' sufficiently similar to previous datasets. 
+#' can be "frozen" and reapplied to new samples.
 #' The frozen VST is accomplished by saving the dispersion function
 #' accessible with \code{\link{dispersionFunction}}, assigning this
 #' to the \code{DESeqDataSet} with the new samples, and running
-#' varianceStabilizingTransformation with 'blind' set to FALSE
-#' (see example below).
+#' varianceStabilizingTransformation with 'blind' set to FALSE.
 #' Then the dispersion function from the previous dataset will be used
 #' to transform the new sample(s).
 #'  
