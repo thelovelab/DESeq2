@@ -386,9 +386,9 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     mu[row,] <- mu_row
     mu_row[mu_row < minmu] <- minmu
     w <- if (useWeights) {
-           diag((mu_row^-1 + alpha)^-1)
-         } else {
            diag(weights[row,] * (mu_row^-1 + alpha)^-1)
+         } else {
+           diag((mu_row^-1 + alpha)^-1)
          }
     xtwx <- t(x) %*% w %*% x
     xtwxRidgeInv <- solve(xtwx + ridge)
