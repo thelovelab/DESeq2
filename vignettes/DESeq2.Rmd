@@ -170,7 +170,8 @@ Hugo Tavares,
 Eric Davis,
 Wancen Mu,
 Zhang Cheng,
-Frederik Ziebell.
+Frederik Ziebell,
+Luca Menestrina.
 
 ## Funding
 
