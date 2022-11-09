@@ -236,6 +236,8 @@ of normalized counts for all samples in the dataset.
 Several arguments from the \code{filtered_p} function of
 the genefilter package (used within the \code{results} function)
 are provided here to control the independent filtering behavior.
+(Note \code{filtered_p} R code is now copied into DESeq2
+package to avoid gfortran requirements.)
 In DESeq2 version >= 1.10, the threshold that is chosen is
 the lowest quantile of the filter for which the
 number of rejections is close to the peak of a curve fit

@@ -55,6 +55,8 @@
 #' Several arguments from the \code{filtered_p} function of
 #' the genefilter package (used within the \code{results} function)
 #' are provided here to control the independent filtering behavior.
+#' (Note \code{filtered_p} R code is now copied into DESeq2
+#' package to avoid gfortran requirements.)
 #' In DESeq2 version >= 1.10, the threshold that is chosen is
 #' the lowest quantile of the filter for which the
 #' number of rejections is close to the peak of a curve fit
@@ -683,7 +685,27 @@ pvalueAdjustment <- function(res, independentFiltering, filter,
   res
 }
 
-
+# function copied from `genefilter` package to avoid gfortran requirement
+filtered_p <- function( filter, test, theta, data, method = "none" ) {
+  if ( is.function( filter ) )
+    U1 <- filter( data )
+  else
+    U1 <- filter
+  cutoffs <- quantile( U1, theta )
+  result <- matrix( NA_real_, length( U1 ), length( cutoffs ) )
+  colnames( result ) <- names( cutoffs )
+  for ( i in 1:length( cutoffs ) ) {    
+    use <- U1 >= cutoffs[i]
+    if( any( use ) ) {
+      if( is.function( test ) )
+        U2 <- test( data[use,] )
+      else
+        U2 <- test[use]
+      result[use,i] <- p.adjust( U2, method )
+    }
+  }
+  return( result )
+}
 
 # two low-level functions used by results() to perform contrasts
 #
