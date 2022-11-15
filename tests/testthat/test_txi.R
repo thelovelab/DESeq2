@@ -51,8 +51,7 @@ test_that("tximeta works", {
                   gtf=gtfPath,
                   write=FALSE)
   # doesn't throw an error on Bioc...
-  #expect_warning(se <- tximeta(coldata))
-  se <- tximeta(coldata)
+  expect_warning(se <- tximeta(coldata))
   gse <- summarizeToGene(se)
   # warning about 1 file... ok
   expect_warning(dds <- DESeqDataSet(gse, ~1))

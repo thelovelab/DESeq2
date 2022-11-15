@@ -2,7 +2,7 @@ context("unmix")
 test_that("unmixing samples works", {
 
   set.seed(1)
-  n <- 2000
+  n <- 100
   a <- runif(n)
   b <- runif(n)
   c <- runif(n)
@@ -41,9 +41,9 @@ test_that("unmixing samples works", {
   max(abs(dds$b - mix[,2]))
   max(abs(dds$c - mix[,3]))
   
-  expect_lt(max(abs(dds$a - mix[,1])), .01)
-  expect_lt(max(abs(dds$b - mix[,2])), .01)
-  expect_lt(max(abs(dds$c - mix[,3])), .01)
+  expect_lt(max(abs(dds$a - mix[,1])), .1)
+  expect_lt(max(abs(dds$b - mix[,2])), .1)
+  expect_lt(max(abs(dds$c - mix[,3])), .1)
 
   # test the shifted log (designed for TPMs)
   mix2 <- unmix(counts, pure=pure, shift=0.5, quiet=TRUE)
