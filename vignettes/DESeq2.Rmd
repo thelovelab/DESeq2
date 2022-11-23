@@ -1109,7 +1109,10 @@ variation which estimating effects of interest. See the
 for examples of using RUV or SVA in combination with DESeq2. 
 For more details on why it is important to control for technical
 variation in large sample experiments, see the following
-[thread](https://twitter.com/mikelove/status/1513468597288452097).
+[thread](https://twitter.com/mikelove/status/1513468597288452097),
+also archived
+[here](https://htmlpreview.github.io/?https://github.com/frederikziebell/science_tweetorials/blob/master/DESeq2_many_samples.html)
+by Frederik Ziebell.
 
 The data in the [pasilla](http://bioconductor.org/packages/pasilla) 
 package have a condition of interest 
