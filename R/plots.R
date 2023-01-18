@@ -84,6 +84,30 @@ plotDispEsts.DESeqDataSet <- function( object, ymin, CV=FALSE,
 #' @export
 setMethod("plotDispEsts", signature(object="DESeqDataSet"), plotDispEsts.DESeqDataSet)
 
+# Jan 2023 -- single function copied from `geneplotter` to reduce dependency count
+# colors were changed for ease of viewing from red to blue
+plotMA.dataframe <- function( object, ylim = NULL,
+  colNonSig = "gray60", colSig = "blue", colLine = "grey40",
+  log = "x", cex=0.45,
+  xlab="mean of normalized counts", ylab="log fold change",
+  ... ) {
+  if ( !( ncol(object) == 3 & inherits( object[[1]], "numeric" ) & inherits( object[[2]], "numeric" )
+    & inherits( object[[3]], "logical" ) ) ) {
+    stop( "When called with a data.frame, plotMA expects the data frame
+  to have 3 columns, two numeric ones for mean and log fold change,
+  and a logical one for significance.")
+  }
+  colnames(object) <- c( "mean", "lfc", "sig" )
+  object <- subset( object, mean != 0 )
+  py <- object$lfc
+  if ( is.null(ylim) )
+    ylim <- c(-1,1) * quantile(abs(py[is.finite(py)]), probs=0.99) * 1.1
+  plot(object$mean, pmax(ylim[1], pmin(ylim[2], py)),
+       log=log, pch=ifelse(py<ylim[1], 6, ifelse(py>ylim[2], 2, 16)),
+       cex=cex, col=ifelse( object$sig, colSig, colNonSig ), xlab=xlab, ylab=ylab, ylim=ylim, ...)
+  abline( h=0, lwd=4, col=colLine )
+}
+
 plotMA.DESeqDataSet <- function(object, alpha=.1, main="",
                                 xlab="mean of normalized counts", ylim,
                                 colNonSig="gray60", colSig="blue", colLine="grey40",
@@ -139,14 +163,13 @@ plotMA.DESeqResults <- function(object, alpha, main="",
   }
 
   if (missing(ylim)) {
-    plotMA(df,
-           colNonSig=colNonSig, colSig=colSig, colLine=colLine,
-           xlab=xlab, main=main, ...)
-  } else {
-    plotMA(df, ylim=ylim,
-           colNonSig=colNonSig, colSig=colSig, colLine=colLine,
-           xlab=xlab, main=main, ...)
+    ylim <- NULL
   }
+
+  plotMA.dataframe(
+    df, ylim=ylim,
+    colNonSig=colNonSig, colSig=colSig, colLine=colLine,
+    xlab=xlab, main=main, ...)
 }
 
 #' MA-plot from base means and log fold changes
@@ -157,7 +180,7 @@ plotMA.DESeqResults <- function(object, alpha, main="",
 #'
 #' This function is essentially two lines of code: building a
 #' \code{data.frame} and passing this to the \code{plotMA} method
-#' for \code{data.frame} from the geneplotter package.
+#' for \code{data.frame}, now copied from the geneplotter package.
 #' The code was modified in version 1.28 to change from red to blue points
 #' for better visibility for users with color-blindness. The original plots
 #' can still be made via the use of \code{returnData=TRUE} and passing the
@@ -203,8 +226,7 @@ plotMA.DESeqResults <- function(object, alpha, main="",
 #' res <- results(dds)
 #' plotMA(res)
 #'
-#' @importFrom geneplotter plotMA
-#' @importFrom ggplot2 ggplot geom_point xlab ylab coord_fixed aes_string
+#' @importFrom graphics abline
 #'
 #' @export
 setMethod("plotMA", signature(object="DESeqDataSet"), plotMA.DESeqDataSet)
@@ -300,7 +322,8 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
 #' # the call to DESeqTransform() is needed to
 #' # trigger our plotPCA method.
 #' plotPCA( DESeqTransform( se ) )
-#' 
+#'
+#' @importFrom ggplot2 ggplot geom_point xlab ylab coord_fixed aes_string
 #' @export
 setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
 

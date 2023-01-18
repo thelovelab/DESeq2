@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based on the negative
     binomial distribution
-Version: 1.39.3
+Version: 1.39.4
 Authors@R: c(
     person("Michael", "Love", email="michaelisaiahlove@gmail.com", role = c("aut","cre")),
     person("Constantin", "Ahlmann-Eltze", role = c("ctb")),
@@ -20,7 +20,7 @@ Description: Estimate variance-mean dependence in count data from
 License: LGPL (>= 3)
 VignetteBuilder: knitr, rmarkdown
 Imports: BiocGenerics (>= 0.7.5), Biobase, BiocParallel, matrixStats,
-    methods, stats4, locfit, geneplotter, ggplot2, Rcpp (>= 0.11.0)
+    methods, stats4, locfit, ggplot2, Rcpp (>= 0.11.0)
 Depends: S4Vectors (>= 0.23.18), IRanges, GenomicRanges,
     SummarizedExperiment (>= 1.1.6)
 Suggests: testthat, knitr, rmarkdown, vsn, pheatmap, RColorBrewer,
@@ -31,5 +31,5 @@ URL: https://github.com/mikelove/DESeq2
 biocViews: Sequencing, RNASeq, ChIPSeq, GeneExpression, Transcription,
     Normalization, DifferentialExpression, Bayesian, Regression,
     PrincipalComponent, Clustering, ImmunoOncology
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.2
 Encoding: UTF-8

@@ -1,3 +1,14 @@
+CHANGES IN VERSION 1.39.4
+-------------------------
+
+    o Removing geneplotter dependency.
+
+CHANGES IN VERSION 1.39.1
+-------------------------
+
+    o Removing genefilter as dependency, switching to matrixStats.
+      This should resolve gfortran issues.
+
 CHANGES IN VERSION 1.31.16
 --------------------------
 

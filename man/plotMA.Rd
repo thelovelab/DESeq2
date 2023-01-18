@@ -75,7 +75,7 @@ normalized counts (on the x-axis).
 \details{
 This function is essentially two lines of code: building a
 \code{data.frame} and passing this to the \code{plotMA} method
-for \code{data.frame} from the geneplotter package.
+for \code{data.frame}, now copied from the geneplotter package.
 The code was modified in version 1.28 to change from red to blue points
 for better visibility for users with color-blindness. The original plots
 can still be made via the use of \code{returnData=TRUE} and passing the
