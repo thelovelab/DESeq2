@@ -171,7 +171,8 @@ Eric Davis,
 Wancen Mu,
 Zhang Cheng,
 Frederik Ziebell,
-Luca Menestrina.
+Luca Menestrina,
+Hendrik Weisse.
 
 ## Funding
 

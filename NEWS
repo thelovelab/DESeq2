@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.39.5
+-------------------------
+
+    o PR from Hendrik Weisser for lfcShrink when the results
+      table has additional columns than those produced by
+      results().
+
 CHANGES IN VERSION 1.39.4
 -------------------------
 
