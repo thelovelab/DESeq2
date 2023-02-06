@@ -335,7 +335,7 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
     stopifnot(!missing(coef))
     # if we are using adaptive prior, get the LFC columns
     if (apeAdapt) {
-      incomingCoef <- gsub(" ","_",sub("log2 fold change \\(MLE\\): ","",mcols(res)[2,2]))
+      incomingCoef <- gsub(" ","_",sub("log2 fold change \\(MLE\\): ","",mcols(res)$description[2]))
       if (coefAlpha != incomingCoef) {
         stop("'coef' should specify same coefficient as in results 'res'")
       }
