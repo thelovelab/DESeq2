@@ -793,17 +793,18 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     https://doi.org/10.1093/bioinformatics/btaa1009")
       Counts <- counts(objectNZ)
       initial_lp <- vapply(which(fitidx), function(idx){
-        sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat[idx], log = TRUE))
+        sum(dnbinom(Counts[idx, ], mu = fitMu, size = 1 / alpha_hat[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
-      dispersion_fits <- glmGamPoi::overdispersion_mle(Counts[fitidx, ], mean = fitMu[fitidx, ],
+      dispersion_fits <- glmGamPoi::overdispersion_mle(Counts[fitidx, ], mean = fitMu,
                                                        model_matrix = modelMatrix, verbose = ! quiet)
       dispIter[fitidx] <- dispersion_fits$iterations
       alpha_hat_new[fitidx] <- pmin(dispersion_fits$estimate, maxDisp)
       last_lp <- vapply(which(fitidx), function(idx){
-        sum(dnbinom(Counts[idx, ], mu = fitMu[idx, ], size = 1 / alpha_hat_new[idx], log = TRUE))
+        sum(dnbinom(Counts[idx, ], mu = fitMu, size = 1 / alpha_hat_new[idx], log = TRUE))
       }, FUN.VALUE = 0.0)
     }
     fitidx <- abs(log(alpha_hat_new) - log(alpha_hat)) > .05
+    fitidx[is.na(fitidx)] <- FALSE
     alpha_hat <- alpha_hat_new
     if (sum(fitidx) == 0) break
   }
