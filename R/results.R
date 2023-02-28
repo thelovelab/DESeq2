@@ -646,19 +646,35 @@ pvalueAdjustment <- function(res, independentFiltering, filter,
     if (max(numRej) <= 10) {
       j <- 1
     } else { 
+
       residual <- if (all(numRej==0)) {
         0
       } else {
         numRej[numRej > 0] - lo.fit$y[numRej > 0]
       }
-      thresh <- max(lo.fit$y) - sqrt(mean(residual^2))
+
+      # this usually works: find the threshold at which num rejections
+      # surpasses the root mean squared error around the fitted curve.
+      # it may not work if there is a sharp uptick in the curve at
+      # the end of the grid, and there is very little variation.
+      maxFit <- max(lo.fit$y)
+      rmse <- sqrt(mean(residual^2))
+      thresh <- maxFit - rmse
+      
       j <- if (any(numRej > thresh)) {
-        which(numRej > thresh)[1]
-      } else {
-        1  
-      }
+             # backup case: if low variation and uptick at end,
+             # pick the first point at which num rejections reaches
+             # 90% of the fitted curve, or 80% of the fitted curve
+             which(numRej > thresh)[1]
+           } else if (any(numRej > .9 * maxFit)) {
+             which(numRej > .9 * maxFit)[1]
+           } else if (any(numRej > .8 * maxFit)) {
+             which(numRej > .8 * maxFit)[1]
+           } else {
+             1
+           }
     }
-    # j <- which.max(numRej) # old method
+    # j <- which.max(numRej) # old method, not stable
     padj <- filtPadj[, j, drop=TRUE]
     cutoffs <- quantile(filter, theta)
     filterThreshold <- cutoffs[j]

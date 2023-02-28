@@ -1,3 +1,17 @@
+CHANGES IN VERSION 1.39.7
+-------------------------
+
+    o  Fix bug in independent filtering: with very little
+       variation in the curve of number of rejections over
+       threshold, and when the maximum was only reached
+       near the end, the default filtering wouldn't attain
+       sufficient filtering. This has been addressed by also
+       checking for a threshold at which 90%, or 80% of the
+       fitted number of rejections is found.
+       
+       Note: IHW is the preferred method for filtering,
+       and can easily by used by calling `filterFun=ihw`.
+
 CHANGES IN VERSION 1.39.6
 -------------------------
 
