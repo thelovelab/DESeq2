@@ -95,7 +95,7 @@ unmix <- function(x, pure, alpha, shift, power=1, format="matrix", quiet=FALSE) 
     }
     res <- lapply(seq_len(ncol(x)), function(i) {
       optim(par=rep(1, ncol(pure)), fn=sumLossVST, gr=NULL, i, vst, alpha, power,
-            method="L-BFGS-B", lower=0, upper=100)$par
+            method="L-BFGS-B", lower=1e-6, upper=100)$par
     })
   } else {
     stopifnot(shift > 0)
