@@ -202,6 +202,11 @@ lfcShrink <- function(dds, coef, contrast, res,
       stop("one of coef or contrast required if 'res' is missing")
     }
   }
+
+  # check for standard errors
+  if (all(is.na(res$lfcSE)))
+    stop("lfcShrink requires standard errors, use default fitType")
+  
   if (type %in% c("normal","apeglm")) {
     if (is.null(dispersions(dds))) {
       stop("type='normal' and 'apeglm' require dispersion estimates, first call estimateDispersions()")

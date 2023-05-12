@@ -95,5 +95,12 @@ test_that("LFC shrinkage works", {
   mm0 <- model.matrix(~1, colData(dds))
   dds <- DESeq(dds, full=mm, reduced=mm0, test="LRT")
   res.normal <- lfcShrink(dds, coef="conditionB", type="normal")
+
+  # only running glmGamPoi
+  dds <- makeExampleDESeqDataSet(m=4, n=200)
+  dds <- DESeq(dds, test="LRT", reduced=~1,
+               fitType="glmGamPoi", quiet=TRUE)
+  res <- results(dds)
+  expect_error(lfcShrink(dds, coef="conditionB", type="apeglm"), "standard errors")
   
 })  
