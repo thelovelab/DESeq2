@@ -6,7 +6,13 @@
 \alias{plotPCA,DESeqTransform-method}
 \title{Sample PCA plot for transformed data}
 \usage{
-\S4method{plotPCA}{DESeqTransform}(object, intgroup = "condition", ntop = 500, returnData = FALSE)
+\S4method{plotPCA}{DESeqTransform}(
+  object,
+  intgroup = "condition",
+  ntop = 500,
+  returnData = FALSE,
+  pcsToUse = 1:2
+)
 }
 \arguments{
 \item{object}{a \code{\link{DESeqTransform}} object, with data in \code{assay(x)},
@@ -21,6 +27,8 @@ selected by highest row variance}
 
 \item{returnData}{should the function only return the data.frame of PC1 and PC2
 with intgroup covariates for custom plotting (default is FALSE)}
+
+\item{pcsToUse}{numeric of length 2, which PCs to plot}
 }
 \value{
 An object created by \code{ggplot}, which can be assigned and further customized.
@@ -40,8 +48,8 @@ Users should find it easy to customize this function.
 
 # using rlog transformed data:
 dds <- makeExampleDESeqDataSet(betaSD=1)
-rld <- rlog(dds)
-plotPCA(rld)
+vsd <- vst(dds, nsub=500)
+plotPCA(vsd)
 
 # also possible to perform custom transformation:
 dds <- estimateSizeFactors(dds)

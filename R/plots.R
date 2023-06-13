@@ -236,7 +236,8 @@ setMethod("plotMA", signature(object="DESeqDataSet"), plotMA.DESeqDataSet)
 #' @export
 setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 
-plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, returnData=FALSE)
+plotPCA.DESeqTransform = function(object, intgroup="condition",
+                                  ntop=500, returnData=FALSE, pcsToUse=1:2)
 {
   # calculate the variance for each gene
   rv <- rowVars(assay(object))
@@ -264,16 +265,21 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
   }
 
   # assembly the data for the plot
-  d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], group=group, intgroup.df, name=colnames(object))
-
+  pcs <- paste0("PC", pcsToUse)
+  d <- data.frame(V1=pca$x[,pcsToUse[1]],
+                  V2=pca$x[,pcsToUse[2]],
+                  group=group, intgroup.df, name=colnames(object))
+  colnames(d)[1:2] <- pcs
+  
   if (returnData) {
-    attr(d, "percentVar") <- percentVar[1:2]
+    attr(d, "percentVar") <- percentVar[pcsToUse]
     return(d)
   }
-  
-  ggplot(data=d, aes_string(x="PC1", y="PC2", color="group")) + geom_point(size=3) + 
-    xlab(paste0("PC1: ",round(percentVar[1] * 100),"% variance")) +
-      ylab(paste0("PC2: ",round(percentVar[2] * 100),"% variance")) +
+
+  ggplot(data=d, aes_string(x=pcs[1], y=pcs[2], color="group")) +
+    geom_point(size=3) + 
+    xlab(paste0(pcs[1],": ",round(percentVar[pcsToUse[1]] * 100),"% variance")) +
+      ylab(paste0(pcs[2],": ",round(percentVar[pcsToUse[2]] * 100),"% variance")) +
         coord_fixed()
 }
 
@@ -295,6 +301,7 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
 #' selected by highest row variance
 #' @param returnData should the function only return the data.frame of PC1 and PC2
 #' with intgroup covariates for custom plotting (default is FALSE)
+#' @param pcsToUse numeric of length 2, which PCs to plot
 #' 
 #' @return An object created by \code{ggplot}, which can be assigned and further customized.
 #' 
@@ -311,8 +318,8 @@ plotPCA.DESeqTransform = function(object, intgroup="condition", ntop=500, return
 #'
 #' # using rlog transformed data:
 #' dds <- makeExampleDESeqDataSet(betaSD=1)
-#' rld <- rlog(dds)
-#' plotPCA(rld)
+#' vsd <- vst(dds, nsub=500)
+#' plotPCA(vsd)
 #'
 #' # also possible to perform custom transformation:
 #' dds <- estimateSizeFactors(dds)
