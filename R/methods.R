@@ -124,9 +124,6 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 #'
 #' @param object a \code{DESeqDataSet} object.
 #' @param value a \code{function}
-#' @param estimateVar whether to estimate the variance of dispersion residuals.
-#' setting to FALSE is needed, e.g. within \code{estimateDispersionsMAP} when
-#' called on a subset of the full dataset in parallel execution.
 #' @param ... additional arguments
 #' 
 #' @seealso \code{\link{estimateDispersions}}
@@ -142,7 +139,7 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 setMethod("dispersionFunction", signature(object="DESeqDataSet"),
           dispersionFunction.DESeqDataSet)
 
-dispFun.replace <- function(object, estimateVar=TRUE, value) {
+dispFun.replace <- function(object, value) {
   # Temporary hack for backward compatibility with "old"
   # DESeqDataSet objects. Remove once all serialized
   # DESeqDataSet objects around have been updated.
@@ -173,22 +170,21 @@ dispFun.replace <- function(object, estimateVar=TRUE, value) {
   mcols(object) <- cbind(mcols(object), dispDataFrame)
 
   # estimate variance of log dispersion around the fit
-  if (estimateVar) {    
-    # need to estimate variance of log dispersion residuals
-    minDisp <- 1e-8
-    dispGeneEst <- mcols(object)$dispGeneEst[nonzeroIdx]
-    aboveMinDisp <- dispGeneEst >= minDisp*100
-    if (sum(aboveMinDisp,na.rm=TRUE) > 0) {
-      dispResiduals <- log(dispGeneEst) - log(dispFit)
-      varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
-      attr( value, "varLogDispEsts" ) <- varLogDispEsts
-    } else {
-      message("variance of dispersion residuals not estimated (necessary only for differential expression calling)")
-    }
+
+  # need to estimate variance of log dispersion residuals
+  minDisp <- 1e-8
+  dispGeneEst <- mcols(object)$dispGeneEst[nonzeroIdx]
+  aboveMinDisp <- dispGeneEst >= minDisp*100
+  if (sum(aboveMinDisp,na.rm=TRUE) > 0) {
+    dispResiduals <- log(dispGeneEst) - log(dispFit)
+    varLogDispEsts <- mad(dispResiduals[aboveMinDisp],na.rm=TRUE)^2
+    attr( value, "varLogDispEsts" ) <- varLogDispEsts
+  } else {
+    message("variance of dispersion residuals not estimated (necessary only for differential expression calling)")
   }
 
   # store the dispersion function
-  object@dispersionFunction <- value   
+  object@dispersionFunction <- value
   validObject(object)
   object
 }

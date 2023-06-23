@@ -967,17 +967,20 @@ estimateDispersionsMAP <- function(object, outlierSD=2, dispPriorVar,
       mcols(object) <- cbind(mcols(object), dispDataFrame)
       dispFn <- dispersionFunction(object)
       attr( dispFn, "dispPriorVar" ) <- 0.25
-      dispersionFunction(object, estimateVar=FALSE) <- dispFn
+      # store dispFn without doing estimation of variance
+      object@dispersionFunction <- dispFn
       return(object)
     }
     dispPriorVar <- estimateDispersionsPriorVar(object, modelMatrix=modelMatrix)
     dispFn <- dispersionFunction(object)
     attr( dispFn, "dispPriorVar" ) <- dispPriorVar
-    dispersionFunction(object, estimateVar=FALSE) <- dispFn
+    # store dispFn without doing estimation of variance
+    object@dispersionFunction <- dispFn
   } else {
     dispFn <- dispersionFunction(object)
     attr( dispFn, "dispPriorVar" ) <- dispPriorVar
-    dispersionFunction(object, estimateVar=FALSE) <- dispFn
+    # store dispFn without doing estimation of variance
+    object@dispersionFunction <- dispFn
   }
 
   stopifnot(length(dispPriorVar)==1)
