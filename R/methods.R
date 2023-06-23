@@ -142,7 +142,7 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 setMethod("dispersionFunction", signature(object="DESeqDataSet"),
           dispersionFunction.DESeqDataSet)
 
-dispFun.replace <- function(object, value, estimateVar=TRUE) {
+dispFun.replace <- function(object, estimateVar=TRUE, value) {
   # Temporary hack for backward compatibility with "old"
   # DESeqDataSet objects. Remove once all serialized
   # DESeqDataSet objects around have been updated.

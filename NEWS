@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.41.3
+-------------------------
+
+    o Moved `value` to end of dispersionFunction<- to satisfy
+      new R-devel specification.
+
 CHANGES IN VERSION 1.41.2
 -------------------------
 
