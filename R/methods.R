@@ -114,11 +114,11 @@ dispersionFunction.DESeqDataSet <- function(object) object@dispersionFunction
 #' Accessors for the 'dispersionFunction' slot of a DESeqDataSet object.
 #'
 #' The dispersion function is calculated by \code{\link{estimateDispersions}} and
-#' used by \code{\link{varianceStabilizingTransformation}}.  Parametric dispersion
+#' used by \code{\link{varianceStabilizingTransformation}}. Parametric dispersion
 #' fits store the coefficients of the fit as attributes in this slot.
 #'
-#' Setting this will also overwrite \code{mcols(object)$dispFit} and the estimate
-#' the variance of dispersion residuals, see \code{estimateVar} below.
+#' Using this setter function will also overwrite \code{mcols(object)$dispFit}
+#' and the estimate of the variance of dispersion residuals.
 #'
 #' @rdname dispersionFunction
 #'
