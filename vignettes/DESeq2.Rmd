@@ -565,27 +565,25 @@ While it is not necessary to pre-filter low count genes before running
 the DESeq2 functions, there are two reasons which make pre-filtering
 useful: by removing rows in which there are very few reads, we reduce
 the memory size of the `dds` data object, and we increase the speed of
-the transformation and testing functions within DESeq2. It can also
+count modeling within DESeq2. It can also
 improve visualizations, as features with no information for
-differential expression are not plotted.
+differential expression are not plotted in dispersion plots or
+MA-plots.
 
-Here we perform a minimal pre-filtering to keep only rows that have at least
-10 reads total. Note that more strict filtering to increase power is
-*automatically* applied via [independent filtering](#indfilt) on the
-mean of normalized counts within the *results* function.
+Here we perform pre-filtering to keep only rows that have a count of
+at least 10 for a minimal number of samples. The count of 10 is a
+reasonable choice for bulk RNA-seq. A recommendation for the minimal
+number of samples is to specify the smallest group size, e.g. here
+there are 3 treated samples. If there are not discrete groups, one can
+use the minimal number of samples where non-zero counts would be
+considered interesting. One can also omit this step entirely and just
+rely on the independent filtering procedures available in `results()`,
+either *IHW* or *genefilter*. See [independent filtering](#indfilt)
+section.
 
 ```{r prefilter}
-keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep,]
-```
-
-Alternatively, a popular filter is to ensure at least *X* samples with
-a count of 10 or more, where *X* can be chosen as the sample size of
-the smallest group of samples:
-
-```{r eval=FALSE}
-# unevaluated chunk...
-keep <- rowSums(counts(dds) >= 10) >= X
+smallestGroupSize <- 3
+keep <- rowSums(counts(dds) >= 10) >= smallestGroupSize
 dds <- dds[keep,]
 ```
 
