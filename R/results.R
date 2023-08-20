@@ -637,7 +637,7 @@ pvalueAdjustment <- function(res, independentFiltering, filter,
     stopifnot(length(filter) == nrow(res))
     filtPadj <- filtered_p(filter=filter, test=res$pvalue,
                            theta=theta, method=pAdjustMethod) 
-    numRej  <- colSums(filtPadj < alpha, na.rm = TRUE)
+    numRej  <- MatrixGenerics::colSums(filtPadj < alpha, na.rm = TRUE)
     # prevent over-aggressive filtering when all genes are null,
     # by requiring the max number of rejections is above a fitted curve.
     # If the max number of rejection is not greater than 10, then don't
@@ -1223,7 +1223,7 @@ contrastAllZeroCharacter <- function(object, contrastFactor,
   cts <- counts(object)
   f <- colData(object)[[contrastFactor]]
   cts.sub <- cts[ , f %in% c(contrastNumLevel, contrastDenomLevel), drop=FALSE ]
-  rowSums( cts.sub == 0 ) == ncol(cts.sub)
+  MatrixGenerics::rowSums( cts.sub == 0 ) == ncol(cts.sub)
 }
 
 contrastAllZeroNumeric <- function(object, contrast) {

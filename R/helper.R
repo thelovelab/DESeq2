@@ -113,7 +113,7 @@ unmix <- function(x, pure, alpha, shift, power=1, format="matrix", quiet=FALSE) 
   }
 
   mix <- do.call(rbind, res)
-  mix <- mix / rowSums(mix)
+  mix <- mix / MatrixGenerics::rowSums(mix)
   colnames(mix) <- colnames(pure)
   rownames(mix) <- colnames(x)
 
@@ -183,7 +183,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
   groupby <- droplevels(groupby)
   stopifnot(length(groupby) == ncol(object))
   sp <- split(seq(along=groupby), groupby)
-  countdata <- sapply(sp, function(i) rowSums(assay(object)[,i,drop=FALSE]))
+  countdata <- sapply(sp, function(i) MatrixGenerics::rowSums(assay(object)[,i,drop=FALSE]))
   mode(countdata) <- "integer"
   colsToKeep <- sapply(sp, `[`, 1)
   collapsed <- object[,colsToKeep]
@@ -368,9 +368,9 @@ fpm <- function(object, robust=TRUE) {
   }
   k <- counts(object)
   library.sizes <- if (robust & noAvgTxLen) {
-    sizeFactors(object) * exp(mean(log(colSums(k))))
+    sizeFactors(object) * exp(mean(log(MatrixGenerics::colSums(k))))
   } else {
-    colSums(k)
+    MatrixGenerics::colSums(k)
   }
   1e6 * sweep(k, 2, library.sizes, "/")  
 }

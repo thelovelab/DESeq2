@@ -248,6 +248,7 @@ NULL
 #' @importFrom utils read.table read.csv askYesNo menu
 #' @importFrom stats4 summary
 #' @importFrom matrixStats rowVars
+#' @importFrom MatrixGenerics rowMeans rowSums colMeans colSums
 #' 
 #' @useDynLib DESeq2
 #'
@@ -538,12 +539,12 @@ estimateSizeFactorsForMatrix <- function(counts, locfunc=stats::median,
   if (missing(geoMeans)) {
     incomingGeoMeans <- FALSE
     if (type == "ratio") {
-      loggeomeans <- rowMeans(log(counts))
+      loggeomeans <- MatrixGenerics::rowMeans(log(counts))
     } else if (type == "poscounts") {
       lc <- log(counts)
       lc[!is.finite(lc)] <- 0
-      loggeomeans <- rowMeans(lc)
-      allZero <- rowSums(counts) == 0
+      loggeomeans <- MatrixGenerics::rowMeans(lc)
+      allZero <- MatrixGenerics::rowSums(counts) == 0
       loggeomeans[allZero] <- -Inf
     }
   } else {
@@ -1480,7 +1481,7 @@ nbinomWaldTest <- function(object,
         # this checks that weights are OK and normalizes to have rowMax == 1
         # (although this has already happened earlier in estDispGeneEst and estDispMAP...
         wlist <- getAndCheckWeights(objectNZ, dispModelMatrix)
-        num.samps <- rowSums(wlist$weights)
+        num.samps <- MatrixGenerics::rowSums(wlist$weights)
       } else {
         num.samps <- rep(ncol(object), nrow(objectNZ))
       }
@@ -2129,9 +2130,9 @@ getBaseMeansAndVariances <- function(object) {
     wts <- assays(object)[["weights"]]
     cts.norm <- wts * cts.norm
   }
-  meanVarZero <- DataFrame(baseMean = unname(rowMeans(cts.norm)),
+  meanVarZero <- DataFrame(baseMean = unname(MatrixGenerics::rowMeans(cts.norm)),
                            baseVar = unname(rowVars(cts.norm)),
-                           allZero = unname(rowSums(counts(object)) == 0))
+                           allZero = unname(MatrixGenerics::rowSums(counts(object)) == 0))
   mcols(meanVarZero) <- DataFrame(type = rep("intermediate",ncol(meanVarZero)),
                                   description = c("mean of normalized counts for all samples",
                                     "variance of normalized counts for all samples",
@@ -2147,7 +2148,7 @@ getBaseMeansAndVariances <- function(object) {
 estimateNormFactors <- function(counts, normMatrix, locfunc=median, geoMeans, controlGenes) {
   sf <- estimateSizeFactorsForMatrix(counts / normMatrix, locfunc=locfunc, geoMeans=geoMeans, controlGenes=controlGenes)
   nf <- t( t(normMatrix) * sf )
-  nf / exp(rowMeans(log(nf)))
+  nf / exp(MatrixGenerics::rowMeans(log(nf)))
 }
 
 # Estimate a parametric fit of dispersion to the mean intensity
@@ -2196,10 +2197,10 @@ localDispersionFit <- function( means, disps, minDisp ) {
 nbinomLogLike <- function(counts, mu, disp, weights, useWeights) {
   if (is.null(disp)) return(NULL)
   if (useWeights) {
-    rowSums(weights * matrix(dnbinom(counts,mu=mu,size=1/disp,
+    MatrixGenerics::rowSums(weights * matrix(dnbinom(counts,mu=mu,size=1/disp,
                            log=TRUE),ncol=ncol(counts)))
   } else {
-    rowSums(matrix(dnbinom(counts,mu=mu,size=1/disp,
+    MatrixGenerics::rowSums(matrix(dnbinom(counts,mu=mu,size=1/disp,
                            log=TRUE),ncol=ncol(counts)))    
   }
 }
@@ -2278,7 +2279,7 @@ robustMethodOfMomentsDisp <- function(object, modelMatrix) {
   } else {
     trimmedVariance(cnts)
   }
-  m <- rowMeans(cnts)
+  m <- MatrixGenerics::rowMeans(cnts)
   alpha <- ( v - m ) / m^2
   # cannot use the typical minDisp = 1e-8 here or else all counts in the same
   # group as the outlier count will get an extreme Cook's distance
@@ -2417,16 +2418,16 @@ roughDispEstimate <- function(y, x) {
   p <- ncol(x)
 
   # an alternate rough estimator with higher mean squared or absolute error
-  # (rowSums( (y - mu)^2/(mu * (m - p)) ) - 1)/rowMeans(mu)
+  # (MatrixGenerics::rowSums( (y - mu)^2/(mu * (m - p)) ) - 1)/rowMeans(mu)
   
   # rough disp ests will be adjusted up to minDisp later
-  est <- rowSums( ((y - mu)^2 - mu) / mu^2 ) / (m - p)
+  est <- MatrixGenerics::rowSums( ((y - mu)^2 - mu) / mu^2 ) / (m - p)
   pmax(est, 0)
 }
 
 momentsDispEstimate <- function(object) {
   xim <- if (!is.null(normalizationFactors(object))) {
-    mean(1/colMeans(normalizationFactors(object)))
+    mean(1/MatrixGenerics::colMeans(normalizationFactors(object)))
   } else {
     mean(1/sizeFactors(object))
   }
@@ -2577,7 +2578,7 @@ sanitizeColData <- function(object) {
 estimateSizeFactorsIterate <- function(object, niter=10, Q=0.05) {
   design(object) <- ~ 1
   sf <- rep(1, ncol(object))
-  idx <- rowSums(counts(object)) > 0
+  idx <- MatrixGenerics::rowSums(counts(object)) > 0
   cts <- counts(object)[idx,]
   for (i in seq_len(niter)) {
     sizeFactors(object) <- sf
@@ -2589,7 +2590,7 @@ estimateSizeFactorsIterate <- function(object, niter=10, Q=0.05) {
       sf <- exp(p - mean(p))
       mu.new <- t(t(q) * sf)
       ll <- matrix(dnbinom(cts, mu=mu.new, size=1/disps, log=TRUE), ncol=ncol(cts))
-      gene.ll <- rowSums(ll)
+      gene.ll <- MatrixGenerics::rowSums(ll)
       sum(gene.ll[ gene.ll > quantile(gene.ll, Q) ])
     }
     res <- optim(log(sf.old), fn, control=list(fnscale=-1), method="L-BFGS-B")
@@ -2704,7 +2705,7 @@ getAndCheckWeights <- function(object, modelMatrix, weightThreshold=1e-2) {
           # we test that it will be possible to calculate the CR term
           # following subsetting based on weightThreshold
           mm.sub <- modelMatrix[weights[i,] > weightThreshold,,drop=FALSE]
-          mm.sub <- mm.sub[,colSums(abs(mm.sub)) > 0,drop=FALSE]
+          mm.sub <- mm.sub[,MatrixGenerics::colSums(abs(mm.sub)) > 0,drop=FALSE]
           test2 <- qr(mm.sub)$rank == ncol(mm.sub)
           weights.ok[i] <- test1 & test2
         }
@@ -2713,7 +2714,7 @@ getAndCheckWeights <- function(object, modelMatrix, weightThreshold=1e-2) {
         # just check zero columns
         weights.ok <- rep(TRUE, nrow(weights))
         for (j in seq_len(ncol(modelMatrix))) {
-          num.zero <- colSums(t(weights) * modelMatrix[,j] == 0)
+          num.zero <- MatrixGenerics::colSums(t(weights) * modelMatrix[,j] == 0)
           weights.ok <- weights.ok & (num.zero != nrow(modelMatrix))
         }
       }

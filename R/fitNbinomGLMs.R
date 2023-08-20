@@ -42,7 +42,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
     modelAsFormula <- FALSE
   }
 
-  stopifnot(all(colSums(abs(modelMatrix)) > 0))
+  stopifnot(all(MatrixGenerics::colSums(abs(modelMatrix)) > 0))
 
   # rename columns, for use as columns in DataFrame
   # and to emphasize the reference level comparison
@@ -85,7 +85,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
                                 size_factors = FALSE, offset = log(normalizationFactors),
                                 overdispersion = alpha_hat, verbose = FALSE)
     logLikeMat <- dnbinom(counts(object), mu=gp_res$Mu, size=1/alpha_hat, log=TRUE)
-    logLike <- rowSums(logLikeMat)
+    logLike <- MatrixGenerics::rowSums(logLikeMat)
     res <- list(logLike = logLike, betaConv =  rep(TRUE, nrow(object)), betaMatrix = gp_res$Beta / log(2),
                 betaSE = NULL, mu = gp_res$Mu, betaIter = rep(NA,nrow(object)),
                 modelMatrix=modelMatrix, 
@@ -106,17 +106,17 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
       betaConv <- rep(TRUE, nrow(object))
       betaIter <- rep(1,nrow(object))
       betaMatrix <- if (useWeights) {
-                      matrix(log2(rowSums(weights*counts(object, normalized=TRUE))
-                                  /rowSums(weights)),ncol=1)
+                      matrix(log2(MatrixGenerics::rowSums(weights*counts(object, normalized=TRUE))
+                                  /MatrixGenerics::rowSums(weights)),ncol=1)
                     } else {
-                      matrix(log2(rowMeans(counts(object, normalized=TRUE))),ncol=1)
+                      matrix(log2(MatrixGenerics::rowMeans(counts(object, normalized=TRUE))),ncol=1)
                     }
       mu <- normalizationFactors * as.numeric(2^betaMatrix)
       logLikeMat <- dnbinom(counts(object), mu=mu, size=1/alpha, log=TRUE)
       logLike <- if (useWeights) {
-                   rowSums(weights*logLikeMat)
+                   MatrixGenerics::rowSums(weights*logLikeMat)
                  } else {
-                   rowSums(logLikeMat)
+                   MatrixGenerics::rowSums(logLikeMat)
                  }
       modelMatrix <- stats::model.matrix.default(~ 1, data=as.data.frame(colData(object)))
       colnames(modelMatrix) <- modelMatrixNames <- "Intercept"
@@ -125,7 +125,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
            } else {
              (mu^-1 + alpha)^-1
            }
-      xtwx <- rowSums(w)
+      xtwx <- MatrixGenerics::rowSums(w)
       sigma <- xtwx^-1
       betaSE <- matrix(log2(exp(1)) * sqrt(sigma),ncol=1)      
       hat_diagonals <- w * xtwx^-1;
@@ -147,7 +147,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
     if ("Intercept" %in% modelMatrixNames) {
       beta_mat <- matrix(0, ncol=ncol(modelMatrix), nrow=nrow(object))
       # use the natural log as fitBeta occurs in the natural log scale
-      logBaseMean <- log(rowMeans(counts(object,normalized=TRUE)))
+      logBaseMean <- log(MatrixGenerics::rowMeans(counts(object,normalized=TRUE)))
       beta_mat[,which(modelMatrixNames == "Intercept")] <- logBaseMean
     } else {
       beta_mat <- matrix(1, ncol=ncol(modelMatrix), nrow=nrow(object))
@@ -227,7 +227,7 @@ fitNbinomGLMs <- function(object, modelMatrix=NULL, modelFormula, alpha_hat, lam
   }
 
   stopifnot(!any(is.na(betaSE)))
-  nNonposVar <- sum(rowSums(betaSE == 0) > 0)
+  nNonposVar <- sum(MatrixGenerics::rowSums(betaSE == 0) > 0)
   if (warnNonposVar & nNonposVar > 0) warning(nNonposVar,"rows had non-positive estimates of variance for coefficients")
   
   list(logLike = logLike, betaConv = betaConv, betaMatrix = betaMatrix,

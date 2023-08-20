@@ -272,7 +272,7 @@ rlogData <- function(object, intercept, betaPriorVar) {
 }
 
 sparseTest <- function(x, p, t1, t2) {
-  rs <- rowSums(x)
+  rs <- MatrixGenerics::rowSums(x)
   rmx <- apply(x, 1, max)
   if (all(rs <= t1)) return(invisible())
   prop <- (rmx/rs)[rs > t1]

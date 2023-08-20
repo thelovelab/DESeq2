@@ -382,7 +382,7 @@ estimateSizeFactors.DESeqDataSet <- function(object, type=c("ratio","poscounts",
     }
     if ("avgTxLength" %in% assayNames(object)) {
       nm <- assays(object)[["avgTxLength"]]
-      nm <- nm / exp(rowMeans(log(nm))) # divide out the geometric mean
+      nm <- nm / exp(MatrixGenerics::rowMeans(log(nm))) # divide out the geometric mean
       normalizationFactors(object) <- estimateNormFactors(counts(object),
                                                           normMatrix=nm,
                                                           locfunc=locfunc,
@@ -521,7 +521,7 @@ this column could have come in during colData import and should be removed.")
 this column could have come in during colData import and should be removed.")
     }
   }
-  if (all(rowSums(counts(object) == counts(object)[,1]) == ncol(object))) {
+  if (all(MatrixGenerics::rowSums(counts(object) == counts(object)[,1]) == ncol(object))) {
     stop("all genes have equal values for all samples. will not be able to perform differential analysis")
   }
   if (!is.null(dispersions(object))) {

@@ -175,7 +175,7 @@ DESeqDataSet <- function(se, design, ignoreRank=FALSE) {
     stop("all samples have 0 counts for all genes. check the counting script.")
   }
   
-  if (all(rowSums(assay(se) == assay(se)[,1]) == ncol(se))) {
+  if (all(MatrixGenerics::rowSums(assay(se) == assay(se)[,1]) == ncol(se))) {
     warning("all genes have equal values for all samples. will not be able to perform differential analysis")
   }
 

@@ -436,7 +436,7 @@ plotSparsity <- function(x, normalized=TRUE, ...) {
   if (is(x, "DESeqDataSet")) {
     x <- counts(x, normalized=normalized)
   }
-  rs <- rowSums(x)
+  rs <- MatrixGenerics::rowSums(x)
   rmx <- apply(x, 1, max)
   plot(rs[rs > 0], (rmx/rs)[rs > 0], log="x", ylim=c(0,1), xlab="sum of counts per gene",
        ylab="max count / sum", main="Concentration of counts over total sum of counts", ...)

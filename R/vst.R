@@ -159,7 +159,7 @@ getVarianceStabilizedData <- function(object) {
     if (is.null(sizeFactors(object))) {
       stopifnot(!is.null(normalizationFactors(object)))
       # approximate size factors from columns of NF
-      sf <- exp(colMeans(log(normalizationFactors(object))))
+      sf <- exp(MatrixGenerics::colMeans(log(normalizationFactors(object))))
     } else {
       sf <- sizeFactors(object)
     }
@@ -172,8 +172,8 @@ getVarianceStabilizedData <- function(object) {
       cumsum(
         ( xg[-1] - xg[-length(xg)] ) *
         ( integrand[-1] + integrand[-length(integrand)] )/2 ) )
-    h1 <- quantile( rowMeans(ncounts), .95 )
-    h2 <- quantile( rowMeans(ncounts), .999 )
+    h1 <- quantile( MatrixGenerics::rowMeans(ncounts), .95 )
+    h2 <- quantile( MatrixGenerics::rowMeans(ncounts), .999 )
     eta <- ( log2(h2) - log2(h1) ) / ( splf(asinh(h2)) - splf(asinh(h1)) )
     xi <- log2(h1) - eta * splf(asinh(h1))
     tc <- sapply( colnames(counts(object)), function(clm) {
@@ -236,7 +236,7 @@ vst <- function(object, blind=TRUE, nsub=1000, fitType="parametric") {
   if (is.null(sizeFactors(object)) & is.null(normalizationFactors(object))) {
     object <- estimateSizeFactors(object)
   }
-  baseMean <- rowMeans(counts(object, normalized=TRUE))
+  baseMean <- MatrixGenerics::rowMeans(counts(object, normalized=TRUE))
   if (sum(baseMean > 5) < nsub) {
     stop("less than 'nsub' rows with mean normalized count > 5, 
   it is recommended to use varianceStabilizingTransformation directly")
