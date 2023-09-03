@@ -295,7 +295,7 @@ commonly present in RNA-seq data [@Love2016Modeling; @Patro2017Salmon],
 unless you are certain that your data do not contain such bias.
 
 Here, we demonstrate how to import transcript abundances
-and construct of a gene-level *DESeqDataSet* object
+and construct a gene-level *DESeqDataSet* object
 from *Salmon* `quant.sf` files, which are
 stored in the [tximportData](http://bioconductor.org/packages/tximportData) package.
 You do not need the `tximportData` package for your analysis, it is
@@ -401,7 +401,7 @@ To use *DESeqDataSetFromMatrix*, the user should provide
 the counts matrix, the information about the samples (the columns of the 
 count matrix) as a *DataFrame* or *data.frame*, and the design formula.
 
-To demonstate the use of *DESeqDataSetFromMatrix*, 
+To demonstrate the use of *DESeqDataSetFromMatrix*, 
 we will read in count data from the
 [pasilla](http://bioconductor.org/packages/pasilla) package. 
 We read in a count matrix, which we will name `cts`, 
@@ -832,7 +832,7 @@ object, and access to these values is discussed [below](#access).
 In DESeq2, the function *plotMA* shows the log2
 fold changes attributable to a given variable over the mean of
 normalized counts for all the samples in the *DESeqDataSet*.
-Points will be colored red if the adjusted *p* value is less than 0.1.
+Points will be colored blue if the adjusted *p* value is less than 0.1.
 Points which fall out of the window are plotted as open triangles pointing 
 either up or down.
 
@@ -840,7 +840,7 @@ either up or down.
 plotMA(res, ylim=c(-2,2))
 ```
 
-It is more useful visualize the MA-plot for the shrunken log2 fold
+It is more useful to visualize the MA-plot for the shrunken log2 fold
 changes, which remove the noise associated with log2 fold changes from
 low count genes without requiring arbitrary filtering thresholds.
 
@@ -1026,7 +1026,7 @@ the [regionReport](http://bioconductor.org/packages/regionReport)
 package. 
 
 **Glimma** Interactive visualization of DESeq2 output, 
-including MA-plots (also called MD-plot) can be generated using the
+including MA-plots (also called MD-plots) can be generated using the
 [Glimma](http://bioconductor.org/packages/Glimma) package. See the
 manual page for *glMDPlot.DESeqResults*. 
 
@@ -1083,7 +1083,7 @@ resSig
 ## Multi-factor designs
 
 Experiments with more than one factor influencing the counts can be
-analyzed using design formula that include the additional variables.
+analyzed using design formulas that include the additional variables.
 In fact, DESeq2 can analyze any possible experimental design that can
 be expressed with fixed effects terms (multiple factors, designs with
 interactions, designs with continuous variables, splines, and so on
@@ -1103,7 +1103,7 @@ variation affecting the observed counts. Failing to model this
 additional technical variation will lead to spurious results. Many
 methods exist that can be used to model technical variation, which can
 be easily included in the DESeq2 design to control for technical
-variation which estimating effects of interest. See the 
+variation while estimating effects of interest. See the 
 [RNA-seq workflow](http://www.bioconductor.org/help/workflows/rnaseqGene)
 for examples of using RUV or SVA in combination with DESeq2. 
 For more details on why it is important to control for technical
@@ -1306,7 +1306,7 @@ transforming the original count data to the log2 scale by fitting a
 model with a term for each sample and a prior distribution on the
 coefficients which is estimated from the data. This is the same kind
 of shrinkage (sometimes referred to as regularization, or moderation)
-of log fold changes used by the *DESeq* and
+of log fold changes used by *DESeq* and
 *nbinomWaldTest*. The resulting data contains elements defined as:
 
 $$ \log_2(q_{ij}) = \beta_{i0} + \beta_{ij} $$
@@ -1571,7 +1571,7 @@ plotit <- function(d, title) {
   ggplot(d, aes(x=cond, y=log2c, group=geno)) + 
     geom_jitter(size=1.5, position = position_jitter(width=.15)) +
     facet_wrap(~ geno) + 
-    stat_summary(fun.y=mean, geom="line", colour="red", size=0.8) + 
+    stat_summary(fun=mean, geom="line", colour="red", linewidth=0.8) + 
     xlab("condition") + ylab("log2(counts+1)") + ggtitle(title)
 }
 plotit(d, "Gene 1") + ylim(7,13)
@@ -2291,8 +2291,8 @@ An example of such an experiment is below:
 
 ```{r groupeffect}
 coldata <- DataFrame(grp=factor(rep(c("X","Y"),each=6)),
-                       ind=factor(rep(1:6,each=2)),
-                      cnd=factor(rep(c("A","B"),6)))
+                     ind=factor(rep(1:6,each=2)),
+                     cnd=factor(rep(c("A","B"),6)))
 coldata
 ```
 
