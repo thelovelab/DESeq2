@@ -1049,6 +1049,10 @@ following gist, written by Federico Marini:
 
 * <https://gist.github.com/federicomarini/4a543eebc7e7091d9169111f76d59de1>
 
+The [iSEEde](https://bioconductor.org/packages/iSEEde) package provides 
+additional panels that facilitate the interactive visualisation of
+differential expression results in iSEE applications.
+
 **DEvis** DEvis is a powerful, integrated solution for the analysis of
 differential expression data. This package includes an array of tools
 for manipulating and aggregating data, as well as a wide range of
