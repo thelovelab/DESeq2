@@ -239,6 +239,8 @@ setMethod("plotMA", signature(object="DESeqResults"), plotMA.DESeqResults)
 plotPCA.DESeqTransform = function(object, intgroup="condition",
                                   ntop=500, returnData=FALSE, pcsToUse=1:2)
 {
+  message(paste0("using ntop=",ntop," top features by variance"))
+  
   # calculate the variance for each gene
   rv <- rowVars(assay(object))
 

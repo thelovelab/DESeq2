@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.41.13
+--------------------------
+
+    o collapseReplicates() now noisier (warning) about other assays.
+    o plotPCA() prints out the `ngenes` setting.
+
 CHANGES IN VERSION 1.41.8
 -------------------------
 
