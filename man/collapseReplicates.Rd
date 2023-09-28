@@ -20,15 +20,22 @@ using the levels of the grouping factor}
 }
 \value{
 the \code{object} with as many columns as levels in \code{groupby}.
-This object has assay/count data which is summed from the various
+This object has \code{"counts"} data which is summed from the various
 columns which are grouped together, and the \code{colData} is subset using
 the first column for each group in \code{groupby}.
+Other assays are dropped, as it is not unambiguous the correct
+form of combination, and a warning is printed if they are present, so
+the user is aware they should take care of such assays manually.
 }
 \description{
 Collapses the columns in \code{object} by summing within levels
 of a grouping factor \code{groupby}. The purpose of this function
 is to sum up read counts from technical replicates to create an object
 with a single column of read counts for each sample.
+This function will issue a warning if there are other assays other than
+\code{"counts"}, see details below in 'Value'.
+}
+\details{
 Note: by "technical replicates", we mean multiple sequencing runs of the same
 library, in constrast to "biological replicates" in which multiple
 libraries are prepared from separate biological units.
