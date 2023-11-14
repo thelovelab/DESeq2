@@ -1006,15 +1006,6 @@ can be set to `NA` for one of the following reasons:
 
 ### Rich visualization and reporting of results
 
-**ReportingTools** An HTML report of the results with plots and
-sortable/filterable columns can be generated using
-the [ReportingTools](http://bioconductor.org/packages/ReportingTools)
-package on a *DESeqDataSet* that has been processed by the *DESeq* function.
-For a code example, see the *RNA-seq differential expression* vignette at
-the [ReportingTools](http://bioconductor.org/packages/ReportingTools)
-page, or the manual page for the *publish* method for the
-*DESeqDataSet* class. 
-
 **regionReport** An HTML and PDF summary of the results with plots
 can also be generated using
 the [regionReport](http://bioconductor.org/packages/regionReport) 
