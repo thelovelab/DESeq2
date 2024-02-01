@@ -1,3 +1,11 @@
+CHANGES IN VERSION 1.44.0
+-------------------------
+
+    o New method for 'greaterAbs' in results() which has more
+      power than the original 2014-2023 method. The old method
+      is available as 'greaterAbs2014'.
+      Suggested by Nikos Ignatiadis
+
 CHANGES IN VERSION 1.42.0
 -------------------------
 

@@ -53,7 +53,7 @@ test_that("useT uses proper degrees of freedom", {
   expect_true(res$pvalue[2] == 2*pt(abs(res$stat[2]), df=15-1-3, lower.tail=FALSE))
 
   # also lfcThreshold
-  res <- results(dds, lfcThreshold=1, altHypothesis="greaterAbs")
+  res <- results(dds, lfcThreshold=1, altHypothesis="greaterAbs2014")
   idx <- which(res$log2FoldChange > 1 & !is.na(res$pvalue))[1]
   expect_true(res$pvalue[idx] == 2 * pt(res$stat[idx], df=15-1-3, lower.tail=FALSE))
   #

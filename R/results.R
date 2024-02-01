@@ -139,6 +139,7 @@
 #' The Wald statistic given is positive, an SE-scaled distance from the closest boundary
 #' \item greater: \eqn{ \beta > \textrm{lfcThreshold} }{ beta > lfcThreshold }
 #' \item less: \eqn{ \beta < -\textrm{lfcThreshold} }{ beta < -lfcThreshold }
+#' \item greaterAbs2014: older implementation of greaterAbs from 2014, less power
 #' }
 #' @param listValues only used if a list is provided to \code{contrast}:
 #' a numeric of length two: the log2 fold changes in the list are multiplied by these values.
@@ -296,7 +297,7 @@
 #' @export
 results <- function(object, contrast, name, 
                     lfcThreshold=0,
-                    altHypothesis=c("greaterAbs","lessAbs","greater","less"),
+                    altHypothesis=c("greaterAbs","lessAbs","greater","less","greaterAbs2014"),
                     listValues=c(1,-1),
                     cooksCutoff,
                     independentFiltering=TRUE,
@@ -305,7 +306,7 @@ results <- function(object, contrast, name,
                     filterFun,
                     format=c("DataFrame","GRanges","GRangesList"),
                     saveCols=NULL,
-                    test,
+                    test=c("Wald","LRT"),
                     addMLE=FALSE,
                     tidy=FALSE,
                     parallel=FALSE, BPPARAM=bpparam(), 
@@ -314,10 +315,10 @@ results <- function(object, contrast, name,
   stopifnot(is(object, "DESeqDataSet"))
   
   # match args
-  format <- match.arg(format, choices=c("DataFrame", "GRanges","GRangesList"))
-  altHypothesis <- match.arg(altHypothesis, choices=c("greaterAbs","lessAbs","greater","less"))
+  format <- match.arg(format)
+  altHypothesis <- match.arg(altHypothesis)
   if (!missing(test)) {
-    test <- match.arg(test, choices=c("Wald","LRT"))
+    test <- match.arg(test)
   }
   
   ### initial argument testing ###
@@ -481,6 +482,21 @@ of length 3 to 'contrast' instead of using 'name'")
     }
     
     if (altHypothesis == "greaterAbs") {
+      # a new version of greaterAbs suggested by Nikos Ignatiadis
+      # which is more powerful and still controls Type I error
+      if (!useT) {
+        pfunc <- function(lfc_T, lfc, se) {
+          pnorm(-abs(lfc) + lfc_T, sd=se) + pnorm(-abs(lfc) - lfc_T, sd=se)
+        }
+      } else {
+        pfunc <- function(lfc_T, lfc, se) {
+          pt((-abs(lfc) + lfc_T)/se, df=df) + pt((-abs(lfc) - lfc_T)/se, df=df)
+        }
+      }
+      newStat <- LFC / SE # just output the Wald stat ...
+      newPvalue <- mapply(pfunc, T, LFC, SE)
+    } else if (altHypothesis == "greaterAbs2014") {
+      # this is the version of greaterAbs that was used 2014-2023
       newStat <- sign(LFC) * pmax((abs(LFC) - T)/SE, 0)
       newPvalue <- pmin(1, 2 * pfunc((abs(LFC) - T)/SE))
     } else if (altHypothesis == "lessAbs") {

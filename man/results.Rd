@@ -11,7 +11,7 @@ results(
   contrast,
   name,
   lfcThreshold = 0,
-  altHypothesis = c("greaterAbs", "lessAbs", "greater", "less"),
+  altHypothesis = c("greaterAbs", "lessAbs", "greater", "less", "greaterAbs2014"),
   listValues = c(1, -1),
   cooksCutoff,
   independentFiltering = TRUE,
@@ -22,7 +22,7 @@ results(
   filterFun,
   format = c("DataFrame", "GRanges", "GRangesList"),
   saveCols = NULL,
-  test,
+  test = c("Wald", "LRT"),
   addMLE = FALSE,
   tidy = FALSE,
   parallel = FALSE,
@@ -87,6 +87,7 @@ p-values are the maximum of the upper and lower tests.
 The Wald statistic given is positive, an SE-scaled distance from the closest boundary
 \item greater: \eqn{ \beta > \textrm{lfcThreshold} }{ beta > lfcThreshold }
 \item less: \eqn{ \beta < -\textrm{lfcThreshold} }{ beta < -lfcThreshold }
+\item greaterAbs2014: older implementation of greaterAbs from 2014, less power
 }}
 
 \item{listValues}{only used if a list is provided to \code{contrast}:
