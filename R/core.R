@@ -794,21 +794,22 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson
     Generalized Linear Models on Single Cell Count Data. Bioinformatics.
     https://doi.org/10.1093/bioinformatics/btaa1009")
+      Counts <- counts(objectNZ)[fitidx,,drop=FALSE]
       initial_lp <- vapply(seq_len(nrow(fitMu)), function(idx) {
-        sum(dnbinom(x = counts(objectNZ)[fitidx,][idx,],
+        sum(dnbinom(x = Counts[idx,],
                     mu = fitMu[idx,],
                     size = 1 / alpha_hat[fitidx][idx],
                     log = TRUE))
       }, FUN.VALUE = 0.0)
       dispersion_fits <- glmGamPoi::overdispersion_mle(
-                                      counts(objectNZ)[fitidx,], mean = fitMu,
+                                      Counts, mean = fitMu,
                                       model_matrix = modelMatrix, verbose = ! quiet
                                     )
       dispIter[fitidx] <- dispersion_fits$iterations
       alpha_hat_new[fitidx] <- pmin(dispersion_fits$estimate, maxDisp)
       last_lp <- vapply(seq_len(nrow(fitMu)), function(idx) {
-        sum(dnbinom(x = counts(objectNZ)[fitidx,][idx,],
-                    mu = fitMu[idx,]
+        sum(dnbinom(x = Counts[idx,],
+                    mu = fitMu[idx,],
                     size = 1 / alpha_hat_new[fitidx][idx],
                     log = TRUE))
       }, FUN.VALUE = 0.0)
