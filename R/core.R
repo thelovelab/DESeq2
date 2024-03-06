@@ -749,6 +749,8 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
   # this helps make the fitting more robust,
   # because 1/mu occurs in the weights for the NB GLM
   for (iter in seq_len(niter)) {
+
+    # coding note: fitMu is over the non-zero rows and then subset by 'fitidx'
     if (!linearMu) {
       fit <- fitNbinomGLMs(objectNZ[fitidx,,drop=FALSE],
                            alpha_hat=alpha_hat[fitidx],
@@ -792,16 +794,23 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     Ahlmann-Eltze, C., Huber, W. (2020) glmGamPoi: Fitting Gamma-Poisson
     Generalized Linear Models on Single Cell Count Data. Bioinformatics.
     https://doi.org/10.1093/bioinformatics/btaa1009")
-      Counts <- counts(objectNZ)
-      initial_lp <- vapply(which(fitidx), function(idx){
-        sum(dnbinom(Counts[idx, ], mu = fitMu, size = 1 / alpha_hat[idx], log = TRUE))
+      initial_lp <- vapply(seq_len(nrow(fitMu)), function(idx) {
+        sum(dnbinom(x = counts(objectNZ)[fitidx,][idx,],
+                    mu = fitMu[idx,],
+                    size = 1 / alpha_hat[fitidx][idx],
+                    log = TRUE))
       }, FUN.VALUE = 0.0)
-      dispersion_fits <- glmGamPoi::overdispersion_mle(Counts[fitidx, ], mean = fitMu,
-                                                       model_matrix = modelMatrix, verbose = ! quiet)
+      dispersion_fits <- glmGamPoi::overdispersion_mle(
+                                      counts(objectNZ)[fitidx,], mean = fitMu,
+                                      model_matrix = modelMatrix, verbose = ! quiet
+                                    )
       dispIter[fitidx] <- dispersion_fits$iterations
       alpha_hat_new[fitidx] <- pmin(dispersion_fits$estimate, maxDisp)
-      last_lp <- vapply(which(fitidx), function(idx){
-        sum(dnbinom(Counts[idx, ], mu = fitMu, size = 1 / alpha_hat_new[idx], log = TRUE))
+      last_lp <- vapply(seq_len(nrow(fitMu)), function(idx) {
+        sum(dnbinom(x = counts(objectNZ)[fitidx,][idx,],
+                    mu = fitMu[idx,]
+                    size = 1 / alpha_hat_new[fitidx][idx],
+                    log = TRUE))
       }, FUN.VALUE = 0.0)
     }
     fitidx <- abs(log(alpha_hat_new) - log(alpha_hat)) > .05
@@ -809,6 +818,7 @@ estimateDispersionsGeneEst <- function(object, minDisp=1e-8, kappa_0=1,
     alpha_hat <- alpha_hat_new
     if (sum(fitidx) == 0) break
   }
+  
   # dont accept moves if the log posterior did not
   # increase by more than one millionth,
   # and set the small estimates to the minimum dispersion
