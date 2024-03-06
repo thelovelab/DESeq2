@@ -1,10 +1,13 @@
 CHANGES IN VERSION 1.44.0
--------------------------
 
     o New method for 'greaterAbs' in results() which has more
       power than the original 2014-2023 method. The old method
       is available as 'greaterAbs2014'.
       Suggested by Nikos Ignatiadis
+
+    o Fix from I-Hsuan Lin for the glmGamPoi dispersion estimation
+      where the wrong indexing of the fitted mean matrix was used,
+      which caused a slowdown.
 
 CHANGES IN VERSION 1.42.0
 -------------------------
