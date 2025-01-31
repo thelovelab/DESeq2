@@ -184,6 +184,10 @@ the European Union’s 7th Framework Programme via Project RADIANT,
 NIH NHGRI R01-HG009937,
 and by a CZI EOSS award.
 
+**ELIXIR feedback:** Your feedback matters! Please take our quick user
+satisfaction survey:
+[link](https://de.surveymonkey.com/r/denbi-service?sc=hd-hub&tool=deseq2)
+
 ## Input data
 
 ### Why un-normalized counts?
