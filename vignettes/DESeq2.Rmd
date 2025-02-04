@@ -1846,6 +1846,14 @@ single-cell datasets. These settings and additional improvements have
 also been tested subsequently and published in @Zhu2018 and
 @AhlmannEltze2020.
 
+**Note:** these recommendations are in particular for running DESeq2 where
+columns are individual cells in a heterogeneous mixture of cell
+types. The issues are data sparsity and large-scale compositional differences in
+the transcriptome between cells of different cell type.
+*Pseudo-bulk analysis* which aggregates counts from cells and performs
+comparisons *within cell type* across condition obviates these recommended
+changes.
+
 * Use `test="LRT"` for significance testing when working with
   single-cell data, over the Wald test. This has been observed across
   multiple single-cell benchmarks.
