@@ -410,20 +410,23 @@ count matrix) as a *DataFrame* or *data.frame*, and the design formula.
 
 To demonstrate the use of *DESeqDataSetFromMatrix*, 
 we will read in count data from the
-[pasilla](http://bioconductor.org/packages/pasilla) package. 
+[pasilla](http://bioconductor.org/packages/pasilla) package, 
+which have been copied into the *DESeq2* package in the 
+`inst/extdata` directory, or the `extdata` directory for the 
+installed package.
 We read in a count matrix, which we will name `cts`, 
 and the sample information table, which we will name `coldata`. 
 Further below we describe how to extract these objects from,
 e.g. *featureCounts* output. 
 
 ```{r loadPasilla}
-library("pasilla")
+library("DESeq2")
 pasCts <- system.file("extdata",
-                      "pasilla_gene_counts.tsv",
-                      package="pasilla", mustWork=TRUE)
+                      "pasilla_gene_counts.tsv.gz",
+                      package="DESeq2", mustWork=TRUE)
 pasAnno <- system.file("extdata",
                        "pasilla_sample_annotation.csv",
-                       package="pasilla", mustWork=TRUE)
+                       package="DESeq2", mustWork=TRUE)
 cts <- as.matrix(read.csv(pasCts,sep="\t",row.names="gene_id"))
 coldata <- read.csv(pasAnno, row.names=1)
 coldata <- coldata[,c("condition","type")]

@@ -1,0 +1,8 @@
+"file","condition","type","number of lanes","total number of reads","exon counts"
+"treated1fb","treated","single-read",5,"35158667",15679615
+"treated2fb","treated","paired-end",2,"12242535 (x2)",15620018
+"treated3fb","treated","paired-end",2,"12443664 (x2)",12733865
+"untreated1fb","untreated","single-read",2,"17812866",14924838
+"untreated2fb","untreated","single-read",6,"34284521",20764558
+"untreated3fb","untreated","paired-end",2,"10542625 (x2)",10283129
+"untreated4fb","untreated","paired-end",2,"12214974 (x2)",11653031

@@ -1,3 +1,8 @@
+CHANGES IN VERSION 1.47.4
+-------------------------
+
+    o Adding `pasilla` extdata to DESeq2 package for build stability.
+
 CHANGES IN VERSION 1.45.1
 -------------------------
 
