@@ -494,7 +494,10 @@ Reference: https://doi.org/10.1093/bioinformatics/bty895")
   }
 
   # stash lfcThreshold and type/pkg details
-  metadata(res)[["lfcThreshold"]] <- lfcThreshold
+  # ... only when s-values were computed by lfcShrink()
+  if (svalue == TRUE) {
+    metadata(res)[["lfcThreshold"]] <- lfcThreshold
+  }
   pkg <- if (type == "normal") "DESeq2" else type
   priorInfo(res) <- list(type=type,
                          package=pkg,

@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.47.6
+-------------------------
+
+    o Resolving an issue where lfcThreshold was changed to 0 in 
+      the summary() print-out after lfcShrink() even if s-values
+      were not computed.
+
 CHANGES IN VERSION 1.47.4
 -------------------------
 

@@ -72,6 +72,12 @@ test_that("LFC shrinkage works", {
   summary.res <- capture.output({ summary(res.ape) })
   summary.res <- capture.output({ summary(res.ash) })
   
+  # summary after tresholded results() is correct
+  res.thresh <- results(dds, lfcThreshold=1)
+  lfc.thresh <- lfcShrink(dds, coef=2, res=res.thresh)
+  summary.res <- capture.output({ summary(lfc.thresh) })
+  expect_true(grepl("LFC > 1.00",summary.res[4]))
+
   # list returned
   res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", returnList=TRUE)
   names(res.ape)
