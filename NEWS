@@ -1,4 +1,4 @@
-CHANGES IN VERSION 1.47.6
+CHANGES IN VERSION 1.49.1
 -------------------------
 
     o Resolving an issue where lfcThreshold was changed to 0 in 
