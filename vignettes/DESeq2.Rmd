@@ -2657,10 +2657,21 @@ It shows how the filtering ameliorates the multiple testing problem
 removing a background set of hypotheses whose *p* values are distributed
 more or less uniformly in [0,1].
 
+```{r demoForFilt}
+dds_demo <- makeExampleDESeqDataSet(
+  n=5000, m=6,
+  interceptMean=3,
+  interceptSD=1,
+  betaSD=1
+)
+dds_demo <- DESeq(dds_demo)
+res_demo <- results(dds_demo)
+```
+
 ```{r histindepfilt}
-use <- res$baseMean > metadata(res)$filterThreshold
-h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
-h2 <- hist(res$pvalue[use], breaks=0:50/50, plot=FALSE)
+use <- res_demo$baseMean > metadata(res_demo)$filterThreshold
+h1 <- hist(res_demo$pvalue[!use], breaks=0:50/50, plot=FALSE)
+h2 <- hist(res_demo$pvalue[use], breaks=0:50/50, plot=FALSE)
 colori <- c(`do not pass`="khaki", `pass`="powderblue")
 ``` 
 
