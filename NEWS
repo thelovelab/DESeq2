@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.49.4
+-------------------------
+
+   o The wrong weights matrix was being used when recomputing the
+     SE within results() for the numeric-style contrast. Fixed.
+   o glmGamPoi and parallel error instead of warning.
+
 CHANGES IN VERSION 1.49.1
 -------------------------
 
