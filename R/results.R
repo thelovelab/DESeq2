@@ -786,7 +786,7 @@ getContrast <- function(object, contrast, useT=FALSE, minmu) {
   # use weights if they are present in assays(object)
   if ("weights" %in% assayNames(object)) {
     useWeights <- TRUE
-    weights <- assays(object)[["weights"]]
+    weights <- assays(objectNZ)[["weights"]]
     stopifnot(all(weights >= 0))
     weights <- weights / apply(weights, 1, max)
   } else {

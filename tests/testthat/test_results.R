@@ -175,3 +175,13 @@ test_that("custom filters can be provided to results()", {
   resCustom <- results(dds, filterFun=customFilt)
   #plot(res$padj, resCustom$padj);abline(0,1)
 })
+
+test_that("weights don't depend on contrast type", {
+  set.seed(1)
+  dds <- makeExampleDESeqDataSet()
+  assay(dds, "weights", withDimnames=FALSE) <- matrix(runif(12000), ncol=12)
+  dds <- DESeq(dds, quiet=TRUE)
+  res1 <- results(dds, contrast=c("condition","B","A"))
+  res2 <- results(dds, contrast=c(0,1))
+  expect_true(all.equal(res1$lfcSE, res2$lfcSE))
+})
