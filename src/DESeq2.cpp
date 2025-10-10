@@ -498,14 +498,14 @@ List fitDispGrid(SEXP ySEXP, SEXP xSEXP, SEXP mu_hatSEXP, SEXP disp_gridSEXP, SE
       a = disp_grid(t);
       logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
     }
-    logpostvec.max(idxmax);
+    idxmax = logpostvec.index_max();
     a_hat = disp_grid(idxmax);
     disp_grid_fine = arma::linspace<arma::vec>(a_hat - delta, a_hat + delta, disp_grid_n);
     for (int t = 0; t < disp_grid_n; t++) {
       a = disp_grid_fine(t);
       logpostvec(t) = log_posterior(a, yrow, mu_hat_row, x, log_alpha_prior_mean(i), log_alpha_prior_sigmasq, usePrior, weights.row(i), useWeights, weightThreshold, useCR);
     }
-    logpostvec.max(idxmax);
+    idxmax = logpostvec.index_max();
     log_alpha(i) = disp_grid_fine(idxmax);
   }
 
