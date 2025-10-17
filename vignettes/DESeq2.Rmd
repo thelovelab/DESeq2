@@ -111,16 +111,14 @@ just reply that the question should be posted to the
 
 ## Acknowledgments
 
-Constantin Ahlmann-Eltze has contributed core code for increasing the
-computational performance of *DESeq2* and building an interface to his
-*glmGamPoi* package.
-
 We have benefited in the development of *DESeq2* from the help and
 feedback of many individuals, including but not limited to: 
 
 The Bionconductor Core Team,
-Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein,
-Nikolaos Ignatiadis (IHW),
+Alejandro Reyes, Andrzej Oles, Aleksandra Pekowska, Felix Klein (early testers),
+Constantin Ahlmann-Eltze (glmGamPoi),
+Nikolaos Ignatiadis (IHW, greaterAbs),
+Raphael Rossellini (greaterAbs),
 Anqi Zhu (apeglm),
 Joseph Ibrahim (apeglm),
 Vince Carey,

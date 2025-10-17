@@ -1,3 +1,9 @@
+CHANGES	IN VERSION 1.49.6
+-------------------------
+
+  o Fixes for combined use of useT and greaterAbs in results(),
+    thanks to a PR from Raphael (@rrross)
+
 CHANGES IN VERSION 1.49.4
 -------------------------
 

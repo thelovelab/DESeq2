@@ -41,7 +41,12 @@ test_that("useT uses proper degrees of freedom", {
   counts(dds)[101:105,] <- 0L
   dds$condition <- factor(rep(c("A","B","C"),each=5))
   dds <- DESeq(dds, useT=TRUE)
+  df <- mcols(dds)[,"tDegreesFreedom"]
+  expect_true(all(df[!is.na(df)] == 12))
+  res <- results(dds, lfcThreshold=1, altHypothesis="greaterAbs")
+  res <- results(dds, lfcThreshold=1, altHypothesis="greaterAbs2014")
   dds <- removeResults(dds)
+
   w <- matrix(1, nrow=nrow(dds), ncol=ncol(dds))
   w[1:100,1] <- 0
   w[1,c(1:4,6:9,11:14)] <- 0
@@ -53,6 +58,10 @@ test_that("useT uses proper degrees of freedom", {
   expect_true(res$pvalue[2] == 2*pt(abs(res$stat[2]), df=15-1-3, lower.tail=FALSE))
 
   # also lfcThreshold
+  res <- results(dds, lfcThreshold=1, altHypothesis="greaterAbs")
+  idx <- which(res$log2FoldChange > 1 & !is.na(res$pvalue))[1]
+  expect_true(res$pvalue[idx] == 2 * pt(res$stat[idx], df=15-1-3, lower.tail=FALSE))
+  #
   res <- results(dds, lfcThreshold=1, altHypothesis="greaterAbs2014")
   idx <- which(res$log2FoldChange > 1 & !is.na(res$pvalue))[1]
   expect_true(res$pvalue[idx] == 2 * pt(res$stat[idx], df=15-1-3, lower.tail=FALSE))
