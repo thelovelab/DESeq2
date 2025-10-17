@@ -488,13 +488,14 @@ of length 3 to 'contrast' instead of using 'name'")
         pfunc_lfc <- function(lfc_T, lfc, se) {
           pnorm(-abs(lfc) + lfc_T, sd=se) + pnorm(-abs(lfc) - lfc_T, sd=se)
         }
+        newPvalue <- mapply(pfunc_lfc, T, LFC, SE)
       } else {
-        pfunc_lfc <- function(lfc_T, lfc, se) {
+        pfunc_lfc <- function(lfc_T, lfc, se, df) {
           pt((-abs(lfc) + lfc_T)/se, df=df) + pt((-abs(lfc) - lfc_T)/se, df=df)
         }
+        newPvalue <- mapply(pfunc_lfc, T, LFC, SE, df)
       }
       newStat <- LFC / SE # just output the Wald stat ...
-      newPvalue <- mapply(pfunc_lfc, T, LFC, SE)
     } else if (altHypothesis == "greaterAbs2014") {
       # this is the version of greaterAbs that was used 2014-2023
       newStat <- sign(LFC) * pmax((abs(LFC) - T)/SE, 0)
