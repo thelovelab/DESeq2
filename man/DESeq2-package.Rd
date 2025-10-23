@@ -53,4 +53,3 @@ Useful links:
 \author{
 Michael Love, Wolfgang Huber, Simon Anders
 }
-\keyword{package}

@@ -134,6 +134,8 @@
 #' \itemize{
 #' \item greaterAbs: \eqn{|\beta| > \textrm{lfcThreshold} }{ |beta| > lfcThreshold },
 #' and p-values are two-tailed
+#' \item greaterAbsUPSHOT: a uniform prior for the effect-size distribution to
+#' achieve more power than \code{"greaterAbs"}
 #' \item lessAbs: \eqn{ |\beta| < \textrm{lfcThreshold} }{ |beta| < lfcThreshold },
 #' p-values are the maximum of the upper and lower tests.
 #' The Wald statistic given is positive, an SE-scaled distance from the closest boundary

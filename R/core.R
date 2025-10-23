@@ -84,12 +84,7 @@
 #' \url{https://doi.org/10.1186/s13059-014-0550-8}
 #'
 #' @author Michael Love, Wolfgang Huber, Simon Anders
-#' 
-#' @docType package
-#' @name DESeq2-package
-#' @aliases DESeq2-package
-#' @keywords package
-NULL
+"_PACKAGE"
 
 #' Differential expression analysis based on the Negative Binomial (a.k.a. Gamma-Poisson) distribution
 #'

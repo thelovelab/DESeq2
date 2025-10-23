@@ -2,7 +2,7 @@ Package: DESeq2
 Type: Package
 Title: Differential gene expression analysis based on the negative
     binomial distribution
-Version: 1.49.7
+Version: 1.49.8
 Authors@R: c(
     person("Michael", "Love", email="michaelisaiahlove@gmail.com", role = c("aut","cre")),
     person("Constantin", "Ahlmann-Eltze", role = c("ctb")),
@@ -32,5 +32,5 @@ URL: https://github.com/thelovelab/DESeq2
 biocViews: Sequencing, RNASeq, ChIPSeq, GeneExpression, Transcription,
     Normalization, DifferentialExpression, Bayesian, Regression,
     PrincipalComponent, Clustering, ImmunoOncology
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Encoding: UTF-8

@@ -277,11 +277,17 @@ plotPCA.DESeqTransform = function(object, intgroup="condition",
     return(d)
   }
 
-  ggplot(data=d, aes_string(x=pcs[1], y=pcs[2], color="group")) +
-    geom_point(size=3) + 
-    xlab(paste0(pcs[1],": ",round(percentVar[pcsToUse[1]] * 100),"% variance")) +
-      ylab(paste0(pcs[2],": ",round(percentVar[pcsToUse[2]] * 100),"% variance")) +
-        coord_fixed()
+  ggplot2::ggplot(
+    data=d,
+    ggplot2::aes(
+      x = .data[[ pcs[1] ]],
+      y = .data[[ pcs[2] ]],
+      color="group")
+  ) +
+    ggplot2::geom_point(size=3) + 
+    ggplot2::xlab(paste0(pcs[1],": ",round(percentVar[pcsToUse[1]] * 100),"% variance")) +
+      ggplot2::ylab(paste0(pcs[2],": ",round(percentVar[pcsToUse[2]] * 100),"% variance")) +
+        ggplot2::coord_fixed()
 }
 
 #' Sample PCA plot for transformed data
@@ -331,7 +337,7 @@ plotPCA.DESeqTransform = function(object, intgroup="condition",
 #' # trigger our plotPCA method.
 #' plotPCA( DESeqTransform( se ) )
 #'
-#' @importFrom ggplot2 ggplot geom_point xlab ylab coord_fixed aes_string
+#' @importFrom ggplot2 ggplot geom_point xlab ylab coord_fixed aes
 #' @export
 setMethod("plotPCA", signature(object="DESeqTransform"), plotPCA.DESeqTransform)
 
