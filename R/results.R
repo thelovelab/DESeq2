@@ -297,7 +297,8 @@
 #' @export
 results <- function(object, contrast, name, 
                     lfcThreshold=0,
-                    altHypothesis=c("greaterAbs","lessAbs","greater","less","greaterAbs2014"),
+                    altHypothesis=c("greaterAbs","lessAbs","greater","less",
+                                    "greaterAbs2014", "greaterAbsUPSHOT"),
                     listValues=c(1,-1),
                     cooksCutoff,
                     independentFiltering=TRUE,
@@ -413,6 +414,11 @@ of length 3 to 'contrast' instead of using 'name'")
   # this will be used in cleanContrast, and in the lfcThreshold chunks below
   useT <- "tDegreesFreedom" %in% names(mcols(object))
   
+  if (altHypothesis == "greaterAbsUPSHOT" & useT) {
+    stop("greaterAbsUPSHOT does not yet have an implementation when useT=TRUE")
+  }
+  
+  
   # if performing a contrast call the function cleanContrast()
   if (!missing(contrast)) {
     resNames <- resultsNames(object)
@@ -496,6 +502,21 @@ of length 3 to 'contrast' instead of using 'name'")
         newPvalue <- mapply(pfunc_lfc, T, LFC, SE, df)
       }
       newStat <- LFC / SE # just output the Wald stat ...
+    } else if (altHypothesis == "greaterAbsUPSHOT") {
+      # placing a uniform prior on the effect-size distribution to increase power
+      if (lfcThreshold == 0) {
+          newPvalue = pnorm(-abs(LFC), sd=SE) + pnorm(-abs(LFC), sd=SE)
+          newStat <- LFC / SE # just output the Wald stat ...
+      } else {
+        pfunc_lfc <- function(lfc_T, lfc, se) {
+          lfc = abs(lfc)
+          a = (lfc + lfc_T)/se
+          b = (lfc - lfc_T)/se
+          return(2/(b-a) * (-a * pnorm(-a) + dnorm(a) + b * pnorm(-b) - dnorm(b)))
+        }
+        newStat <- LFC / SE # just output the Wald stat ...
+        newPvalue <- mapply(pfunc_lfc, lfcThreshold, LFC, SE)
+      }
     } else if (altHypothesis == "greaterAbs2014") {
       # this is the version of greaterAbs that was used 2014-2023
       newStat <- sign(LFC) * pmax((abs(LFC) - T)/SE, 0)

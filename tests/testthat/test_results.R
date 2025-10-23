@@ -185,3 +185,59 @@ test_that("weights don't depend on contrast type", {
   res2 <- results(dds, contrast=c(0,1))
   expect_true(all.equal(res1$lfcSE, res2$lfcSE))
 })
+
+test_that("greaterAbsUPSHOT works as expected", {
+  set.seed(1)
+  ## toy dataset
+  dds <- makeExampleDESeqDataSet(m=100, n = 100)
+  dds <- DESeq(dds)
+  
+  # UPSHOT differs based on threshold
+  expect_false(
+    isTRUE(all.equal(results(dds, lfcThreshold=0.5, altHypothesis ="greaterAbsUPSHOT")$pvalue, 
+            results(dds, lfcThreshold=1.5, altHypothesis = "greaterAbsUPSHOT")$pvalue
+            )
+    )
+  )
+  
+  # UPSHOT equals greaterAbs when lfcThreshold = 0
+  expect_equal(
+    results(dds, lfcThreshold=0.0, altHypothesis = "greaterAbsUPSHOT")$pvalue,
+    results(dds, lfcThreshold=0.0, altHypothesis = "greaterAbs")$pvalue,
+    tolerance = 1e-12
+  )
+  
+  # UPSHOT continuous near threshold = 0
+  expect_equal(
+    results(dds, lfcThreshold=1e-6, altHypothesis = "greaterAbsUPSHOT")$pvalue,
+    results(dds, lfcThreshold=0.0, altHypothesis = "greaterAbsUPSHOT")$pvalue,
+    tolerance = 1e-6
+  )
+  
+  upperRiemannUPSHOT <- function(res, lfcThreshold, B=100){
+    lfc_abs <- abs(res$log2FoldChange)
+    inv_se  <- 1 / res$lfcSE
+    t_seq   <- (seq_len(B) * lfcThreshold) / B
+    # repeats Wald stats across B column
+    baseWald <- matrix(-lfc_abs * inv_se, nrow = length(lfc_abs), ncol = B) 
+    # offset is n×B: for each row i, offset[i, j] = t_seq[j] / SE_i
+    offset <- outer(inv_se, t_seq)
+    rowMeans(pnorm(baseWald + offset) + pnorm(baseWald - offset))
+  }
+  
+  res = results(dds, lfcThreshold=0.5, altHypothesis = "greaterAbsUPSHOT")
+  
+  # UPSHOT close to upper Riemann approximation
+  expect_equal(
+    res$pvalue,
+    upperRiemannUPSHOT(res, 0.5, B=1000),
+    tolerance = 1e-3
+  )
+
+  dds <- makeExampleDESeqDataSet(m=100, n = 100)
+  dds <- DESeq(dds, useT=TRUE)
+  expect_error(
+    results(dds, lfcThreshold=1e-6, altHypothesis = "greaterAbsUPSHOT")$pvalue
+  )
+}
+)
