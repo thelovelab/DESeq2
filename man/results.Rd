@@ -11,8 +11,8 @@ results(
   contrast,
   name,
   lfcThreshold = 0,
-  altHypothesis = c("greaterAbs", "lessAbs", "greater", "less", "greaterAbs2014",
-    "greaterAbsUPSHOT"),
+  altHypothesis = c("greaterAbs", "greaterAbsUPSHOT", "lessAbs", "greater", "less",
+    "greaterAbs2014"),
   listValues = c(1, -1),
   cooksCutoff,
   independentFiltering = TRUE,
@@ -83,8 +83,11 @@ or by \code{contrast} is written as \eqn{ \beta }{ beta }, then the possible val
 \itemize{
 \item greaterAbs: \eqn{|\beta| > \textrm{lfcThreshold} }{ |beta| > lfcThreshold },
 and p-values are two-tailed
-\item greaterAbsUPSHOT: a uniform prior for the effect-size distribution to
-achieve more power than \code{"greaterAbs"}
+\item greaterAbsUPSHOT: same as \code{greaterAbs}.
+Provides more power than \code{"greaterAbs"} and
+is valid when the distribution for \eqn{\beta}{beta}
+is unimodal about zero in the interval
+\eqn{[-\mathrm{lfcThreshold},\mathrm{lfcThreshold}]}{[-lfcThreshold,lfcThreshold]}
 \item lessAbs: \eqn{ |\beta| < \textrm{lfcThreshold} }{ |beta| < lfcThreshold },
 p-values are the maximum of the upper and lower tests.
 The Wald statistic given is positive, an SE-scaled distance from the closest boundary

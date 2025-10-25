@@ -1,3 +1,11 @@
+CHANGES IN VERSION 1.50.0
+-------------------------
+
+  o New method UPSHOT for lfcThreshold/altHypothesis.
+  o Fixes for lesser-used functionality, e.g. useT, weights
+    with numeric contrast and the SE computation, summary
+    printing.
+
 CHANGES	IN VERSION 1.49.6
 -------------------------
 
