@@ -716,7 +716,7 @@ resLFC <- lfcShrink(dds, coef="condition_treated_vs_untreated", type="apeglm")
 resLFC
 ```
 
-Shrinkage estimation is discussed more in a [later section](#altshrink).
+Shrinkage estimation is discussed more in a [later section](#moreshrink).
 
 <a name="parallel"/>
 
@@ -1713,7 +1713,7 @@ standard error associated with the estimated LFC is small.
 The next two rows point out that `apeglm` and `ashr` shrinkage methods
 help to preserve the size of large LFC, and can be used
 to compute *s-values*. These properties are related. As noted in the
-[previous section](#altshrink), the original DESeq2 shrinkage
+[previous section](#moreshrink), the original DESeq2 shrinkage
 estimator used a Normal distribution, with a scale that adapts to the
 spread of the observed LFCs. Because the tails of the Normal
 distribution become thin relatively quickly, it was important when we
