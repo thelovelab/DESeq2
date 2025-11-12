@@ -282,7 +282,7 @@ plotPCA.DESeqTransform = function(object, intgroup="condition",
     ggplot2::aes(
       x = .data[[ pcs[1] ]],
       y = .data[[ pcs[2] ]],
-      color="group")
+      color=group)
   ) +
     ggplot2::geom_point(size=3) + 
     ggplot2::xlab(paste0(pcs[1],": ",round(percentVar[pcsToUse[1]] * 100),"% variance")) +
