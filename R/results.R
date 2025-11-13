@@ -505,10 +505,10 @@ of length 3 to 'contrast' instead of using 'name'")
         }
         newPvalue <- mapply(pfunc_lfc, T, LFC, SE)
       } else {
-        pfunc_lfc <- function(lfc_T, lfc, se, df) {
+        pfunc_lfc_t <- function(lfc_T, lfc, se, df) {
           pt((-abs(lfc) + lfc_T)/se, df=df) + pt((-abs(lfc) - lfc_T)/se, df=df)
         }
-        newPvalue <- mapply(pfunc_lfc, T, LFC, SE, df)
+        newPvalue <- mapply(pfunc_lfc_t, T, LFC, SE, df)
       }
       newStat <- LFC / SE # just output the Wald stat ...
     } else if (altHypothesis == "greaterAbsUPSHOT") {
@@ -517,14 +517,14 @@ of length 3 to 'contrast' instead of using 'name'")
           newPvalue = pnorm(-abs(LFC), sd=SE) + pnorm(-abs(LFC), sd=SE)
           newStat <- LFC / SE # just output the Wald stat ...
       } else {
-        pfunc_lfc <- function(lfc_T, lfc, se) {
+        pfunc_lfc_upshot <- function(lfc_T, lfc, se) {
           lfc = abs(lfc)
           a = (lfc + lfc_T)/se
           b = (lfc - lfc_T)/se
           return(2/(b-a) * (-a * pnorm(-a) + dnorm(a) + b * pnorm(-b) - dnorm(b)))
         }
         newStat <- LFC / SE # just output the Wald stat ...
-        newPvalue <- mapply(pfunc_lfc, lfcThreshold, LFC, SE)
+        newPvalue <- mapply(pfunc_lfc_upshot, lfcThreshold, LFC, SE)
       }
     } else if (altHypothesis == "greaterAbs2014") {
       # this is the version of greaterAbs that was used 2014-2023
