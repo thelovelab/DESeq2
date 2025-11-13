@@ -173,7 +173,8 @@ Luca Menestrina,
 Hendrik Weisse,
 I-Hsuan Lin,
 Rasmus Henningsson,
-Alexey Sergushichev.
+Alexey Sergushichev,
+Hugo Gruson.
 
 ## Funding
 
