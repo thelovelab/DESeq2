@@ -129,7 +129,7 @@ test_that("the fitting of dispersion gives expected values using various methods
   dds <- estimateSizeFactors(dds)
   dds <- estimateDispersionsGeneEst(dds, niter=5)
   with(mcols(dds)[!mcols(dds)$allZero,],
-       expect_equal(log(trueDisp), log(dispGeneEst),tol=0.2))
+       expect_equal(log(trueDisp), log(dispGeneEst),tolerance=0.2))
 
 })
 

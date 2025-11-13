@@ -197,7 +197,7 @@ collapseReplicates <- function(object, groupby, run, renameCols=TRUE) {
   }
   groupby <- droplevels(groupby)
   stopifnot(length(groupby) == ncol(object))
-  sp <- split(seq(along=groupby), groupby)
+  sp <- split(seq_along(groupby), groupby)
   countdata <- sapply(sp, function(i) MatrixGenerics::rowSums(assay(object)[,i,drop=FALSE]))
   mode(countdata) <- "integer"
   colsToKeep <- sapply(sp, `[`, 1)

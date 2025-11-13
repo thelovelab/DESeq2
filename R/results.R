@@ -676,7 +676,7 @@ pvalueAdjustment <- function(res, independentFiltering, filter,
     if (missing(theta)) {
       lowerQuantile <- mean(filter == 0)
       if (lowerQuantile < .95) upperQuantile <- .95 else upperQuantile <- 1
-      theta <- seq(lowerQuantile, upperQuantile, length=50)
+      theta <- seq(lowerQuantile, upperQuantile, length.out=50)
     }
 
     # do filtering using genefilter

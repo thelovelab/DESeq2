@@ -6,7 +6,7 @@ test_that("parallel execution works as expected", {
   counts(dds0)[51:60,] <- 0L
 
   nworkers <- 4
-  idx <- factor(sort(rep(seq_len(nworkers),length=nrow(dds0))))
+  idx <- factor(sort(rep(seq_len(nworkers),length.out=nrow(dds0))))
 
   dds <- estimateSizeFactors(dds0)
   dds <- do.call(rbind, lapply(levels(idx), function(l) {

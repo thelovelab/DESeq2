@@ -1179,7 +1179,7 @@ estimateDispersionsPriorVar <- function(object, minDisp=1e-8, modelMatrix=NULL) 
       kl
     })
     lofit <- loess(klDivs ~ obsVarGrid, span=.2)
-    obsVarFineGrid <- seq(from=0,to=8,length=1000)
+    obsVarFineGrid <- seq(from=0,to=8,length.out=1000)
     lofitFitted <- predict(lofit,obsVarFineGrid)
     argminKL <- obsVarFineGrid[which.min(lofitFitted)]
     expVarLogDisp <- trigamma((m - p)/2)
