@@ -260,7 +260,7 @@ fitGLMsWithPrior <- function(object, betaTol, maxit, useOptim, useQR, betaPriorV
                          minmu=minmu)
     modelMatrix <- fit$modelMatrix
     modelMatrixNames <- colnames(modelMatrix)
-    H <- fit$hat_diagonal
+    H <- fit$hat_diagonals
     betaMatrix <- fit$betaMatrix
     mu <- fit$mu
 

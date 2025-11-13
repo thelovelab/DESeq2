@@ -30,7 +30,7 @@ test_that("outlier filtering and replacement works as expected", {
   expect_equal(results(dds1)$pvalue[idx], results(dds0)$pvalue[idx])
 
   # check that outlier filtering catches throughout range of mu
-  beta0 <- seq(from=1,to=16,length=100)
+  beta0 <- seq(from=1,to=16,length.out=100)
   idx <- rep(rep(c(TRUE,FALSE),c(1,9)),10)
   set.seed(1)
   #par(mfrow=c(2,3))

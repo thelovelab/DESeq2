@@ -246,7 +246,7 @@ vst <- function(object, blind=TRUE, nsub=1000, fitType="parametric") {
   object.sub <- object[baseMean > 5,]
   baseMean <- baseMean[baseMean > 5]
   o <- order(baseMean)
-  idx <- o[round(seq(from=1, to=length(o), length=nsub))]
+  idx <- o[round(seq(from=1, to=length(o), length.out=nsub))]
   object.sub <- object.sub[idx,]
 
   # estimate dispersion trend

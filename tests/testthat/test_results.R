@@ -4,7 +4,7 @@ test_that("results works as expected and throws errors", {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=200,m=12)
   dds$condition <- factor(rep(1:3,each=4))
-  dds$group <- factor(rep(1:2,length=ncol(dds)))
+  dds$group <- factor(rep(1:2,length.out=ncol(dds)))
   dds$foo <- rep(c("lo","hi"),each=6)
   counts(dds)[1,] <- rep(c(100L,200L,800L),each=4)
 
@@ -73,7 +73,7 @@ test_that("results: designs with zero intercept", {
   set.seed(1)
   dds <- makeExampleDESeqDataSet(n=100,m=12)
   dds$condition <- factor(rep(1:3,each=4))
-  dds$group <- factor(rep(1:2,length=ncol(dds)))
+  dds$group <- factor(rep(1:2,length.out=ncol(dds)))
 
   counts(dds)[1,] <- rep(c(100L,200L,400L),each=4)
 
