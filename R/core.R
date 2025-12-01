@@ -178,10 +178,9 @@
 #' \code{\link{lfcShrink}}.
 #' @param full for \code{test="LRT"}, the full model formula,
 #' which is restricted to the formula in \code{design(object)}.
-#' alternatively, it can be a model matrix constructed by the user.
-#' advanced use: specifying a model matrix for full and \code{test="Wald"}
-#' is possible if \code{betaPrior=FALSE}
-#' @param reduced for \code{test="LRT"}, a reduced formula to compare against,
+#' alternatively, it can be a model matrix constructed by the user
+#' @param reduced for \code{test="LRT"}, a reduced formula 
+#' to compare the full against,
 #' i.e., the full formula with the term(s) of interest removed.
 #' alternatively, it can be a model matrix constructed by the user
 #' @param quiet whether to print messages at each step
