@@ -2109,10 +2109,10 @@ replaceOutliers <- function(object, trim=.2, cooksCutoff, minReplicates=7, which
   trimBaseMean <- apply(counts(object,normalized=TRUE),1,mean,trim=trim)
   # build a matrix of counts based on the trimmed mean and the size factors
   replacementCounts <- if (!is.null(normalizationFactors(object))) {
-    as.integer(matrix(rep(trimBaseMean,ncol(object)),ncol=ncol(object)) * 
-               normalizationFactors(object))
+    as.integer(round(matrix(rep(trimBaseMean,ncol(object)),ncol=ncol(object)) * 
+               normalizationFactors(object)))
   } else {
-    as.integer(outer(trimBaseMean, sizeFactors(object), "*"))
+    as.integer(round(outer(trimBaseMean, sizeFactors(object), "*")))
   }
   
   # replace only those values which fall above the cutoff on Cook's distance
