@@ -9,7 +9,7 @@
  * the DESeq2 library, the development branch of which 
  * can be viewed here: 
  *
- * https://github.com/thelovelab/DESeq2/blob/master/src/DESeq2.cpp
+ * https://github.com/thelovelab/DESeq2/blob/devel/src/DESeq2.cpp
  */
 
 // include RcppArmadillo and Rcpp
