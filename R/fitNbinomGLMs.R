@@ -351,7 +351,9 @@ fitNbinomGLMsOptim <- function(object,modelMatrix,lambda,
     betaRow <- if (rowStable[row] & all(abs(betaMatrix[row,]) < large)) {
       betaMatrix[row,]
     } else {
-      beta_mat[row,]
+      # beta_mat holds the natural log scale initial values,
+      # convert to log2 scale used by objectiveFn
+      log2(exp(1)) * beta_mat[row,]
     }
     nf <- normalizationFactors[row,]
     k <- counts(object)[row,]

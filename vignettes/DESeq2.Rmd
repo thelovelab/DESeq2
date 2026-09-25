@@ -174,7 +174,8 @@ Hendrik Weisse,
 I-Hsuan Lin,
 Rasmus Henningsson,
 Alexey Sergushichev,
-Hugo Gruson.
+Hugo Gruson,
+Hien Nguyen Minh.
 
 ## Funding
 

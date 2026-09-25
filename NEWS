@@ -1,3 +1,14 @@
+CHANGES IN VERSION 1.53.3
+-------------------------
+
+  o Fix scale of the fallback starting values for optim in
+    fitNbinomGLMsOptim() (R/fitNbinomGLMs.R, line 356): the
+    initial beta_mat is on the natural log scale and is now
+    converted to log2 to match the optim objective. Only
+    affects rows where IRLS gave NA or |beta| >= 30, with
+    minimal impact on estimates. Thanks to Hien Nguyen Minh
+    (@btvn-hien-nm) for reporting, addresses GitHub issue #134.
+
 CHANGES IN VERSION 1.51.3
 -------------------------
 
