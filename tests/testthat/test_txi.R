@@ -5,7 +5,7 @@ test_that("tximport works", {
   library(tximportData)
   dir <- system.file("extdata", package="tximportData")
   samples <- read.table(file.path(dir,"samples.txt"), header=TRUE)
-  samples$condition <- factor(rep(c("A","B"),each=3))
+  samples$condition <- factor(c("A","B"))
   rownames(samples) <- samples$run
   samples[,c("pop","center","run","condition")]
   files <- file.path(dir,"salmon", samples$run, "quant.sf.gz")
