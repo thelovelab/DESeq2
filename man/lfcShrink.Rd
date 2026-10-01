@@ -111,6 +111,15 @@ See vignette for a comparison of shrinkage estimators on an example dataset.
 For all shrinkage methods, details on the prior is included in
 \code{priorInfo(res)}, including the \code{fitted_g} mixture for ashr.
 
+Note that if outlier counts were replaced by \code{DESeq}
+(see \code{minReplicatesForReplace}), the replaced counts are not
+used by \code{lfcShrink} for \code{type="apeglm"} or \code{type="normal"}:
+fitting is performed on the original counts.
+If it is desired to fit on the replaced counts, these can be found in
+\code{assays(dds)[["replaceCounts"]]}, and can be assigned to the
+counts assay, e.g. \code{counts(dds) <- assays(dds)[["replaceCounts"]]},
+before running \code{lfcShrink}.
+
 \strong{For type="apeglm":}
 Specifying \code{apeglm} passes along DESeq2 MLE log2
 fold changes and standard errors to the \code{apeglm} function
