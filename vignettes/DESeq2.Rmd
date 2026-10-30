@@ -2373,7 +2373,12 @@ different across group:
 
 ```{r groupeffect4, eval=FALSE}
 results(dds, contrast=list("grpY.cndB","grpX.cndB"))
-``` 
+```
+
+Here the individual effects are modeled as fixed effects. With many
+individuals, an alternative is to model individual as a random
+effect, which is not supported by *DESeq2* (see the FAQ
+[Can DESeq2 model random effects?](#randomeffects)).
 
 ### Levels without samples
 
@@ -2799,8 +2804,26 @@ counts with `counts(dds, normalized=TRUE)`. For details, see the
 Yes, you should use a multi-factor design which includes the sample
 information as a term in the design formula. This will account for 
 differences between the samples while estimating the effect due to 
-the condition. The condition of interest should go at the end of the 
+the condition. The condition of interest should go at the end of the
 design formula, e.g. `~ subject + condition`.
+
+With a small number of subjects, including subject as a fixed effect
+in this way is effective. With many subjects, it may make more sense to
+model subject as a random effect, which avoids adding many terms to
+the design (see the [next question](#randomeffects)).
+
+<a name="randomeffects"/>
+
+## Can DESeq2 model random effects?
+
+No, *DESeq2* only fits fixed effects. To model random effects, for
+example a random effect for subject or donor when there are many
+repeated measures, we recommend
+[limma](http://bioconductor.org/packages/limma) *voom* with the
+*duplicateCorrelation* function, or the *dream* function in the
+[variancePartition](http://bioconductor.org/packages/variancePartition)
+package, which fits linear mixed models on log counts with precision
+weights computed by *voomWithDreamWeights*.
 
 ## If I have multiple groups, should I run all together or split into pairs of groups?
 
